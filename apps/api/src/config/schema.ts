@@ -6,6 +6,7 @@ export const RawEnvSchema = z.object({
   PORT: z.string().regex(/^\d+$/).transform(Number),
   HOST: z.string().min(1),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']),
+  CORS_ORIGINS: z.string().transform((val) => val.split(',').map(k => k.trim()).filter(Boolean)).optional(),
 
   // 2. PostgreSQL Configuration
   DATABASE_HOST: z.string().min(1),
@@ -22,7 +23,12 @@ export const RawEnvSchema = z.object({
   REDIS_PASSWORD: z.string().optional(),
   REDIS_TLS: z.string().transform((val) => val === 'true' || val === '1'),
 
-  // 4. Observability Configuration
+  // 4. Identity / Auth Configuration
+  ACCESS_TOKEN_SECRET: z.string().min(16),
+  ACCESS_TOKEN_TTL_SECONDS: z.string().regex(/^\d+$/).transform(Number).optional(),
+  REFRESH_TOKEN_TTL_SECONDS: z.string().regex(/^\d+$/).transform(Number).optional(),
+
+  // 5. Observability Configuration
   SERVICE_NAME: z.string().min(1),
   LOG_PRETTY: z.string().transform((val) => val === 'true' || val === '1'),
   REDACT_KEYS: z.string().transform((val) =>
@@ -31,6 +37,9 @@ export const RawEnvSchema = z.object({
       .map((k) => k.trim())
       .filter(Boolean),
   ),
+
+  // 6. Search Configuration
+  SEARCH_STORE_ADAPTER: z.enum(['postgres', 'memory']).optional(),
 });
 
 export type RawEnv = z.infer<typeof RawEnvSchema>;
@@ -41,6 +50,7 @@ export interface AppConfig {
     port: number;
     host: string;
     logLevel: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+    corsOrigins?: string[] | undefined;
   };
   postgres: {
     host: string;
@@ -57,9 +67,17 @@ export interface AppConfig {
     password?: string | undefined;
     tls: boolean;
   };
+  identity: {
+    accessTokenSecret: string;
+    accessTokenTtlSeconds?: number | undefined;
+    refreshTokenTtlSeconds?: number | undefined;
+  };
   observability: {
     serviceName: string;
     logPretty: boolean;
     redactKeys: string[];
+  };
+  search: {
+    storeAdapter: 'postgres' | 'memory';
   };
 }

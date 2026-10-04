@@ -18,6 +18,7 @@ describe('Configuration Validation', () => {
     REDIS_PORT: '6379',
     REDIS_PASSWORD: '',
     REDIS_TLS: 'false',
+    ACCESS_TOKEN_SECRET: 'super-secret-key-at-least-16-chars',
     SERVICE_NAME: 'test-commerce-api',
     LOG_PRETTY: 'false',
     REDACT_KEYS: 'password,token,secret',

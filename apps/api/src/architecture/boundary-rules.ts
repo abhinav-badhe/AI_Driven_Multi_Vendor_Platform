@@ -87,5 +87,159 @@ export function validateImportBoundary(
     }
   }
 
+  // Rule 5: Search Read-Model Downstream Independence
+  // Search derived read model must not depend on or import Orders, Payment, or Settlement modules.
+  if (normalizedSource.includes('modules/search/')) {
+    if (
+      normalizedImport.includes('modules/orders') ||
+      normalizedImport.includes('../orders') ||
+      normalizedImport.includes('modules/payment') ||
+      normalizedImport.includes('../payment') ||
+      normalizedImport.includes('modules/settlement-ledger') ||
+      normalizedImport.includes('../settlement-ledger')
+    ) {
+      return {
+        rule: 'SEARCH_DOWNSTREAM_DEPENDENCY_VIOLATION',
+        sourceFile,
+        importedPath,
+        message: `Architectural violation: Search read model ('${sourceFile}') cannot import transactional downstream modules ('${importedPath}'). Discovery must remain decoupled from orders, payment, and settlement.`,
+      };
+    }
+  }
+
+  // Rule 6: Notifications Module Decoupling
+  // Notifications module must not directly import Orders, Payment, or Settlement modules.
+  if (normalizedSource.includes('modules/notifications/')) {
+    if (
+      normalizedImport.includes('modules/orders') ||
+      normalizedImport.includes('../orders') ||
+      normalizedImport.includes('modules/payment') ||
+      normalizedImport.includes('../payment') ||
+      normalizedImport.includes('modules/settlement-ledger') ||
+      normalizedImport.includes('../settlement-ledger')
+    ) {
+      return {
+        rule: 'NOTIFICATIONS_DOWNSTREAM_DEPENDENCY_VIOLATION',
+        sourceFile,
+        importedPath,
+        message: `Architectural violation: Notifications module ('${sourceFile}') cannot directly import downstream transactional modules ('${importedPath}'). Notifications react strictly via event transport.`,
+      };
+    }
+  }
+
+  // Rule 7: Analytics Module Transactional Decoupling
+  // Analytics module must not directly import transactional domain modules.
+  // It reacts strictly to domain events from event transport.
+  if (normalizedSource.includes('modules/analytics/')) {
+    if (
+      normalizedImport.includes('modules/orders') ||
+      normalizedImport.includes('../orders') ||
+      normalizedImport.includes('modules/payment') ||
+      normalizedImport.includes('../payment') ||
+      normalizedImport.includes('modules/settlement-ledger') ||
+      normalizedImport.includes('../settlement-ledger') ||
+      normalizedImport.includes('modules/inventory') ||
+      normalizedImport.includes('../inventory') ||
+      normalizedImport.includes('modules/catalog') ||
+      normalizedImport.includes('../catalog') ||
+      normalizedImport.includes('modules/marketplace') ||
+      normalizedImport.includes('../marketplace') ||
+      normalizedImport.includes('modules/cart-checkout') ||
+      normalizedImport.includes('../cart-checkout')
+    ) {
+      return {
+        rule: 'ANALYTICS_TRANSACTIONAL_DEPENDENCY_VIOLATION',
+        sourceFile,
+        importedPath,
+        message: `Architectural violation: Analytics module ('${sourceFile}') cannot directly import transactional domain modules ('${importedPath}'). Analytics derives information exclusively from event transport and cannot mutate transactional truth.`,
+      };
+    }
+  }
+
+  // Rule 8: Recommendations Module Transactional and ML Decoupling
+  // Recommendations module must not directly import transactional downstream modules (orders, payment, settlement-ledger, cart-checkout)
+  // and must NOT import predictive ML or AI modules.
+  if (normalizedSource.includes('modules/recommendations/')) {
+    if (
+      normalizedImport.includes('modules/orders') ||
+      normalizedImport.includes('../orders') ||
+      normalizedImport.includes('modules/payment') ||
+      normalizedImport.includes('../payment') ||
+      normalizedImport.includes('modules/settlement-ledger') ||
+      normalizedImport.includes('../settlement-ledger') ||
+      normalizedImport.includes('modules/cart-checkout') ||
+      normalizedImport.includes('../cart-checkout') ||
+      normalizedImport.includes('modules/ai') ||
+      normalizedImport.includes('../ai') ||
+      normalizedImport.includes('modules/analytics-ml') ||
+      normalizedImport.includes('../analytics-ml')
+    ) {
+      return {
+        rule: 'RECOMMENDATIONS_TRANSACTIONAL_DEPENDENCY_VIOLATION',
+        sourceFile,
+        importedPath,
+        message: `Architectural violation: Recommendations module ('${sourceFile}') cannot directly import transactional downstream modules or ML modules ('${importedPath}'). Recommendations derives signals exclusively from events, analytics facts, and authorized read interfaces.`,
+      };
+    }
+  }
+
+  // Rule 9: Predictive ML Transactional Decoupling
+  // ML module must not directly import transactional domain modules.
+  // Transactional domains must not import ML modules.
+  if (normalizedSource.includes('modules/analytics-ml/')) {
+    if (
+      normalizedImport.includes('modules/orders') ||
+      normalizedImport.includes('../orders') ||
+      normalizedImport.includes('modules/payment') ||
+      normalizedImport.includes('../payment') ||
+      normalizedImport.includes('modules/settlement-ledger') ||
+      normalizedImport.includes('../settlement-ledger') ||
+      normalizedImport.includes('modules/inventory') ||
+      normalizedImport.includes('../inventory') ||
+      normalizedImport.includes('modules/catalog') ||
+      normalizedImport.includes('../catalog') ||
+      normalizedImport.includes('modules/marketplace') ||
+      normalizedImport.includes('../marketplace') ||
+      normalizedImport.includes('modules/cart-checkout') ||
+      normalizedImport.includes('../cart-checkout') ||
+      normalizedImport.includes('modules/fulfillment') ||
+      normalizedImport.includes('../fulfillment')
+    ) {
+      return {
+        rule: 'ML_TRANSACTIONAL_DEPENDENCY_VIOLATION',
+        sourceFile,
+        importedPath,
+        message: `Architectural violation: Predictive ML module ('${sourceFile}') cannot directly import transactional domain modules ('${importedPath}'). ML derives features exclusively from authorized Analytics interfaces.`,
+      };
+    }
+  }
+
+  // Transactional domains must not depend on ML
+  const isTransactionalDomain =
+    normalizedSource.includes('modules/orders/') ||
+    normalizedSource.includes('modules/payment/') ||
+    normalizedSource.includes('modules/settlement-ledger/') ||
+    normalizedSource.includes('modules/inventory/') ||
+    normalizedSource.includes('modules/cart-checkout/') ||
+    normalizedSource.includes('modules/fulfillment/');
+
+  if (isTransactionalDomain) {
+    if (
+      normalizedImport.includes('modules/analytics-ml') ||
+      normalizedImport.includes('../analytics-ml') ||
+      normalizedImport.includes('modules/ai') ||
+      normalizedImport.includes('../ai')
+    ) {
+      return {
+        rule: 'TRANSACTIONAL_TO_ML_DEPENDENCY_VIOLATION',
+        sourceFile,
+        importedPath,
+        message: `Architectural violation: Transactional domain ('${sourceFile}') cannot depend on derived ML or AI modules ('${importedPath}'). Transactional operations must remain fully independent of ML.`,
+      };
+    }
+  }
+
   return null;
 }
+
+

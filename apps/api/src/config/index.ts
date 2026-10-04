@@ -36,6 +36,7 @@ export function parseConfig(envSource: Record<string, string | undefined>): AppC
       port: raw.PORT,
       host: raw.HOST,
       logLevel: raw.LOG_LEVEL,
+      corsOrigins: raw.CORS_ORIGINS,
     },
     postgres: {
       host: raw.DATABASE_HOST,
@@ -52,10 +53,18 @@ export function parseConfig(envSource: Record<string, string | undefined>): AppC
       password: raw.REDIS_PASSWORD || undefined,
       tls: raw.REDIS_TLS,
     },
+    identity: {
+      accessTokenSecret: raw.ACCESS_TOKEN_SECRET,
+      accessTokenTtlSeconds: raw.ACCESS_TOKEN_TTL_SECONDS,
+      refreshTokenTtlSeconds: raw.REFRESH_TOKEN_TTL_SECONDS,
+    },
     observability: {
       serviceName: raw.SERVICE_NAME,
       logPretty: raw.LOG_PRETTY,
       redactKeys: raw.REDACT_KEYS,
+    },
+    search: {
+      storeAdapter: raw.SEARCH_STORE_ADAPTER ?? 'postgres',
     },
   };
 }

@@ -12,9 +12,9 @@ const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
 };
 
 export interface LogContext {
-  correlationId?: string;
-  requestId?: string;
-  module?: string;
+  correlationId?: string | undefined;
+  requestId?: string | undefined;
+  module?: string | undefined;
   [key: string]: unknown;
 }
 

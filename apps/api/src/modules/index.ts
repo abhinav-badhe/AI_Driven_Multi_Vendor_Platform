@@ -13,5 +13,7 @@ export * from './promotion-pricing/index.js';
 export * from './events/index.js';
 export * from './search/index.js';
 export * from './ai/index.js';
+export * from './analytics/index.js';
 export * from './analytics-ml/index.js';
+export * from './recommendations/index.js';
 export * from './security-audit/index.js';

@@ -13,7 +13,26 @@ async function start() {
   });
 
   try {
-    const app = await buildApp({ config, logger });
+    let dbConnection;
+    let skipMigrations = false;
+    
+    // Check if we're using placeholder credentials and should boot in-memory database
+    if (config.postgres.password === 'placeholder_postgres_password' || !config.postgres.password) {
+      logger.info('Using in-memory PostgreSQL (pg-mem) for functional verification...');
+      // Dynamic import to avoid runtime dependency failure in production
+      const { createMigratedTestDatabase } = await import('./infra/database/in-memory-db.js');
+      const { seedDemoData } = await import('./infra/database/seed.js');
+      dbConnection = await createMigratedTestDatabase();
+      await seedDemoData(dbConnection, logger);
+      skipMigrations = true;
+    }
+
+    const app = await buildApp({ 
+      config, 
+      logger, 
+      dbConnection,
+      skipMigrations
+    });
     await app.listen({ port: config.app.port, host: config.app.host });
     logger.info(`Server listening on http://${config.app.host}:${config.app.port}`, {
       environment: config.app.nodeEnv,
@@ -28,7 +47,8 @@ async function start() {
   }
 }
 
-// Execute when run directly
-if (process.argv[1]?.endsWith('server.ts') || process.argv[1]?.endsWith('server.js')) {
-  start();
-}
+// Always execute entrypoint
+start().catch((err) => {
+  console.error('Fatal startup error:', err);
+  process.exit(1);
+});

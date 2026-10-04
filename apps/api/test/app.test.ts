@@ -23,13 +23,14 @@ describe('Fastify Application Composition & HTTP Lifecycle', () => {
     REDIS_PORT: '6379',
     REDIS_PASSWORD: '',
     REDIS_TLS: 'false',
+    ACCESS_TOKEN_SECRET: 'test-secret-at-least-16-chars',
     SERVICE_NAME: 'test-api',
     LOG_PRETTY: 'false',
     REDACT_KEYS: 'password,token',
   });
 
   beforeAll(async () => {
-    app = await buildApp({ config: testConfig });
+    app = await buildApp({ config: testConfig, skipMigrations: true });
 
     // Register a couple test routes to test error handlers
     app.get('/test-not-found', async () => {

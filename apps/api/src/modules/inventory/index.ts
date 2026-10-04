@@ -1,11 +1,53 @@
-/**
- * BOUNDED CONTEXT: Inventory
- * Ownership: Stock truth, warehouse/location tracking, inventory movements, reservations.
- */
+import type { DatabaseConnection } from '../../infra/database/connection.js';
+import type { Logger } from '../../observability/logger.js';
+import type { ListingService } from '../marketplace/index.js';
+import { InventoryService } from './internal/inventory-service.js';
+import type {
+  InventoryItemDto,
+  InventoryAvailabilityDto,
+  InventoryReservationDto,
+  InventoryMovementDto,
+  InitializeInventoryInput,
+  CreateReservationInput,
+} from './internal/inventory-service.js';
+import type {
+  ReservationStatus,
+  MovementType,
+} from './internal/inventory-repository.js';
+
+export type {
+  InventoryItemDto,
+  InventoryAvailabilityDto,
+  InventoryReservationDto,
+  InventoryMovementDto,
+  InitializeInventoryInput,
+  CreateReservationInput,
+  ReservationStatus,
+  MovementType,
+};
+
+import type { OutboxService } from '../events/index.js';
+
 export interface InventoryModule {
   readonly contextName: 'inventory';
+  createService(
+    db: DatabaseConnection,
+    logger: Logger,
+    marketplaceService: ListingService,
+    outboxService?: OutboxService,
+  ): InventoryService;
 }
 
 export const inventoryModule: InventoryModule = {
   contextName: 'inventory',
+  createService(
+    db: DatabaseConnection,
+    logger: Logger,
+    marketplaceService: ListingService,
+    outboxService?: OutboxService,
+  ): InventoryService {
+    return new InventoryService(db, logger, marketplaceService, outboxService);
+  },
 };
+
+export { InventoryService };
