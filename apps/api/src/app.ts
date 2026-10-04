@@ -13,6 +13,7 @@ import { createDatabaseService, type DatabaseService } from './infra/database/in
 import { createRedisService, type RedisService } from './infra/redis/index.js';
 import { PostgresPoolConnection, type DatabaseConnection } from './infra/database/connection.js';
 import { MigrationRunner } from './infra/database/migrations/runner.js';
+import { seedDemoData } from './infra/database/seed.js';
 import { identityModule } from './modules/identity/index.js';
 import { merchantModule } from './modules/merchant/index.js';
 import { catalogModule } from './modules/catalog/index.js';
@@ -120,6 +121,7 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     const migrationsDir = join(__dirname, 'infra', 'database', 'migrations');
     const runner = new MigrationRunner(migrationsDir);
     await runner.up(dbConn);
+    await seedDemoData(dbConn, rootLogger);
   }
 
   const identityService =
