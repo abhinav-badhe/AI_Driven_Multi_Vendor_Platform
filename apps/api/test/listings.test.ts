@@ -260,6 +260,64 @@ describe('Phase 3: Marketplace Listings (Multi-Vendor, Lifecycle & Tenant Isolat
     });
   });
 
+  describe('Merchant Console Detail View', () => {
+    it('returns listings enriched with product display content and stock levels', async () => {
+      const { alphaToken, betaToken, skuId } = await setupActors();
+
+      const listingRes = await app.inject({
+        method: 'POST',
+        url: '/listings',
+        headers: { authorization: `Bearer ${alphaToken}` },
+        payload: { skuId, priceAmount: 899900, currency: 'INR', compareAtPrice: 999900 },
+      });
+      expect(listingRes.statusCode).toBe(201);
+      const listing = listingRes.json();
+
+      const invRes = await app.inject({
+        method: 'POST',
+        url: '/inventory',
+        headers: { authorization: `Bearer ${alphaToken}` },
+        payload: { listingId: listing.id, initialOnHandQuantity: 25 },
+      });
+      expect(invRes.statusCode).toBe(201);
+
+      const detailRes = await app.inject({
+        method: 'GET',
+        url: '/listings/me/detail',
+        headers: { authorization: `Bearer ${alphaToken}` },
+      });
+      expect(detailRes.statusCode).toBe(200);
+      const details = detailRes.json();
+      expect(details).toHaveLength(1);
+      expect(details[0]).toMatchObject({
+        id: listing.id,
+        skuCode: 'PRS-BLK-09',
+        productTitle: 'Pro Running Shoes',
+        brand: 'FastTrack',
+        priceAmount: 899900,
+        currency: 'INR',
+        onHandQuantity: 25,
+        reservedQuantity: 0,
+        availableQuantity: 25,
+      });
+      expect(details[0].images).toEqual([]);
+
+      // Other merchant sees only their own listings
+      const betaRes = await app.inject({
+        method: 'GET',
+        url: '/listings/me/detail',
+        headers: { authorization: `Bearer ${betaToken}` },
+      });
+      expect(betaRes.statusCode).toBe(200);
+      expect(betaRes.json()).toEqual([]);
+    });
+
+    it('rejects unauthenticated access to the detail view', async () => {
+      const res = await app.inject({ method: 'GET', url: '/listings/me/detail' });
+      expect(res.statusCode).toBe(401);
+    });
+  });
+
   describe('Tenant Isolation & Authorization', () => {
     it('prevents a merchant from viewing another merchant draft/inactive listing', async () => {
       const { alphaToken, betaToken, skuId } = await setupActors();

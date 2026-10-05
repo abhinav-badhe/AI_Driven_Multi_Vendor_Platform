@@ -3,6 +3,7 @@ import { Minus, Plus } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import { Rating, discountPercent } from "./display";
 
 // Shared product card — one consistent treatment everywhere a product is
 // listed (home, search, category). Compact, left-aligned, border-only,
@@ -62,8 +63,14 @@ export function ProductCard({
   categoryName,
   merchantName,
   priceLabel,
+  compareAtLabel,
+  compareAtPrice,
+  price,
   offerCount,
   inStock,
+  thumbnailUrl,
+  rating,
+  reviewCount,
   action,
 }: {
   productId: string;
@@ -72,13 +79,34 @@ export function ProductCard({
   categoryName?: string | null | undefined;
   merchantName?: string | null | undefined;
   priceLabel: string;
+  compareAtLabel?: string | null | undefined;
+  compareAtPrice?: number | null | undefined;
+  price?: number | null | undefined;
   offerCount?: number;
   inStock: boolean;
+  thumbnailUrl?: string | null | undefined;
+  rating?: number | null | undefined;
+  reviewCount?: number | undefined;
   action: React.ReactNode;
 }) {
+  const off = price != null ? discountPercent(price, compareAtPrice) : null;
   return (
     <Card>
       <CardContent className="flex flex-col gap-2 p-4">
+        {thumbnailUrl && (
+          <Link
+            to={`/product/${productId}`}
+            className="block overflow-hidden rounded-md border border-border"
+            aria-label={`View ${title}`}
+          >
+            <img
+              src={thumbnailUrl}
+              alt=""
+              loading="lazy"
+              className="aspect-square w-full object-cover"
+            />
+          </Link>
+        )}
         <div className="flex items-center justify-between gap-2">
           <StockBadge inStock={inStock} />
           {offerCount !== undefined && (
@@ -95,6 +123,12 @@ export function ProductCard({
           >
             {title}
           </Link>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <Rating rating={rating} reviewCount={reviewCount} />
+            {off != null && (
+              <Badge variant="warning">{off}% off</Badge>
+            )}
+          </div>
           {categoryName && (
             <p className="mt-0.5 text-xs text-muted-foreground">In {categoryName}</p>
           )}
@@ -103,7 +137,12 @@ export function ProductCard({
           )}
         </div>
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-2.5">
-          <p className="tnum text-base font-semibold">{priceLabel}</p>
+          <div>
+            <p className="tnum text-base font-semibold">{priceLabel}</p>
+            {compareAtLabel && (
+              <p className="tnum text-xs text-muted-foreground line-through">{compareAtLabel}</p>
+            )}
+          </div>
           {action}
         </div>
       </CardContent>

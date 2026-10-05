@@ -5,6 +5,7 @@ import type { MerchantService } from '../merchant/index.js';
 import { ListingService } from './internal/listing-service.js';
 import type {
   MerchantListingDto,
+  MerchantListingDetailDto,
   CreateListingInput,
   UpdateListingInput,
 } from './internal/listing-service.js';
@@ -12,6 +13,7 @@ import type { ListingStatus, ListListingsFilter } from './internal/listing-repos
 
 export type {
   MerchantListingDto,
+  MerchantListingDetailDto,
   CreateListingInput,
   UpdateListingInput,
   ListingStatus,

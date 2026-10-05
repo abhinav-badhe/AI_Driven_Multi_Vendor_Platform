@@ -21,9 +21,32 @@ export interface ProductRow {
   brand: string | null;
   category_id: string | null;
   status: ProductStatus;
+  thumbnail_url: string | null;
+  images: unknown;
+  rating: string | number | null;
+  review_count: string | number | null;
+  attributes: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
+
+export interface ProductReviewRow {
+  id: string;
+  product_id: string;
+  rating: number;
+  comment: string | null;
+  reviewer_name: string | null;
+  reviewer_email: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+// Columns for enriched product reads (Catalog owns this display content).
+const PRODUCT_COLUMNS = `
+  id, title, slug, description, brand, category_id, status,
+  thumbnail_url, images, rating, review_count, attributes,
+  created_at, updated_at
+`;
 
 export interface ProductSkuRow {
   id: string;
@@ -104,13 +127,19 @@ export class CatalogRepository {
     brand?: string | null | undefined;
     categoryId?: string | null | undefined;
     status?: ProductStatus | undefined;
+    thumbnailUrl?: string | null | undefined;
+    images?: unknown | undefined;
+    rating?: number | null | undefined;
+    reviewCount?: number | undefined;
+    attributes?: Record<string, unknown> | undefined;
   }): Promise<ProductRow> {
     const id = data.id ?? randomUUID();
     const status = data.status ?? 'DRAFT';
     const res = await this.db.query<ProductRow>(
-      `INSERT INTO products (id, title, slug, description, brand, category_id, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, title, slug, description, brand, category_id, status, created_at, updated_at`,
+      `INSERT INTO products (id, title, slug, description, brand, category_id, status,
+        thumbnail_url, images, rating, review_count, attributes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING ${PRODUCT_COLUMNS}`,
       [
         id,
         data.title,
@@ -119,6 +148,11 @@ export class CatalogRepository {
         data.brand ?? null,
         data.categoryId ?? null,
         status,
+        data.thumbnailUrl ?? null,
+        JSON.stringify(data.images ?? []),
+        data.rating ?? null,
+        data.reviewCount ?? 0,
+        JSON.stringify(data.attributes ?? {}),
       ],
     );
     return res.rows[0]!;
@@ -126,7 +160,7 @@ export class CatalogRepository {
 
   async findProductById(id: string): Promise<ProductRow | null> {
     const res = await this.db.query<ProductRow>(
-      `SELECT id, title, slug, description, brand, category_id, status, created_at, updated_at
+      `SELECT ${PRODUCT_COLUMNS}
        FROM products
        WHERE id = $1`,
       [id],
@@ -136,7 +170,7 @@ export class CatalogRepository {
 
   async findProductBySlug(slug: string): Promise<ProductRow | null> {
     const res = await this.db.query<ProductRow>(
-      `SELECT id, title, slug, description, brand, category_id, status, created_at, updated_at
+      `SELECT ${PRODUCT_COLUMNS}
        FROM products
        WHERE slug = $1`,
       [slug],
@@ -153,6 +187,11 @@ export class CatalogRepository {
       brand?: string | null | undefined;
       categoryId?: string | null | undefined;
       status?: ProductStatus | undefined;
+      thumbnailUrl?: string | null | undefined;
+      images?: unknown | undefined;
+      rating?: number | null | undefined;
+      reviewCount?: number | undefined;
+      attributes?: Record<string, unknown> | undefined;
     },
   ): Promise<ProductRow | null> {
     const current = await this.findProductById(id);
@@ -164,13 +203,32 @@ export class CatalogRepository {
     const brand = updates.brand !== undefined ? updates.brand : current.brand;
     const categoryId = updates.categoryId !== undefined ? updates.categoryId : current.category_id;
     const status = updates.status !== undefined ? updates.status : current.status;
+    const thumbnailUrl =
+      updates.thumbnailUrl !== undefined ? updates.thumbnailUrl : current.thumbnail_url;
+    const images =
+      updates.images !== undefined
+        ? JSON.stringify(updates.images)
+        : typeof current.images === 'string'
+          ? current.images
+          : JSON.stringify(current.images ?? []);
+    const rating = updates.rating !== undefined ? updates.rating : current.rating;
+    const reviewCount =
+      updates.reviewCount !== undefined ? updates.reviewCount : current.review_count;
+    const attributes =
+      updates.attributes !== undefined
+        ? JSON.stringify(updates.attributes)
+        : typeof current.attributes === 'string'
+          ? current.attributes
+          : JSON.stringify(current.attributes ?? {});
 
     const res = await this.db.query<ProductRow>(
       `UPDATE products
-       SET title = $1, slug = $2, description = $3, brand = $4, category_id = $5, status = $6, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $7
-       RETURNING id, title, slug, description, brand, category_id, status, created_at, updated_at`,
-      [title, slug, description, brand, categoryId, status, id],
+       SET title = $1, slug = $2, description = $3, brand = $4, category_id = $5, status = $6,
+           thumbnail_url = $7, images = $8, rating = $9, review_count = $10, attributes = $11,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $12
+       RETURNING ${PRODUCT_COLUMNS}`,
+      [title, slug, description, brand, categoryId, status, thumbnailUrl, images, rating, reviewCount, attributes, id],
     );
     return res.rows[0] ?? null;
   }
@@ -206,7 +264,7 @@ export class CatalogRepository {
     const offsetParam = `$${paramIndex++}`;
 
     const res = await this.db.query<ProductRow>(
-      `SELECT id, title, slug, description, brand, category_id, status, created_at, updated_at
+      `SELECT ${PRODUCT_COLUMNS}
        FROM products
        ${whereClause}
        ORDER BY created_at DESC
@@ -214,6 +272,54 @@ export class CatalogRepository {
       params,
     );
     return res.rows;
+  }
+
+  // --- Product Review Methods ---
+
+  async createReview(data: {
+    id?: string | undefined;
+    productId: string;
+    rating: number;
+    comment?: string | null | undefined;
+    reviewerName?: string | null | undefined;
+    reviewerEmail?: string | null | undefined;
+    reviewedAt?: string | null | undefined;
+  }): Promise<ProductReviewRow> {
+    const id = data.id ?? randomUUID();
+    const res = await this.db.query<ProductReviewRow>(
+      `INSERT INTO product_reviews (id, product_id, rating, comment, reviewer_name, reviewer_email, reviewed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, product_id, rating, comment, reviewer_name, reviewer_email, reviewed_at, created_at`,
+      [
+        id,
+        data.productId,
+        data.rating,
+        data.comment ?? null,
+        data.reviewerName ?? null,
+        data.reviewerEmail ?? null,
+        data.reviewedAt ?? null,
+      ],
+    );
+    return res.rows[0]!;
+  }
+
+  async listReviewsByProductId(productId: string): Promise<ProductReviewRow[]> {
+    const res = await this.db.query<ProductReviewRow>(
+      `SELECT id, product_id, rating, comment, reviewer_name, reviewer_email, reviewed_at, created_at
+       FROM product_reviews
+       WHERE product_id = $1
+       ORDER BY reviewed_at DESC NULLS LAST, created_at DESC`,
+      [productId],
+    );
+    return res.rows;
+  }
+
+  async deleteReviewsByProductId(productId: string): Promise<number> {
+    const res = await this.db.query(
+      `DELETE FROM product_reviews WHERE product_id = $1`,
+      [productId],
+    );
+    return res.rowCount ?? 0;
   }
 
   // --- SKU Methods ---

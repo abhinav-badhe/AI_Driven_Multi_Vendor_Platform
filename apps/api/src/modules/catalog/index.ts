@@ -4,6 +4,7 @@ import { CatalogService } from './internal/catalog-service.js';
 import type {
   CategoryDto,
   ProductDto,
+  ProductReviewDto,
   ProductSkuDto,
   CreateCategoryInput,
   CreateProductInput,
@@ -16,6 +17,7 @@ import type { ProductStatus, SkuStatus, ListProductsFilter } from './internal/ca
 export type {
   CategoryDto,
   ProductDto,
+  ProductReviewDto,
   ProductSkuDto,
   CreateCategoryInput,
   CreateProductInput,

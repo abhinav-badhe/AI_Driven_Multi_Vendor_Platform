@@ -152,8 +152,8 @@ describe('Catalog & Marketplace Frontend Tests', () => {
         { id: 'sku2', skuCode: 'LAPTOP-BLUE', status: 'ACTIVE' }
       ];
       const mockListings = [
-        { id: 'list1', tenantId: 'm1', priceAmount: 999.99, currency: 'USD', compareAtPrice: 1200 },
-        { id: 'list2', tenantId: 'm2', priceAmount: 950.00, currency: 'USD', compareAtPrice: null }
+        { id: 'list1', tenantId: 'm1', priceAmount: 99999, currency: 'USD', compareAtPrice: 120000 },
+        { id: 'list2', tenantId: 'm2', priceAmount: 95000, currency: 'USD', compareAtPrice: null }
       ];
 
       fetchMock.mockImplementation((url: string) => {

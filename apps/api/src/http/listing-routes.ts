@@ -63,6 +63,18 @@ export function registerListingRoutes(
     },
   );
 
+  // GET /listings/me/detail (Merchant console view: listings with product
+  // display content and inventory levels — no raw IDs to manage)
+  app.get(
+    '/listings/me/detail',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const actor = requireActor(request);
+      const details = await listingService.getMyListingDetails(actor);
+      return reply.status(200).send(details);
+    },
+  );
+
   // GET /listings/:id (Merchant gets own, admin gets any, public gets if active)
   app.get(
     '/listings/:id',

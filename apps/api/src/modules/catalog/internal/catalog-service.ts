@@ -6,6 +6,7 @@ import {
   CatalogRepository,
   type CategoryRow,
   type ProductRow,
+  type ProductReviewRow,
   type ProductSkuRow,
   type ProductStatus,
   type SkuStatus,
@@ -50,8 +51,24 @@ export interface ProductDto {
   brand?: string | null;
   categoryId?: string | null;
   status: ProductStatus;
+  thumbnailUrl?: string | null;
+  images: string[];
+  rating?: number | null;
+  reviewCount: number;
+  attributes: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProductReviewDto {
+  id: string;
+  productId: string;
+  rating: number;
+  comment?: string | null;
+  reviewerName?: string | null;
+  reviewerEmail?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
 }
 
 export interface ProductSkuDto {
@@ -77,6 +94,9 @@ export interface CreateProductInput {
   description?: string | null | undefined;
   brand?: string | null | undefined;
   categoryId?: string | null | undefined;
+  thumbnailUrl?: string | null | undefined;
+  images?: string[] | undefined;
+  attributes?: Record<string, unknown> | undefined;
 }
 
 export interface UpdateProductInput {
@@ -85,6 +105,9 @@ export interface UpdateProductInput {
   description?: string | null | undefined;
   brand?: string | null | undefined;
   categoryId?: string | null | undefined;
+  thumbnailUrl?: string | null | undefined;
+  images?: string[] | undefined;
+  attributes?: Record<string, unknown> | undefined;
 }
 
 export interface CreateSkuInput {
@@ -178,6 +201,9 @@ export class CatalogService {
       brand: input.brand?.trim() ?? null,
       categoryId: input.categoryId ?? null,
       status: 'DRAFT',
+      thumbnailUrl: input.thumbnailUrl?.trim() || null,
+      images: input.images ?? [],
+      attributes: input.attributes ?? {},
     });
 
     return this.toProductDto(row);
@@ -222,6 +248,9 @@ export class CatalogService {
       description: updates.description?.trim(),
       brand: updates.brand?.trim(),
       categoryId: updates.categoryId,
+      thumbnailUrl: updates.thumbnailUrl?.trim(),
+      images: updates.images,
+      attributes: updates.attributes,
     });
 
     if (!updated) throw new NotFoundError(`Product '${id}' not found`);
@@ -254,6 +283,13 @@ export class CatalogService {
   async listProducts(filter?: ListProductsFilter): Promise<ProductDto[]> {
     const rows = await this.repo.listProducts(filter);
     return rows.map((r) => this.toProductDto(r));
+  }
+
+  async listProductReviews(productId: string): Promise<ProductReviewDto[]> {
+    const product = await this.repo.findProductById(productId);
+    if (!product) throw new NotFoundError(`Product '${productId}' not found`);
+    const rows = await this.repo.listReviewsByProductId(productId);
+    return rows.map((r) => this.toReviewDto(r));
   }
 
   // --- SKU Operations ---
@@ -397,32 +433,71 @@ export class CatalogService {
       brand: row.brand,
       categoryId: row.category_id,
       status: row.status,
+      thumbnailUrl: row.thumbnail_url ?? null,
+      images: parseStringArray(row.images),
+      rating: row.rating != null ? Number(row.rating) : null,
+      reviewCount: row.review_count != null ? Number(row.review_count) : 0,
+      attributes: parseAttributes(row.attributes),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
   }
 
-  private toSkuDto(row: ProductSkuRow): ProductSkuDto {
-    let parsedAttributes: Record<string, unknown> = {};
-    if (typeof row.attributes === 'string') {
-      try {
-        parsedAttributes = JSON.parse(row.attributes);
-      } catch {
-        parsedAttributes = {};
-      }
-    } else if (row.attributes && typeof row.attributes === 'object') {
-      parsedAttributes = row.attributes;
-    }
+  private toReviewDto(row: ProductReviewRow): ProductReviewDto {
+    return {
+      id: row.id,
+      productId: row.product_id,
+      rating: Number(row.rating),
+      comment: row.comment ?? null,
+      reviewerName: row.reviewer_name ?? null,
+      reviewerEmail: row.reviewer_email ?? null,
+      reviewedAt: row.reviewed_at ?? null,
+      createdAt: row.created_at,
+    };
+  }
 
+  private toSkuDto(row: ProductSkuRow): ProductSkuDto {
     return {
       id: row.id,
       productId: row.product_id,
       skuCode: row.sku_code,
       barcode: row.barcode,
-      attributes: parsedAttributes,
+      attributes: parseAttributes(row.attributes),
       status: row.status,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
+  };
+}
+
+function parseAttributes(val: unknown): Record<string, unknown> {
+  if (typeof val === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(val);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+      return {};
+    } catch {
+      return {};
+    }
   }
+  if (val && typeof val === 'object' && !Array.isArray(val)) {
+    return val as Record<string, unknown>;
+  }
+  return {};
+}
+
+function parseStringArray(val: unknown): string[] {
+  if (typeof val === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === 'string');
+      return [];
+    } catch {
+      return [];
+    }
+  }
+  if (Array.isArray(val)) return val.filter((v): v is string => typeof v === 'string');
+  return [];
 }

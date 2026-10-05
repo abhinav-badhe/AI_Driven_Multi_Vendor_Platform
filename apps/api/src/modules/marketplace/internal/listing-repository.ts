@@ -21,6 +21,22 @@ export interface ListListingsFilter {
   offset?: number | undefined;
 }
 
+export interface MerchantListingDetailRow extends MerchantListingRow {
+  sku_code: string;
+  product_id: string;
+  product_title: string;
+  product_slug: string;
+  product_brand: string | null;
+  thumbnail_url: string | null;
+  images: unknown;
+  rating: string | number | null;
+  review_count: string | number | null;
+  on_hand_quantity: number | string | null;
+  reserved_quantity: number | string | null;
+  non_sellable_quantity: number | string | null;
+  inventory_version: number | string | null;
+}
+
 export class ListingRepository {
   constructor(private readonly db: DatabaseConnection) {}
 
@@ -114,6 +130,30 @@ export class ListingRepository {
        WHERE sku_id = $1 AND status = 'ACTIVE'
        ORDER BY price_amount ASC`,
       [skuId],
+    );
+    return res.rows;
+  }
+
+  /**
+   * Merchant console view: listings joined with SKU, product display content
+   * and inventory levels so sellers manage products — never raw IDs.
+   */
+  async listListingDetailsByTenant(tenantId: string): Promise<MerchantListingDetailRow[]> {
+    const res = await this.db.query<MerchantListingDetailRow>(
+      `SELECT l.id, l.tenant_id, l.sku_id, l.price_amount, l.currency, l.compare_at_price,
+              l.status, l.created_at, l.updated_at,
+              s.sku_code,
+              p.id AS product_id, p.title AS product_title, p.slug AS product_slug,
+              p.brand AS product_brand, p.thumbnail_url, p.images, p.rating, p.review_count,
+              i.on_hand_quantity, i.reserved_quantity, i.non_sellable_quantity,
+              i.version AS inventory_version
+       FROM merchant_listings l
+       JOIN product_skus s ON s.id = l.sku_id
+       JOIN products p ON p.id = s.product_id
+       LEFT JOIN inventory_items i ON i.listing_id = l.id
+       WHERE l.tenant_id = $1
+       ORDER BY l.updated_at DESC`,
+      [tenantId],
     );
     return res.rows;
   }

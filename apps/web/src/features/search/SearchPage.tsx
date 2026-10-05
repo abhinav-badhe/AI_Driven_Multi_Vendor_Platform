@@ -10,6 +10,7 @@ import { Alert } from "../../components/ui/alert";
 import { EmptyState, Skeleton } from "../../components/ui/empty";
 import { Input, Label } from "../../components/ui/input";
 import { ProductCard, QtyControl } from "../../components/product/ProductCard";
+import { getDisplay } from "../../components/product/display";
 import { formatPrice } from "../../lib/format";
 import { cn } from "../../lib/utils";
 
@@ -273,6 +274,7 @@ export const SearchPage = () => {
                 {data.items.map((item) => {
                   const bestOffer = item.bestOffer || item.offers?.[0];
                   const cartItem = cart?.items?.find((it) => it.listingId === bestOffer?.listingId);
+                  const display = getDisplay(item.attributes);
                   const priceLabel =
                     item.minPrice === item.maxPrice
                       ? formatPrice(item.minPrice, item.currency, 2)
@@ -287,8 +289,18 @@ export const SearchPage = () => {
                       categoryName={item.categoryName}
                       merchantName={bestOffer?.merchantName}
                       priceLabel={priceLabel}
+                      compareAtLabel={
+                        bestOffer?.compareAtPrice && bestOffer.compareAtPrice > item.minPrice
+                          ? formatPrice(bestOffer.compareAtPrice, item.currency, 2)
+                          : null
+                      }
+                      compareAtPrice={bestOffer?.compareAtPrice}
+                      price={item.minPrice}
                       offerCount={item.totalOffersCount}
                       inStock={item.hasInStockOffer}
+                      thumbnailUrl={display.thumbnailUrl}
+                      rating={display.rating}
+                      reviewCount={display.reviewCount}
                       action={
                         item.hasInStockOffer && bestOffer ? (
                           cartItem ? (

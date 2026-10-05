@@ -8,6 +8,7 @@ import {
   ListingRepository,
   type ListingStatus,
   type MerchantListingRow,
+  type MerchantListingDetailRow,
   type ListListingsFilter,
 } from './listing-repository.js';
 import {
@@ -49,6 +50,22 @@ export interface UpdateListingInput {
   priceAmount?: number | undefined;
   currency?: string | undefined;
   compareAtPrice?: number | null | undefined;
+}
+
+export interface MerchantListingDetailDto extends MerchantListingDto {
+  skuCode: string;
+  productId: string;
+  productTitle: string;
+  productSlug: string;
+  brand?: string | null;
+  thumbnailUrl?: string | null;
+  images: string[];
+  rating?: number | null;
+  reviewCount: number;
+  onHandQuantity: number | null;
+  reservedQuantity: number | null;
+  availableQuantity: number | null;
+  inventoryVersion: number | null;
 }
 
 export class ListingService {
@@ -128,6 +145,12 @@ export class ListingService {
     RbacPolicy.requirePermission(actor, 'listing:read-own');
     const rows = await this.repo.listListingsByTenant(actor.tenantId, filter);
     return rows.map((r) => this.toDto(r));
+  }
+
+  async getMyListingDetails(actor: AuthorizedActor): Promise<MerchantListingDetailDto[]> {
+    RbacPolicy.requirePermission(actor, 'listing:read-own');
+    const rows = await this.repo.listListingDetailsByTenant(actor.tenantId);
+    return rows.map((r) => this.toDetailDto(r));
   }
 
   async getListingById(
@@ -296,5 +319,46 @@ export class ListingService {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
+  }
+
+  private toDetailDto(row: MerchantListingDetailRow): MerchantListingDetailDto {
+    const onHand = row.on_hand_quantity != null ? Number(row.on_hand_quantity) : null;
+    const reserved = row.reserved_quantity != null ? Number(row.reserved_quantity) : null;
+    const nonSellable =
+      row.non_sellable_quantity != null ? Number(row.non_sellable_quantity) : null;
+    const images = Array.isArray(row.images)
+      ? (row.images as unknown[]).filter((v): v is string => typeof v === 'string')
+      : typeof row.images === 'string'
+        ? safeParseStringArray(row.images)
+        : [];
+    return {
+      ...this.toDto(row),
+      skuCode: row.sku_code,
+      productId: row.product_id,
+      productTitle: row.product_title,
+      productSlug: row.product_slug,
+      brand: row.product_brand ?? null,
+      thumbnailUrl: row.thumbnail_url ?? images[0] ?? null,
+      images,
+      rating: row.rating != null ? Number(row.rating) : null,
+      reviewCount: row.review_count != null ? Number(row.review_count) : 0,
+      onHandQuantity: onHand,
+      reservedQuantity: reserved,
+      availableQuantity:
+        onHand != null && reserved != null ? onHand - reserved - (nonSellable ?? 0) : null,
+      inventoryVersion: row.inventory_version != null ? Number(row.inventory_version) : null,
+    };
+  }
+}
+
+function safeParseStringArray(val: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(val);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((v): v is string => typeof v === 'string');
+    }
+    return [];
+  } catch {
+    return [];
   }
 }

@@ -653,7 +653,15 @@ export class SearchService {
         hasInStockOffer,
         totalOffersCount: activeOffers.length,
         offers,
-        attributes: {},
+        // Display content rides inside attributes (persisted as JSONB by the
+        // SQL store) so no projection-table migration is needed for images.
+        attributes: {
+          ...(product.attributes ?? {}),
+          thumbnailUrl: product.thumbnailUrl ?? null,
+          images: product.images ?? [],
+          rating: product.rating ?? null,
+          reviewCount: product.reviewCount ?? 0,
+        },
         sourceVersion: new Date(product.updatedAt).getTime(),
         projectionVersion: 1,
         createdAt: product.createdAt,
@@ -711,6 +719,13 @@ export class SearchService {
       categoryId: product.categoryId ?? null,
       categoryName,
       status: product.status,
+      attributes: {
+        ...(product.attributes ?? {}),
+        thumbnailUrl: product.thumbnailUrl ?? null,
+        images: product.images ?? [],
+        rating: product.rating ?? null,
+        reviewCount: product.reviewCount ?? 0,
+      },
       sourceVersion: authoritativeVersion,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,

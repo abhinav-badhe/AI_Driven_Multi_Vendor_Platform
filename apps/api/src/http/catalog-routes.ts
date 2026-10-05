@@ -75,6 +75,9 @@ export function registerCatalogRoutes(
         description?: unknown;
         brand?: unknown;
         categoryId?: unknown;
+        thumbnailUrl?: unknown;
+        images?: unknown;
+        attributes?: unknown;
       };
 
       if (typeof body.title !== 'string') throw new ValidationError('title is required');
@@ -86,6 +89,14 @@ export function registerCatalogRoutes(
         description: typeof body.description === 'string' ? body.description : undefined,
         brand: typeof body.brand === 'string' ? body.brand : undefined,
         categoryId: typeof body.categoryId === 'string' ? body.categoryId : undefined,
+        thumbnailUrl: typeof body.thumbnailUrl === 'string' ? body.thumbnailUrl : undefined,
+        images: Array.isArray(body.images)
+          ? body.images.filter((v): v is string => typeof v === 'string')
+          : undefined,
+        attributes:
+          typeof body.attributes === 'object' && body.attributes !== null
+            ? (body.attributes as Record<string, unknown>)
+            : undefined,
       });
 
       return reply.status(201).send(product);
@@ -128,6 +139,17 @@ export function registerCatalogRoutes(
     },
   );
 
+  // GET /products/:id/reviews (public customer reviews for a canonical product)
+  app.get(
+    '/products/:id/reviews',
+    { preHandler: optionalAuth },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const reviews = await catalogService.listProductReviews(id);
+      return reply.status(200).send(reviews);
+    },
+  );
+
   // PATCH /products/:id (Admin only)
   app.patch(
     '/products/:id',
@@ -141,6 +163,9 @@ export function registerCatalogRoutes(
         description?: string;
         brand?: string;
         categoryId?: string;
+        thumbnailUrl?: string;
+        images?: string[];
+        attributes?: Record<string, unknown>;
       };
 
       const product = await catalogService.updateProduct(actor, id, {
@@ -149,6 +174,14 @@ export function registerCatalogRoutes(
         description: typeof body.description === 'string' ? body.description : undefined,
         brand: typeof body.brand === 'string' ? body.brand : undefined,
         categoryId: typeof body.categoryId === 'string' ? body.categoryId : undefined,
+        thumbnailUrl: typeof body.thumbnailUrl === 'string' ? body.thumbnailUrl : undefined,
+        images: Array.isArray(body.images)
+          ? body.images.filter((v): v is string => typeof v === 'string')
+          : undefined,
+        attributes:
+          typeof body.attributes === 'object' && body.attributes !== null
+            ? body.attributes
+            : undefined,
       });
 
       return reply.status(200).send(product);

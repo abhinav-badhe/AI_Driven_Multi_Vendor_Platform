@@ -4,6 +4,7 @@ import { PackageSearch } from "lucide-react";
 import { catalogApi, type Category, type Product } from "./api/catalog";
 import { Alert } from "../../components/ui/alert";
 import { EmptyState, Skeleton } from "../../components/ui/empty";
+import { Rating } from "../../components/product/display";
 
 export const CategoryPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -98,10 +99,21 @@ export const CategoryPage = () => {
               to={`/product/${product.id}`}
               className="rounded-lg border border-border p-4 transition-colors duration-150 hover:bg-muted"
             >
+              {(product.thumbnailUrl ?? product.images?.[0]) && (
+                <img
+                  src={product.thumbnailUrl ?? product.images?.[0]}
+                  alt=""
+                  loading="lazy"
+                  className="mb-2 aspect-square w-full rounded-md border border-border object-cover"
+                />
+              )}
               <p className="text-sm font-medium leading-snug">{product.title}</p>
               {product.brand && (
                 <p className="mt-0.5 text-xs text-muted-foreground">{product.brand}</p>
               )}
+              <div className="mt-1">
+                <Rating rating={product.rating} reviewCount={product.reviewCount} />
+              </div>
               {product.description && (
                 <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">{product.description}</p>
               )}

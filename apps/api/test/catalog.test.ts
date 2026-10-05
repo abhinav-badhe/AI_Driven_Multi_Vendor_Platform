@@ -303,6 +303,62 @@ describe('Phase 3: Catalog Domain (Category, Product, SKU)', () => {
     });
   });
 
+  describe('Product Content & Reviews', () => {
+    it('exposes enriched display fields with safe defaults on products', async () => {
+      const tokens = await getTokens();
+
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/products',
+        headers: { authorization: `Bearer ${tokens.adminToken}` },
+        payload: { title: 'Plain Mug', slug: 'plain-mug' },
+      });
+      expect(createRes.statusCode).toBe(201);
+      const prod = JSON.parse(createRes.body);
+
+      const getRes = await app.inject({ method: 'GET', url: `/products/${prod.id}` });
+      expect(getRes.statusCode).toBe(200);
+      const fetched = JSON.parse(getRes.body);
+      expect(fetched.thumbnailUrl).toBeNull();
+      expect(fetched.images).toEqual([]);
+      expect(fetched.rating).toBeNull();
+      expect(fetched.reviewCount).toBe(0);
+      expect(fetched.attributes).toEqual({});
+    });
+
+    it('lists customer reviews for a product and 404s for unknown products', async () => {
+      const tokens = await getTokens();
+
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/products',
+        headers: { authorization: `Bearer ${tokens.adminToken}` },
+        payload: { title: 'Reviewable Lamp', slug: 'reviewable-lamp' },
+      });
+      const prod = JSON.parse(createRes.body);
+
+      await db.query(
+        `INSERT INTO product_reviews (id, product_id, rating, comment, reviewer_name, reviewer_email, reviewed_at)
+         VALUES ('rev-1', $1, 5, 'Bright and sturdy', 'Asha Rao', 'asha@example.com', '2025-01-02T10:00:00.000Z')`,
+        [prod.id],
+      );
+
+      const listRes = await app.inject({ method: 'GET', url: `/products/${prod.id}/reviews` });
+      expect(listRes.statusCode).toBe(200);
+      const reviews = JSON.parse(listRes.body);
+      expect(reviews).toHaveLength(1);
+      expect(reviews[0]).toMatchObject({
+        productId: prod.id,
+        rating: 5,
+        comment: 'Bright and sturdy',
+        reviewerName: 'Asha Rao',
+      });
+
+      const missingRes = await app.inject({ method: 'GET', url: '/products/no-such-product/reviews' });
+      expect(missingRes.statusCode).toBe(404);
+    });
+  });
+
   describe('Product SKU Management & Relationships', () => {
     it('creates SKUs under canonical product and enforces uniqueness', async () => {
       const tokens = await getTokens();

@@ -12,8 +12,8 @@ export function EmptyState({
   icon: LucideIcon;
   title: string;
   description: string;
-  actionLabel?: string;
-  onAction?: () => void;
+  actionLabel?: string | undefined;
+  onAction?: (() => void) | undefined;
 }) {
   return (
     <div className="flex flex-col items-start gap-2 rounded-lg border border-border p-6">

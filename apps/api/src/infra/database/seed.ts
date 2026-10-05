@@ -42,7 +42,16 @@ export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Pro
     ON CONFLICT (tenant_id) DO NOTHING;
   `);
 
-  // 5. Categories
+  // 5. Categories (skipped when a catalog already exists, e.g. after a
+  // manual `seed:dummy-catalog` run — auto-seed must not resurrect replaced data)
+  const existingProducts = await db.query<{ count: string }>(
+    `SELECT COUNT(*) AS count FROM products`,
+  );
+  if (Number(existingProducts.rows[0]?.count ?? 0) > 0) {
+    logger?.info('Catalog already populated; skipping demo catalog seed.');
+    return;
+  }
+
   await db.query(`
     INSERT INTO categories (id, name, slug, parent_id) VALUES
       ('cat-electronics', 'Electronics', 'electronics', NULL),

@@ -11,6 +11,7 @@ import { Alert } from "../../components/ui/alert";
 import { EmptyState, Skeleton } from "../../components/ui/empty";
 import { Badge } from "../../components/ui/badge";
 import { ProductCard, QtyControl } from "../../components/product/ProductCard";
+import { getDisplay } from "../../components/product/display";
 import { formatPrice } from "../../lib/format";
 import { cn } from "../../lib/utils";
 
@@ -181,6 +182,7 @@ export const Home = () => {
             {displayedProducts.map((p) => {
               const bestOffer = p.bestOffer || p.offers?.[0];
               const cartItem = cart?.items?.find((it) => it.listingId === bestOffer?.listingId);
+              const display = getDisplay(p.attributes);
 
               return (
                 <ProductCard
@@ -189,9 +191,19 @@ export const Home = () => {
                   title={p.title}
                   brand={p.brand}
                   merchantName={bestOffer?.merchantName}
-                  priceLabel={formatPrice(p.minPrice, p.currency)}
+                  priceLabel={formatPrice(p.minPrice, p.currency, 2)}
+                  compareAtLabel={
+                    bestOffer?.compareAtPrice && bestOffer.compareAtPrice > p.minPrice
+                      ? formatPrice(bestOffer.compareAtPrice, p.currency, 2)
+                      : null
+                  }
+                  compareAtPrice={bestOffer?.compareAtPrice}
+                  price={p.minPrice}
                   offerCount={p.totalOffersCount}
                   inStock={p.hasInStockOffer}
+                  thumbnailUrl={display.thumbnailUrl}
+                  rating={display.rating}
+                  reviewCount={display.reviewCount}
                   action={
                     p.hasInStockOffer && bestOffer ? (
                       cartItem ? (
@@ -249,7 +261,7 @@ export const Home = () => {
                   <div className="mt-2 flex items-center justify-between">
                     <span className="tnum text-sm font-semibold">
                       {bestOffer ? (
-                        formatPrice(bestOffer.priceAmount, bestOffer.currency)
+                        formatPrice(bestOffer.priceAmount, bestOffer.currency, 2)
                       ) : (
                         <span className="font-normal text-muted-foreground">Check listings</span>
                       )}

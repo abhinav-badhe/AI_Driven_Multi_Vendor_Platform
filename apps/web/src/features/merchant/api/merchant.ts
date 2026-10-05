@@ -22,6 +22,24 @@ export interface MerchantListingDto {
   updatedAt: string;
 }
 
+// Enriched console view: product display content + stock levels included so
+// sellers manage products, never raw IDs.
+export interface MerchantListingDetailDto extends MerchantListingDto {
+  skuCode: string;
+  productId: string;
+  productTitle: string;
+  productSlug: string;
+  brand?: string | null;
+  thumbnailUrl?: string | null;
+  images: string[];
+  rating?: number | null;
+  reviewCount: number;
+  onHandQuantity: number | null;
+  reservedQuantity: number | null;
+  availableQuantity: number | null;
+  inventoryVersion: number | null;
+}
+
 export interface InventoryItemDto {
   id: string;
   tenantId: string;
@@ -60,6 +78,10 @@ export const merchantApi = {
 
   getMyListings: async (): Promise<MerchantListingDto[]> => {
     return apiClient<MerchantListingDto[]>('/listings/me');
+  },
+
+  getMyListingDetails: async (): Promise<MerchantListingDetailDto[]> => {
+    return apiClient<MerchantListingDetailDto[]>('/listings/me/detail');
   },
 
   getMyInventory: async (): Promise<InventoryItemDto[]> => {
@@ -145,7 +167,16 @@ export const merchantApi = {
     return apiClient<Array<{ id: string; skuCode: string; attributes?: Record<string, unknown> }>>(`/products/${productId}/skus`);
   },
 
-  createProduct: async (input: { title: string; slug: string; description?: string; brand?: string; categoryId?: string }): Promise<{ id: string; title: string }> => {
+  createProduct: async (input: {
+    title: string;
+    slug: string;
+    description?: string;
+    brand?: string;
+    categoryId?: string;
+    thumbnailUrl?: string;
+    images?: string[];
+    attributes?: Record<string, unknown>;
+  }): Promise<{ id: string; title: string }> => {
     return apiClient<{ id: string; title: string }>('/products', {
       method: 'POST',
       body: JSON.stringify(input),

@@ -19,8 +19,24 @@ export type Product = {
   brand: string | null;
   categoryId: string | null;
   status: ProductStatus;
+  thumbnailUrl?: string | null;
+  images?: string[];
+  rating?: number | null;
+  reviewCount?: number;
+  attributes?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ProductReview = {
+  id: string;
+  productId: string;
+  rating: number;
+  comment?: string | null;
+  reviewerName?: string | null;
+  reviewerEmail?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
 };
 
 export type SkuStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
@@ -55,6 +71,9 @@ export const catalogApi = {
   },
   getProduct: async (id: string): Promise<Product> => {
     return apiClient<Product>(`/products/${id}`);
+  },
+  getProductReviews: async (productId: string): Promise<ProductReview[]> => {
+    return apiClient<ProductReview[]>(`/products/${productId}/reviews`);
   },
   getProductSkus: async (productId: string): Promise<Sku[]> => {
     return apiClient<Sku[]>(`/products/${productId}/skus`);

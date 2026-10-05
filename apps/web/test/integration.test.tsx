@@ -169,9 +169,9 @@ describe('Phase C Frontend-Backend E2E Integration', () => {
 
     // Verify multiple active merchant offers are rendered with different prices
     await waitFor(() => {
-      // 99900 cents = $999.00 (currently rendered raw as 99900.00)
-      expect(screen.getByText(/99900\.00/)).toBeDefined();
-      expect(screen.getByText(/95000\.00/)).toBeDefined();
+      // 99900 minor units = $999.00 rendered in major units
+      expect(screen.getByText(/999\.00/)).toBeDefined();
+      expect(screen.getByText(/950\.00/)).toBeDefined();
     });
 
     // CRITICAL: Prove backend response itself excluded the INACTIVE listing (Listing C: 75000.00)
@@ -188,7 +188,7 @@ describe('Phase C Frontend-Backend E2E Integration', () => {
     expect(listingsPayload.some((l) => l.id === 'list-3')).toBe(false);
 
     // CRITICAL: Prove React DOM does not render Listing C
-    expect(screen.queryByText(/75000/)).toBeNull();
+    expect(screen.queryByText(/750\.00/)).toBeNull();
   });
 
   it('3. Product -> SKU -> zero active listings (only inactive listing seeded) -> backend returns [] and frontend renders empty seller state', async () => {
@@ -233,7 +233,7 @@ describe('Phase C Frontend-Backend E2E Integration', () => {
     expect(listingApiCall?.data).toEqual([]);
 
     // Prove no fake fallback seller or price was fabricated
-    expect(screen.queryByText(/49900/)).toBeNull();
+    expect(screen.queryByText(/499\.00/)).toBeNull();
     expect(screen.queryByText(/Add to Cart/)).toBeNull();
   });
 });
