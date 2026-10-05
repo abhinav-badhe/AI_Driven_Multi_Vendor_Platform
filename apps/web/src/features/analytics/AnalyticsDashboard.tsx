@@ -286,7 +286,7 @@ export const AnalyticsDashboard = () => {
             gap: '0.4rem',
           }}
         >
-          <span>⚡ Live Event Stream</span>
+          <span>Live Event Stream</span>
           <span style={{ fontSize: '0.7rem', background: 'rgba(59, 130, 246, 0.2)', color: 'var(--accent-blue)', padding: '1px 6px', borderRadius: '4px' }}>
             Section 17 &amp; 24
           </span>
@@ -544,7 +544,7 @@ export const AnalyticsDashboard = () => {
                     className="btn btn-secondary"
                     onClick={() => loadEvents()}
                   >
-                    🔄 Refresh
+                    Refresh
                   </button>
                   <button
                     type="button"
@@ -552,7 +552,7 @@ export const AnalyticsDashboard = () => {
                     disabled={isProcessingEvents}
                     onClick={handleProcessEvents}
                   >
-                    {isProcessingEvents ? 'Publishing...' : '⚡ Process Pending Events'}
+                    {isProcessingEvents ? 'Publishing...' : 'Process Pending Events'}
                   </button>
                 </div>
               </div>

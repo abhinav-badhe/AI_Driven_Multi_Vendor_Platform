@@ -136,7 +136,7 @@ export const MerchantFinance = () => {
             </p>
           </div>
           <button type="button" className="btn btn-secondary" onClick={loadFinance}>
-            🔄 Refresh
+            Refresh
           </button>
         </div>
 

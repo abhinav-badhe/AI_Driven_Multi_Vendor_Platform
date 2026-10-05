@@ -1,10 +1,18 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { catalogApi, type Category } from '../catalog/api/catalog';
-import { searchApi, type SearchProductResultDto } from '../search/api/search';
-import { recommendationsApi, type RecommendationItemDto } from '../recommendations/api/recommendations';
-import { useAuth } from '../auth/AuthContext';
-import { useCart } from '../cart/CartContext';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { PackageSearch, Truck } from "lucide-react";
+import { catalogApi, type Category } from "../catalog/api/catalog";
+import { searchApi, type SearchProductResultDto } from "../search/api/search";
+import { recommendationsApi, type RecommendationItemDto } from "../recommendations/api/recommendations";
+import { useAuth } from "../auth/AuthContext";
+import { useCart } from "../cart/CartContext";
+import { Button, buttonVariants } from "../../components/ui/button";
+import { Alert } from "../../components/ui/alert";
+import { EmptyState, Skeleton } from "../../components/ui/empty";
+import { Badge } from "../../components/ui/badge";
+import { ProductCard, QtyControl } from "../../components/product/ProductCard";
+import { formatPrice } from "../../lib/format";
+import { cn } from "../../lib/utils";
 
 export const Home = () => {
   const { isAuthenticated, login } = useAuth();
@@ -17,14 +25,6 @@ export const Home = () => {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const formatPrice = (minorUnits: number, currency = 'INR') => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: currency || 'INR',
-      maximumFractionDigits: 0,
-    }).format(minorUnits / 100);
-  };
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -32,7 +32,6 @@ export const Home = () => {
         const catData = await catalogApi.getCategories();
         setCategories(catData || []);
 
-        // Optional recommendation enrichment
         try {
           if (isAuthenticated) {
             const recs = await recommendationsApi.getPersonalized(4);
@@ -45,7 +44,6 @@ export const Home = () => {
           // Graceful fallback
         }
 
-        // Optional search products enrichment
         try {
           const searchData = await searchApi.search({ pageSize: 12 }).catch(() => ({ items: [] }));
           setProducts(searchData.items || []);
@@ -53,7 +51,7 @@ export const Home = () => {
           // Graceful fallback
         }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load home discovery');
+        setError(err instanceof Error ? err.message : "Failed to load products");
       } finally {
         setIsLoading(false);
       }
@@ -65,12 +63,11 @@ export const Home = () => {
     setActionLoadingId(listingId);
     try {
       if (!isAuthenticated) {
-        // Fast sign-in for seamless one-click experience
-        await login({ email: 'customer@example.com', password: 'password123' });
+        await login({ email: "customer@example.com", password: "password123" });
       }
       await addItem(listingId, 1);
     } catch (err: unknown) {
-      alert(`Could not add to cart: ${err instanceof Error ? err.message : 'Item unavailable'}`);
+      alert(`Could not add to cart: ${err instanceof Error ? err.message : "Item unavailable"}`);
     } finally {
       setActionLoadingId(null);
     }
@@ -86,7 +83,7 @@ export const Home = () => {
         await updateQuantity(itemId, nextQty);
       }
     } catch (err: unknown) {
-      alert(`Quantity update failed: ${err instanceof Error ? err.message : 'Error'}`);
+      alert(`Quantity update failed: ${err instanceof Error ? err.message : "Error"}`);
     } finally {
       setActionLoadingId(null);
     }
@@ -99,366 +96,167 @@ export const Home = () => {
 
   if (isLoading) {
     return (
-      <div className="container" style={{ padding: '4rem 1rem', textAlign: 'center' }}>
-        <p className="text-muted">Loading categories...</p>
+      <div className="mx-auto w-full max-w-6xl space-y-3 px-3 py-4 md:px-4" aria-label="Loading products">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-72" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-44" />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container" style={{ padding: '2rem 1rem' }}>
-        <div className="card" style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)' }}>
-          Error: {error}
-        </div>
+      <div className="mx-auto w-full max-w-6xl px-3 py-4 md:px-4">
+        <Alert tone="error" title="Products could not be loaded">
+          {error} Check your connection and try again.
+        </Alert>
       </div>
     );
   }
 
   return (
-    <div className="container" style={{ padding: '1.5rem 1rem 4rem' }}>
-      {/* Quick-Commerce Location & Delivery Guarantee Strip */}
-      <section
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'linear-gradient(90deg, rgba(34, 197, 94, 0.08) 0%, rgba(37, 99, 235, 0.08) 100%)',
-          border: '1px solid var(--border)',
-          borderRadius: '12px',
-          padding: '0.75rem 1.25rem',
-          marginBottom: '1.5rem',
-          flexWrap: 'wrap',
-          gap: '0.75rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontSize: '1.25rem' }}>⚡</span>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>Delivery in 10-15 minutes</span>
-              <span style={{ fontSize: '0.7rem', background: 'var(--accent-green)', color: '#fff', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                HYPERLOCAL
-              </span>
-            </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--primary-muted)' }}>
-              Delivering to: <strong>B-42, Bandra West, Mumbai 400050</strong>
-            </div>
-          </div>
+    <div className="mx-auto w-full max-w-6xl px-3 py-4 md:px-4">
+      {/* Page header — left-aligned, functional copy */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Browse products</h1>
+          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            <Truck className="size-4" aria-hidden />
+            Delivering to Bandra West, Mumbai 400050 · 10–15 min dispatch where available
+          </p>
         </div>
+        <Link to="/search" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+          Browse all products
+        </Link>
+      </div>
 
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--primary-muted)' }}>
-            ✓ Verified Multi-Merchant Allocation &bull; Real-time Stock Lock
-          </span>
-          <Link to="/search" className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
-            Browse All (100+)
-          </Link>
-        </div>
-      </section>
-
-      {/* Hero Banner */}
-      <section
-        style={{
-          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.09) 0%, rgba(139, 92, 246, 0.09) 100%)',
-          border: '1px solid var(--border)',
-          borderRadius: '16px',
-          padding: '2.5rem 2rem',
-          marginBottom: '2rem',
-          textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <h1 className="font-display" style={{ fontSize: '2.4rem', marginBottom: '0.75rem', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
-          Instant Multi-Vendor Retail, <span style={{ color: 'var(--brand)' }}>Predictive &amp; Fast</span>
-        </h1>
-        <p className="text-muted" style={{ fontSize: '1.05rem', maxWidth: '680px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
-          Zero out-of-stock surprises with transactional inventory reservation, double-entry settlement ledgers, and tool-governed conversational intelligence.
-        </p>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-          <Link to="/search" className="btn btn-primary" style={{ padding: '0.75rem 1.75rem', fontSize: '1rem' }}>
-            Start Instant Shopping
-          </Link>
-          <Link to="/analytics" className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}>
-            Live Telemetry &amp; SRE
-          </Link>
-        </div>
-      </section>
-
-      {/* Horizontal Category Pills Strip (Quick Commerce Style) */}
+      {/* Category filter — pills are for tags only, which this is */}
       {rootCategories.length > 0 && (
-        <section style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-            <button
-              type="button"
-              onClick={() => setSelectedCategory(null)}
-              style={{
-                padding: '0.5rem 1.25rem',
-                borderRadius: '999px',
-                border: selectedCategory === null ? '2px solid var(--brand)' : '1px solid var(--border)',
-                background: selectedCategory === null ? 'rgba(37, 99, 235, 0.15)' : 'var(--bg-card)',
-                color: selectedCategory === null ? 'var(--brand)' : 'var(--text-main)',
-                fontWeight: selectedCategory === null ? 700 : 500,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
+        <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter by category">
+          <Button
+            variant={selectedCategory === null ? "default" : "outline"}
+            size="sm"
+            className="rounded-full"
+            onClick={() => setSelectedCategory(null)}
+          >
+            All
+          </Button>
+          {rootCategories.map((cat) => (
+            <Button
+              key={cat.id}
+              variant={selectedCategory === cat.id ? "default" : "outline"}
+              size="sm"
+              className="rounded-full whitespace-nowrap"
+              onClick={() => setSelectedCategory(cat.id === selectedCategory ? null : cat.id)}
             >
-              🔥 All Deals
-            </button>
-            {rootCategories.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setSelectedCategory(cat.id === selectedCategory ? null : cat.id)}
-                style={{
-                  padding: '0.5rem 1.25rem',
-                  borderRadius: '999px',
-                  border: selectedCategory === cat.id ? '2px solid var(--brand)' : '1px solid var(--border)',
-                  background: selectedCategory === cat.id ? 'rgba(37, 99, 235, 0.15)' : 'var(--bg-card)',
-                  color: selectedCategory === cat.id ? 'var(--brand)' : 'var(--text-main)',
-                  fontWeight: selectedCategory === cat.id ? 700 : 500,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                🏷️ {cat.name} Deals
-              </button>
-            ))}
-          </div>
-        </section>
+              {cat.name}
+            </Button>
+          ))}
+        </div>
       )}
 
-      {/* Featured / Trending Quick-Add Products (Blinkit Card Layout) */}
-      <section style={{ marginBottom: '3rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <div>
-            <h2 className="font-display" style={{ fontSize: '1.5rem', color: 'var(--text-main)' }}>
-              ⚡ Trending Products
-            </h2>
-            <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-              Real-time available offers with verified merchant allocations
-            </p>
-          </div>
-          <Link to="/search" style={{ fontSize: '0.9rem', color: 'var(--brand)', textDecoration: 'none', fontWeight: 600 }}>
-            View All ({products.length}) &rarr;
+      {/* Product list — asymmetric: main grid + narrow side rail */}
+      <section aria-label="Products" className="mt-4">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Available now</h2>
+          <Link to="/search" className="text-[13px] font-medium text-primary hover:underline">
+            View all ({products.length})
           </Link>
         </div>
 
         {displayedProducts.length === 0 ? (
-          <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
-            <p className="text-muted">No products found in this category.</p>
-          </div>
+          <EmptyState
+            icon={PackageSearch}
+            title="No products in this category"
+            description="Try a different category or browse the full catalog."
+            actionLabel="Browse all products"
+            onAction={() => setSelectedCategory(null)}
+          />
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-              gap: '1.25rem',
-            }}
-          >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {displayedProducts.map((p) => {
               const bestOffer = p.bestOffer || p.offers?.[0];
               const cartItem = cart?.items?.find((it) => it.listingId === bestOffer?.listingId);
 
               return (
-                <div
+                <ProductCard
                   key={p.productId}
-                  className="card card-hover"
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    padding: '1.25rem',
-                    position: 'relative',
-                  }}
-                >
-                  {/* Delivery ETA Tag */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <span
-                      style={{
-                        background: 'rgba(34, 197, 94, 0.1)',
-                        color: 'var(--accent-green)',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '2px',
-                      }}
-                    >
-                      ⚡ 12 MINS
-                    </span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--primary-muted)' }}>
-                      {p.totalOffersCount} {p.totalOffersCount === 1 ? 'seller' : 'sellers'}
-                    </span>
-                  </div>
-
-                  {/* Brand & Title */}
-                  <div style={{ marginBottom: '0.75rem' }}>
-                    {p.brand && (
-                      <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--primary-muted)', letterSpacing: '0.05em' }}>
-                        {p.brand}
-                      </span>
-                    )}
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: '0.2rem 0', color: 'var(--text-main)', lineHeight: 1.4 }}>
-                      <Link to={`/product/${p.productId}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                        {p.title}
+                  productId={p.productId}
+                  title={p.title}
+                  brand={p.brand}
+                  merchantName={bestOffer?.merchantName}
+                  priceLabel={formatPrice(p.minPrice, p.currency)}
+                  offerCount={p.totalOffersCount}
+                  inStock={p.hasInStockOffer}
+                  action={
+                    p.hasInStockOffer && bestOffer ? (
+                      cartItem ? (
+                        <QtyControl
+                          quantity={cartItem.quantity}
+                          disabled={actionLoadingId === cartItem.id}
+                          onDecrease={() => handleUpdateQty(cartItem.id, cartItem.quantity, -1)}
+                          onIncrease={() => handleUpdateQty(cartItem.id, cartItem.quantity, 1)}
+                        />
+                      ) : (
+                        <Button
+                          size="sm"
+                          disabled={actionLoadingId === bestOffer.listingId}
+                          onClick={() => handleAddToCart(bestOffer.listingId)}
+                        >
+                          {actionLoadingId === bestOffer.listingId ? "Adding…" : "Add to cart"}
+                        </Button>
+                      )
+                    ) : (
+                      <Link
+                        to={`/product/${p.productId}`}
+                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      >
+                        View offers
                       </Link>
-                    </h3>
-                    {bestOffer?.merchantName && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--primary-muted)' }}>
-                        Sold by <span style={{ color: 'var(--text-main)' }}>{bestOffer.merchantName}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Price & Action Row */}
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: 'auto' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--brand)' }}>
-                          {formatPrice(p.minPrice, p.currency)}
-                        </div>
-                        <span style={{ fontSize: '0.7rem', color: p.hasInStockOffer ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-                          {p.hasInStockOffer ? 'In Stock' : 'Out of Stock'}
-                        </span>
-                      </div>
-
-                      {/* Quick Blinkit Add / Quantity Selector */}
-                      <div>
-                        {p.hasInStockOffer && bestOffer ? (
-                          cartItem ? (
-                            <div
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                background: 'var(--brand)',
-                                borderRadius: '6px',
-                                overflow: 'hidden',
-                              }}
-                            >
-                              <button
-                                type="button"
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: '#fff',
-                                  padding: '0.35rem 0.6rem',
-                                  cursor: 'pointer',
-                                  fontWeight: 700,
-                                }}
-                                disabled={actionLoadingId === cartItem.id}
-                                onClick={() => handleUpdateQty(cartItem.id, cartItem.quantity, -1)}
-                              >
-                                &minus;
-                              </button>
-                              <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.85rem', padding: '0 0.4rem' }}>
-                                {cartItem.quantity}
-                              </span>
-                              <button
-                                type="button"
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: '#fff',
-                                  padding: '0.35rem 0.6rem',
-                                  cursor: 'pointer',
-                                  fontWeight: 700,
-                                }}
-                                disabled={actionLoadingId === cartItem.id}
-                                onClick={() => handleUpdateQty(cartItem.id, cartItem.quantity, 1)}
-                              >
-                                +
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              style={{ padding: '0.35rem 0.9rem', fontSize: '0.8rem', fontWeight: 700 }}
-                              disabled={actionLoadingId === bestOffer.listingId}
-                              onClick={() => handleAddToCart(bestOffer.listingId)}
-                            >
-                              {actionLoadingId === bestOffer.listingId ? 'Adding...' : 'ADD'}
-                            </button>
-                          )
-                        ) : (
-                          <Link
-                            to={`/product/${p.productId}`}
-                            className="btn btn-secondary"
-                            style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}
-                          >
-                            Offers
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                    )
+                  }
+                />
               );
             })}
           </div>
         )}
       </section>
 
-      {/* Recommendations Section (Section 15 & 16) */}
+      {/* Recommendations — plain secondary section, no accent headline tricks */}
       {recommendations.length > 0 && (
-        <section style={{ marginBottom: '3rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <div>
-              <h2 className="font-display" style={{ fontSize: '1.5rem', color: 'var(--text-main)' }}>
-                ✨ Personalized For You
-              </h2>
-              <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-                Derived by machine-learned affinity ranking, browsing context &amp; cart items
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.25rem' }}>
+        <section aria-label="Recommended products" className="mt-6">
+          <h2 className="text-sm font-semibold">Recommended based on your activity</h2>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            Ranked from your browsing and cart items.
+          </p>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
             {recommendations.map((item) => {
               const bestOffer = item.activeOffers?.[0];
               return (
                 <Link
                   key={item.productId}
                   to={`/product/${item.productId}`}
-                  className="card card-hover"
-                  style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%', padding: '1.25rem' }}
+                  className="rounded-lg border border-border p-4 transition-colors duration-150 hover:bg-muted"
                 >
-                  <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.4rem', color: 'var(--text-main)' }}>
-                    {item.title}
-                  </div>
+                  <p className="text-sm font-medium">{item.title}</p>
                   {item.explanation && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--brand)', marginBottom: '0.75rem' }}>
-                      {item.explanation}
-                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{item.explanation}</p>
                   )}
-                  <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="tnum text-sm font-semibold">
                       {bestOffer ? (
-                        <span style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--brand)' }}>
-                          {formatPrice(bestOffer.priceAmount, bestOffer.currency)}
-                        </span>
+                        formatPrice(bestOffer.priceAmount, bestOffer.currency)
                       ) : (
-                        <span className="text-muted" style={{ fontSize: '0.85rem' }}>Check listings</span>
+                        <span className="font-normal text-muted-foreground">Check listings</span>
                       )}
-                    </div>
-                    <span
-                      style={{
-                        fontSize: '0.75rem',
-                        padding: '2px 8px',
-                        borderRadius: '999px',
-                        background: item.isAvailable ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                        color: item.isAvailable ? 'var(--accent-green)' : 'var(--accent-red)',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {item.isAvailable ? 'In Stock' : 'Out of Stock'}
                     </span>
+                    <Badge variant={item.isAvailable ? "success" : "outline"}>
+                      {item.isAvailable ? "In stock" : "Out of stock"}
+                    </Badge>
                   </div>
                 </Link>
               );
@@ -467,35 +265,21 @@ export const Home = () => {
         </section>
       )}
 
-      {/* Shop by Category Grid */}
-      <section>
-        <h2 className="font-display" style={{ fontSize: '1.5rem', marginBottom: '1.25rem' }}>
-          Shop by Category
-        </h2>
+      {/* Category index — compact list, not equal marketing cards */}
+      <section aria-label="Categories" className="mt-6">
+        <h2 className="text-sm font-semibold">Shop by category</h2>
         {rootCategories.length === 0 ? (
-          <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
-            <p className="text-muted">No categories found.</p>
-          </div>
+          <p className="mt-2 text-[13px] text-muted-foreground">No categories found.</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div className="mt-2 divide-y divide-border rounded-lg border border-border">
             {rootCategories.map((category) => (
               <Link
                 key={category.id}
                 to={`/category/${category.id}`}
-                className="card card-hover"
-                style={{
-                  padding: '1.25rem',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  display: 'block',
-                }}
+                className="flex items-center justify-between px-3 py-2 text-[13px] transition-colors duration-150 hover:bg-muted"
               >
-                <div style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                  {category.name}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--primary-muted)' }}>
-                  Browse Products &rarr;
-                </div>
+                <span className="font-medium">{category.name}</span>
+                <span className="text-muted-foreground">Browse →</span>
               </Link>
             ))}
           </div>

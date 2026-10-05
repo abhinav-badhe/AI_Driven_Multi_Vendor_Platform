@@ -27,8 +27,7 @@ describe('Frontend Foundation', () => {
 
   it('1. App/bootstrap renders successfully', async () => {
     await act(async () => { render(<AppRoutes />); });
-    expect(screen.getByText(/AI/)).toBeDefined();
-    expect(screen.getByText(/Commerce/)).toBeDefined();
+    expect(screen.getByText('Commerce')).toBeDefined();
   });
 
   it('2. Customer route shell renders', () => {
@@ -42,7 +41,7 @@ describe('Frontend Foundation', () => {
       </MemoryRouter>
     );
     expect(screen.getByText('Customer Content')).toBeDefined();
-    expect(screen.getByText('Search')).toBeDefined();
+    expect(screen.getByPlaceholderText(/Search products/i)).toBeDefined();
   });
 
   it('3. Merchant route protection exists (redirects unauthenticated)', async () => {

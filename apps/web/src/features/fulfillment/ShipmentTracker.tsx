@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Check } from 'lucide-react';
 import { apiClient } from '../../api/client';
 
 export interface ShipmentDto {
@@ -144,7 +145,7 @@ export const ShipmentTracker = () => {
                   fontWeight: 700,
                   marginBottom: '0.5rem',
                 }}>
-                  {state === 'completed' ? '✓' : idx + 1}
+                  {state === 'completed' ? <Check size={14} strokeWidth={3} /> : idx + 1}
                 </div>
                 <div style={{ fontSize: '0.8rem', fontWeight: state === 'completed' ? 600 : 400, color: state === 'completed' ? 'var(--text-main)' : 'var(--primary-muted)' }}>
                   {m.label}

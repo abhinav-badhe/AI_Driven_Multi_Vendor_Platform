@@ -40,7 +40,7 @@ export const AdminInventory = () => {
         <p className="text-muted">All inventory items across all merchants ({items.length} total)</p>
       </div>
 
-      {isLoading && <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>⏳ Loading inventory...</div>}
+      {isLoading && <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>Loading inventory...</div>}
       {error && (
         <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
           <p style={{ color: 'var(--accent-red)', fontWeight: 600 }}>⚠️ {error}</p>
@@ -51,7 +51,7 @@ export const AdminInventory = () => {
       )}
       {!isLoading && !error && items.length === 0 && (
         <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--primary-muted)' }}>
-          📦 No inventory records found
+          No inventory records found
         </div>
       )}
       {!isLoading && !error && items.length > 0 && (

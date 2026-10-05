@@ -34,10 +34,10 @@ export const AdminSecurity = () => {
   if (user?.role !== 'ADMINISTRATOR') return <Navigate to="/account" replace />;
 
   const securityCards = [
-    { label: 'Tenant Boundary Breaches', value: '0', color: 'var(--accent-green)', icon: '🔒' },
-    { label: 'Token Rotation Events', value: 'Enabled', color: 'var(--accent-blue, #3b82f6)', icon: '🔄' },
-    { label: 'HMAC Webhooks', value: 'SHA-256', color: 'var(--accent-green)', icon: '🔐' },
-    { label: 'Active Token Families', value: user ? '1' : '0', color: 'var(--brand)', icon: '👥' },
+    { label: 'Tenant Boundary Breaches', value: '0', color: 'var(--accent-green)' },
+    { label: 'Token Rotation Events', value: 'Enabled', color: 'var(--accent-blue, #3b82f6)' },
+    { label: 'HMAC Webhooks', value: 'SHA-256', color: 'var(--accent-green)' },
+    { label: 'Active Token Families', value: user ? '1' : '0', color: 'var(--brand)' },
   ];
 
   const securityPolicies = [
@@ -61,7 +61,6 @@ export const AdminSecurity = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
         {securityCards.map((card) => (
           <div key={card.label} className="card" style={{ padding: '1.25rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>{card.icon}</div>
             <div style={{ fontWeight: 700, fontSize: '1.1rem', color: card.color }}>{card.value}</div>
             <div style={{ fontSize: '0.8rem', color: 'var(--primary-muted)', marginTop: '0.25rem' }}>{card.label}</div>
           </div>
@@ -84,14 +83,14 @@ export const AdminSecurity = () => {
                 <div style={{ fontSize: '0.8rem', color: 'var(--primary-muted)' }}>{item.value}</div>
               </div>
               <span style={{ color: item.ok ? 'var(--accent-green)' : 'var(--accent-red)', fontWeight: 700 }}>
-                {item.ok ? '✓' : '✗'}
+                {item.ok ? 'On' : 'Off'}
               </span>
             </div>
           ))}
         </div>
       </div>
 
-      {isLoading && <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>⏳ Loading audit log...</div>}
+      {isLoading && <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>Loading audit log...</div>}
       {error && (
         <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--primary-muted)' }}>
           ℹ️ Audit log endpoint not yet implemented. Security policies shown above are active.

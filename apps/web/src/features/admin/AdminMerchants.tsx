@@ -101,7 +101,7 @@ export const AdminMerchants = () => {
           </p>
         </div>
         <button type="button" className="btn btn-secondary" onClick={loadMerchants}>
-          🔄 Refresh
+          Refresh
         </button>
       </div>
 

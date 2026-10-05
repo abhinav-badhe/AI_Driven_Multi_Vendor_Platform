@@ -33,7 +33,8 @@ describe('Catalog & Marketplace Frontend Tests', () => {
       await act(async () => {
         render(<MemoryRouter><Home /></MemoryRouter>);
       });
-      expect(screen.getByText(/Loading categories/i)).toBeDefined();
+      // Skeleton placeholder shaped like the product list (STYLE.md §6)
+      expect(screen.getByLabelText(/Loading products/i)).toBeDefined();
     });
 
     it('renders categories from real API contract', async () => {
@@ -41,15 +42,20 @@ describe('Catalog & Marketplace Frontend Tests', () => {
         { id: 'cat1', name: 'Electronics', parentId: null },
         { id: 'cat2', name: 'Books', parentId: null }
       ];
-      fetchMock.mockResolvedValueOnce(createFetchResponse(mockCategories));
+      fetchMock.mockImplementation((url: string) => {
+        if (url.includes('/categories')) return createFetchResponse(mockCategories);
+        if (url.includes('/recommendations')) return createFetchResponse({ items: [] });
+        if (url.includes('/search')) return createFetchResponse({ items: [] });
+        return createFetchResponse({});
+      });
 
       await act(async () => {
         render(<MemoryRouter><Home /></MemoryRouter>);
       });
 
       await waitFor(() => {
-        expect(screen.getByText('Electronics')).toBeDefined();
-        expect(screen.getByText('Books')).toBeDefined();
+        expect(screen.getAllByText('Electronics').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Books').length).toBeGreaterThan(0);
       });
       expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/categories'), expect.any(Object));
     });
@@ -62,7 +68,8 @@ describe('Catalog & Marketplace Frontend Tests', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText(/Error: Network Error/i)).toBeDefined();
+        expect(screen.getByRole('alert')).toBeDefined();
+        expect(screen.getByText(/could not be loaded/i)).toBeDefined();
       });
     });
 

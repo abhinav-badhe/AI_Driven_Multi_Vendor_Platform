@@ -63,7 +63,7 @@ export const AdminEvents = () => {
         </span>
       </div>
 
-      {isLoading && <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>⏳ Loading events...</div>}
+      {isLoading && <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>Loading events...</div>}
       {error && <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--accent-red)' }}>⚠️ {error}</div>}
       {!isLoading && !error && filtered.length === 0 && (
         <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--primary-muted)' }}>📡 No events found</div>
@@ -93,7 +93,7 @@ export const AdminEvents = () => {
                 color: e.processedAt ? 'var(--accent-green)' : 'var(--accent-amber)',
                 fontWeight: 600, marginLeft: 'auto',
               }}>
-                {e.processedAt ? '✓ Processed' : '⏳ Pending'}
+                {e.processedAt ? 'Processed' : 'Pending'}
               </span>
               <span style={{ fontSize: '0.78rem', color: 'var(--primary-muted)' }}>
                 {e.createdAt ? new Date(e.createdAt).toLocaleString() : ''}

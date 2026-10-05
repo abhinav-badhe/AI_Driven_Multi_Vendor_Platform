@@ -56,10 +56,10 @@ export const AdminListings = () => {
         <p className="text-muted">All seller listings across all merchants ({listings.length} total)</p>
       </div>
 
-      {isLoading && <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>⏳ Loading listings...</div>}
+      {isLoading && <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>Loading listings...</div>}
       {error && <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--accent-red)' }}>⚠️ {error}</div>}
       {!isLoading && !error && listings.length === 0 && (
-        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--primary-muted)' }}>🏷️ No listings yet</div>
+        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--primary-muted)' }}>No listings yet</div>
       )}
       {!isLoading && !error && listings.length > 0 && (
         <div className="card" style={{ overflow: 'hidden' }}>

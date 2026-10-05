@@ -134,8 +134,8 @@ describe('End-to-End Multi-Vendor Platform Workflows', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Platform Administrator Portal/i)).toBeDefined();
-      expect(screen.getByText(/Elevated administrator privileges are required/i)).toBeDefined();
+      expect(screen.getByText('Admin')).toBeDefined();
+      expect(screen.getByText(/administrator account/i)).toBeDefined();
     });
   });
 });

@@ -107,7 +107,7 @@ export const AdminSettlements = () => {
       >
         <div>
           <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--accent-green)' }}>
-            ✓ Double-Entry Invariant: Balanced (100.0%)
+            Double-Entry Invariant: Balanced (100.0%)
           </div>
           <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.25rem 0 0' }}>
             Every financial journal in the system guarantees that total DEBITS exactly equal total CREDITS with zero orphan entries.
@@ -137,7 +137,7 @@ export const AdminSettlements = () => {
             />
           </div>
           <button type="submit" className="btn btn-primary" disabled={isCalculating}>
-            {isCalculating ? 'Computing Ledger...' : '⚡ Compute Period Settlement'}
+            {isCalculating ? 'Computing Ledger...' : 'Compute Period Settlement'}
           </button>
         </form>
       </div>
@@ -212,7 +212,7 @@ export const AdminSettlements = () => {
                           style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', background: 'var(--accent-green)' }}
                           onClick={() => handleTransition(s.id, 'SETTLED')}
                         >
-                          Execute Disbursement ✓
+                          Execute Disbursement
                         </button>
                       )}
                       {s.status === 'SETTLED' && (

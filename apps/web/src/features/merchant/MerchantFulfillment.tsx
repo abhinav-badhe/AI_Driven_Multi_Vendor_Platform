@@ -105,10 +105,10 @@ export const MerchantFulfillment = () => {
 
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button type="button" className="btn btn-secondary" onClick={loadShipments}>
-            🔄 Refresh
+            Refresh
           </button>
           <button type="button" className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-            📦 Register Shipment
+            Register Shipment
           </button>
         </div>
       </div>
@@ -275,7 +275,7 @@ export const MerchantFulfillment = () => {
                       style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', background: 'var(--accent-green)' }}
                       onClick={() => handleUpdateStatus(s.id, 'DELIVERED')}
                     >
-                      Confirm Delivery ✓
+                      Confirm Delivery
                     </button>
                   )}
                 </div>

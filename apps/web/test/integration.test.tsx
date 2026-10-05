@@ -120,9 +120,9 @@ describe('Phase C Frontend-Backend E2E Integration', () => {
       </BrowserRouter>
     );
 
-    // Wait for actual response to render
+    // Wait for actual response to render (name appears in filter + list)
     await waitFor(() => {
-      expect(screen.getByText('Electronics')).toBeDefined();
+      expect(screen.getAllByText('Electronics').length).toBeGreaterThan(0);
     });
   });
 

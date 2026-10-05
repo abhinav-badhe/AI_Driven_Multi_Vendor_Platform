@@ -74,7 +74,7 @@ export const MerchantReturns = () => {
         </div>
 
         <button type="button" className="btn btn-secondary" onClick={loadReturns}>
-          🔄 Refresh
+          Refresh
         </button>
       </div>
 
@@ -193,7 +193,7 @@ export const MerchantReturns = () => {
                         style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', background: 'var(--accent-green)' }}
                         onClick={() => handleUpdateReturnStatus(ret.id, 'COMPLETED', { restock: true, restockCondition: 'SELLABLE' })}
                       >
-                        Restock (Sellable) &amp; Refund ✓
+                        Restock (Sellable) &amp; Refund
                       </button>
                       <button
                         type="button"

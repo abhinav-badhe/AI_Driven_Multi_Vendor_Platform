@@ -229,7 +229,7 @@ export const MerchantListings = () => {
 
       {successMsg && (
         <div className="card" style={{ borderColor: 'var(--accent-green)', background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-green)', padding: '1rem', marginBottom: '1.5rem' }}>
-          ✓ {successMsg}
+          {successMsg}
         </div>
       )}
 

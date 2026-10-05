@@ -45,7 +45,7 @@ export const AdminPayments = () => {
         </p>
       </div>
 
-      {isLoading && <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>⏳ Loading payments...</div>}
+      {isLoading && <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>Loading payments...</div>}
       {error && (
         <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
           <p style={{ color: 'var(--accent-red)', fontWeight: 600 }}>⚠️ {error}</p>
@@ -54,7 +54,7 @@ export const AdminPayments = () => {
       )}
       {!isLoading && !error && payments.length === 0 && (
         <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--primary-muted)' }}>
-          💳 No payment transactions found
+          No payment transactions found
         </div>
       )}
       {!isLoading && !error && payments.length > 0 && (

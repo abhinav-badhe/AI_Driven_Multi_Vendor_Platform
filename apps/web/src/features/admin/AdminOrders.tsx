@@ -73,10 +73,10 @@ export const AdminOrders = () => {
         </select>
       </div>
 
-      {isLoading && <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>⏳ Loading orders...</div>}
+      {isLoading && <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>Loading orders...</div>}
       {error && <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--accent-red)' }}>⚠️ {error}</div>}
       {!isLoading && !error && filtered.length === 0 && (
-        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--primary-muted)' }}>📦 No orders found</div>
+        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--primary-muted)' }}>No orders found</div>
       )}
       {!isLoading && !error && filtered.length > 0 && (
         <div className="card" style={{ overflow: 'hidden' }}>

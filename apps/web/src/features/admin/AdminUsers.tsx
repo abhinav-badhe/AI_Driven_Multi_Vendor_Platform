@@ -107,7 +107,7 @@ export const AdminUsers = () => {
 
       {isLoading && (
         <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--primary-muted)' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
+          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}></div>
           <p>Loading users...</p>
         </div>
       )}
@@ -124,7 +124,7 @@ export const AdminUsers = () => {
 
       {!isLoading && !error && filtered.length === 0 && (
         <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--primary-muted)' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>👤</div>
+          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}></div>
           <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>No users found</p>
           <p style={{ fontSize: '0.85rem' }}>
             {searchTerm || roleFilter !== 'ALL' ? 'Try adjusting your filters.' : 'No users registered yet.'}

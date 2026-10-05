@@ -1,8 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ordersApi, type CustomerOrderDto, type OrderItemDto } from './api/orders';
-import { returnsApi, type ReturnDto } from './api/returns';
-import { useAuth } from '../auth/AuthContext';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { PackageSearch, RotateCcw } from "lucide-react";
+import { ordersApi, type CustomerOrderDto, type OrderItemDto } from "./api/orders";
+import { returnsApi, type ReturnDto } from "./api/returns";
+import { useAuth } from "../auth/AuthContext";
+import { Button, buttonVariants } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import { Badge } from "../../components/ui/badge";
+import { Alert } from "../../components/ui/alert";
+import { EmptyState, TableSkeleton } from "../../components/ui/empty";
+import { Input, Label } from "../../components/ui/input";
+import { formatPrice } from "../../lib/format";
+import { cn } from "../../lib/utils";
 
 export const CustomerOrders = () => {
   const { isAuthenticated, login } = useAuth();
@@ -11,24 +20,15 @@ export const CustomerOrders = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Return modal state
   const [activeReturnItem, setActiveReturnItem] = useState<{
     customerOrderId: string;
     sellerOrderId: string;
     item: OrderItemDto;
   } | null>(null);
-  const [returnReason, setReturnReason] = useState('Defective or not working properly');
+  const [returnReason, setReturnReason] = useState("Defective or not working properly");
   const [returnQty, setReturnQty] = useState(1);
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
   const [returnSuccessMsg, setReturnSuccessMsg] = useState<string | null>(null);
-
-  const formatPrice = (minorUnits: number, currency = 'INR') => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: currency || 'INR',
-      maximumFractionDigits: 2,
-    }).format(minorUnits / 100);
-  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -41,7 +41,7 @@ export const CustomerOrders = () => {
       setOrders(ordersData);
       setReturns(returnsData);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load orders');
+      setError(err instanceof Error ? err.message : "Failed to load orders");
     } finally {
       setIsLoading(false);
     }
@@ -74,11 +74,11 @@ export const CustomerOrders = () => {
         ],
       });
 
-      setReturnSuccessMsg(`Return requested successfully for ${activeReturnItem.item.productName || 'item'}!`);
+      setReturnSuccessMsg(`Return requested for ${activeReturnItem.item.productName || "item"}.`);
       setActiveReturnItem(null);
       await loadData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to submit return request.');
+      setError(err instanceof Error ? err.message : "Failed to submit return request.");
     } finally {
       setIsSubmittingReturn(false);
     }
@@ -86,230 +86,191 @@ export const CustomerOrders = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="container" style={{ padding: '3rem 1rem', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-        <div className="card" style={{ padding: '2.5rem' }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.75rem' }}>My Orders</h2>
-          <p className="text-muted" style={{ marginBottom: '1.5rem' }}>
-            Please log in to review your order history, delivery tracking, and seller fulfillments.
-          </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <Link to="/account" className="btn btn-primary">
-              Log In
+      <div className="mx-auto w-full max-w-xl p-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>My Orders</CardTitle>
+            <CardDescription>
+              Please log in to review your order history, delivery tracking, and seller fulfillments.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex gap-2">
+            <Link to="/account" className={cn(buttonVariants({ size: "sm" }))}>
+              Sign in
             </Link>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={async () => {
-                await login({ email: 'customer@example.com', password: 'password123' });
-              }}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => login({ email: "customer@example.com", password: "password123" })}
             >
-              Demo Customer Login
-            </button>
-          </div>
-        </div>
+              Demo customer sign in
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="container" style={{ padding: '3rem 1rem', textAlign: 'center' }}>
-        <p className="text-muted">Loading your orders...</p>
+      <div className="mx-auto w-full max-w-6xl space-y-3 p-4" aria-label="Loading orders">
+        <TableSkeleton rows={4} />
       </div>
     );
   }
 
   return (
-    <div className="container" style={{ padding: '2rem 1rem 4rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h1 className="font-display" style={{ fontSize: '2rem' }}>
-          My Orders ({orders.length})
-        </h1>
-        <Link to="/search" className="btn btn-secondary">
-          Continue Shopping
+    <div className="mx-auto w-full max-w-6xl space-y-4 p-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">My Orders ({orders.length})</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Order history with per-seller fulfillment status.
+          </p>
+        </div>
+        <Link to="/search" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+          Continue shopping
         </Link>
       </div>
 
       {returnSuccessMsg && (
-        <div className="card" style={{ borderColor: 'var(--accent-green)', background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-green)', padding: '1rem', marginBottom: '1.5rem' }}>
-          ✓ {returnSuccessMsg}
-        </div>
+        <Alert tone="success" title="Return requested">
+          {returnSuccessMsg}
+        </Alert>
       )}
 
       {error && (
-        <div className="card" style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)', marginBottom: '1.5rem' }}>
+        <Alert tone="error" title="Could not load orders">
           {error}
-        </div>
+        </Alert>
       )}
 
       {orders.length === 0 ? (
-        <div className="card" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>No orders placed yet</h2>
-          <p className="text-muted" style={{ marginBottom: '1.5rem' }}>
-            When you complete a purchase, your order history and seller tracking will appear here.
-          </p>
-          <Link to="/search" className="btn btn-primary">
-            Explore Marketplace Catalog
-          </Link>
-        </div>
+        <EmptyState
+          icon={PackageSearch}
+          title="No orders placed yet"
+          description="When you complete a purchase, your order history and seller tracking will appear here."
+          actionLabel="Browse products"
+          onAction={() => undefined}
+        />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="flex flex-col gap-3">
           {orders.map((order) => {
             const orderReturns = returns.filter((r) => r.customerOrderId === order.id);
 
             return (
-              <div key={order.id} className="card" style={{ padding: '1.5rem' }}>
-                {/* Order Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                      Order #{order.orderNumber}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--primary-muted)' }}>
-                      Placed on {new Date(order.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <Card key={order.id}>
+                <CardContent className="p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
                     <div>
-                      <span className="text-muted" style={{ fontSize: '0.85rem', display: 'block' }}>Total Amount</span>
-                      <strong style={{ fontSize: '1.1rem', color: 'var(--brand)' }}>
-                        {formatPrice(order.totalAmount, order.currency)}
-                      </strong>
+                      <p className="text-sm font-semibold">Order #{order.orderNumber}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Placed {new Date(order.createdAt).toLocaleDateString(undefined, { dateStyle: "long" })}
+                      </p>
                     </div>
-
-                    <span
-                      style={{
-                        background: 'rgba(34, 197, 94, 0.15)',
-                        color: 'var(--accent-green)',
-                        padding: '0.35rem 0.75rem',
-                        borderRadius: '999px',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {order.status}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Returns section if active for this order */}
-                {orderReturns.length > 0 && (
-                  <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', borderRadius: '6px' }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                      Return Requests on this Order:
+                    <div className="flex items-center gap-3">
+                      <p className="tnum text-sm font-semibold">
+                        {formatPrice(order.totalAmount, order.currency, 2)}
+                      </p>
+                      <Badge variant="success">{order.status}</Badge>
                     </div>
-                    {orderReturns.map((ret) => (
-                      <div key={ret.id} style={{ fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Return #{ret.id.slice(0, 8)}: {ret.reason}</span>
-                        <strong style={{ color: 'var(--brand)' }}>Status: {ret.status}</strong>
-                      </div>
-                    ))}
                   </div>
-                )}
 
-                {/* Multi-Seller Orders Breakdown */}
-                {order.sellerOrders && order.sellerOrders.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {order.sellerOrders.map((sellerOrder) => (
-                      <div key={sellerOrder.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '6px', padding: '1rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                          <span>
-                            <strong>Seller Order:</strong> {sellerOrder.sellerTenantId}
-                          </span>
-                          <span style={{ color: 'var(--brand)', fontWeight: 600 }}>
-                            Fulfillment: {sellerOrder.status}
-                          </span>
-                        </div>
+                  {orderReturns.length > 0 && (
+                    <div className="mt-3 rounded-md border border-warning/30 bg-warning/5 px-3 py-2">
+                      <p className="text-[13px] font-medium">Returns on this order</p>
+                      {orderReturns.map((ret) => (
+                        <p key={ret.id} className="mt-0.5 flex justify-between gap-2 text-xs text-muted-foreground">
+                          <span className="font-mono">{ret.id.slice(0, 8)} · {ret.reason}</span>
+                          <span>{ret.status}</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
 
-                        {sellerOrder.items && sellerOrder.items.length > 0 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-                            {sellerOrder.items.map((item) => (
-                              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', borderTop: '1px dashed var(--border)', paddingTop: '0.5rem' }}>
-                                <div>
-                                  <div style={{ fontWeight: 600 }}>{item.productName || item.skuCode}</div>
-                                  <div style={{ fontSize: '0.8rem', color: 'var(--primary-muted)' }}>
-                                    Qty: {item.quantity} • {formatPrice(item.unitPriceAmount, item.currency)} each
-                                  </div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                  <span style={{ fontWeight: 600 }}>
-                                    {formatPrice(item.lineTotalAmount, item.currency)}
-                                  </span>
-
-                                  {/* Return Action Button */}
-                                  <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
-                                    onClick={() => {
-                                      setActiveReturnItem({
-                                        customerOrderId: order.id,
-                                        sellerOrderId: sellerOrder.id,
-                                        item,
-                                      });
-                                      setReturnQty(item.quantity);
-                                      setReturnReason('Defective or not working properly');
-                                    }}
-                                  >
-                                    Return Item
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
+                  {order.sellerOrders && order.sellerOrders.length > 0 && (
+                    <div className="mt-3 flex flex-col gap-2">
+                      {order.sellerOrders.map((sellerOrder) => (
+                        <div key={sellerOrder.id} className="rounded-md bg-muted px-3 py-2">
+                          <div className="flex flex-wrap justify-between gap-2 text-[13px]">
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {sellerOrder.sellerTenantId}
+                            </span>
+                            <Badge variant="outline">{sellerOrder.status}</Badge>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                          {sellerOrder.items && sellerOrder.items.length > 0 && (
+                            <ul className="mt-1 divide-y divide-border">
+                              {sellerOrder.items.map((item) => (
+                                <li key={item.id} className="flex items-center justify-between gap-2 py-2">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-[13px] font-medium">
+                                      {item.productName || item.skuCode}
+                                    </p>
+                                    <p className="tnum text-xs text-muted-foreground">
+                                      Qty {item.quantity} · {formatPrice(item.unitPriceAmount, item.currency, 2)} each
+                                    </p>
+                                  </div>
+                                  <div className="flex shrink-0 items-center gap-2">
+                                    <span className="tnum text-[13px] font-semibold">
+                                      {formatPrice(item.lineTotalAmount, item.currency, 2)}
+                                    </span>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setActiveReturnItem({
+                                          customerOrderId: order.id,
+                                          sellerOrderId: sellerOrder.id,
+                                          item,
+                                        });
+                                        setReturnQty(item.quantity);
+                                        setReturnReason("Defective or not working properly");
+                                      }}
+                                    >
+                                      <RotateCcw aria-hidden />
+                                      Return
+                                    </Button>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             );
           })}
         </div>
       )}
 
-      {/* Return Request Modal Dialog */}
       {activeReturnItem && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            padding: '1rem',
-          }}
-        >
-          <div className="card" style={{ maxWidth: '500px', width: '100%', padding: '2rem' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
-              Request Return
-            </h2>
-            <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-              Item: <strong>{activeReturnItem.item.productName || activeReturnItem.item.skuCode}</strong>
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setActiveReturnItem(null)}
+            aria-hidden
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Request return"
+            className="relative w-full max-w-md rounded-lg border border-border bg-background p-4 shadow-md"
+          >
+            <h2 className="text-sm font-semibold">Request return</h2>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
+              {activeReturnItem.item.productName || activeReturnItem.item.skuCode}
             </p>
-
-            <form onSubmit={handleReturnSubmit}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: 600 }}>
-                  Reason for Return
-                </label>
+            <form onSubmit={handleReturnSubmit} className="mt-3 flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="return-reason">Reason</Label>
                 <select
+                  id="return-reason"
                   value={returnReason}
                   onChange={(e) => setReturnReason(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-card)',
-                    color: 'var(--text-main)',
-                  }}
+                  className="h-8 rounded-md border border-input bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring"
                 >
                   <option value="Defective or not working properly">Defective or not working properly</option>
                   <option value="Damaged in transit">Damaged in transit</option>
@@ -317,44 +278,32 @@ export const CustomerOrders = () => {
                   <option value="Changed mind / No longer needed">Changed mind / No longer needed</option>
                 </select>
               </div>
-
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: 600 }}>
-                  Quantity to Return (Max {activeReturnItem.item.quantity})
-                </label>
-                <input
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="return-qty">Quantity (max {activeReturnItem.item.quantity})</Label>
+                <Input
+                  id="return-qty"
                   type="number"
-                  min="1"
+                  min={1}
                   max={activeReturnItem.item.quantity}
                   value={returnQty}
-                  onChange={(e) => setReturnQty(Math.max(1, Math.min(activeReturnItem.item.quantity, Number(e.target.value))))}
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-card)',
-                    color: 'var(--text-main)',
-                  }}
+                  onChange={(e) =>
+                    setReturnQty(Math.max(1, Math.min(activeReturnItem.item.quantity, Number(e.target.value))))
+                  }
                 />
               </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                <button
+              <div className="flex justify-end gap-1.5">
+                <Button
                   type="button"
-                  className="btn btn-secondary"
+                  variant="outline"
+                  size="sm"
                   disabled={isSubmittingReturn}
                   onClick={() => setActiveReturnItem(null)}
                 >
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={isSubmittingReturn}
-                >
-                  {isSubmittingReturn ? 'Submitting...' : 'Confirm Return Request'}
-                </button>
+                </Button>
+                <Button type="submit" size="sm" disabled={isSubmittingReturn}>
+                  {isSubmittingReturn ? "Submitting…" : "Confirm return"}
+                </Button>
               </div>
             </form>
           </div>
