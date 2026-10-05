@@ -34,3 +34,9 @@ yarn-error.log*
 __pycache__/
 *.pyc
 
+# Python virtual environments
+.venv/
+venv/
+ml/.venv/
+ml/venv/
+

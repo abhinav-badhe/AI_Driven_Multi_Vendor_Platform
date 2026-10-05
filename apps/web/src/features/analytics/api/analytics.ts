@@ -42,7 +42,41 @@ export interface MlModelDto {
   status: 'APPROVED' | 'CANDIDATE' | 'RETIRED' | 'REJECTED';
   accuracy?: number;
   rmse?: number;
+  algorithm?: string;
+  dataSourceType?: 'REAL' | 'BOOTSTRAP';
+  isSynthetic?: boolean;
   createdAt: string;
+}
+
+export type MlModelType = 'DEMAND_FORECASTING' | 'STOCKOUT_RISK' | 'PURCHASE_PROPENSITY';
+
+export interface MlTrainingJobDto {
+  id: string;
+  tenantId: string;
+  modelType: string;
+  triggerType: string;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  dataSourceType: 'REAL' | 'BOOTSTRAP';
+  sampleCount: number;
+  modelId?: string | null;
+  errorMessage?: string | null;
+  startedAt: string;
+  completedAt?: string | null;
+}
+
+export interface MlPredictionDto {
+  tenantId: string;
+  modelType: string;
+  modelVersion: string;
+  entityType: 'PRODUCT' | 'SKU' | 'CUSTOMER';
+  entityId: string;
+  predictedValue: number;
+  probability?: number | null;
+  confidence?: number | null;
+  horizon: string;
+  dataSourceType: 'REAL' | 'BOOTSTRAP';
+  isSynthetic: boolean;
+  predictedAt: string;
 }
 
 export interface MlPredictionDto {
@@ -70,6 +104,21 @@ export const analyticsApi = {
 
   getMlModels: async (): Promise<{ models: MlModelDto[] }> => {
     return apiClient<{ models: MlModelDto[] }>('/ml/models');
+  },
+
+  trainModel: async (modelType: MlModelType): Promise<{ jobId: string; status: string }> => {
+    return apiClient<{ jobId: string; status: string }>('/ml/train', {
+      method: 'POST',
+      body: JSON.stringify({ modelType, triggerType: 'MANUAL' }),
+    });
+  },
+
+  getTrainingJob: async (jobId: string): Promise<MlTrainingJobDto> => {
+    return apiClient<MlTrainingJobDto>(`/ml/jobs/${jobId}`);
+  },
+
+  listPredictions: async (): Promise<{ predictions: MlPredictionDto[] }> => {
+    return apiClient<{ predictions: MlPredictionDto[] }>('/ml/predictions');
   },
 
   getStockoutPrediction: async (sku: string): Promise<MlPredictionDto> => {

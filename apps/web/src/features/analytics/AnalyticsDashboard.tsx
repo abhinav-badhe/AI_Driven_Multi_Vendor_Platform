@@ -6,6 +6,9 @@ import {
   type ProductAnalyticsItemDto,
   type OperationsAnalyticsDto,
   type MlModelDto,
+  type MlModelType,
+  type MlPredictionDto,
+  type MlTrainingJobDto,
 } from "./api/analytics";
 import { eventsApi, type OutboxEventDto } from "./api/events";
 import { useAuth } from "../auth/AuthContext";
@@ -14,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../..
 import { Badge } from "../../components/ui/badge";
 import { Alert } from "../../components/ui/alert";
 import { EmptyState, Skeleton } from "../../components/ui/empty";
+import { Label } from "../../components/ui/input";
 import { KpiCard } from "../../components/ui/kpi";
 import { Table, THead, TH, TD } from "../../components/ui/table";
 import { formatMoney } from "../../lib/format";
@@ -28,6 +32,11 @@ export const AnalyticsDashboard = () => {
   const [products, setProducts] = useState<ProductAnalyticsItemDto[]>([]);
   const [operations, setOperations] = useState<OperationsAnalyticsDto | null>(null);
   const [models, setModels] = useState<MlModelDto[]>([]);
+  const [predictions, setPredictions] = useState<MlPredictionDto[]>([]);
+  const [trainType, setTrainType] = useState<MlModelType>("DEMAND_FORECASTING");
+  const [trainingJob, setTrainingJob] = useState<MlTrainingJobDto | null>(null);
+  const [isTraining, setIsTraining] = useState(false);
+  const [trainError, setTrainError] = useState<string | null>(null);
   const [events, setEvents] = useState<OutboxEventDto[]>([]);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [isProcessingEvents, setIsProcessingEvents] = useState(false);
@@ -84,6 +93,12 @@ export const AnalyticsDashboard = () => {
         setProducts(productsData);
         setOperations(opsData);
         setModels(modelsData.models || []);
+        try {
+          const preds = await analyticsApi.listPredictions().catch(() => ({ predictions: [] }));
+          setPredictions(preds.predictions || []);
+        } catch {
+          setPredictions([]);
+        }
 
         if (user.role === "ADMINISTRATOR") {
           await loadEvents();
@@ -96,6 +111,54 @@ export const AnalyticsDashboard = () => {
     };
     loadAnalytics();
   }, [user]);
+
+  const refreshModels = async () => {
+    try {
+      const [modelsData, preds] = await Promise.all([
+        analyticsApi.getMlModels().catch(() => ({ models: [] })),
+        analyticsApi.listPredictions().catch(() => ({ predictions: [] })),
+      ]);
+      setModels(modelsData.models || []);
+      setPredictions(preds.predictions || []);
+    } catch {
+      // Keep existing state on refresh failure.
+    }
+  };
+
+  const pollJob = async (jobId: string) => {
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        const job = await analyticsApi.getTrainingJob(jobId);
+        setTrainingJob(job);
+        if (job.status === "COMPLETED" || job.status === "FAILED") {
+          await refreshModels();
+          setIsTraining(false);
+          return;
+        }
+      } catch {
+        break;
+      }
+    }
+    setIsTraining(false);
+  };
+
+  const handleTrain = async () => {
+    setIsTraining(true);
+    setTrainError(null);
+    setTrainingJob(null);
+    try {
+      const { jobId } = await analyticsApi.trainModel(trainType);
+      await pollJob(jobId);
+    } catch (err: unknown) {
+      setTrainError(
+        err instanceof Error
+          ? `Training could not start: ${err.message}. Check that Python dependencies are installed (pip install -r ml/requirements.txt) and the API was restarted.`
+          : "Training could not start."
+      );
+      setIsTraining(false);
+    }
+  };
 
   if (user?.role !== "MERCHANT" && user?.role !== "ADMINISTRATOR") {
     return (
@@ -282,54 +345,155 @@ export const AnalyticsDashboard = () => {
       )}
 
       {activeTab === "models" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Forecast models</CardTitle>
-            <CardDescription>Registered demand and risk models.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {models.length === 0 ? (
-              <EmptyState
-                icon={Activity}
-                title="No models registered"
-                description="Models appear here after training jobs complete."
-              />
-            ) : (
-              <Table>
-                <THead>
-                  <tr>
-                    <TH>Model</TH>
-                    <TH>Version</TH>
-                    <TH>Status</TH>
-                    <TH>Accuracy</TH>
-                    <TH>Registered</TH>
-                  </tr>
-                </THead>
-                <tbody>
-                  {models.map((m) => (
-                    <tr key={m.id}>
-                      <TD className="font-medium">{m.modelType}</TD>
-                      <TD className="font-mono text-xs">{m.version}</TD>
-                      <TD>
-                        <Badge variant={m.status === "APPROVED" ? "success" : "outline"}>{m.status}</Badge>
-                      </TD>
-                      <TD className="tnum">
-                        {m.accuracy != null
-                          ? `${(m.accuracy * 100).toFixed(1)}%`
-                          : m.rmse != null
-                            ? `RMSE ${m.rmse.toFixed(3)}`
-                            : "—"}
-                      </TD>
-                      <TD className="text-muted-foreground">
-                        {new Date(m.createdAt).toLocaleDateString()}
-                      </TD>
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Train a model</CardTitle>
+              <CardDescription>
+                Trains on your store orders. With little history it bootstraps from
+                representative data, clearly labeled below.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="train-type">Model type</Label>
+                  <select
+                    id="train-type"
+                    value={trainType}
+                    onChange={(e) => setTrainType(e.target.value as MlModelType)}
+                    disabled={isTraining}
+                    className="h-8 rounded-md border border-input bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring"
+                  >
+                    <option value="DEMAND_FORECASTING">Demand forecast</option>
+                    <option value="STOCKOUT_RISK">Stockout risk</option>
+                    <option value="PURCHASE_PROPENSITY">Purchase propensity</option>
+                  </select>
+                </div>
+                <Button size="sm" disabled={isTraining} onClick={handleTrain}>
+                  {isTraining ? "Training…" : "Train model"}
+                </Button>
+                {trainingJob && (
+                  <p className="tnum text-[13px] text-muted-foreground" role="status">
+                    Job {trainingJob.id.slice(0, 8)} · {trainingJob.status}
+                    {trainingJob.status === "FAILED" && trainingJob.errorMessage
+                      ? ` — ${trainingJob.errorMessage}`
+                      : ""}
+                  </p>
+                )}
+              </div>
+              {trainError && (
+                <div className="mt-2">
+                  <Alert tone="error">{trainError}</Alert>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Forecast models</CardTitle>
+              <CardDescription>Registered demand and risk models.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {models.length === 0 ? (
+                <EmptyState
+                  icon={Activity}
+                  title="No models registered"
+                  description="Train your first model above — it takes under a minute."
+                />
+              ) : (
+                <Table>
+                  <THead>
+                    <tr>
+                      <TH>Model</TH>
+                      <TH>Version</TH>
+                      <TH>Status</TH>
+                      <TH>Source</TH>
+                      <TH>Accuracy</TH>
+                      <TH>Registered</TH>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </THead>
+                  <tbody>
+                    {models.map((m) => (
+                      <tr key={m.id}>
+                        <TD className="font-medium">{m.modelType}</TD>
+                        <TD className="font-mono text-xs">{m.version}</TD>
+                        <TD>
+                          <Badge variant={m.status === "APPROVED" ? "success" : "outline"}>{m.status}</Badge>
+                        </TD>
+                        <TD>
+                          <Badge variant={m.dataSourceType === "REAL" ? "success" : "warning"}>
+                            {m.dataSourceType ?? "—"}
+                          </Badge>
+                        </TD>
+                        <TD className="tnum">
+                          {m.accuracy != null
+                            ? `${(m.accuracy * 100).toFixed(1)}%`
+                            : m.rmse != null
+                              ? `RMSE ${m.rmse.toFixed(3)}`
+                              : "—"}
+                        </TD>
+                        <TD className="text-muted-foreground">
+                          {new Date(m.createdAt).toLocaleDateString()}
+                        </TD>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Demand &amp; stockout outlook</CardTitle>
+              <CardDescription>Latest predictions from approved models.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {predictions.length === 0 ? (
+                <EmptyState
+                  icon={Activity}
+                  title="No predictions yet"
+                  description="Predictions appear here after a model trains successfully."
+                />
+              ) : (
+                <Table>
+                  <THead>
+                    <tr>
+                      <TH>Entity</TH>
+                      <TH>Model</TH>
+                      <TH className="text-right">Value</TH>
+                      <TH>Horizon</TH>
+                      <TH>Source</TH>
+                    </tr>
+                  </THead>
+                  <tbody>
+                    {predictions.slice(0, 20).map((p, i) => (
+                      <tr key={`${p.entityId}-${p.modelType}-${i}`}>
+                        <TD className="max-w-48 truncate font-mono text-xs" title={p.entityId}>
+                          {p.entityType} {p.entityId.slice(0, 12)}
+                        </TD>
+                        <TD className="text-xs text-muted-foreground">{p.modelType}</TD>
+                        <TD className="tnum text-right font-medium">
+                          {p.probability != null
+                            ? `${(p.probability * 100).toFixed(1)}%`
+                            : p.predictedValue.toFixed(1)}
+                        </TD>
+                        <TD className="text-muted-foreground">{p.horizon}</TD>
+                        <TD>
+                          <Badge variant={p.dataSourceType === "REAL" ? "success" : "warning"}>
+                            {p.dataSourceType}
+                          </Badge>
+                        </TD>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {activeTab === "operations" && (
