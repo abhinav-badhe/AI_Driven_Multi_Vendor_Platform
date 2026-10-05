@@ -56,7 +56,7 @@ export interface SellerOrderDto {
   id: string;
   customerOrderId: string;
   sellerTenantId: string;
-  status: 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  status: 'PENDING_PAYMENT' | 'PAID' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
   currency: string;
   subtotalAmount: number;
   totalAmount: number;

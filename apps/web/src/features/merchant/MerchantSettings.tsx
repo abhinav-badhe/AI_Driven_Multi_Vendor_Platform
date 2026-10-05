@@ -1,42 +1,46 @@
-import { useState } from 'react';
-import { useAuth } from '../auth/AuthContext';
-import { apiClient } from '../../api/client';
-import { Navigate } from 'react-router-dom';
+import { useState } from "react";
+import { useAuth } from "../auth/AuthContext";
+import { apiClient } from "../../api/client";
+import { Navigate } from "react-router-dom";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import { Alert } from "../../components/ui/alert";
+import { Input, Label } from "../../components/ui/input";
 
 export const MerchantSettings = () => {
   const { user } = useAuth();
-  const [displayName, setDisplayName] = useState('');
-  const [supportEmail, setSupportEmail] = useState(user?.email ?? '');
+  const [displayName, setDisplayName] = useState("");
+  const [supportEmail, setSupportEmail] = useState(user?.email ?? "");
   const [notifyOnOrder, setNotifyOnOrder] = useState(true);
   const [notifyOnReturn, setNotifyOnReturn] = useState(true);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  if (user?.role !== 'MERCHANT') return <Navigate to="/account" replace />;
+  if (user?.role !== "MERCHANT") return <Navigate to="/account" replace />;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSavedMsg(null);
     try {
-      await apiClient('/merchants/me/settings', {
-        method: 'PUT',
+      await apiClient("/merchants/me/settings", {
+        method: "PUT",
         body: JSON.stringify({
           displayName,
           supportEmail,
           notifications: { onOrder: notifyOnOrder, onReturn: notifyOnReturn },
         }),
       });
-      setSavedMsg('Settings saved successfully!');
+      setSavedMsg("Settings saved.");
     } catch {
       try {
-        await apiClient('/merchants/me', {
-          method: 'PATCH',
+        await apiClient("/merchants/me", {
+          method: "PATCH",
           body: JSON.stringify({ displayName, supportEmail }),
         });
-        setSavedMsg('Settings saved!');
+        setSavedMsg("Settings saved.");
       } catch {
-        setSavedMsg('Settings saved locally (sync pending).');
+        setSavedMsg("Settings kept locally — sync pending.");
       }
     } finally {
       setIsSaving(false);
@@ -46,142 +50,112 @@ export const MerchantSettings = () => {
 
   const prefs = [
     {
-      label: 'New Order Alerts',
-      desc: 'Get notified when a customer places a new order',
+      label: "New order alerts",
+      hint: "Notify me when a customer places an order",
       value: notifyOnOrder,
       onChange: setNotifyOnOrder,
     },
     {
-      label: 'Return Request Alerts',
-      desc: 'Get notified when a return is submitted',
+      label: "Return request alerts",
+      hint: "Notify me when a return is requested",
       value: notifyOnReturn,
       onChange: setNotifyOnReturn,
     },
   ];
 
   return (
-    <div style={{ padding: '2rem 0 4rem', maxWidth: '600px' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 className="font-display" style={{ fontSize: '1.75rem' }}>Seller Settings</h1>
-        <p className="text-muted">Manage your seller account preferences and store identity</p>
+    <div className="mx-auto w-full max-w-xl space-y-4 p-4">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Store identity and notification preferences.
+        </p>
       </div>
 
-      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-            Store Identity
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.35rem', color: 'var(--primary-muted)', fontWeight: 600 }}>
-                Account Email
-              </label>
-              <input
-                type="email"
-                value={user.email}
-                disabled
-                style={{
-                  width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px',
-                  border: '1px solid var(--border)', background: 'var(--bg-main)',
-                  color: 'var(--primary-muted)',
-                }}
-              />
+      {savedMsg && <Alert tone="success">{savedMsg}</Alert>}
+
+      <form onSubmit={handleSave} className="flex flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Store identity</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="set-email">Account email</Label>
+              <Input id="set-email" type="email" value={user.email} disabled />
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.35rem', color: 'var(--primary-muted)', fontWeight: 600 }}>
-                Store Display Name
-              </label>
-              <input
-                type="text"
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="set-display">Store display name</Label>
+              <Input
+                id="set-display"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="e.g. TechZone Electronics"
-                style={{
-                  width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px',
-                  border: '1px solid var(--border)', background: 'var(--bg-main)',
-                  color: 'var(--text-main)',
-                }}
               />
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.35rem', color: 'var(--primary-muted)', fontWeight: 600 }}>
-                Customer Support Email
-              </label>
-              <input
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="set-support">Support email</Label>
+              <Input
+                id="set-support"
                 type="email"
                 value={supportEmail}
                 onChange={(e) => setSupportEmail(e.target.value)}
-                style={{
-                  width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px',
-                  border: '1px solid var(--border)', background: 'var(--bg-main)',
-                  color: 'var(--text-main)',
-                }}
               />
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-            Notification Preferences
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Notifications</CardTitle>
+            <CardDescription>Choose what you want to hear about.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
             {prefs.map((pref) => (
               <label
                 key={pref.label}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '8px', cursor: 'pointer',
-                }}
+                className="flex cursor-pointer items-center justify-between gap-3 rounded-md bg-muted px-3 py-2"
               >
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{pref.label}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--primary-muted)' }}>{pref.desc}</div>
-                </div>
+                <span>
+                  <span className="block text-[13px] font-medium">{pref.label}</span>
+                  <span className="block text-xs text-muted-foreground">{pref.hint}</span>
+                </span>
                 <input
                   type="checkbox"
                   checked={pref.value}
                   onChange={(e) => pref.onChange(e.target.checked)}
-                  style={{ width: '1.15rem', height: '1.15rem' }}
+                  className="size-4 accent-primary"
                 />
               </label>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="card" style={{ padding: '1.5rem', background: 'var(--bg-main)' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Account Context</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
-            {[
-              { label: 'Role', value: user.role, style: { fontWeight: 700, color: 'var(--accent-amber)' } },
-              { label: 'Tenant ID', value: user.tenantId, style: { fontFamily: 'monospace', fontSize: '0.78rem' } },
-              { label: 'User ID', value: user.userId, style: { fontFamily: 'monospace', fontSize: '0.78rem' } },
-            ].map((row) => (
-              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="text-muted">{row.label}</span>
-                <span style={row.style}>{row.value}</span>
+        <Card>
+          <CardHeader>
+            <CardTitle>Account</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="flex flex-col gap-1.5 text-[13px]">
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">Role</dt>
+                <dd className="font-medium">{user.role}</dd>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">Tenant</dt>
+                <dd className="font-mono text-xs">{user.tenantId}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">User</dt>
+                <dd className="font-mono text-xs">{user.userId}</dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
 
-        {savedMsg && (
-          <div style={{
-            background: 'rgba(34,197,94,0.15)', color: 'var(--accent-green)',
-            padding: '0.75rem 1rem', borderRadius: '8px', fontWeight: 600, fontSize: '0.9rem',
-          }}>
-            {savedMsg}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={isSaving}
-          style={{ alignSelf: 'flex-start', padding: '0.65rem 1.5rem' }}
-        >
-          {isSaving ? 'Saving...' : 'Save Settings'}
-        </button>
+        <Button type="submit" disabled={isSaving} className="self-start">
+          {isSaving ? "Saving…" : "Save settings"}
+        </Button>
       </form>
     </div>
   );

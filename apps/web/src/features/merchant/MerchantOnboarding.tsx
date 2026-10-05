@@ -1,15 +1,25 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { apiClient } from '../../api/client';
-import { useAuth } from '../auth/AuthContext';
-import { merchantApi, type MerchantProfileDto } from './api/merchant';
+import { useState, useEffect } from "react";
+import { useAuth } from "../auth/AuthContext";
+import { apiClient } from "../../api/client";
+import { merchantApi, type MerchantProfileDto } from "./api/merchant";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import { Badge } from "../../components/ui/badge";
+import { Alert } from "../../components/ui/alert";
+import { Skeleton } from "../../components/ui/empty";
+import { Input, Label } from "../../components/ui/input";
+
+const statusVariant = (s: MerchantProfileDto["verificationStatus"]) =>
+  s === "VERIFIED" ? ("success" as const)
+  : s === "REJECTED" || s === "SUSPENDED" ? ("destructive" as const)
+  : ("warning" as const);
 
 export const MerchantOnboarding = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<MerchantProfileDto | null>(null);
-  const [businessName, setBusinessName] = useState('');
-  const [legalName, setLegalName] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
+  const [businessName, setBusinessName] = useState("");
+  const [legalName, setLegalName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -21,9 +31,9 @@ export const MerchantOnboarding = () => {
     try {
       const p = await merchantApi.getProfile();
       setProfile(p);
-      setBusinessName(p.businessName || '');
-      setLegalName(p.legalName || '');
-      setContactEmail(p.contactEmail || '');
+      setBusinessName(p.businessName || "");
+      setLegalName(p.legalName || "");
+      setContactEmail(p.contactEmail || "");
     } catch {
       setProfile(null);
     } finally {
@@ -40,33 +50,24 @@ export const MerchantOnboarding = () => {
     setIsSubmitting(true);
     setError(null);
     setMessage(null);
-
     try {
       if (!profile) {
-        const created = await apiClient<MerchantProfileDto>('/merchants/onboard', {
-          method: 'POST',
-          body: JSON.stringify({
-            businessName,
-            legalName,
-            contactEmail,
-          }),
+        const created = await apiClient<MerchantProfileDto>("/merchants/onboard", {
+          method: "POST",
+          body: JSON.stringify({ businessName, legalName, contactEmail }),
         });
         setProfile(created);
-        setMessage('Merchant profile initialized successfully!');
+        setMessage("Store profile created.");
       } else {
-        const updated = await apiClient<MerchantProfileDto>('/merchants/me', {
-          method: 'PATCH',
-          body: JSON.stringify({
-            businessName,
-            legalName,
-            contactEmail,
-          }),
+        const updated = await apiClient<MerchantProfileDto>("/merchants/me", {
+          method: "PATCH",
+          body: JSON.stringify({ businessName, legalName, contactEmail }),
         });
         setProfile(updated);
-        setMessage('Merchant profile updated successfully!');
+        setMessage("Store profile saved.");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Operation failed');
+      setError(err instanceof Error ? err.message : "Could not save profile.");
     } finally {
       setIsSubmitting(false);
     }
@@ -76,14 +77,14 @@ export const MerchantOnboarding = () => {
     setIsSubmitting(true);
     setError(null);
     try {
-      const updated = await apiClient<MerchantProfileDto>('/merchants/me/submit', {
-        method: 'POST',
+      const updated = await apiClient<MerchantProfileDto>("/merchants/me/submit", {
+        method: "POST",
         body: JSON.stringify({}),
       });
       setProfile(updated);
-      setMessage('Profile submitted for platform compliance review.');
+      setMessage("Submitted for review.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to submit verification');
+      setError(err instanceof Error ? err.message : "Could not submit for review.");
     } finally {
       setIsSubmitting(false);
     }
@@ -94,13 +95,13 @@ export const MerchantOnboarding = () => {
     setIsSubmitting(true);
     try {
       const updated = await apiClient<MerchantProfileDto>(`/merchants/${profile.tenantId}/approve`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({}),
       });
       setProfile(updated);
-      setMessage('Merchant officially approved for marketplace commercial listings.');
+      setMessage("Merchant approved.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Approval failed');
+      setError(err instanceof Error ? err.message : "Approval failed.");
     } finally {
       setIsSubmitting(false);
     }
@@ -108,154 +109,94 @@ export const MerchantOnboarding = () => {
 
   if (isLoading) {
     return (
-      <div className="container" style={{ padding: '4rem 1rem', textAlign: 'center' }}>
-        <p className="text-muted">Loading merchant onboarding state...</p>
+      <div className="mx-auto w-full max-w-xl space-y-3 p-4" aria-label="Loading store profile">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-40" />
       </div>
     );
   }
 
   return (
-    <div className="container" style={{ padding: '2rem 1rem 4rem', maxWidth: '700px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div>
-          <h1 className="font-display" style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>
-            Merchant Onboarding &amp; KYC
-          </h1>
-          <p className="text-muted" style={{ fontSize: '0.9rem' }}>
-            Multi-vendor store verification and state machine lifecycle (Section 8).
-          </p>
-        </div>
-        <Link to="/merchant" className="btn btn-secondary">
-          &larr; Hub
-        </Link>
+    <div className="mx-auto w-full max-w-xl space-y-4 p-4">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Store setup</h1>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Business details and verification status. Listings activate once verified.
+        </p>
       </div>
 
-      {message && (
-        <div className="card" style={{ borderColor: 'var(--accent-green)', background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-green)', padding: '1rem', marginBottom: '1.5rem' }}>
-          {message}
-        </div>
-      )}
+      {message && <Alert tone="success">{message}</Alert>}
+      {error && <Alert tone="error">{error}</Alert>}
 
-      {error && (
-        <div className="card" style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)', padding: '1rem', marginBottom: '1.5rem' }}>
-          {error}
-        </div>
-      )}
-
-      {/* Verification Status Card */}
       {profile && (
-        <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
             <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--primary-muted)' }}>Verification Status</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '0.25rem', color: profile.verificationStatus === 'VERIFIED' ? 'var(--accent-green)' : 'var(--accent-amber)' }}>
-                {profile.verificationStatus}
-              </div>
+              <p className="text-xs text-muted-foreground">Verification status</p>
+              <p className="mt-1">
+                <Badge variant={statusVariant(profile.verificationStatus)}>
+                  {profile.verificationStatus}
+                </Badge>
+              </p>
             </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {profile.verificationStatus === 'DRAFT' && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={isSubmitting}
-                  onClick={handleSubmitForVerification}
-                >
-                  Submit for Verification &rarr;
-                </button>
-              )}
-
-              {user?.role === 'ADMINISTRATOR' && profile.verificationStatus === 'SUBMITTED' && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={isSubmitting}
-                  onClick={handleAdminApprove}
-                >
-                  Admin Approve Merchant
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+            {profile.verificationStatus === "DRAFT" && (
+              <Button size="sm" disabled={isSubmitting} onClick={handleSubmitForVerification}>
+                {isSubmitting ? "Submitting…" : "Submit for verification"}
+              </Button>
+            )}
+            {user?.role === "ADMINISTRATOR" && profile.verificationStatus === "SUBMITTED" && (
+              <Button size="sm" disabled={isSubmitting} onClick={handleAdminApprove}>
+                {isSubmitting ? "Approving…" : "Approve merchant"}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      {/* Form */}
-      <div className="card" style={{ padding: '2rem' }}>
-        <form onSubmit={handleOnboardOrUpdate}>
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-              Trading / Storefront Business Name
-            </label>
-            <input
-              type="text"
-              required
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="e.g. Apex Electronics, QuickStore"
-              style={{
-                width: '100%',
-                padding: '0.65rem 0.85rem',
-                borderRadius: '6px',
-                border: '1px solid var(--border)',
-                background: 'var(--bg-card)',
-                color: 'var(--text-main)',
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-              Registered Legal Entity Name
-            </label>
-            <input
-              type="text"
-              required
-              value={legalName}
-              onChange={(e) => setLegalName(e.target.value)}
-              placeholder="e.g. Apex Commercial Pvt Ltd"
-              style={{
-                width: '100%',
-                padding: '0.65rem 0.85rem',
-                borderRadius: '6px',
-                border: '1px solid var(--border)',
-                background: 'var(--bg-card)',
-                color: 'var(--text-main)',
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '1.75rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-              Operational Contact Email
-            </label>
-            <input
-              type="email"
-              required
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-              placeholder="seller@apex.com"
-              style={{
-                width: '100%',
-                padding: '0.65rem 0.85rem',
-                borderRadius: '6px',
-                border: '1px solid var(--border)',
-                background: 'var(--bg-card)',
-                color: 'var(--text-main)',
-              }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={isSubmitting}
-            style={{ width: '100%', padding: '0.75rem' }}
-          >
-            {isSubmitting ? 'Saving Profile...' : profile ? 'Save Changes' : 'Initialize Merchant Store'}
-          </button>
-        </form>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Business details</CardTitle>
+          <CardDescription>Shown to customers on your offers.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleOnboardOrUpdate} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="ob-business">Business name</Label>
+              <Input
+                id="ob-business"
+                required
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="e.g. Apex Electronics"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="ob-legal">Legal entity name</Label>
+              <Input
+                id="ob-legal"
+                required
+                value={legalName}
+                onChange={(e) => setLegalName(e.target.value)}
+                placeholder="e.g. Apex Commercial Pvt Ltd"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="ob-email">Contact email</Label>
+              <Input
+                id="ob-email"
+                type="email"
+                required
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="seller@example.com"
+              />
+            </div>
+            <Button type="submit" disabled={isSubmitting} className="self-start">
+              {isSubmitting ? "Saving…" : profile ? "Save changes" : "Create store profile"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };

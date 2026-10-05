@@ -1,21 +1,47 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { merchantApi, type SellerOrderDto } from './api/merchant';
+import { useState, useEffect, useMemo } from "react";
+import { Inbox } from "lucide-react";
+import { merchantApi, type SellerOrderDto } from "./api/merchant";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent } from "../../components/ui/card";
+import { Badge } from "../../components/ui/badge";
+import { Alert } from "../../components/ui/alert";
+import { EmptyState, TableSkeleton } from "../../components/ui/empty";
+import { formatMoney } from "../../lib/format";
+
+type StatusFilter = "ALL" | SellerOrderDto["status"];
+
+// Matches the backend seller-order state machine
+// (PENDING_PAYMENT → PAID → PROCESSING → COMPLETED).
+const NEXT_STEP: Record<SellerOrderDto["status"], { to: SellerOrderDto["status"]; label: string } | null> = {
+  PENDING_PAYMENT: { to: "PAID", label: "Mark paid" },
+  PAID: { to: "PROCESSING", label: "Start processing" },
+  PROCESSING: { to: "COMPLETED", label: "Complete order" },
+  COMPLETED: null,
+  CANCELLED: null,
+};
+
+const statusVariant = (s: SellerOrderDto["status"]) =>
+  s === "COMPLETED" ? ("success" as const)
+  : s === "CANCELLED" ? ("destructive" as const)
+  : s === "PENDING_PAYMENT" ? ("warning" as const)
+  : ("outline" as const);
 
 export const MerchantOrders = () => {
   const [orders, setOrders] = useState<SellerOrderDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 
   const fetchOrders = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const data = await merchantApi.getSellerOrders();
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch seller orders');
+      setError(err instanceof Error ? err.message : "Could not load orders.");
     } finally {
       setIsLoading(false);
     }
@@ -25,121 +51,120 @@ export const MerchantOrders = () => {
     fetchOrders();
   }, []);
 
-  const handleUpdateStatus = async (orderId: string, newStatus: string) => {
-    setUpdatingId(orderId);
+  const filtered = useMemo(
+    () => (statusFilter === "ALL" ? orders : orders.filter((o) => o.status === statusFilter)),
+    [orders, statusFilter]
+  );
+
+  const handleAdvance = async (order: SellerOrderDto) => {
+    const next = NEXT_STEP[order.status];
+    if (!next) return;
+    setUpdatingId(order.id);
+    setError(null);
     try {
-      await merchantApi.updateOrderStatus(orderId, newStatus);
+      await merchantApi.updateOrderStatus(order.id, next.to);
+      setNotice(`Order marked as ${next.to.toLowerCase().replace("_", " ")}.`);
+      setTimeout(() => setNotice(null), 4000);
       await fetchOrders();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to update order status');
+      setError(err instanceof Error ? err.message : "Status update failed.");
     } finally {
       setUpdatingId(null);
     }
   };
 
   return (
-    <div className="container" style={{ padding: '2rem 1rem 4rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div>
-          <h1 className="font-display" style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>
-            Merchant Orders & Fulfillment
-          </h1>
-          <p className="text-muted">
-            Manage your orders, update delivery milestones, and trigger customer tracking updates.
-          </p>
-        </div>
-        <Link to="/merchant" className="btn btn-secondary">
-          &larr; Back to Dashboard
-        </Link>
+    <div className="space-y-4 p-4">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">
+          Merchant Orders &amp; Fulfillment ({orders.length})
+        </h1>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Fulfill customer orders assigned to your store.
+        </p>
       </div>
 
-      {error && (
-        <div className="card" style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)', marginBottom: '1.5rem' }}>
-          {error}
-        </div>
-      )}
+      {notice && <Alert tone="success">{notice}</Alert>}
+      {error && <Alert tone="error">{error}</Alert>}
+
+      <div className="flex gap-1" role="group" aria-label="Filter by status">
+        {(["ALL", "PENDING_PAYMENT", "PAID", "PROCESSING", "COMPLETED"] as StatusFilter[]).map((s) => (
+          <Button
+            key={s}
+            variant={statusFilter === s ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter(s)}
+          >
+            {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase().replace("_p", " p")}
+          </Button>
+        ))}
+      </div>
 
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <p className="text-muted">Loading orders...</p>
+        <div aria-label="Loading orders">
+          <TableSkeleton rows={4} />
         </div>
-      ) : orders.length === 0 ? (
-        <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
-          <p className="text-muted">No orders currently assigned to your seller account.</p>
-        </div>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Inbox}
+          title="No orders currently assigned to your seller account."
+          description={
+            orders.length === 0
+              ? "New customer purchases will appear here for fulfillment."
+              : "No orders match this status filter."
+          }
+        />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {orders.map((order) => (
-            <div key={order.id} className="card" style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '1rem' }}>
-                <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                    Seller Order #{order.id.slice(0, 8)}
-                  </h3>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--primary-muted)' }}>
-                    Customer Order: {order.customerOrderId} &bull; {new Date(order.createdAt).toLocaleString()}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--brand)' }}>
-                      ₹{(order.totalAmount / 100).toLocaleString('en-IN')}
+        <div className="flex flex-col gap-3">
+          {filtered.map((order) => {
+            const next = NEXT_STEP[order.status];
+            return (
+              <Card key={order.id}>
+                <CardContent className="p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-muted-foreground">
+                        Order {order.id.slice(0, 8)}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Placed {new Date(order.createdAt).toLocaleString()}
+                      </p>
                     </div>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--accent-green)', fontWeight: 600 }}>
-                      Status: {order.status}
-                    </span>
-                  </div>
-
-                  {/* Status Actions */}
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {order.status === 'CONFIRMED' && (
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        disabled={updatingId === order.id}
-                        onClick={() => handleUpdateStatus(order.id, 'PROCESSING')}
-                      >
-                        Start Processing
-                      </button>
-                    )}
-                    {order.status === 'PROCESSING' && (
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        disabled={updatingId === order.id}
-                        onClick={() => handleUpdateStatus(order.id, 'SHIPPED')}
-                      >
-                        Mark Shipped
-                      </button>
-                    )}
-                    {order.status === 'SHIPPED' && (
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        disabled={updatingId === order.id}
-                        onClick={() => handleUpdateStatus(order.id, 'DELIVERED')}
-                      >
-                        Mark Delivered
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Order Items */}
-              {order.items && order.items.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {order.items.map((it) => (
-                    <div key={it.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--primary-muted)' }}>
-                      <span>{it.productName || it.skuCode} × {it.quantity}</span>
-                      <span>₹{(it.lineTotalAmount / 100).toLocaleString('en-IN')}</span>
+                    <div className="flex items-center gap-3">
+                      <p className="tnum text-sm font-semibold">
+                        {formatMoney(order.totalAmount / 100, order.currency)}
+                      </p>
+                      <Badge variant={statusVariant(order.status)}>{order.status}</Badge>
+                      {next && (
+                        <Button
+                          size="sm"
+                          disabled={updatingId === order.id}
+                          onClick={() => handleAdvance(order)}
+                        >
+                          {updatingId === order.id ? "Saving…" : next.label}
+                        </Button>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                  </div>
+                  {order.items && order.items.length > 0 && (
+                    <ul className="mt-2 divide-y divide-border">
+                      {order.items.map((it) => (
+                        <li key={it.id} className="flex items-center justify-between gap-2 py-1.5 text-[13px]">
+                          <span className="min-w-0 truncate">
+                            {it.productName || it.skuCode}{" "}
+                            <span className="tnum text-muted-foreground">× {it.quantity}</span>
+                          </span>
+                          <span className="tnum shrink-0 font-medium">
+                            {formatMoney(it.lineTotalAmount / 100, order.currency)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

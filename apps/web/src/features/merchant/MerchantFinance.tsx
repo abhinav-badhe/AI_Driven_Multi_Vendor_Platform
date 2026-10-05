@@ -1,6 +1,15 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../auth/AuthContext';
-import { apiClient } from '../../api/client';
+import { useState, useEffect } from "react";
+import { ReceiptText } from "lucide-react";
+import { useAuth } from "../auth/AuthContext";
+import { apiClient } from "../../api/client";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import { Badge } from "../../components/ui/badge";
+import { Alert } from "../../components/ui/alert";
+import { EmptyState, Skeleton } from "../../components/ui/empty";
+import { KpiCard } from "../../components/ui/kpi";
+import { Table, THead, TH, TD } from "../../components/ui/table";
+import { formatMoney } from "../../lib/format";
 
 export interface MerchantFinancialSummaryDto {
   merchantId: string;
@@ -18,8 +27,8 @@ export interface MerchantFinancialSummaryDto {
 export interface LedgerEntryDto {
   id: string;
   merchantId: string;
-  entryType: 'EARNING' | 'COMMISSION' | 'FEE' | 'REFUND' | 'ADJUSTMENT' | 'PAYOUT';
-  direction: 'CREDIT' | 'DEBIT';
+  entryType: "EARNING" | "COMMISSION" | "FEE" | "REFUND" | "ADJUSTMENT" | "PAYOUT";
+  direction: "CREDIT" | "DEBIT";
   amountMinor: number;
   currency: string;
   sourceType: string;
@@ -28,20 +37,17 @@ export interface LedgerEntryDto {
   createdAt: string;
 }
 
+const typeVariant = (t: LedgerEntryDto["entryType"]) =>
+  t === "EARNING" ? ("success" as const)
+  : t === "REFUND" ? ("destructive" as const)
+  : ("outline" as const);
+
 export const MerchantFinance = () => {
   const { user } = useAuth();
   const [summary, setSummary] = useState<MerchantFinancialSummaryDto | null>(null);
   const [entries, setEntries] = useState<LedgerEntryDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const formatPrice = (minor: number, currency = 'INR') => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: currency || 'INR',
-      maximumFractionDigits: 0,
-    }).format(minor / 100);
-  };
 
   const loadFinance = async () => {
     if (!user) return;
@@ -51,12 +57,14 @@ export const MerchantFinance = () => {
       const merchantId = user.tenantId;
       const [sumData, ledgerData] = await Promise.all([
         apiClient<MerchantFinancialSummaryDto>(`/settlement/merchants/${merchantId}/summary`).catch(() => null),
-        apiClient<{ entries: LedgerEntryDto[] }>(`/settlement/merchants/${merchantId}/ledger`).catch(() => ({ entries: [] })),
+        apiClient<{ entries: LedgerEntryDto[] }>(`/settlement/merchants/${merchantId}/ledger`).catch(() => ({
+          entries: [],
+        })),
       ]);
       setSummary(sumData);
-      setEntries(ledgerData.entries || []);
+      setEntries(Array.isArray(ledgerData.entries) ? ledgerData.entries : []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load merchant finance');
+      setError(err instanceof Error ? err.message : "Could not load finance data.");
     } finally {
       setIsLoading(false);
     }
@@ -68,147 +76,108 @@ export const MerchantFinance = () => {
 
   if (isLoading) {
     return (
-      <div className="container" style={{ padding: '3rem 1rem', textAlign: 'center' }}>
-        <p className="text-muted">Loading double-entry financial settlement records...</p>
+      <div className="space-y-3 p-4" aria-label="Loading finance">
+        <Skeleton className="h-6 w-48" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
       </div>
     );
   }
 
+  const currency = summary?.currency ?? "INR";
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div>
-        <h1 className="font-display" style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>
-          Finance &amp; Settlement Ledger
-        </h1>
-        <p className="text-muted" style={{ fontSize: '0.9rem' }}>
-          Immutable double-entry ledger records, earnings attribution, platform commissions, and payout balances.
-        </p>
-      </div>
-
-      {error && (
-        <div className="card" style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)', padding: '1rem' }}>
-          {error}
-        </div>
-      )}
-
-      {/* Financial KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <span className="text-muted" style={{ fontSize: '0.8rem' }}>Available Settled Balance</span>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--accent-green)', marginTop: '0.4rem' }}>
-            {formatPrice(summary?.settledBalanceMinor ?? 0, summary?.currency)}
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--primary-muted)' }}>Eligible for immediate payout</span>
-        </div>
-
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <span className="text-muted" style={{ fontSize: '0.8rem' }}>Pending Settlement Hold</span>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--accent-amber)', marginTop: '0.4rem' }}>
-            {formatPrice(summary?.pendingSettlementMinor ?? 0, summary?.currency)}
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--primary-muted)' }}>Orders awaiting fulfillment delivery</span>
-        </div>
-
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <span className="text-muted" style={{ fontSize: '0.8rem' }}>Total Gross Earnings</span>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--brand)', marginTop: '0.4rem' }}>
-            {formatPrice(summary?.totalEarningsMinor ?? 0, summary?.currency)}
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--primary-muted)' }}>Cumulative gross merchandise value</span>
-        </div>
-
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <span className="text-muted" style={{ fontSize: '0.8rem' }}>Platform Commissions Paid</span>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.4rem' }}>
-            {formatPrice(summary?.totalCommissionsMinor ?? 0, summary?.currency)}
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--primary-muted)' }}>Platform commission fees</span>
-        </div>
-      </div>
-
-      {/* Ledger Audit Table */}
-      <div className="card" style={{ padding: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Double-Entry Ledger Audit Log</h2>
-            <p className="text-muted" style={{ fontSize: '0.8rem' }}>
-              Enforces balanced debits and credits on every journal transaction (Section 17).
-            </p>
-          </div>
-          <button type="button" className="btn btn-secondary" onClick={loadFinance}>
-            Refresh
-          </button>
-        </div>
-
-        {entries.length === 0 ? (
-          <p className="text-muted" style={{ padding: '2rem', textAlign: 'center' }}>
-            No financial ledger entries recorded yet. As orders are placed and confirmed, journals will append here.
+    <div className="space-y-4 p-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Finance</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Earnings, commissions, payouts, and the settlement ledger.
           </p>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--primary-muted)' }}>
-                  <th style={{ padding: '0.75rem' }}>Date &amp; Time</th>
-                  <th style={{ padding: '0.75rem' }}>Entry Type</th>
-                  <th style={{ padding: '0.75rem' }}>Direction</th>
-                  <th style={{ padding: '0.75rem' }}>Amount</th>
-                  <th style={{ padding: '0.75rem' }}>Source Aggregate</th>
-                  <th style={{ padding: '0.75rem' }}>Description</th>
+        </div>
+        <Button variant="outline" size="sm" onClick={loadFinance}>
+          Refresh
+        </Button>
+      </div>
+
+      {error && <Alert tone="error">{error}</Alert>}
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          label="Settled balance"
+          value={formatMoney((summary?.settledBalanceMinor ?? 0) / 100, currency)}
+          hint="available for payout"
+        />
+        <KpiCard
+          label="Pending settlement"
+          value={formatMoney((summary?.pendingSettlementMinor ?? 0) / 100, currency)}
+          hint="awaiting delivery"
+        />
+        <KpiCard
+          label="Total earnings"
+          value={formatMoney((summary?.totalEarningsMinor ?? 0) / 100, currency)}
+          hint="gross to date"
+        />
+        <KpiCard
+          label="Commissions paid"
+          value={formatMoney((summary?.totalCommissionsMinor ?? 0) / 100, currency)}
+          hint="platform fees"
+        />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Ledger</CardTitle>
+          <CardDescription>Every journal keeps debits equal to credits.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {entries.length === 0 ? (
+            <EmptyState
+              icon={ReceiptText}
+              title="No ledger entries yet"
+              description="Confirmed orders will append journals here automatically."
+            />
+          ) : (
+            <Table>
+              <THead>
+                <tr>
+                  <TH>Date</TH>
+                  <TH>Type</TH>
+                  <TH>Direction</TH>
+                  <TH className="text-right">Amount</TH>
+                  <TH>Source</TH>
                 </tr>
-              </thead>
+              </THead>
               <tbody>
                 {entries.map((entry) => (
-                  <tr key={entry.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem', whiteSpace: 'nowrap', color: 'var(--primary-muted)' }}>
+                  <tr key={entry.id}>
+                    <TD className="whitespace-nowrap text-muted-foreground">
                       {new Date(entry.createdAt).toLocaleString()}
-                    </td>
-                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>
-                      <span
-                        style={{
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          background:
-                            entry.entryType === 'EARNING'
-                              ? 'rgba(34, 197, 94, 0.15)'
-                              : entry.entryType === 'REFUND'
-                              ? 'rgba(239, 68, 68, 0.15)'
-                              : 'rgba(37, 99, 235, 0.15)',
-                          color:
-                            entry.entryType === 'EARNING'
-                              ? 'var(--accent-green)'
-                              : entry.entryType === 'REFUND'
-                              ? 'var(--accent-red)'
-                              : 'var(--brand)',
-                        }}
-                      >
-                        {entry.entryType}
+                    </TD>
+                    <TD>
+                      <Badge variant={typeVariant(entry.entryType)}>{entry.entryType}</Badge>
+                    </TD>
+                    <TD>
+                      <span className={entry.direction === "CREDIT" ? "text-success" : "text-destructive"}>
+                        {entry.direction === "CREDIT" ? "+ Credit" : "− Debit"}
                       </span>
-                    </td>
-                    <td style={{ padding: '0.75rem', fontWeight: 700 }}>
-                      {entry.direction === 'CREDIT' ? (
-                        <span style={{ color: 'var(--accent-green)' }}>+ CREDIT</span>
-                      ) : (
-                        <span style={{ color: 'var(--accent-red)' }}>&minus; DEBIT</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.75rem', fontWeight: 700 }}>
-                      {formatPrice(entry.amountMinor, entry.currency)}
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <code style={{ fontSize: '0.8rem' }}>{entry.sourceType}: {entry.sourceId.slice(0, 10)}...</code>
-                    </td>
-                    <td style={{ padding: '0.75rem', color: 'var(--primary-muted)' }}>
-                      {entry.description || 'System journal settlement entry'}
-                    </td>
+                    </TD>
+                    <TD className="tnum text-right font-medium">
+                      {formatMoney(entry.amountMinor / 100, entry.currency)}
+                    </TD>
+                    <TD className="max-w-48 truncate font-mono text-xs text-muted-foreground" title={entry.description || `${entry.sourceType} ${entry.sourceId}`}>
+                      {entry.sourceType} {entry.sourceId.slice(0, 8)}
+                    </TD>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

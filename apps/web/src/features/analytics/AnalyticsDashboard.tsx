@@ -1,18 +1,29 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, Fragment } from "react";
+import { Activity, BarChart3 } from "lucide-react";
 import {
   analyticsApi,
   type SalesAnalyticsDto,
   type ProductAnalyticsItemDto,
   type OperationsAnalyticsDto,
   type MlModelDto,
-} from './api/analytics';
-import { eventsApi, type OutboxEventDto } from './api/events';
-import { useAuth } from '../auth/AuthContext';
+} from "./api/analytics";
+import { eventsApi, type OutboxEventDto } from "./api/events";
+import { useAuth } from "../auth/AuthContext";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import { Badge } from "../../components/ui/badge";
+import { Alert } from "../../components/ui/alert";
+import { EmptyState, Skeleton } from "../../components/ui/empty";
+import { KpiCard } from "../../components/ui/kpi";
+import { Table, THead, TH, TD } from "../../components/ui/table";
+import { formatMoney } from "../../lib/format";
+import { cn } from "../../lib/utils";
+
+type Tab = "sales" | "products" | "models" | "operations" | "events";
 
 export const AnalyticsDashboard = () => {
   const { user, login } = useAuth();
-  const [activeTab, setActiveTab] = useState<'sales' | 'products' | 'predictive' | 'operations' | 'events'>('sales');
+  const [activeTab, setActiveTab] = useState<Tab>("sales");
   const [sales, setSales] = useState<SalesAnalyticsDto | null>(null);
   const [products, setProducts] = useState<ProductAnalyticsItemDto[]>([]);
   const [operations, setOperations] = useState<OperationsAnalyticsDto | null>(null);
@@ -23,14 +34,6 @@ export const AnalyticsDashboard = () => {
   const [processFeedback, setProcessFeedback] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const formatPrice = (minorUnits: number, currency = 'INR') => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: currency || 'INR',
-      maximumFractionDigits: 0,
-    }).format(minorUnits / 100);
-  };
 
   const loadEvents = async () => {
     try {
@@ -46,10 +49,10 @@ export const AnalyticsDashboard = () => {
     setProcessFeedback(null);
     try {
       const res = await eventsApi.processOutboxEvents(50);
-      setProcessFeedback(`Outbox processed: ${res.published} published, ${res.failed} failed (${res.processed} examined).`);
+      setProcessFeedback(`${res.published} published, ${res.failed} failed (${res.processed} examined).`);
       await loadEvents();
     } catch (err: unknown) {
-      setProcessFeedback(`Process failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setProcessFeedback(err instanceof Error ? err.message : "Event processing failed.");
     } finally {
       setIsProcessingEvents(false);
     }
@@ -60,19 +63,19 @@ export const AnalyticsDashboard = () => {
       await eventsApi.replayOutboxEvent(id);
       await loadEvents();
     } catch (err: unknown) {
-      alert(`Replay error: ${err instanceof Error ? err.message : 'Failed to replay'}`);
+      setProcessFeedback(err instanceof Error ? err.message : "Replay failed.");
     }
   };
 
   useEffect(() => {
-    if (!user || (user.role !== 'MERCHANT' && user.role !== 'ADMINISTRATOR')) return;
+    if (!user || (user.role !== "MERCHANT" && user.role !== "ADMINISTRATOR")) return;
 
     const loadAnalytics = async () => {
       setIsLoading(true);
       setError(null);
       try {
         const [salesData, productsData, opsData, modelsData] = await Promise.all([
-          analyticsApi.getSalesAnalytics('day').catch(() => null),
+          analyticsApi.getSalesAnalytics("day").catch(() => null),
           analyticsApi.getProductAnalytics(10).catch(() => []),
           analyticsApi.getOperationsAnalytics().catch(() => null),
           analyticsApi.getMlModels().catch(() => ({ models: [] })),
@@ -82,11 +85,11 @@ export const AnalyticsDashboard = () => {
         setOperations(opsData);
         setModels(modelsData.models || []);
 
-        if (user.role === 'ADMINISTRATOR') {
+        if (user.role === "ADMINISTRATOR") {
           await loadEvents();
         }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load analytics datasets');
+        setError(err instanceof Error ? err.message : "Could not load analytics.");
       } finally {
         setIsLoading(false);
       }
@@ -94,624 +97,361 @@ export const AnalyticsDashboard = () => {
     loadAnalytics();
   }, [user]);
 
-  if (user?.role !== 'MERCHANT' && user?.role !== 'ADMINISTRATOR') {
+  if (user?.role !== "MERCHANT" && user?.role !== "ADMINISTRATOR") {
     return (
-      <div className="container" style={{ padding: '3rem 1rem', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-        <div className="card" style={{ padding: '2.5rem' }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.75rem' }}>Commerce Analytics Portal</h2>
-          <p className="text-muted" style={{ marginBottom: '1.5rem' }}>
-            Elevated Merchant or Administrator privileges are required to inspect real-time sales trends, product velocity, and ML predictions.
-          </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={async () => {
-                await login({ email: 'merchant@example.com', password: 'password123' });
-              }}
+      <div className="mx-auto w-full max-w-xl p-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Analytics</CardTitle>
+            <CardDescription>
+              Sign in as a merchant or admin to view sales trends and forecasts.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => login({ email: "merchant@example.com", password: "password123" })}
             >
-              Merchant Login
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={async () => {
-                await login({ email: 'admin@example.com', password: 'password123' });
-              }}
+              Merchant sign in
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => login({ email: "admin@example.com", password: "password123" })}
             >
-              Admin Login
-            </button>
-          </div>
-        </div>
+              Admin sign in
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="container" style={{ padding: '4rem 1rem', textAlign: 'center' }}>
-        <p className="text-muted">Aggregating real-time commerce facts &amp; dimensional projections...</p>
+      <div className="space-y-3 p-4" aria-label="Loading analytics">
+        <Skeleton className="h-6 w-48" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
       </div>
     );
   }
 
+  const currency = sales?.currency ?? "INR";
+  const tabs: Array<{ id: Tab; label: string }> = [
+    { id: "sales", label: "Sales" },
+    { id: "products", label: "Products" },
+    { id: "models", label: "Models" },
+    { id: "operations", label: "Operations" },
+    ...(user.role === "ADMINISTRATOR" ? [{ id: "events" as Tab, label: "Events" }] : []),
+  ];
+
   return (
-    <div className="container" style={{ padding: '2rem 1rem 4rem' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 className="font-display" style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>
-            Analytics &amp; Predictive Intelligence
-          </h1>
-          <p className="text-muted">
-            Derived analytical models, event ingestion telemetry, and governed machine learning forecasts.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <Link to="/merchant" className="btn btn-secondary">
-            Merchant Hub
-          </Link>
-          {user.role === 'ADMINISTRATOR' && (
-            <Link to="/admin" className="btn btn-primary">
-              Admin Portal
-            </Link>
-          )}
-        </div>
+    <div className="space-y-4 p-4">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Analytics</h1>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Sales trends, product performance, and demand forecasts.
+        </p>
       </div>
 
-      {error && (
-        <div className="card" style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)', marginBottom: '1.5rem' }}>
-          {error}
-        </div>
+      {error && <Alert tone="error">{error}</Alert>}
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          label="Gross revenue"
+          value={formatMoney((sales?.grossSalesAmount ?? 0) / 100, currency)}
+          hint={`net ${formatMoney((sales?.netSalesAmount ?? 0) / 100, currency)}`}
+        />
+        <KpiCard
+          label="Orders"
+          value={String(sales?.totalOrders ?? 0)}
+          hint="in period"
+        />
+        <KpiCard
+          label="Average order value"
+          value={formatMoney((sales?.averageOrderValue ?? 0) / 100, currency)}
+          hint="per order"
+        />
+        <KpiCard
+          label="Payment success"
+          value={operations ? `${(operations.paymentSuccessRate * 100).toFixed(1)}%` : "—"}
+          hint="verified transactions"
+        />
+      </div>
+
+      <div className="flex gap-1 border-b border-border" role="tablist" aria-label="Analytics sections">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={cn(
+              "-mb-px border-b-2 px-2.5 py-1.5 text-[13px] font-medium",
+              activeTab === t.id
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "sales" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue timeline</CardTitle>
+            <CardDescription>Daily gross and net sales.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!sales?.timeline || sales.timeline.length === 0 ? (
+              <EmptyState
+                icon={BarChart3}
+                title="No sales in this period"
+                description="Completed orders will appear here as daily revenue."
+              />
+            ) : (
+              <ul className="divide-y divide-border rounded-md border border-border">
+                {sales.timeline.map((t, idx) => (
+                  <li key={idx} className="flex items-center justify-between gap-2 px-3 py-2 text-[13px]">
+                    <div>
+                      <p className="font-medium">{t.period}</p>
+                      <p className="tnum text-xs text-muted-foreground">{t.ordersCount} orders</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="tnum font-semibold">{formatMoney(t.grossSales / 100, sales.currency)}</p>
+                      <p className="tnum text-xs text-muted-foreground">
+                        net {formatMoney(t.netSales / 100, sales.currency)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      {/* Top Level KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <span className="text-muted" style={{ fontSize: '0.85rem' }}>Gross Revenue</span>
-          <div style={{ fontSize: '1.75rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--brand)' }}>
-            {formatPrice(sales?.grossSalesAmount ?? 0, sales?.currency ?? 'INR')}
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--accent-green)' }}>
-            Net: {formatPrice(sales?.netSalesAmount ?? 0, sales?.currency ?? 'INR')}
-          </span>
-        </div>
-
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <span className="text-muted" style={{ fontSize: '0.85rem' }}>Total Orders</span>
-          <div style={{ fontSize: '1.75rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--accent-blue)' }}>
-            {sales?.totalOrders ?? 0}
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--primary-muted)' }}>From transactional events</span>
-        </div>
-
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <span className="text-muted" style={{ fontSize: '0.85rem' }}>Average Order Value</span>
-          <div style={{ fontSize: '1.75rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--accent-amber)' }}>
-            {formatPrice(sales?.averageOrderValue ?? 0, sales?.currency ?? 'INR')}
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--primary-muted)' }}>Basket size KPI</span>
-        </div>
-
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <span className="text-muted" style={{ fontSize: '0.85rem' }}>Payment Success Rate</span>
-          <div style={{ fontSize: '1.75rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--accent-green)' }}>
-            {operations ? `${(operations.paymentSuccessRate * 100).toFixed(1)}%` : '99.4%'}
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--accent-green)' }}>Verified transactions</span>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)', marginBottom: '1.5rem' }}>
-        <button
-          type="button"
-          onClick={() => setActiveTab('sales')}
-          style={{
-            padding: '0.75rem 1.25rem',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'sales' ? '2px solid var(--brand)' : '2px solid transparent',
-            color: activeTab === 'sales' ? 'var(--brand)' : 'var(--primary-muted)',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Sales &amp; Revenue Trends
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('products')}
-          style={{
-            padding: '0.75rem 1.25rem',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'products' ? '2px solid var(--brand)' : '2px solid transparent',
-            color: activeTab === 'products' ? 'var(--brand)' : 'var(--primary-muted)',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Product Performance
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('predictive')}
-          style={{
-            padding: '0.75rem 1.25rem',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'predictive' ? '2px solid var(--brand)' : '2px solid transparent',
-            color: activeTab === 'predictive' ? 'var(--brand)' : 'var(--primary-muted)',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Predictive ML &amp; Models
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('operations')}
-          style={{
-            padding: '0.75rem 1.25rem',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'operations' ? '2px solid var(--brand)' : '2px solid transparent',
-            color: activeTab === 'operations' ? 'var(--brand)' : 'var(--primary-muted)',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Operational SRE Telemetry
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('events');
-            if (user?.role === 'ADMINISTRATOR') {
-              loadEvents();
-            }
-          }}
-          style={{
-            padding: '0.75rem 1.25rem',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'events' ? '2px solid var(--brand)' : '2px solid transparent',
-            color: activeTab === 'events' ? 'var(--brand)' : 'var(--primary-muted)',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-          }}
-        >
-          <span>Live Event Stream</span>
-          <span style={{ fontSize: '0.7rem', background: 'rgba(59, 130, 246, 0.2)', color: 'var(--accent-blue)', padding: '1px 6px', borderRadius: '4px' }}>
-            Section 17 &amp; 24
-          </span>
-        </button>
-      </div>
-
-      {/* Tab 1: Sales & Revenue Trends */}
-      {activeTab === 'sales' && (
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>
-            Daily Revenue Timeline
-          </h2>
-          {(!sales?.timeline || sales.timeline.length === 0) ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--primary-muted)' }}>
-              No historical event data in this period. As orders occur, daily volume will project here automatically.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {sales.timeline.map((t, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '6px' }}>
-                  <div>
-                    <strong>{t.period}</strong>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--primary-muted)' }}>
-                      {t.ordersCount} orders placed
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--brand)' }}>
-                      {formatPrice(t.grossSales, sales.currency)}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-green)' }}>
-                      Net: {formatPrice(t.netSales, sales.currency)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab 2: Product Performance */}
-      {activeTab === 'products' && (
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>
-            Product Velocity &amp; Revenue Leaderboard
-          </h2>
-          {products.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--primary-muted)' }}>
-              No product analytics available yet.
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--primary-muted)' }}>
-                    <th style={{ padding: '0.75rem' }}>Product</th>
-                    <th style={{ padding: '0.75rem' }}>Units Sold</th>
-                    <th style={{ padding: '0.75rem' }}>Revenue</th>
-                    <th style={{ padding: '0.75rem' }}>Views</th>
-                    <th style={{ padding: '0.75rem' }}>Conversion</th>
+      {activeTab === "products" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Top products</CardTitle>
+            <CardDescription>Units, revenue, and conversion.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {products.length === 0 ? (
+              <EmptyState
+                icon={BarChart3}
+                title="No product data yet"
+                description="Product performance will accumulate as orders complete."
+              />
+            ) : (
+              <Table>
+                <THead>
+                  <tr>
+                    <TH>Product</TH>
+                    <TH className="text-right">Units</TH>
+                    <TH className="text-right">Revenue</TH>
+                    <TH className="text-right">Views</TH>
+                    <TH className="text-right">Conv.</TH>
                   </tr>
-                </thead>
+                </THead>
                 <tbody>
                   {products.map((p) => (
-                    <tr key={p.productId} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '0.75rem', fontWeight: 600 }}>{p.productTitle}</td>
-                      <td style={{ padding: '0.75rem' }}>{p.totalUnitsSold}</td>
-                      <td style={{ padding: '0.75rem', color: 'var(--brand)', fontWeight: 600 }}>
-                        {formatPrice(p.totalRevenueAmount)}
-                      </td>
-                      <td style={{ padding: '0.75rem' }}>{p.viewsCount}</td>
-                      <td style={{ padding: '0.75rem', color: 'var(--accent-green)' }}>
-                        {(p.conversionRate * 100).toFixed(1)}%
-                      </td>
+                    <tr key={p.productId}>
+                      <TD className="font-medium">{p.productTitle}</TD>
+                      <TD className="tnum text-right">{p.totalUnitsSold}</TD>
+                      <TD className="tnum text-right font-medium">
+                        {formatMoney(p.totalRevenueAmount / 100, currency)}
+                      </TD>
+                      <TD className="tnum text-right text-muted-foreground">{p.viewsCount}</TD>
+                      <TD className="tnum text-right">{(p.conversionRate * 100).toFixed(1)}%</TD>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      {/* Tab 3: Predictive ML & Models */}
-      {activeTab === 'predictive' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Stockout Risk & Demand Forecast Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-            <div className="card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--accent-amber)' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                Stockout Prediction Alert (Section 16)
-              </h3>
-              <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-                Calculated from inventory balances, reservation hold rates, and current sales velocity.
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <strong>SONY-WH1000XM5-BLK</strong>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--primary-muted)' }}>Estimated runout in 8 days</div>
-                </div>
-                <span style={{ background: 'rgba(234, 179, 8, 0.15)', color: 'var(--accent-amber)', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
-                  MEDIUM RISK (32%)
-                </span>
-              </div>
-            </div>
-
-            <div className="card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--accent-blue)' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                Demand Forecast (30 Days)
-              </h3>
-              <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-                Baseline exponential smoothing trained from historical order frequencies.
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <strong>Apple iPhone 15 Pro</strong>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--primary-muted)' }}>Projected demand: 45 units</div>
-                </div>
-                <span style={{ background: 'rgba(59, 130, 246, 0.15)', color: 'var(--accent-blue)', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
-                  FORECAST ACTIVE
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* MLOps Model Registry Table */}
-          <div className="card" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>
-              MLOps Model Registry (Section 29 &amp; 30)
-            </h3>
+      {activeTab === "models" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Forecast models</CardTitle>
+            <CardDescription>Registered demand and risk models.</CardDescription>
+          </CardHeader>
+          <CardContent>
             {models.length === 0 ? (
-              <p className="text-muted" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                No registered models in registry. Models are versioned upon background training job execution.
-              </p>
+              <EmptyState
+                icon={Activity}
+                title="No models registered"
+                description="Models appear here after training jobs complete."
+              />
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--primary-muted)' }}>
-                    <th style={{ padding: '0.5rem' }}>Model Type</th>
-                    <th style={{ padding: '0.5rem' }}>Version</th>
-                    <th style={{ padding: '0.5rem' }}>Status</th>
-                    <th style={{ padding: '0.5rem' }}>Accuracy / RMSE</th>
-                    <th style={{ padding: '0.5rem' }}>Registered At</th>
+              <Table>
+                <THead>
+                  <tr>
+                    <TH>Model</TH>
+                    <TH>Version</TH>
+                    <TH>Status</TH>
+                    <TH>Accuracy</TH>
+                    <TH>Registered</TH>
                   </tr>
-                </thead>
+                </THead>
                 <tbody>
                   {models.map((m) => (
-                    <tr key={m.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '0.5rem', fontWeight: 600 }}>{m.modelType}</td>
-                      <td style={{ padding: '0.5rem' }}><code>{m.version}</code></td>
-                      <td style={{ padding: '0.5rem' }}>
-                        <span style={{
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          background: m.status === 'APPROVED' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(100, 116, 139, 0.15)',
-                          color: m.status === 'APPROVED' ? 'var(--accent-green)' : 'var(--primary-muted)',
-                        }}>
-                          {m.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.5rem' }}>
-                        {m.accuracy ? `${(m.accuracy * 100).toFixed(1)}%` : m.rmse ? `RMSE: ${m.rmse.toFixed(3)}` : 'Baseline'}
-                      </td>
-                      <td style={{ padding: '0.5rem', color: 'var(--primary-muted)' }}>
+                    <tr key={m.id}>
+                      <TD className="font-medium">{m.modelType}</TD>
+                      <TD className="font-mono text-xs">{m.version}</TD>
+                      <TD>
+                        <Badge variant={m.status === "APPROVED" ? "success" : "outline"}>{m.status}</Badge>
+                      </TD>
+                      <TD className="tnum">
+                        {m.accuracy != null
+                          ? `${(m.accuracy * 100).toFixed(1)}%`
+                          : m.rmse != null
+                            ? `RMSE ${m.rmse.toFixed(3)}`
+                            : "—"}
+                      </TD>
+                      <TD className="text-muted-foreground">
                         {new Date(m.createdAt).toLocaleDateString()}
-                      </td>
+                      </TD>
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </Table>
             )}
-          </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "operations" && (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard label="Payment attempts" value={String(operations?.totalPaymentsAttempted ?? 0)} />
+          <KpiCard label="Shipments dispatched" value={String(operations?.totalShipmentsDispatched ?? 0)} />
+          <KpiCard
+            label="Return rate"
+            value={operations ? `${(operations.returnRate * 100).toFixed(1)}%` : "—"}
+          />
+          <KpiCard
+            label="Avg fulfillment time"
+            value={
+              operations?.averageFulfillmentTimeHours
+                ? `${operations.averageFulfillmentTimeHours}h`
+                : "—"
+            }
+          />
         </div>
       )}
 
-      {/* Tab 4: Operational SRE Telemetry */}
-      {activeTab === 'operations' && (
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>
-            System Reliability &amp; Fulfillment SRE (Section 31)
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            <div style={{ background: 'var(--bg-main)', padding: '1.25rem', borderRadius: '8px' }}>
-              <div style={{ fontSize: '0.85rem', color: 'var(--primary-muted)' }}>Payment Attempts</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>
-                {operations?.totalPaymentsAttempted ?? 1}
+      {activeTab === "events" && user.role === "ADMINISTRATOR" && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle>Event outbox</CardTitle>
+                <CardDescription>Transactional events awaiting publish.</CardDescription>
+              </div>
+              <div className="flex gap-1.5">
+                <Button variant="outline" size="sm" onClick={loadEvents}>
+                  Refresh
+                </Button>
+                <Button size="sm" disabled={isProcessingEvents} onClick={handleProcessEvents}>
+                  {isProcessingEvents ? "Publishing…" : "Process pending"}
+                </Button>
               </div>
             </div>
-
-            <div style={{ background: 'var(--bg-main)', padding: '1.25rem', borderRadius: '8px' }}>
-              <div style={{ fontSize: '0.85rem', color: 'var(--primary-muted)' }}>Shipments Dispatched</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem', color: 'var(--accent-blue)' }}>
-                {operations?.totalShipmentsDispatched ?? 0}
-              </div>
-            </div>
-
-            <div style={{ background: 'var(--bg-main)', padding: '1.25rem', borderRadius: '8px' }}>
-              <div style={{ fontSize: '0.85rem', color: 'var(--primary-muted)' }}>Return Rate</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem', color: 'var(--accent-amber)' }}>
-                {operations ? `${(operations.returnRate * 100).toFixed(1)}%` : '0.0%'}
-              </div>
-            </div>
-
-            <div style={{ background: 'var(--bg-main)', padding: '1.25rem', borderRadius: '8px' }}>
-              <div style={{ fontSize: '0.85rem', color: 'var(--primary-muted)' }}>Avg Fulfillment Time</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem', color: 'var(--accent-green)' }}>
-                {operations?.averageFulfillmentTimeHours ? `${operations.averageFulfillmentTimeHours}h` : '< 24h'}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 5: Live Event Stream & Outbox Telemetry (Section 17 & 24) */}
-      {activeTab === 'events' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {user.role !== 'ADMINISTRATOR' ? (
-            <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Platform Administrator Privilege Required</h3>
-              <p className="text-muted" style={{ maxWidth: '550px', margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
-                Under Section 17 &amp; 24 multi-tenant security specifications, inspecting raw transactional outbox streams across all tenant partitions requires platform administrative authorization.
-              </p>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={async () => {
-                  await login({ email: 'admin@example.com', password: 'password123' });
-                  await loadEvents();
-                }}
-              >
-                Switch to Platform Administrator
-              </button>
-            </div>
-          ) : (
-            <div className="card" style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span>Transactional Outbox Stream</span>
-                    <span style={{ fontSize: '0.75rem', background: 'rgba(34, 197, 94, 0.15)', color: 'var(--accent-green)', padding: '2px 8px', borderRadius: '999px' }}>
-                      At-Least-Once Delivery
-                    </span>
-                  </h2>
-                  <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-                    Events written transactionally alongside business mutations in PostgreSQL and published via the outbox relay.
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => loadEvents()}
-                  >
-                    Refresh
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={isProcessingEvents}
-                    onClick={handleProcessEvents}
-                  >
-                    {isProcessingEvents ? 'Publishing...' : 'Process Pending Events'}
-                  </button>
-                </div>
-              </div>
-
-              {processFeedback && (
-                <div className="card" style={{ background: 'rgba(37, 99, 235, 0.1)', borderColor: 'var(--brand)', marginBottom: '1rem', padding: '0.75rem 1rem' }}>
-                  {processFeedback}
-                </div>
-              )}
-
-              {/* Event Stream Stats */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ background: 'var(--bg-main)', padding: '0.75rem 1rem', borderRadius: '6px' }}>
-                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>Total Stream Events</span>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{events.length}</div>
-                </div>
-                <div style={{ background: 'var(--bg-main)', padding: '0.75rem 1rem', borderRadius: '6px' }}>
-                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>Published</span>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent-green)' }}>
-                    {events.filter((e) => e.status === 'PUBLISHED').length}
-                  </div>
-                </div>
-                <div style={{ background: 'var(--bg-main)', padding: '0.75rem 1rem', borderRadius: '6px' }}>
-                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>Pending Dispatch</span>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent-amber)' }}>
-                    {events.filter((e) => e.status === 'PENDING').length}
-                  </div>
-                </div>
-                <div style={{ background: 'var(--bg-main)', padding: '0.75rem 1rem', borderRadius: '6px' }}>
-                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>Failed / Deadletter</span>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent-red)' }}>
-                    {events.filter((e) => e.status === 'FAILED').length}
-                  </div>
-                </div>
-              </div>
-
-              {/* Event Table */}
-              {events.length === 0 ? (
-                <p className="text-muted" style={{ padding: '2rem', textAlign: 'center' }}>
-                  No outbox events recorded yet. Perform an action (e.g. place an order, adjust stock, verify merchant) to trigger domain events.
-                </p>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--primary-muted)' }}>
-                        <th style={{ padding: '0.75rem' }}>Timestamp</th>
-                        <th style={{ padding: '0.75rem' }}>Event Type</th>
-                        <th style={{ padding: '0.75rem' }}>Aggregate</th>
-                        <th style={{ padding: '0.75rem' }}>Tenant</th>
-                        <th style={{ padding: '0.75rem' }}>Status</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'right' }}>Actions</th>
+          </CardHeader>
+          <CardContent>
+            {processFeedback && (
+              <p className="mb-2 text-[13px] text-muted-foreground">{processFeedback}</p>
+            )}
+            {events.length === 0 ? (
+              <EmptyState
+                icon={Activity}
+                title="No outbox events"
+                description="Domain actions will append events here."
+              />
+            ) : (
+              <Table>
+                <THead>
+                  <tr>
+                    <TH>Time</TH>
+                    <TH>Event</TH>
+                    <TH>Status</TH>
+                    <TH className="text-right">Actions</TH>
+                  </tr>
+                </THead>
+                <tbody>
+                  {events.map((ev) => (
+                    <Fragment key={ev.id}>
+                      <tr>
+                        <TD className="whitespace-nowrap text-muted-foreground">
+                          {new Date(ev.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                          })}
+                        </TD>
+                        <TD>
+                          <span className="font-mono text-xs text-primary">{ev.eventType}</span>
+                          <span className="block font-mono text-xs text-muted-foreground">
+                            {ev.aggregateType}:{ev.aggregateId.slice(0, 12)}
+                          </span>
+                        </TD>
+                        <TD>
+                          <Badge
+                            variant={
+                              ev.status === "PUBLISHED"
+                                ? "success"
+                                : ev.status === "PENDING"
+                                  ? "warning"
+                                  : "destructive"
+                            }
+                          >
+                            {ev.status}
+                          </Badge>
+                        </TD>
+                        <TD className="text-right">
+                          <div className="inline-flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setExpandedEventId(expandedEventId === ev.id ? null : ev.id)}
+                            >
+                              {expandedEventId === ev.id ? "Close" : "Payload"}
+                            </Button>
+                            {(ev.status === "FAILED" || ev.status === "PENDING") && (
+                              <Button variant="ghost" size="sm" onClick={() => handleReplayEvent(ev.id)}>
+                                Replay
+                              </Button>
+                            )}
+                          </div>
+                        </TD>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {events.map((ev) => (
-                        <>
-                          <tr key={ev.id} style={{ borderBottom: '1px solid var(--border)', background: expandedEventId === ev.id ? 'var(--bg-card-hover)' : 'transparent' }}>
-                            <td style={{ padding: '0.75rem', whiteSpace: 'nowrap', color: 'var(--primary-muted)' }}>
-                              {new Date(ev.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                            </td>
-                            <td style={{ padding: '0.75rem' }}>
-                              <code style={{ color: 'var(--brand)', fontWeight: 600 }}>{ev.eventType}</code>
-                            </td>
-                            <td style={{ padding: '0.75rem' }}>
-                              <span style={{ fontSize: '0.8rem', color: 'var(--primary-muted)' }}>{ev.aggregateType}:</span>{' '}
-                              <code>{ev.aggregateId.slice(0, 12)}...</code>
-                            </td>
-                            <td style={{ padding: '0.75rem', fontSize: '0.8rem', color: 'var(--primary-muted)' }}>
-                              {ev.tenantId}
-                            </td>
-                            <td style={{ padding: '0.75rem' }}>
-                              <span
-                                style={{
-                                  padding: '2px 8px',
-                                  borderRadius: '999px',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 600,
-                                  background:
-                                    ev.status === 'PUBLISHED'
-                                      ? 'rgba(34, 197, 94, 0.15)'
-                                      : ev.status === 'PENDING'
-                                      ? 'rgba(234, 179, 8, 0.15)'
-                                      : 'rgba(239, 68, 68, 0.15)',
-                                  color:
-                                    ev.status === 'PUBLISHED'
-                                      ? 'var(--accent-green)'
-                                      : ev.status === 'PENDING'
-                                      ? 'var(--accent-amber)'
-                                      : 'var(--accent-red)',
-                                }}
-                              >
-                                {ev.status}
-                              </span>
-                            </td>
-                            <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                              <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary"
-                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                                  onClick={() => setExpandedEventId(expandedEventId === ev.id ? null : ev.id)}
-                                >
-                                  {expandedEventId === ev.id ? 'Close' : 'Payload'}
-                                </button>
-                                {(ev.status === 'FAILED' || ev.status === 'PENDING') && (
-                                  <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                                    onClick={() => handleReplayEvent(ev.id)}
-                                  >
-                                    Replay
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                          {expandedEventId === ev.id && (
-                            <tr style={{ background: 'var(--bg-main)' }}>
-                              <td colSpan={6} style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                  <div>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-muted)', marginBottom: '0.25rem' }}>
-                                      EVENT PAYLOAD:
-                                    </div>
-                                    <pre style={{ margin: 0, padding: '0.75rem', background: '#0f172a', color: '#e2e8f0', borderRadius: '4px', fontSize: '0.75rem', overflowX: 'auto' }}>
-                                      {JSON.stringify(ev.payload, null, 2)}
-                                    </pre>
-                                  </div>
-                                  <div>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-muted)', marginBottom: '0.25rem' }}>
-                                      ENVELOPE METADATA (Section 24.1):
-                                    </div>
-                                    <pre style={{ margin: 0, padding: '0.75rem', background: '#0f172a', color: '#e2e8f0', borderRadius: '4px', fontSize: '0.75rem', overflowX: 'auto' }}>
-                                      {JSON.stringify({
-                                        id: ev.id,
-                                        tenantId: ev.tenantId,
-                                        aggregateType: ev.aggregateType,
-                                        aggregateId: ev.aggregateId,
-                                        retryCount: ev.retryCount,
-                                        publishedAt: ev.publishedAt,
-                                        metadata: ev.metadata,
-                                      }, null, 2)}
-                                    </pre>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                      {expandedEventId === ev.id && (
+                        <tr>
+                          <TD colSpan={4}>
+                            <pre className="overflow-x-auto rounded-md bg-muted p-2 font-mono text-xs">
+                              {JSON.stringify(ev.payload, null, 2)}
+                            </pre>
+                          </TD>
+                        </tr>
+                      )}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );
