@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { JsonLogger } from '../src/observability/logger.js';
 import {
@@ -103,6 +103,7 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
     await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [
       userRes.rows[0]!.id,
     ]);
+    await markAllUsersVerified(db);
 
     const adminLogin = await app.inject({
       method: 'POST',
@@ -113,35 +114,33 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
   }
 
   async function getMerchantToken(email = 'seller@merchant.com', tenantName = 'Seller Tenant') {
-    const reg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email,
-          password: 'Password123!',
-          tenantName,
-          role: 'MERCHANT',
-        },
-      })
-    ).json();
-    return { token: reg.accessToken, tenantId: reg.tenantId, userId: reg.user?.id };
+    const token = await registerVerifiedUser(app, db, {
+      email,
+      password: 'Password123!',
+      tenantName,
+      role: 'MERCHANT',
+    });
+    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = $1`, [email]);
+    const memberRes = await db.query<{ tenant_id: string }>(
+      `SELECT tenant_id FROM tenant_memberships WHERE user_id = $1`,
+      [userRes.rows[0]!.id],
+    );
+    return { token, tenantId: memberRes.rows[0]!.tenant_id, userId: userRes.rows[0]!.id };
   }
 
   async function getCustomerToken(email = 'buyer@customer.com') {
-    const reg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email,
-          password: 'Password123!',
-          tenantName: 'Customer Tenant',
-          role: 'CUSTOMER',
-        },
-      })
-    ).json();
-    return { token: reg.accessToken, tenantId: reg.tenantId };
+    const token = await registerVerifiedUser(app, db, {
+      email,
+      password: 'Password123!',
+      tenantName: 'Customer Tenant',
+      role: 'CUSTOMER',
+    });
+    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = $1`, [email]);
+    const memberRes = await db.query<{ tenant_id: string }>(
+      `SELECT tenant_id FROM tenant_memberships WHERE user_id = $1`,
+      [userRes.rows[0]!.id],
+    );
+    return { token, tenantId: memberRes.rows[0]!.tenant_id };
   }
 
   // --- 1. EVENT INGESTION MATRIX (SCENARIOS A - G) ---

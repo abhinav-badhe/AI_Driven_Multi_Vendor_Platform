@@ -66,6 +66,11 @@ export function parseConfig(envSource: Record<string, string | undefined>): AppC
     search: {
       storeAdapter: raw.SEARCH_STORE_ADAPTER ?? 'postgres',
     },
+    notifications: {
+      resendApiKey: raw.RESEND_API_KEY || undefined,
+      emailFrom: raw.EMAIL_FROM ?? 'Store <onboarding@resend.dev>',
+      frontendUrl: raw.FRONTEND_URL ?? 'http://localhost:3000',
+    },
   };
 }
 

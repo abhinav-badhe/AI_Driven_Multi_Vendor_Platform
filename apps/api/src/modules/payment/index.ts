@@ -1,7 +1,7 @@
 import type { DatabaseConnection } from '../../infra/database/connection.js';
 import type { Logger } from '../../observability/logger.js';
 import type { CheckoutService } from '../cart-checkout/index.js';
-import { PaymentService } from './internal/payment-service.js';
+import { PaymentService, normalizePaymentMethod, paymentMethodFromMetadata } from './internal/payment-service.js';
 import {
   type PaymentProvider,
   MockPaymentProvider,
@@ -79,4 +79,4 @@ export const paymentModule: PaymentModule = {
   },
 };
 
-export { PaymentService, MockPaymentProvider };
+export { PaymentService, MockPaymentProvider, normalizePaymentMethod, paymentMethodFromMetadata };

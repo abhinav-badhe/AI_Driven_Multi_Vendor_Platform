@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -70,6 +70,7 @@ describe('Phase 3: Catalog Domain (Category, Product, SKU)', () => {
     await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [
       adminUserId,
     ]);
+    await markAllUsersVerified(db);
 
     const adminLogin = await app.inject({
       method: 'POST',
@@ -79,7 +80,7 @@ describe('Phase 3: Catalog Domain (Category, Product, SKU)', () => {
     expect(adminLogin.statusCode).toBe(200);
     const { accessToken: adminToken } = adminLogin.json();
 
-    // 2. Register merchant
+    // 2. Register merchant (verified before any sign-in)
     const merchantReg = await app.inject({
       method: 'POST',
       url: '/auth/register',
@@ -91,9 +92,15 @@ describe('Phase 3: Catalog Domain (Category, Product, SKU)', () => {
       },
     });
     expect(merchantReg.statusCode).toBe(201);
-    const { accessToken: merchantToken } = merchantReg.json();
+    await markAllUsersVerified(db);
+    const merchantLogin = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'merchant@store.com', password: 'Password123!' },
+    });
+    const { accessToken: merchantToken } = merchantLogin.json();
 
-    // 3. Register customer
+    // 3. Register customer (verified before any sign-in)
     const customerReg = await app.inject({
       method: 'POST',
       url: '/auth/register',
@@ -105,7 +112,13 @@ describe('Phase 3: Catalog Domain (Category, Product, SKU)', () => {
       },
     });
     expect(customerReg.statusCode).toBe(201);
-    const { accessToken: customerToken } = customerReg.json();
+    await markAllUsersVerified(db);
+    const customerLogin = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'customer@buyer.com', password: 'Password123!' },
+    });
+    const { accessToken: customerToken } = customerLogin.json();
 
     return {
       adminToken,

@@ -40,6 +40,12 @@ export const RawEnvSchema = z.object({
 
   // 6. Search Configuration
   SEARCH_STORE_ADAPTER: z.enum(['postgres', 'memory']).optional(),
+
+  // 7. Email (Resend) Configuration — optional; without a key the API
+  // keeps an in-memory outbox (dev/test) and logs instead of sending.
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(1).optional(),
+  FRONTEND_URL: z.string().min(1).optional(),
 });
 
 export type RawEnv = z.infer<typeof RawEnvSchema>;
@@ -79,5 +85,10 @@ export interface AppConfig {
   };
   search: {
     storeAdapter: 'postgres' | 'memory';
+  };
+  notifications: {
+    resendApiKey?: string | undefined;
+    emailFrom: string;
+    frontendUrl: string;
   };
 }

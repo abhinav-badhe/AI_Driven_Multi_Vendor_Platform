@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { SettlementService } from '../src/modules/settlement-ledger/index.js';
 import type { Logger } from '../src/observability/logger.js';
@@ -78,6 +78,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
     await db.query(`UPDATE tenants SET type = 'PLATFORM' WHERE id = $1`, [
       membershipRes.rows[0]!.tenant_id,
     ]);
+    await markAllUsersVerified(db);
     const adminLogin = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -86,19 +87,12 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
     const { accessToken: adminToken } = adminLogin.json();
 
     // 2. Merchant Alpha
-    const alphaReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'alpha@store.com',
-          password: 'Password123!',
-          tenantName: 'Merchant Alpha Store',
-          role: 'MERCHANT',
-        },
-      })
-    ).json();
-    const alphaToken = alphaReg.accessToken;
+    const alphaToken = await registerVerifiedUser(app, db, {
+      email: 'alpha@store.com',
+      password: 'Password123!',
+      tenantName: 'Merchant Alpha Store',
+      role: 'MERCHANT',
+    });
 
     await app.inject({
       method: 'POST',
@@ -125,19 +119,12 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
     });
 
     // 3. Merchant Beta
-    const betaReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'beta@store.com',
-          password: 'Password123!',
-          tenantName: 'Merchant Beta Store',
-          role: 'MERCHANT',
-        },
-      })
-    ).json();
-    const betaToken = betaReg.accessToken;
+    const betaToken = await registerVerifiedUser(app, db, {
+      email: 'beta@store.com',
+      password: 'Password123!',
+      tenantName: 'Merchant Beta Store',
+      role: 'MERCHANT',
+    });
 
     await app.inject({
       method: 'POST',
@@ -282,19 +269,12 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
     ).json();
 
     // 5. Customer
-    const custReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'buyer@example.com',
-          password: 'Password123!',
-          tenantName: 'Buyer Personal',
-          role: 'CUSTOMER',
-        },
-      })
-    ).json();
-    const custToken = custReg.accessToken;
+    const custToken = await registerVerifiedUser(app, db, {
+      email: 'buyer@example.com',
+      password: 'Password123!',
+      tenantName: 'Buyer Personal',
+      role: 'CUSTOMER',
+    });
     const custUser = await db.query<{ tenant_id: string }>(
       `SELECT tenant_id FROM tenant_memberships WHERE user_id = (SELECT id FROM users WHERE email = 'buyer@example.com')`,
     );

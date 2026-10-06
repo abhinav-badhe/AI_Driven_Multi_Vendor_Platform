@@ -26,6 +26,7 @@ export const CheckoutPage = () => {
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("pm_card_visa");
+  const isCod = paymentMethod === "cod";
 
   useEffect(() => {
     const initCheckout = async () => {
@@ -91,7 +92,9 @@ export const CheckoutPage = () => {
             <CheckCircle2 className="mx-auto size-8 text-success" aria-hidden />
             <h1 className="mt-2 text-xl font-semibold tracking-tight">Order confirmed</h1>
             <p className="mt-1 text-[13px] text-muted-foreground">
-              Payment received. The seller has been notified.
+              {isCod
+                ? "Pay in cash when your order arrives. The seller has been notified."
+                : "Payment received. The seller has been notified."}
             </p>
             <dl className="mt-3 rounded-md bg-muted px-3 py-2 text-left text-[13px]">
               <div className="flex justify-between gap-2">
@@ -190,6 +193,7 @@ export const CheckoutPage = () => {
                   [
                     { value: "pm_card_visa", label: "Credit / debit card (Visa / Mastercard)" },
                     { value: "pm_upi", label: "UPI (Google Pay / PhonePe / Paytm)" },
+                    { value: "cod", label: "Cash on delivery (pay when your order arrives)" },
                   ] as const
                 ).map((opt) => (
                   <label
@@ -242,7 +246,9 @@ export const CheckoutPage = () => {
             <Button type="submit" className="mt-3 w-full" disabled={isPaying || isReserving}>
               {isPaying
                 ? "Processing payment…"
-                : `Pay ${formatPrice(session?.totalAmount ?? 0, session?.currency, 2)}`}
+                : isCod
+                  ? `Place order · pay ${formatPrice(session?.totalAmount ?? 0, session?.currency, 2)} on delivery`
+                  : `Pay ${formatPrice(session?.totalAmount ?? 0, session?.currency, 2)}`}
             </Button>
           </CardContent>
         </Card>

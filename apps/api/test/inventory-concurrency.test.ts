@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -67,6 +67,7 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
     await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [
       userRes.rows[0]!.id,
     ]);
+    await markAllUsersVerified(db);
     const adminLogin = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -75,17 +76,12 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
     const { accessToken: adminToken } = adminLogin.json();
 
     // 2. Merchant setup
-    const merchantReg = await app.inject({
-      method: 'POST',
-      url: '/auth/register',
-      payload: {
-        email: 'merchant@concurrency.com',
-        password: 'Password123!',
-        tenantName: 'Concurrency Merchant Store',
-        role: 'MERCHANT',
-      },
+    const merchantToken = await registerVerifiedUser(app, db, {
+      email: 'merchant@concurrency.com',
+      password: 'Password123!',
+      tenantName: 'Concurrency Merchant Store',
+      role: 'MERCHANT',
     });
-    const { accessToken: merchantToken } = merchantReg.json();
 
     await app.inject({
       method: 'POST',
@@ -98,19 +94,19 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
     await app.inject({ method: 'POST', url: `/merchants/${prof.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
 
     // 3. Customer setup
-    const cust1Reg = await app.inject({
-      method: 'POST',
-      url: '/auth/register',
-      payload: { email: 'cust1@c.com', password: 'Password123!', tenantName: 'Cust 1', role: 'CUSTOMER' },
+    const customer1Token = await registerVerifiedUser(app, db, {
+      email: 'cust1@c.com',
+      password: 'Password123!',
+      tenantName: 'Cust 1',
+      role: 'CUSTOMER',
     });
-    const { accessToken: customer1Token } = cust1Reg.json();
 
-    const cust2Reg = await app.inject({
-      method: 'POST',
-      url: '/auth/register',
-      payload: { email: 'cust2@c.com', password: 'Password123!', tenantName: 'Cust 2', role: 'CUSTOMER' },
+    const customer2Token = await registerVerifiedUser(app, db, {
+      email: 'cust2@c.com',
+      password: 'Password123!',
+      tenantName: 'Cust 2',
+      role: 'CUSTOMER',
     });
-    const { accessToken: customer2Token } = cust2Reg.json();
 
     // 4. Product, SKU & Listing
     const prod = (

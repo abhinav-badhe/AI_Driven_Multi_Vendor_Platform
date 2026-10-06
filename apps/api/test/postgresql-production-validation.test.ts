@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createMigratedTestDatabase } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { SqlSearchStore } from '../src/infra/search/sql-search-store.js';
@@ -82,35 +82,19 @@ describe('PostgreSQL Production Integration & Invariant Validation', () => {
     it('guarantees complete rollback of multi-table mutations when an error occurs mid-transaction', async () => {
       await db.query(`INSERT INTO tenants (id, type, name, status) VALUES ('t-tx', 'CUSTOMER', 'Customer Tenant', 'ACTIVE')`);
 
-      const rollbackSpy = vi.fn();
-      const originalQuery = db.query.bind(db);
-      db.query = async (sql, params) => {
-        if (typeof sql === 'string' && sql.includes('ROLLBACK')) {
-          rollbackSpy();
-          await originalQuery(`DELETE FROM users WHERE id = 'u-tx-1'`);
-        }
-        return originalQuery(sql, params);
-      };
+      await expect(
+        db.withTransaction(async (tx) => {
+          await tx.query(
+            `INSERT INTO users (id, email, password_hash, status) VALUES ('u-tx-1', 'tx1@test.com', 'hash', 'ACTIVE')`,
+          );
+          // Intentionally throw an unhandled error mid-transaction
+          throw new Error('Simulated database write abort');
+        }),
+      ).rejects.toThrow('Simulated database write abort');
 
-      try {
-        await expect(
-          db.withTransaction(async (tx) => {
-            await tx.query(
-              `INSERT INTO users (id, email, password_hash, status) VALUES ('u-tx-1', 'tx1@test.com', 'hash', 'ACTIVE')`,
-            );
-            // Intentionally throw an unhandled error mid-transaction
-            throw new Error('Simulated database write abort');
-          }),
-        ).rejects.toThrow('Simulated database write abort');
-
-        expect(rollbackSpy).toHaveBeenCalled();
-
-        // Verify user was NOT persisted to database
-        const checkUser = await db.query(`SELECT * FROM users WHERE id = 'u-tx-1'`);
-        expect(checkUser.rows).toHaveLength(0);
-      } finally {
-        db.query = originalQuery;
-      }
+      // Verify user was NOT persisted to database
+      const checkUser = await db.query(`SELECT * FROM users WHERE id = 'u-tx-1'`);
+      expect(checkUser.rows).toHaveLength(0);
     });
   });
 

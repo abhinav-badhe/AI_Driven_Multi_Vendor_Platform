@@ -164,8 +164,13 @@ export const CustomerOrders = () => {
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
                     <div>
                       <p className="text-sm font-semibold">Order #{order.orderNumber}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Placed {new Date(order.createdAt).toLocaleDateString(undefined, { dateStyle: "long" })}
+                      <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                        <span>
+                          Placed {new Date(order.createdAt).toLocaleDateString(undefined, { dateStyle: "long" })}
+                        </span>
+                        {order.paymentMethod === "COD" && (
+                          <Badge variant="outline">Cash on delivery</Badge>
+                        )}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">

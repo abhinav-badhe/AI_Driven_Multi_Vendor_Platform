@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { InMemorySearchStore } from '../src/modules/search/index.js';
 import {
@@ -115,6 +115,7 @@ describe('Phase 10: Events & Notifications Architecture', () => {
     await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [
       userRes.rows[0]!.id,
     ]);
+    await markAllUsersVerified(db);
 
     const adminLogin = await app.inject({
       method: 'POST',
@@ -125,19 +126,12 @@ describe('Phase 10: Events & Notifications Architecture', () => {
   }
 
   async function getCustomerToken(email = 'customer@buyer.com') {
-    const custReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email,
-          password: 'Password123!',
-          tenantName: 'Customer Tenant',
-          role: 'CUSTOMER',
-        },
-      })
-    ).json();
-    return custReg.accessToken;
+    return registerVerifiedUser(app, db, {
+      email,
+      password: 'Password123!',
+      tenantName: 'Customer Tenant',
+      role: 'CUSTOMER',
+    });
   }
 
   // --- OUTBOX FAILURE MATRIX (SCENARIOS A - I) ---
@@ -181,34 +175,20 @@ describe('Phase 10: Events & Notifications Architecture', () => {
         payload: { title: 'Failing Product' },
       });
 
-      const rollbackSpy = vi.fn();
-      const originalQuery = db.query.bind(db);
-      db.query = async (sql, params) => {
-        if (typeof sql === 'string' && sql.includes('ROLLBACK')) {
-          rollbackSpy();
-          // Simulate transactional rollback in pg-mem by removing uncommitted outbox event
-          await originalQuery(`DELETE FROM outbox_events WHERE event_id = $1`, [event.eventId]);
-        }
-        return originalQuery(sql, params);
-      };
+      // The in-memory database now runs each transaction on a dedicated
+      // client with native rollback, so no manual compensation is needed:
+      // assert the behavioral contract (abort propagates, writes revert).
+      // Transaction throws an error after outbox write
+      await expect(
+        db.withTransaction(async (tx) => {
+          await outboxService.recordEvent(tx, event);
+          throw new Error('Database transaction abort simulated');
+        }),
+      ).rejects.toThrow('Database transaction abort simulated');
 
-      try {
-        // Transaction throws an error after outbox write
-        await expect(
-          db.withTransaction(async (tx) => {
-            await outboxService.recordEvent(tx, event);
-            throw new Error('Database transaction abort simulated');
-          }),
-        ).rejects.toThrow('Database transaction abort simulated');
-
-        expect(rollbackSpy).toHaveBeenCalled();
-
-        // Verify outbox record was rolled back
-        const outboxRes = await outboxRepo.getEventById(db, event.eventId);
-        expect(outboxRes).toBeNull();
-      } finally {
-        db.query = originalQuery;
-      }
+      // Verify outbox record was rolled back
+      const outboxRes = await outboxRepo.getEventById(db, event.eventId);
+      expect(outboxRes).toBeNull();
     });
 
     it('Scenario C: outbox insert failure rolls back business mutation (no event loss window)', async () => {
@@ -226,37 +206,20 @@ describe('Phase 10: Events & Notifications Architecture', () => {
         await outboxService.recordEvent(tx, event);
       });
 
-      const rollbackSpy = vi.fn();
-      const originalQuery = db.query.bind(db);
-      db.query = async (sql, params) => {
-        if (typeof sql === 'string' && sql.includes('ROLLBACK')) {
-          rollbackSpy();
-          // Simulate transactional rollback in pg-mem by removing uncommitted business mutation
-          await originalQuery(`DELETE FROM tenants WHERE id = 'tenant-c-biz'`);
-        }
-        return originalQuery(sql, params);
-      };
+      // New transaction attempts business mutation + duplicate event insert
+      await expect(
+        db.withTransaction(async (tx) => {
+          await tx.query(
+            `INSERT INTO tenants (id, type, name, status) VALUES ('tenant-c-biz', 'CUSTOMER', 'Cust Biz', 'ACTIVE')`,
+          );
+          // Duplicate event insert must fail
+          await outboxService.recordEvent(tx, event);
+        }),
+      ).rejects.toThrow();
 
-      try {
-        // New transaction attempts business mutation + duplicate event insert
-        await expect(
-          db.withTransaction(async (tx) => {
-            await tx.query(
-              `INSERT INTO tenants (id, type, name, status) VALUES ('tenant-c-biz', 'CUSTOMER', 'Cust Biz', 'ACTIVE')`,
-            );
-            // Duplicate event insert must fail
-            await outboxService.recordEvent(tx, event);
-          }),
-        ).rejects.toThrow();
-
-        expect(rollbackSpy).toHaveBeenCalled();
-
-        // Verify business mutation was safely rolled back
-        const bizRes = await db.query(`SELECT * FROM tenants WHERE id = 'tenant-c-biz'`);
-        expect(bizRes.rows.length).toBe(0);
-      } finally {
-        db.query = originalQuery;
-      }
+      // Verify business mutation was safely rolled back
+      const bizRes = await db.query(`SELECT * FROM tenants WHERE id = 'tenant-c-biz'`);
+      expect(bizRes.rows.length).toBe(0);
     });
 
     it('Scenario D: publisher crash before publish leaves event safely in PENDING status', async () => {

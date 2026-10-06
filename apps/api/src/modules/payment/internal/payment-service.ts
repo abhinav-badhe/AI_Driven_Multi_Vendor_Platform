@@ -54,9 +54,29 @@ export interface PaymentIntentDto {
   clientSecret: string;
   idempotencyKey: string | null;
   metadata: Record<string, unknown>;
+  paymentMethod: 'COD' | 'UPI' | 'CARD' | null;
   createdAt: string;
   updatedAt: string;
   attempts?: PaymentAttemptDto[] | undefined;
+}
+
+/**
+ * Normalizes provider method strings into settlement-facing methods.
+ * 'cod' means cash is collected on delivery — no online capture happens.
+ */
+export function normalizePaymentMethod(input?: string | null): 'COD' | 'UPI' | 'CARD' {
+  const v = (input ?? '').toLowerCase();
+  if (v === 'cod' || v === 'cash' || v.includes('cash_on_delivery')) return 'COD';
+  if (v.includes('upi')) return 'UPI';
+  return 'CARD';
+}
+
+export function paymentMethodFromMetadata(metadata: unknown): 'COD' | 'UPI' | 'CARD' | null {
+  if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+    const v = (metadata as Record<string, unknown>).paymentMethod;
+    if (v === 'COD' || v === 'UPI' || v === 'CARD') return v;
+  }
+  return null;
 }
 
 export interface PaymentAttemptDto {
@@ -345,7 +365,12 @@ export class PaymentService {
 
     // Update parent intent status based on attempt result
     if (providerResult.status === 'SUCCEEDED') {
-      await this.repo.updateIntentStatus(intent.id, 'PROCESSING', 'SUCCEEDED');
+      const method = normalizePaymentMethod(input.paymentMethod);
+      const currentMeta =
+        intent.metadata && typeof intent.metadata === 'object' ? intent.metadata : {};
+      await this.repo.updateIntentStatus(intent.id, 'PROCESSING', 'SUCCEEDED', {
+        metadata: { ...currentMeta, paymentMethod: method },
+      });
     } else {
       await this.repo.updateIntentStatus(intent.id, 'PROCESSING', 'FAILED', {
         metadata: {
@@ -595,6 +620,7 @@ export class PaymentService {
       clientSecret: row.client_secret,
       idempotencyKey: row.idempotency_key,
       metadata: row.metadata,
+      paymentMethod: paymentMethodFromMetadata(row.metadata),
       createdAt: row.created_at.toISOString(),
       updatedAt: row.updated_at.toISOString(),
       attempts: attempts.map((a) => this.toAttemptDto(a)),

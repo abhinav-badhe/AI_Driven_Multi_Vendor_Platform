@@ -28,6 +28,7 @@ import {
   InMemoryEmailProvider,
   InMemorySmsProvider,
   InMemoryPushProvider,
+  ResendEmailProvider,
 } from './internal/channel-providers.js';
 
 import { NotificationRepository } from './internal/notification-repository.js';
@@ -51,6 +52,7 @@ export {
   InMemoryEmailProvider,
   InMemorySmsProvider,
   InMemoryPushProvider,
+  ResendEmailProvider,
   NotificationRepository,
   NotificationService,
   NotificationEventConsumer,

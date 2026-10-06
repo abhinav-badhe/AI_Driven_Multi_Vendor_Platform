@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -65,6 +65,7 @@ describe('Phase 5: Checkout Concurrency & Overselling Prevention', () => {
     await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [
       userRes.rows[0]!.id,
     ]);
+    await markAllUsersVerified(db);
     const adminLogin = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -73,19 +74,12 @@ describe('Phase 5: Checkout Concurrency & Overselling Prevention', () => {
     const { accessToken: adminToken } = adminLogin.json();
 
     // 2. Merchant setup
-    const mReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'merchant@concurrency.com',
-          password: 'Password123!',
-          tenantName: 'Concurrency Merchant',
-          role: 'MERCHANT',
-        },
-      })
-    ).json();
-    const merchantToken = mReg.accessToken;
+    const merchantToken = await registerVerifiedUser(app, db, {
+      email: 'merchant@concurrency.com',
+      password: 'Password123!',
+      tenantName: 'Concurrency Merchant',
+      role: 'MERCHANT',
+    });
 
     await app.inject({
       method: 'POST',
@@ -149,23 +143,19 @@ describe('Phase 5: Checkout Concurrency & Overselling Prevention', () => {
     ).json();
 
     // 6. Two distinct Customers
-    const c1Reg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: { email: 'buyer1@concurrency.com', password: 'Password123!', tenantName: 'Buyer 1 Tenant', role: 'CUSTOMER' },
-      })
-    ).json();
-    const tokenCust1 = c1Reg.accessToken;
+    const tokenCust1 = await registerVerifiedUser(app, db, {
+      email: 'buyer1@concurrency.com',
+      password: 'Password123!',
+      tenantName: 'Buyer 1 Tenant',
+      role: 'CUSTOMER',
+    });
 
-    const c2Reg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: { email: 'buyer2@concurrency.com', password: 'Password123!', tenantName: 'Buyer 2 Tenant', role: 'CUSTOMER' },
-      })
-    ).json();
-    const tokenCust2 = c2Reg.accessToken;
+    const tokenCust2 = await registerVerifiedUser(app, db, {
+      email: 'buyer2@concurrency.com',
+      password: 'Password123!',
+      tenantName: 'Buyer 2 Tenant',
+      role: 'CUSTOMER',
+    });
 
     // Both customers add 7 units of the same listing to their respective carts
     await app.inject({

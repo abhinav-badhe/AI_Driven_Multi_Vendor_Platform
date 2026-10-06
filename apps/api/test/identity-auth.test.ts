@@ -23,18 +23,65 @@ describe('Authentication: Identity Service', () => {
     await db.close();
   });
 
-  it('registers a new user and returns a token pair', async () => {
-    const tokens = await service.register({
+  it('registers a new unverified account without issuing a session', async () => {
+    const account = await service.register({
       email: 'merchant@example.com',
       password: 'secure-password-123',
       tenantName: 'Acme Store',
       role: 'MERCHANT',
     });
 
+    expect(account.userId).toBeDefined();
+    expect(account.email).toBe('merchant@example.com');
+    expect(account.tenantId).toBeDefined();
+  });
+
+  it('blocks password login until the email is verified', async () => {
+    await service.register({
+      email: 'pending@example.com',
+      password: 'secure-password-123',
+      tenantName: 'Pending Store',
+      role: 'MERCHANT',
+    });
+
+    const attempt = await service
+      .login({ email: 'pending@example.com', password: 'secure-password-123' })
+      .then(
+        () => ({ code: 'NO_ERROR' }),
+        (err: unknown) => ({ code: (err as { code?: string }).code ?? 'UNKNOWN' }),
+      );
+    expect(attempt.code).toBe('EMAIL_NOT_VERIFIED');
+  });
+
+  it('verifies email with a valid token and then allows login', async () => {
+    const account = await service.register({
+      email: 'verified@example.com',
+      password: 'secure-password-123',
+      tenantName: 'Verified Store',
+      role: 'MERCHANT',
+    });
+
+    const rawToken = await service.createEmailVerificationToken(account.userId);
+    const result = await service.verifyEmail(rawToken);
+    expect(result.userId).toBe(account.userId);
+
+    const tokens = await service.login({ email: 'verified@example.com', password: 'secure-password-123' });
     expect(tokens.accessToken).toBeDefined();
     expect(tokens.refreshToken).toBeDefined();
-    expect(tokens.accessTokenExpiresAt).toBeInstanceOf(Date);
-    expect(tokens.refreshTokenExpiresAt).toBeInstanceOf(Date);
+  });
+
+  it('rejects invalid and consumed verification tokens', async () => {
+    await expect(service.verifyEmail('not-a-real-token')).rejects.toThrow('invalid or has expired');
+
+    const account = await service.register({
+      email: 'once@example.com',
+      password: 'secure-password-123',
+      tenantName: 'Once Store',
+      role: 'MERCHANT',
+    });
+    const rawToken = await service.createEmailVerificationToken(account.userId);
+    await service.verifyEmail(rawToken);
+    await expect(service.verifyEmail(rawToken)).rejects.toThrow('invalid or has expired');
   });
 
   it('rejects duplicate email registration', async () => {
@@ -78,12 +125,13 @@ describe('Authentication: Identity Service', () => {
   });
 
   it('successful login returns valid token pair', async () => {
-    await service.register({
+    const account = await service.register({
       email: 'login@example.com',
       password: 'loginPassword123',
       tenantName: 'Login Store',
       role: 'MERCHANT',
     });
+    await service.verifyEmail(await service.createEmailVerificationToken(account.userId));
 
     const tokens = await service.login({ email: 'login@example.com', password: 'loginPassword123' });
     expect(tokens.accessToken).toBeDefined();
@@ -100,12 +148,13 @@ describe('Authentication: Identity Service', () => {
   });
 
   it('access token verification succeeds with valid token', async () => {
-    await service.register({
+    const account = await service.register({
       email: 'verify@example.com',
       password: 'verifyPassword123',
       tenantName: 'Test Tenant',
       role: 'MERCHANT',
     });
+    await service.verifyEmail(await service.createEmailVerificationToken(account.userId));
     const tokens = await service.login({ email: 'verify@example.com', password: 'verifyPassword123' });
     const actor = service.verifyAccessToken(tokens.accessToken);
     expect(actor).not.toBeNull();

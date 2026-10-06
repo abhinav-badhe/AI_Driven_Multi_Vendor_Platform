@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
 import type { ListingService } from '../modules/marketplace/index.js';
+import type { PriceAlertService } from '../modules/price-alerts/index.js';
 import type { ListingStatus } from '../modules/marketplace/index.js';
 import { createAuthMiddleware, createOptionalAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ValidationError } from '../errors/app-error.js';
@@ -9,6 +10,7 @@ export function registerListingRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
   listingService: ListingService,
+  priceAlertService?: PriceAlertService,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
   const optionalAuth = createOptionalAuthMiddleware(identityService);
@@ -105,6 +107,12 @@ export function registerListingRoutes(
         currency: typeof body.currency === 'string' ? body.currency : undefined,
         compareAtPrice: body.compareAtPrice !== undefined ? body.compareAtPrice : undefined,
       });
+
+      // Price-drop check runs inline (cheap record creation; actual email
+      // delivery stays queued behind the notification relay).
+      if (typeof body.priceAmount === 'number' && priceAlertService) {
+        await priceAlertService.checkListing(id);
+      }
 
       return reply.status(200).send(listing);
     },

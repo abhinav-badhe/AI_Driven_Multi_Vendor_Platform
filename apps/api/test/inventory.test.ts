@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -68,6 +68,7 @@ describe('Phase 4: Inventory & Stock Management (Authoritative Stock Truth)', ()
     await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [
       userRes.rows[0]!.id,
     ]);
+    await markAllUsersVerified(db);
     const adminLogin = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -87,7 +88,14 @@ describe('Phase 4: Inventory & Stock Management (Authoritative Stock Truth)', ()
       },
     });
     expect(alphaReg.statusCode).toBe(201);
-    const { accessToken: alphaToken } = alphaReg.json();
+    await markAllUsersVerified(db);
+    const { accessToken: alphaToken } = (
+      await app.inject({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email: 'alpha@store.com', password: 'Password123!' },
+      })
+    ).json();
 
     // Verify Merchant Alpha
     await app.inject({
@@ -112,7 +120,14 @@ describe('Phase 4: Inventory & Stock Management (Authoritative Stock Truth)', ()
       },
     });
     expect(betaReg.statusCode).toBe(201);
-    const { accessToken: betaToken } = betaReg.json();
+    await markAllUsersVerified(db);
+    const { accessToken: betaToken } = (
+      await app.inject({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email: 'beta@store.com', password: 'Password123!' },
+      })
+    ).json();
 
     // Verify Merchant Beta
     await app.inject({
@@ -137,7 +152,14 @@ describe('Phase 4: Inventory & Stock Management (Authoritative Stock Truth)', ()
       },
     });
     expect(custReg.statusCode).toBe(201);
-    const { accessToken: customerToken } = custReg.json();
+    await markAllUsersVerified(db);
+    const { accessToken: customerToken } = (
+      await app.inject({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email: 'buyer@consumer.com', password: 'Password123!' },
+      })
+    ).json();
 
     // 5. Canonical Product & SKU in Catalog (Admin)
     const prodRes = await app.inject({

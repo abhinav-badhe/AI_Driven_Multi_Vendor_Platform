@@ -1,6 +1,6 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
-import { IdentityRepository } from './identity-repository.js';
+import { IdentityRepository, hashVerificationToken } from './identity-repository.js';
 import { ScryptPasswordHasher } from './password-hasher.js';
 import { HmacTokenService } from './token-service.js';
 import { SecurityAuditService } from './security-audit-service.js';
@@ -8,8 +8,11 @@ import type { AuthorizedActor } from '../rbac/policy.js';
 import {
   ValidationError,
   UnauthorizedError,
+  EmailNotVerifiedError,
   ConflictError,
+  NotFoundError,
 } from '../../../errors/app-error.js';
+import { randomBytes } from 'node:crypto';
 
 export interface RegisterInput {
   email: string;
@@ -49,6 +52,8 @@ export class IdentityService {
   private readonly tokenService: HmacTokenService;
   private readonly audit: SecurityAuditService;
 
+  static readonly VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+
   constructor(
     db: DatabaseConnection,
     logger: Logger,
@@ -61,7 +66,7 @@ export class IdentityService {
     this.audit = new SecurityAuditService(db, logger);
   }
 
-  async register(input: RegisterInput): Promise<AuthTokenPair> {
+  async register(input: RegisterInput): Promise<{ userId: string; email: string; tenantId: string; role: string }> {
     if (!input.email || !input.email.includes('@')) {
       throw new ValidationError('Invalid email address');
     }
@@ -76,8 +81,8 @@ export class IdentityService {
 
     const passwordHash = await this.hasher.hash(input.password);
 
-    const { tokens } = await this.registerInDb(input, passwordHash);
-    return tokens;
+    const { user, tenant } = await this.registerInDb(input, passwordHash);
+    return { userId: user.id, email: input.email.toLowerCase(), tenantId: tenant.id, role: input.role };
   }
 
   private async registerInDb(
@@ -86,7 +91,6 @@ export class IdentityService {
   ): Promise<{
     user: { id: string };
     tenant: { id: string };
-    tokens: AuthTokenPair;
   }> {
     const user = await this.repo.createUser({
       email: input.email,
@@ -105,9 +109,63 @@ export class IdentityService {
       role: input.role,
     });
 
-    const tokens = await this.issueTokenPair(user.id, tenant.id, input.role);
+    // No session is issued at signup: the account must verify its email first.
+    return { user, tenant };
+  }
 
-    return { user, tenant, tokens };
+  /**
+   * Issues a fresh email-verification token for a user (invalidating older ones).
+   * Returns the raw token — the caller delivers it to the user's inbox.
+   */
+  async createEmailVerificationToken(userId: string): Promise<string> {
+    const user = await this.repo.findUserById(userId);
+    if (!user) throw new NotFoundError('User not found');
+
+    const rawToken = randomBytes(32).toString('hex');
+    await this.repo.deleteVerificationTokensForUser(userId);
+    await this.repo.createVerificationToken(
+      userId,
+      hashVerificationToken(rawToken),
+      new Date(Date.now() + IdentityService.VERIFICATION_TOKEN_TTL_MS),
+    );
+    return rawToken;
+  }
+
+  async verifyEmail(rawToken: string): Promise<{ userId: string; email: string }> {
+    if (!rawToken || typeof rawToken !== 'string') {
+      throw new ValidationError('Verification token is required');
+    }
+    const record = await this.repo.findValidVerificationToken(hashVerificationToken(rawToken.trim()));
+    if (!record) {
+      throw new ValidationError('Verification link is invalid or has expired');
+    }
+    const user = await this.repo.findUserById(record.user_id);
+    if (!user || user.status !== 'ACTIVE') {
+      throw new ValidationError('Verification link is invalid or has expired');
+    }
+    await this.repo.markUserEmailVerified(user.id);
+    await this.repo.consumeVerificationToken(record.id);
+    await this.repo.deleteVerificationTokensForUser(user.id);
+    await this.audit.record({
+      eventType: 'EMAIL_VERIFIED',
+      actorId: user.id,
+      metadata: {},
+    });
+    return { userId: user.id, email: user.email };
+  }
+
+  /**
+   * Starts (or restarts) verification for an email address.
+   * Returns the raw token, or null when there is nothing to send
+   * (unknown address or already verified) — callers must not reveal which.
+   */
+  async beginEmailVerification(email: string): Promise<{ rawToken: string; email: string } | null> {
+    const user = await this.repo.findUserByEmail(email);
+    if (!user || user.status !== 'ACTIVE' || user.email_verified_at) {
+      return null;
+    }
+    const rawToken = await this.createEmailVerificationToken(user.id);
+    return { rawToken, email: user.email };
   }
 
   async login(input: LoginInput, context?: AuthRequestContext | undefined): Promise<AuthTokenPair> {
@@ -136,6 +194,19 @@ export class IdentityService {
       throw new UnauthorizedError('Invalid credentials');
     }
 
+    // Email must be verified before password login is allowed. Checked only
+    // after a correct password so invalid credentials reveal nothing new.
+    if (!user.email_verified_at) {
+      await this.audit.record({
+        eventType: 'LOGIN_FAILURE',
+        actorId: user.id,
+        ipAddress: context?.ip,
+        userAgent: context?.userAgent,
+        metadata: { reason: 'email_not_verified' },
+      });
+      throw new EmailNotVerifiedError('Email address has not been verified. Check your inbox for the verification link.');
+    }
+
     const membership = await this.repo.findActiveMembershipByUserId(user.id);
     if (!membership) {
       throw new UnauthorizedError('Invalid credentials');
@@ -157,99 +228,117 @@ export class IdentityService {
   async refresh(rawRefreshToken: string, context?: AuthRequestContext | undefined): Promise<AuthTokenPair> {
     const tokenHash = this.tokenService.hashToken(rawRefreshToken);
 
-    return await this.db.withTransaction(async (tx) => {
-      const txRepo = new IdentityRepository(tx);
-      const record = await txRepo.findRefreshTokenByHash(tokenHash);
+    // Reuse evidence is captured inside the transaction but acted upon
+    // OUTSIDE it: the throw below rolls the transaction back, which must
+    // not undo the family revocation (otherwise reuse would be detected,
+    // logged, but never enforced).
+    let reuseEvidence: { userId: string; tenantId: string; familyId: string; reason?: string } | null =
+      null;
 
-      if (!record) {
-        throw new UnauthorizedError('Invalid refresh token');
-      }
+    try {
+      return await this.db.withTransaction(async (tx) => {
+        const txRepo = new IdentityRepository(tx);
+        const record = await txRepo.findRefreshTokenByHash(tokenHash);
 
-      // Reuse detection: token already rotated = potential theft
-      if (record.is_rotated) {
-        await txRepo.revokeTokenFamily(record.family_id);
+        if (!record) {
+          throw new UnauthorizedError('Invalid refresh token');
+        }
+
+        // Reuse detection: token already rotated = potential theft
+        if (record.is_rotated) {
+          reuseEvidence = {
+            userId: record.user_id,
+            tenantId: record.tenant_id,
+            familyId: record.family_id,
+          };
+          throw new UnauthorizedError('Refresh token has been revoked');
+        }
+
+        if (record.is_revoked) {
+          throw new UnauthorizedError('Refresh token has been revoked');
+        }
+
+        if (new Date(record.expires_at) < new Date()) {
+          throw new UnauthorizedError('Refresh token has expired');
+        }
+
+        // Atomic conditional rotation: only one concurrent caller succeeds
+        const rotated = await txRepo.rotateRefreshTokenAtomic(record.id);
+        if (!rotated) {
+          // Concurrently rotated: trigger family reuse revocation
+          reuseEvidence = {
+            userId: record.user_id,
+            tenantId: record.tenant_id,
+            familyId: record.family_id,
+            reason: 'concurrent_race_condition',
+          };
+          throw new UnauthorizedError('Refresh token has been revoked');
+        }
+
+        const membership = await txRepo.findMembershipByUserAndTenant(
+          record.user_id,
+          record.tenant_id,
+        );
+        if (!membership || membership.status !== 'ACTIVE') {
+          throw new UnauthorizedError('Session is no longer valid');
+        }
+
+        const accessToken = this.tokenService.generateAccessToken({
+          userId: record.user_id,
+          tenantId: record.tenant_id,
+          role: membership.role,
+        });
+        const newRefreshToken = this.tokenService.generateRefreshToken(record.family_id);
+
+        await txRepo.saveRefreshToken({
+          id: newRefreshToken.id,
+          userId: record.user_id,
+          tenantId: record.tenant_id,
+          familyId: newRefreshToken.familyId,
+          tokenHash: newRefreshToken.tokenHash,
+          expiresAt: newRefreshToken.expiresAt,
+        });
+
         await this.audit.record({
-          eventType: 'REFRESH_TOKEN_REUSE_DETECTED',
+          eventType: 'REFRESH_TOKEN_ROTATED',
           actorId: record.user_id,
           tenantId: record.tenant_id,
+        });
+
+        return {
+          accessToken: accessToken.token,
+          accessTokenExpiresAt: accessToken.expiresAt,
+          refreshToken: newRefreshToken.rawToken,
+          refreshTokenExpiresAt: newRefreshToken.expiresAt,
+        };
+      });
+    } catch (err) {
+      // NOTE: reuseEvidence is only ever set on paths that throw, so the
+      // declared type narrows to never here — read it through an explicit type.
+      const evidence = reuseEvidence as unknown as {
+        userId: string;
+        tenantId: string;
+        familyId: string;
+        reason?: string | undefined;
+      } | null;
+      if (evidence) {
+        await this.repo.revokeTokenFamily(evidence.familyId);
+        await this.audit.record({
+          eventType: 'REFRESH_TOKEN_REUSE_DETECTED',
+          actorId: evidence.userId,
+          tenantId: evidence.tenantId,
           ipAddress: context?.ip,
-          metadata: { familyId: record.family_id },
+          metadata: { familyId: evidence.familyId, ...(evidence.reason ? { reason: evidence.reason } : {}) },
         });
         await this.audit.record({
           eventType: 'REFRESH_TOKEN_FAMILY_REVOKED',
-          actorId: record.user_id,
-          tenantId: record.tenant_id,
-          metadata: { familyId: record.family_id },
+          actorId: evidence.userId,
+          tenantId: evidence.tenantId,
+          metadata: { familyId: evidence.familyId },
         });
-        throw new UnauthorizedError('Refresh token has been revoked');
       }
-
-      if (record.is_revoked) {
-        throw new UnauthorizedError('Refresh token has been revoked');
-      }
-
-      if (new Date(record.expires_at) < new Date()) {
-        throw new UnauthorizedError('Refresh token has expired');
-      }
-
-      // Atomic conditional rotation: only one concurrent caller succeeds
-      const rotated = await txRepo.rotateRefreshTokenAtomic(record.id);
-      if (!rotated) {
-        // Concurrently rotated: trigger family reuse revocation
-        await txRepo.revokeTokenFamily(record.family_id);
-        await this.audit.record({
-          eventType: 'REFRESH_TOKEN_REUSE_DETECTED',
-          actorId: record.user_id,
-          tenantId: record.tenant_id,
-          ipAddress: context?.ip,
-          metadata: { familyId: record.family_id, reason: 'concurrent_race_condition' },
-        });
-        await this.audit.record({
-          eventType: 'REFRESH_TOKEN_FAMILY_REVOKED',
-          actorId: record.user_id,
-          tenantId: record.tenant_id,
-          metadata: { familyId: record.family_id, reason: 'concurrent_race_condition' },
-        });
-        throw new UnauthorizedError('Refresh token has been revoked');
-      }
-
-      const membership = await txRepo.findMembershipByUserAndTenant(
-        record.user_id,
-        record.tenant_id,
-      );
-      if (!membership || membership.status !== 'ACTIVE') {
-        throw new UnauthorizedError('Session is no longer valid');
-      }
-
-      const accessToken = this.tokenService.generateAccessToken({
-        userId: record.user_id,
-        tenantId: record.tenant_id,
-        role: membership.role,
-      });
-      const newRefreshToken = this.tokenService.generateRefreshToken(record.family_id);
-
-      await txRepo.saveRefreshToken({
-        id: newRefreshToken.id,
-        userId: record.user_id,
-        tenantId: record.tenant_id,
-        familyId: newRefreshToken.familyId,
-        tokenHash: newRefreshToken.tokenHash,
-        expiresAt: newRefreshToken.expiresAt,
-      });
-
-      await this.audit.record({
-        eventType: 'REFRESH_TOKEN_ROTATED',
-        actorId: record.user_id,
-        tenantId: record.tenant_id,
-      });
-
-      return {
-        accessToken: accessToken.token,
-        accessTokenExpiresAt: accessToken.expiresAt,
-        refreshToken: newRefreshToken.rawToken,
-        refreshTokenExpiresAt: newRefreshToken.expiresAt,
-      };
-    });
+      throw err;
+    }
   }
 
   async logout(rawRefreshToken: string): Promise<void> {

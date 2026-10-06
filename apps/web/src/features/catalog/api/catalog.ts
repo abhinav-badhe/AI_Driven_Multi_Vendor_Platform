@@ -75,6 +75,15 @@ export const catalogApi = {
   getProductReviews: async (productId: string): Promise<ProductReview[]> => {
     return apiClient<ProductReview[]>(`/products/${productId}/reviews`);
   },
+  recordView: async (
+    productId: string,
+    input?: { priceSeenMinor?: number; currency?: string },
+  ): Promise<{ tracked: boolean }> => {
+    return apiClient<{ tracked: boolean }>(`/products/${productId}/views`, {
+      method: 'POST',
+      body: JSON.stringify(input ?? {}),
+    });
+  },
   getProductSkus: async (productId: string): Promise<Sku[]> => {
     return apiClient<Sku[]>(`/products/${productId}/skus`);
   },

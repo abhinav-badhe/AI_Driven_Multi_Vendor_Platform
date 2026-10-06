@@ -26,7 +26,8 @@ import { fulfillmentModule } from './modules/fulfillment/index.js';
 import { settlementLedgerModule } from './modules/settlement-ledger/index.js';
 import { searchModule, type ISearchStore, SqlSearchStore } from './modules/search/index.js';
 import { eventsModule, type EventTransport } from './modules/events/index.js';
-import { notificationModule } from './modules/notifications/index.js';
+import { notificationModule, ResendEmailProvider } from './modules/notifications/index.js';
+import { priceAlertsModule } from './modules/price-alerts/index.js';
 import { analyticsModule } from './modules/analytics/index.js';
 import { recommendationsModule } from './modules/recommendations/index.js';
 import { analyticsMlModule } from './modules/analytics-ml/index.js';
@@ -35,6 +36,7 @@ import { registerIdentityRoutes } from './http/identity-routes.js';
 import { registerMerchantRoutes } from './http/merchant-routes.js';
 import { registerCatalogRoutes } from './http/catalog-routes.js';
 import { registerListingRoutes } from './http/listing-routes.js';
+import { registerPriceAlertRoutes } from './http/price-alert-routes.js';
 import { registerInventoryRoutes } from './http/inventory-routes.js';
 import { registerCartRoutes } from './http/cart-routes.js';
 import { registerCheckoutRoutes } from './http/checkout-routes.js';
@@ -214,8 +216,27 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
 
 
   const notificationService = dbConn
-    ? notificationModule.createService(dbConn, rootLogger)
+    ? notificationModule.createService(
+        dbConn,
+        rootLogger,
+        config.notifications.resendApiKey
+          ? new ResendEmailProvider(
+              config.notifications.resendApiKey,
+              config.notifications.emailFrom,
+            )
+          : undefined,
+      )
     : null;
+
+  const priceAlertService =
+    dbConn && notificationService
+      ? priceAlertsModule.createService(
+          dbConn,
+          notificationService,
+          rootLogger,
+          config.notifications.frontendUrl,
+        )
+      : null;
 
   const analyticsService = dbConn
     ? analyticsModule.createService(dbConn, rootLogger)
@@ -336,10 +357,20 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     cartService &&
     checkoutService
   ) {
-    registerIdentityRoutes(app, identityService);
-    registerMerchantRoutes(app, identityService, merchantService);
+    registerIdentityRoutes(app, identityService, {
+      verification: notificationService
+        ? {
+            frontendUrl: config.notifications.frontendUrl,
+            sendEmail: (to, subject, body) =>
+              notificationService.sendTransactionalEmail(to, subject, body),
+          }
+        : undefined,
+    });    registerMerchantRoutes(app, identityService, merchantService);
     registerCatalogRoutes(app, identityService, catalogService);
-    registerListingRoutes(app, identityService, marketplaceService);
+    registerListingRoutes(app, identityService, marketplaceService, priceAlertService ?? undefined);
+    if (priceAlertService) {
+      registerPriceAlertRoutes(app, identityService, priceAlertService);
+    }
     registerInventoryRoutes(app, identityService, inventoryService);
     registerCartRoutes(app, identityService, cartService);
     registerCheckoutRoutes(app, identityService, checkoutService);

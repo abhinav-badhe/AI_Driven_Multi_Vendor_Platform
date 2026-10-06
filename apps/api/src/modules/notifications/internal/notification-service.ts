@@ -266,6 +266,17 @@ export class NotificationService {
     }
   }
 
+  /**
+   * Sends account-security mail (verification, password changes) straight
+   * through the email provider. Intentionally bypasses marketing
+   * preferences — these messages are required for account access.
+   */
+  async sendTransactionalEmail(to: string, subject: string, body: string): Promise<string> {
+    const { providerMessageId } = await this.emailProvider.sendEmail(to, subject, body);
+    this.logger.info('Transactional email dispatched', { to, subject, providerMessageId });
+    return providerMessageId;
+  }
+
   // --- Customer Preferences Management ---
 
   async setCustomerPreferences(

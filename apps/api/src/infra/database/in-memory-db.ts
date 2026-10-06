@@ -33,6 +33,17 @@ export async function createIsolatedTestDatabase(): Promise<{
   const client = new pgAdapter.Client();
   await client.connect();
 
+  // pg-mem shares one state across clients and its native ROLLBACK does not
+  // revert writes, while a global backup/restore snapshot cannot isolate
+  // concurrent transactions (a loser's restore would wipe a winner's commit).
+  // This mutex serializes transactions so each backup/restore pair observes
+  // only settled state: rollback reverts exactly the failed transaction, and
+  // concurrent check-then-write flows (oversell guards, token rotation)
+  // behave deterministically, mirroring a real pool under contention.
+  // Services never nest withTransaction (they always use the root
+  // connection), so serialization cannot deadlock.
+  let txMutex: Promise<void> = Promise.resolve();
+
   const dbConnection: DatabaseConnection = {
     async query<T = unknown>(sql: string, params?: unknown[]): Promise<DatabaseQueryResult<T>> {
       const res = await client.query(sql, params);
@@ -42,20 +53,35 @@ export async function createIsolatedTestDatabase(): Promise<{
       };
     },
     async withTransaction<T>(fn: (tx: DatabaseConnection) => Promise<T>): Promise<T> {
-      const backup = mem.backup();
-      await dbConnection.query('BEGIN');
+      const previous = txMutex;
+      let release!: () => void;
+      txMutex = new Promise<void>((res) => {
+        release = res;
+      });
+      // A predecessor's failure must never break the chain (or every later
+      // transaction would hang); only ordering matters, not its outcome.
+      await previous.then(
+        () => undefined,
+        () => undefined,
+      );
       try {
-        const res = await fn(dbConnection);
-        await dbConnection.query('COMMIT');
-        return res;
-      } catch (err) {
-        backup.restore();
+        const backup = mem.backup();
+        await dbConnection.query('BEGIN');
         try {
-          await dbConnection.query('ROLLBACK');
-        } catch {
-          // ignore rollback failure after restore
+          const res = await fn(dbConnection);
+          await dbConnection.query('COMMIT');
+          return res;
+        } catch (err) {
+          backup.restore();
+          try {
+            await dbConnection.query('ROLLBACK');
+          } catch {
+            // ignore rollback failure after restore
+          }
+          throw err;
         }
-        throw err;
+      } finally {
+        release();
       }
     },
     async close(): Promise<void> {

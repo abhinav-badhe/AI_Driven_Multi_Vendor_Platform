@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 
 export interface UserRow {
@@ -6,8 +6,22 @@ export interface UserRow {
   email: string;
   password_hash: string;
   status: string;
+  email_verified_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface EmailVerificationTokenRow {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  expires_at: string;
+  consumed_at: string | null;
+  created_at: string;
+}
+
+export function hashVerificationToken(rawToken: string): string {
+  return createHash('sha256').update(rawToken).digest('hex');
 }
 
 export interface TenantRow {
@@ -146,13 +160,52 @@ export class IdentityRepository {
       ],
     );
   }
-
   async findRefreshTokenByHash(hash: string): Promise<RefreshTokenRow | null> {
     const result = await this.db.query<RefreshTokenRow>(
       `SELECT * FROM refresh_tokens WHERE token_hash = $1`,
       [hash],
     );
     return result.rows[0] ?? null;
+  }
+
+  async markUserEmailVerified(userId: string): Promise<void> {
+    await this.db.query(
+      `UPDATE users SET email_verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND email_verified_at IS NULL`,
+      [userId],
+    );
+  }
+
+  async createVerificationToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
+    await this.db.query(
+      `INSERT INTO email_verification_tokens (id, user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3, $4)`,
+      [randomUUID(), userId, tokenHash, expiresAt.toISOString()],
+    );
+  }
+
+  async findValidVerificationToken(tokenHash: string): Promise<EmailVerificationTokenRow | null> {
+    // Expiry is checked in JS (not SQL) for pg-mem compatibility.
+    const result = await this.db.query<EmailVerificationTokenRow>(
+      `SELECT * FROM email_verification_tokens
+       WHERE token_hash = $1 AND consumed_at IS NULL`,
+      [tokenHash],
+    );
+    const row = result.rows[0] ?? null;
+    if (!row) return null;
+    if (new Date(row.expires_at).getTime() <= Date.now()) return null;
+    return row;
+  }
+
+  async consumeVerificationToken(id: string): Promise<void> {
+    await this.db.query(
+      `UPDATE email_verification_tokens SET consumed_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      [id],
+    );
+  }
+
+  async deleteVerificationTokensForUser(userId: string): Promise<void> {
+    await this.db.query(`DELETE FROM email_verification_tokens WHERE user_id = $1`, [userId]);
   }
 
   async rotateRefreshToken(id: string): Promise<void> {

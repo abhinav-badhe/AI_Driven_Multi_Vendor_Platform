@@ -42,7 +42,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
   });
 
   it('1. successful login returns access token and sets HttpOnly refresh cookie', async () => {
-    await service.register({ email: 'test@example.com', password: 'password123', tenantName: 'Tenant', role: 'MERCHANT' });
+    await registerVerified('test@example.com', 'password123');
 
     const response = await app.inject({
       method: 'POST',
@@ -76,7 +76,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
   });
 
   it('6. refresh works using the cookie and rotates it', async () => {
-    await service.register({ email: 'refresh@example.com', password: 'password123', tenantName: 'Tenant', role: 'MERCHANT' });
+    await registerVerified('refresh@example.com', 'password123');
     const loginRes = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -118,7 +118,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
   });
 
   it('14. logout reads refresh cookie and 15. revokes it and 16. clears the cookie', async () => {
-    await service.register({ email: 'logout@example.com', password: 'password123', tenantName: 'Tenant', role: 'MERCHANT' });
+    await registerVerified('logout@example.com', 'password123');
     const loginRes = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -151,7 +151,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     expect(refreshRes.statusCode).toBe(401);
   });
   
-  it('18. registration also uses HttpOnly cookie and 19. refresh token is absent from JSON', async () => {
+  it('18. registration creates an unverified account without session cookies and 19. login is blocked until verification', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/auth/register',
@@ -160,14 +160,54 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
 
     expect(response.statusCode).toBe(201);
     const body = JSON.parse(response.payload);
-    
-    expect(body.accessToken).toBeDefined();
+
+    expect(body.userId).toBeDefined();
+    expect(body.requiresVerification).toBe(true);
+    expect(body.accessToken).toBeUndefined();
     expect(body.refreshToken).toBeUndefined();
 
     const cookies = response.cookies;
-    const refreshCookie = cookies.find(c => c.name === 'auth_refresh');
+    expect(cookies.find(c => c.name === 'auth_refresh')).toBeUndefined();
+
+    // Login is blocked before verification (403 from the route;
+    // the full error envelope with EMAIL_NOT_VERIFIED is asserted in
+    // identity-auth service tests — this file mounts routes standalone).
+    const blocked = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'reg@example.com', password: 'password123' },
+    });
+    expect(blocked.statusCode).toBe(403);
+    expect(blocked.payload).toContain('verified');
+
+    // ... and succeeds after the emailed link is consumed.
+    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = 'reg@example.com'`);
+    const rawToken = await service.createEmailVerificationToken(userRes.rows[0]!.id);
+    const verifyRes = await app.inject({
+      method: 'POST',
+      url: '/auth/verify-email',
+      payload: { token: rawToken },
+    });
+    expect(verifyRes.statusCode).toBe(200);
+
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'reg@example.com', password: 'password123' },
+    });
+    expect(loginRes.statusCode).toBe(200);
+    const refreshCookie = loginRes.cookies.find(c => c.name === 'auth_refresh');
     expect(refreshCookie).toBeDefined();
     expect(refreshCookie?.httpOnly).toBe(true);
+  });
+
+  it('19b. resend-verification is rate-limited-safe and never reveals account state', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/resend-verification',
+      payload: { email: 'nobody@example.com' },
+    });
+    expect(res.statusCode).toBe(200);
   });
   
   it('20. trusted frontend origin can perform credentialed authentication', async () => {
@@ -197,18 +237,23 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
 
   // ── Cookie-authoritative logout – security boundary tests ──────────────────
 
+  async function registerVerified(email: string, password = 'password123!') {
+    const account = await service.register({ email, password, tenantName: 'Tenant', role: 'MERCHANT' });
+    await service.verifyEmail(await service.createEmailVerificationToken(account.userId));
+  }
+
   describe('Logout: cookie-authoritative security boundary', () => {
-    async function loginUser(email: string) {
-      await service.register({ email, password: 'password123!', tenantName: 'Test Tenant', role: 'MERCHANT' });
-      const res = await app.inject({
-        method: 'POST',
-        url: '/auth/login',
-        payload: { email, password: 'password123!' },
-      });
-      const accessToken = JSON.parse(res.payload).accessToken as string;
-      const refreshCookie = res.cookies.find(c => c.name === 'auth_refresh')!;
-      return { accessToken, refreshCookieValue: refreshCookie.value };
-    }
+  async function loginUser(email: string) {
+    await registerVerified(email);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email, password: 'password123!' },
+    });
+    const accessToken = JSON.parse(res.payload).accessToken as string;
+    const refreshCookie = res.cookies.find(c => c.name === 'auth_refresh')!;
+    return { accessToken, refreshCookieValue: refreshCookie.value };
+  }
 
     it('L1. valid access token + valid refresh cookie → logout 204, refresh afterward fails', async () => {
       const { accessToken, refreshCookieValue } = await loginUser('l1@example.com');
@@ -237,8 +282,10 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
 
     it('L2. EXPIRED access token + valid refresh cookie → logout 204, refresh-family revoked', async () => {
       // Login at service level so we get the raw refresh token before HTTP layer
+      const account = await service.register({ email: 'l2@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' });
+      await service.verifyEmail(await service.createEmailVerificationToken(account.userId));
       const loginTokens = await service.login(
-        { email: (await service.register({ email: 'l2@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' }), 'l2@example.com'), password: 'password123!' },
+        { email: 'l2@example.com', password: 'password123!' },
       );
 
       // Construct a structurally valid but expired access token by mutating the exp claim.
@@ -275,8 +322,10 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     });
 
     it('L3. NO access token at all + valid refresh cookie → logout 204, family revoked', async () => {
+      const l3 = await service.register({ email: 'l3@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' });
+      await service.verifyEmail(await service.createEmailVerificationToken(l3.userId));
       const loginTokens = await service.login(
-        { email: (await service.register({ email: 'l3@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' }), 'l3@example.com'), password: 'password123!' },
+        { email: 'l3@example.com', password: 'password123!' },
       );
 
       const logoutRes = await app.inject({
@@ -297,8 +346,10 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     });
 
     it('L4. INVALID access token signature + valid refresh cookie → logout 204, family revoked', async () => {
+      const l4 = await service.register({ email: 'l4@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' });
+      await service.verifyEmail(await service.createEmailVerificationToken(l4.userId));
       const loginTokens = await service.login(
-        { email: (await service.register({ email: 'l4@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' }), 'l4@example.com'), password: 'password123!' },
+        { email: 'l4@example.com', password: 'password123!' },
       );
 
       const logoutRes = await app.inject({
@@ -392,8 +443,10 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
 
     it('L10. subsequent /auth/refresh with old cookie fails after any logout variant', async () => {
       // Proven by L1, L2, L3, L4 individually; this test consolidates with no-header variant
+      const l10 = await service.register({ email: 'l10@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' });
+      await service.verifyEmail(await service.createEmailVerificationToken(l10.userId));
       const loginTokens = await service.login(
-        { email: (await service.register({ email: 'l10@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' }), 'l10@example.com'), password: 'password123!' },
+        { email: 'l10@example.com', password: 'password123!' },
       );
 
       await app.inject({

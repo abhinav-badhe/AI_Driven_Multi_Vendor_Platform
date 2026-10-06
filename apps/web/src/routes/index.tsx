@@ -6,6 +6,7 @@ import { MerchantLayout } from '../layouts/MerchantLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
 
 import { AccountPage } from '../features/auth/AccountPage';
+import { VerifyEmailPage } from '../features/auth/VerifyEmailPage';
 
 import { Home } from '../features/home/Home';
 import { CategoryPage } from '../features/catalog/Category';
@@ -61,6 +62,7 @@ export const AppRoutes = () => {
               <Route path="analytics" element={<AnalyticsDashboard />} />
               {/* /account renders the profile + tab panel when already logged in */}
               <Route path="account" element={<AccountPage />} />
+              <Route path="verify-email" element={<VerifyEmailPage />} />
               {/* /login and /register redirect-aware aliases */}
               <Route path="login" element={<AccountPage redirectAfterLogin />} />
               <Route path="register" element={<AccountPage redirectAfterLogin />} />

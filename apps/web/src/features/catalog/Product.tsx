@@ -102,6 +102,20 @@ export const ProductPage = () => {
     fetchListings();
   }, [selectedSku, product]);
 
+  // Price-drop interest signal: authenticated customers record one view per
+  // product (with the live floor price) so drops can trigger email alerts.
+  const { user } = useAuth();
+  useEffect(() => {
+    if (!id || !product || user?.role !== "CUSTOMER" || listings.length === 0) return;
+    const floor = listings.reduce((min, l) => Math.min(min, l.priceAmount), listings[0]!.priceAmount);
+    catalogApi
+      .recordView(id, {
+        priceSeenMinor: floor,
+        currency: listings[0]!.currency,
+      })
+      .catch(() => {});
+  }, [id, product, user, listings]);
+
   if (isLoadingProduct) {
     return (
       <div className="mx-auto w-full max-w-6xl space-y-3 p-4" aria-label="Loading product details">

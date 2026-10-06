@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -69,6 +69,7 @@ describe('Phase 3: Marketplace Listings (Multi-Vendor, Lifecycle & Tenant Isolat
     await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [
       adminUserId,
     ]);
+    await markAllUsersVerified(db);
     const adminLogin = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -77,43 +78,28 @@ describe('Phase 3: Marketplace Listings (Multi-Vendor, Lifecycle & Tenant Isolat
     const { accessToken: adminToken } = adminLogin.json();
 
     // 2. Merchant Alpha
-    const mAlphaReg = await app.inject({
-      method: 'POST',
-      url: '/auth/register',
-      payload: {
-        email: 'alpha@store.com',
-        password: 'Password123!',
-        tenantName: 'Merchant Alpha Store',
-        role: 'MERCHANT',
-      },
+    const alphaToken = await registerVerifiedUser(app, db, {
+      email: 'alpha@store.com',
+      password: 'Password123!',
+      tenantName: 'Merchant Alpha Store',
+      role: 'MERCHANT',
     });
-    const { accessToken: alphaToken } = mAlphaReg.json();
 
     // 3. Merchant Beta
-    const mBetaReg = await app.inject({
-      method: 'POST',
-      url: '/auth/register',
-      payload: {
-        email: 'beta@store.com',
-        password: 'Password123!',
-        tenantName: 'Merchant Beta Store',
-        role: 'MERCHANT',
-      },
+    const betaToken = await registerVerifiedUser(app, db, {
+      email: 'beta@store.com',
+      password: 'Password123!',
+      tenantName: 'Merchant Beta Store',
+      role: 'MERCHANT',
     });
-    const { accessToken: betaToken } = mBetaReg.json();
 
     // 4. Customer
-    const custReg = await app.inject({
-      method: 'POST',
-      url: '/auth/register',
-      payload: {
-        email: 'buyer@consumer.com',
-        password: 'Password123!',
-        tenantName: 'Buyer Tenant',
-        role: 'CUSTOMER',
-      },
+    const customerToken = await registerVerifiedUser(app, db, {
+      email: 'buyer@consumer.com',
+      password: 'Password123!',
+      tenantName: 'Buyer Tenant',
+      role: 'CUSTOMER',
     });
-    const { accessToken: customerToken } = custReg.json();
 
     // 5. Canonical Product & SKU in Catalog (created by Admin)
     const prodRes = await app.inject({

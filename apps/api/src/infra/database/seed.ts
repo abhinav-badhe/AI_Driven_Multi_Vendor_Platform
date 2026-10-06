@@ -17,12 +17,12 @@ export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Pro
     ON CONFLICT (id) DO NOTHING;
   `);
 
-  // 2. Users
+  // 2. Users (demo accounts are pre-verified)
   await db.query(`
-    INSERT INTO users (id, email, password_hash, status) VALUES
-      ('user-admin-1', 'admin@example.com', $1, 'ACTIVE'),
-      ('user-merchant-1', 'merchant@example.com', $1, 'ACTIVE'),
-      ('user-customer-1', 'customer@example.com', $1, 'ACTIVE')
+    INSERT INTO users (id, email, password_hash, status, email_verified_at) VALUES
+      ('user-admin-1', 'admin@example.com', $1, 'ACTIVE', CURRENT_TIMESTAMP),
+      ('user-merchant-1', 'merchant@example.com', $1, 'ACTIVE', CURRENT_TIMESTAMP),
+      ('user-customer-1', 'customer@example.com', $1, 'ACTIVE', CURRENT_TIMESTAMP)
     ON CONFLICT (email) DO NOTHING;
   `, [defaultPasswordHash]);
 

@@ -65,12 +65,13 @@ describe('RBAC Integration: Authorization via IdentityService & MerchantService'
   });
 
   it('authenticated merchant can onboard', async () => {
-    await identitySvc.register({
+    const account = await identitySvc.register({
       email: 'merchant-rbac@example.com',
       password: 'securepassword123',
       tenantName: 'RBAC Store',
       role: 'MERCHANT',
     });
+    await identitySvc.verifyEmail(await identitySvc.createEmailVerificationToken(account.userId));
     const tokens = await identitySvc.login({ email: 'merchant-rbac@example.com', password: 'securepassword123' });
     const actor = identitySvc.verifyAccessToken(tokens.accessToken);
     expect(actor).not.toBeNull();

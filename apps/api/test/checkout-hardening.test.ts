@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -65,6 +65,7 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
     await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [
       userRes.rows[0]!.id,
     ]);
+    await markAllUsersVerified(db);
     const adminLogin = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -73,19 +74,12 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
     const { accessToken: adminToken } = adminLogin.json();
 
     // 2. Merchant Alpha
-    const alphaReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'alpha@store.com',
-          password: 'Password123!',
-          tenantName: 'Merchant Alpha Store',
-          role: 'MERCHANT',
-        },
-      })
-    ).json();
-    const alphaToken = alphaReg.accessToken;
+    const alphaToken = await registerVerifiedUser(app, db, {
+      email: 'alpha@store.com',
+      password: 'Password123!',
+      tenantName: 'Merchant Alpha Store',
+      role: 'MERCHANT',
+    });
 
     await app.inject({
       method: 'POST',
@@ -98,19 +92,12 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
     await app.inject({ method: 'POST', url: `/merchants/${profA.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
 
     // 3. Merchant Beta
-    const betaReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'beta@store.com',
-          password: 'Password123!',
-          tenantName: 'Merchant Beta Store',
-          role: 'MERCHANT',
-        },
-      })
-    ).json();
-    const betaToken = betaReg.accessToken;
+    const betaToken = await registerVerifiedUser(app, db, {
+      email: 'beta@store.com',
+      password: 'Password123!',
+      tenantName: 'Merchant Beta Store',
+      role: 'MERCHANT',
+    });
 
     await app.inject({
       method: 'POST',
@@ -215,38 +202,26 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
     ).json();
 
     // 7. Customers
-    const cust1Reg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'customer1@test.com',
-          password: 'Password123!',
-          tenantName: 'Customer 1 Space',
-          role: 'CUSTOMER',
-        },
-      })
-    ).json();
+    const cust1Token = await registerVerifiedUser(app, db, {
+      email: 'customer1@test.com',
+      password: 'Password123!',
+      tenantName: 'Customer 1 Space',
+      role: 'CUSTOMER',
+    });
 
-    const cust2Reg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'customer2@test.com',
-          password: 'Password123!',
-          tenantName: 'Customer 2 Space',
-          role: 'CUSTOMER',
-        },
-      })
-    ).json();
+    const cust2Token = await registerVerifiedUser(app, db, {
+      email: 'customer2@test.com',
+      password: 'Password123!',
+      tenantName: 'Customer 2 Space',
+      role: 'CUSTOMER',
+    });
 
     return {
       adminToken,
       alphaToken,
       betaToken,
-      cust1Token: cust1Reg.accessToken,
-      cust2Token: cust2Reg.accessToken,
+      cust1Token,
+      cust2Token,
       listA,
       listB,
       invA,

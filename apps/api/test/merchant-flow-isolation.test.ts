@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { IdentityService } from '../src/modules/identity/internal/identity-service.js';
 import { MerchantService } from '../src/modules/merchant/internal/merchant-service.js';
@@ -66,19 +66,13 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
 
   describe('Merchant Onboarding & Verification Lifecycle', () => {
     it('executes full merchant onboarding to verification lifecycle', async () => {
-      // 1. Register Merchant A
-      const registerRes = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'merchant_a@store.com',
-          password: 'securePassword123!',
-          tenantName: 'Merchant A Store',
-          role: 'MERCHANT',
-        },
+      // 1. Register Merchant A (verified before any sign-in)
+      const merchantToken = await registerVerifiedUser(app, db, {
+        email: 'merchant_a@store.com',
+        password: 'securePassword123!',
+        tenantName: 'Merchant A Store',
+        role: 'MERCHANT',
       });
-      expect(registerRes.statusCode).toBe(201);
-      const { accessToken: merchantToken } = registerRes.json();
 
       // 2. Onboard merchant profile
       const onboardRes = await app.inject({
@@ -164,12 +158,13 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
 
     it('rejects invalid state machine transitions', async () => {
       // Register a merchant to create a real tenant
-      await identitySvc.register({
+      const smAccount = await identitySvc.register({
         email: 'statemachine@test.com',
         password: 'password123!',
         tenantName: 'State Machine Store',
         role: 'MERCHANT',
       });
+      await identitySvc.verifyEmail(await identitySvc.createEmailVerificationToken(smAccount.userId));
       const login = await identitySvc.login({
         email: 'statemachine@test.com',
         password: 'password123!',
@@ -199,30 +194,20 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
   describe('Tenant Isolation Enforcement', () => {
     it('prevents Merchant A from accessing or modifying Merchant B data', async () => {
       // Register Merchant A
-      const resA = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'merchant_alpha@store.com',
-          password: 'Password123!',
-          tenantName: 'Alpha Store',
-          role: 'MERCHANT',
-        },
+      const tokenA = await registerVerifiedUser(app, db, {
+        email: 'merchant_alpha@store.com',
+        password: 'Password123!',
+        tenantName: 'Alpha Store',
+        role: 'MERCHANT',
       });
-      const { accessToken: tokenA } = resA.json();
 
       // Register Merchant B
-      const resB = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'merchant_beta@store.com',
-          password: 'Password123!',
-          tenantName: 'Beta Store',
-          role: 'MERCHANT',
-        },
+      const tokenB = await registerVerifiedUser(app, db, {
+        email: 'merchant_beta@store.com',
+        password: 'Password123!',
+        tenantName: 'Beta Store',
+        role: 'MERCHANT',
       });
-      const { accessToken: tokenB } = resB.json();
 
       // Onboard Merchant A
       await app.inject({
@@ -307,6 +292,7 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
           role: 'MERCHANT',
         },
       });
+      await markAllUsersVerified(db);
 
       // Login
       const loginRes = await app.inject({
@@ -337,17 +323,12 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
   describe('Live User, Tenant & Membership Lifecycle Enforcement', () => {
     async function setupTestMerchant() {
       const email = `merchant_${Date.now()}@example.com`;
-      const reg = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email,
-          password: 'Password123!',
-          tenantName: 'Lifecycle Test Tenant',
-          role: 'MERCHANT',
-        },
+      const accessToken = await registerVerifiedUser(app, db, {
+        email,
+        password: 'Password123!',
+        tenantName: 'Lifecycle Test Tenant',
+        role: 'MERCHANT',
       });
-      const { accessToken } = reg.json();
       const meRes = await app.inject({
         method: 'GET',
         url: '/auth/me',
@@ -473,17 +454,12 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
 
     it('distinguishes actor identity from route targetTenantId and verifies target belongs to merchant', async () => {
       // 1. Create real merchant tenant & profile
-      const merchantReg = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'target_merchant@store.com',
-          password: 'Password123!',
-          tenantName: 'Target Merchant Store',
-          role: 'MERCHANT',
-        },
+      const merchantToken = await registerVerifiedUser(app, db, {
+        email: 'target_merchant@store.com',
+        password: 'Password123!',
+        tenantName: 'Target Merchant Store',
+        role: 'MERCHANT',
       });
-      const { accessToken: merchantToken } = merchantReg.json();
 
       await app.inject({
         method: 'POST',
@@ -542,17 +518,12 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
 
   describe('Merchant State Machine Transition Matrix Enforcement', () => {
     it('rejects invalid state transitions across all forbidden paths', async () => {
-      const reg = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'statematrix@store.com',
-          password: 'Password123!',
-          tenantName: 'State Matrix Store',
-          role: 'MERCHANT',
-        },
+      const accessToken = await registerVerifiedUser(app, db, {
+        email: 'statematrix@store.com',
+        password: 'Password123!',
+        tenantName: 'State Matrix Store',
+        role: 'MERCHANT',
       });
-      const { accessToken } = reg.json();
 
       const onboardRes = await app.inject({
         method: 'POST',

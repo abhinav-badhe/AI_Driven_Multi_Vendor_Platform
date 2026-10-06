@@ -24,12 +24,13 @@ describe('Token Rotation & Reuse Detection', () => {
   });
 
   async function registerAndLogin() {
-    await service.register({
+    const account = await service.register({
       email: 'rotation@example.com',
       password: 'rotationPassword123',
       tenantName: 'Rotation Store',
       role: 'MERCHANT',
     });
+    await service.verifyEmail(await service.createEmailVerificationToken(account.userId));
     return service.login({ email: 'rotation@example.com', password: 'rotationPassword123' });
   }
 

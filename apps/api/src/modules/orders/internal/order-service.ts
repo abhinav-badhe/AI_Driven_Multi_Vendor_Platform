@@ -11,6 +11,7 @@ import type { CheckoutService } from '../../cart-checkout/index.js';
 import type { CatalogService } from '../../catalog/index.js';
 import type { InventoryService } from '../../inventory/index.js';
 import type { PaymentService } from '../../payment/index.js';
+import { paymentMethodFromMetadata } from '../../payment/index.js';
 import {
   OrderRepository,
   type CustomerOrderRow,
@@ -65,6 +66,7 @@ export interface CustomerOrderDto {
   customerTenantId: string;
   checkoutSessionId: string;
   paymentIntentId: string | null;
+  paymentMethod?: 'COD' | 'UPI' | 'CARD' | null;
   status: CustomerOrderStatus;
   currency: string;
   subtotalAmount: number;
@@ -380,11 +382,31 @@ export class OrderService {
     RbacPolicy.requirePermission(actor, 'order:read-own');
 
     const rows = await this.repo.listCustomerOrdersByCustomer(actor.tenantId, filter);
+    const methods = await this.paymentMethodsForOrders(rows);
     const result: CustomerOrderDto[] = [];
     for (const r of rows) {
-      result.push(await this.assembleFullOrderDto(r));
+      result.push(await this.assembleFullOrderDto(r, undefined, undefined, methods.get(r.payment_intent_id ?? '') ?? null));
     }
     return result;
+  }
+
+  /** Single-query lookup of settlement methods for a batch of orders. */
+  private async paymentMethodsForOrders(
+    rows: CustomerOrderRow[],
+  ): Promise<Map<string, 'COD' | 'UPI' | 'CARD' | null>> {
+    const ids = [...new Set(rows.map((r) => r.payment_intent_id).filter((v): v is string => !!v))];
+    const map = new Map<string, 'COD' | 'UPI' | 'CARD' | null>();
+    if (ids.length === 0) return map;
+    // Expanded IN list (not ANY($1)): pg-mem cannot bind array parameters.
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+    const res = await this.db.query<{ id: string; metadata: unknown }>(
+      `SELECT id, metadata FROM payment_intents WHERE id IN (${placeholders})`,
+      ids,
+    );
+    for (const row of res.rows) {
+      map.set(row.id, paymentMethodFromMetadata(row.metadata));
+    }
+    return map;
   }
 
   async getSellerOrder(actor: AuthorizedActor, id: string): Promise<SellerOrderDto> {
@@ -497,6 +519,7 @@ export class OrderService {
     order: CustomerOrderRow,
     prefetchedSellerOrders?: SellerOrderRow[] | undefined,
     prefetchedItems?: OrderItemRow[] | undefined,
+    paymentMethod?: 'COD' | 'UPI' | 'CARD' | null | undefined,
   ): Promise<CustomerOrderDto> {
     const sellerOrders =
       prefetchedSellerOrders ?? (await this.repo.findSellerOrdersByCustomerOrder(order.id));
@@ -507,11 +530,18 @@ export class OrderService {
       return this.toSellerOrderDto(s, sItems);
     });
 
+    let method = paymentMethod;
+    if (method === undefined && order.payment_intent_id) {
+      const methods = await this.paymentMethodsForOrders([order]);
+      method = methods.get(order.payment_intent_id) ?? null;
+    }
+
     return {
       id: order.id,
       customerTenantId: order.customer_tenant_id,
       checkoutSessionId: order.checkout_session_id,
       paymentIntentId: order.payment_intent_id,
+      paymentMethod: method ?? null,
       status: order.status,
       currency: order.currency,
       subtotalAmount: order.subtotal_amount,

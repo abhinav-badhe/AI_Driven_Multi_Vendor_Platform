@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { InMemorySearchStore, SearchService } from '../src/modules/search/index.js';
 import { JsonLogger } from '../src/observability/logger.js';
@@ -74,6 +74,7 @@ describe('Phase 9: Derived Read-Model Search', () => {
     await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [
       userRes.rows[0]!.id,
     ]);
+    await markAllUsersVerified(db);
     const adminLogin = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -82,19 +83,12 @@ describe('Phase 9: Derived Read-Model Search', () => {
     const { accessToken: adminToken } = adminLogin.json();
 
     // 2. Merchant Alpha
-    const alphaReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'alpha@merchants.com',
-          password: 'Password123!',
-          tenantName: 'Merchant Alpha Store',
-          role: 'MERCHANT',
-        },
-      })
-    ).json();
-    const alphaToken = alphaReg.accessToken;
+    const alphaToken = await registerVerifiedUser(app, db, {
+      email: 'alpha@merchants.com',
+      password: 'Password123!',
+      tenantName: 'Merchant Alpha Store',
+      role: 'MERCHANT',
+    });
 
     await app.inject({
       method: 'POST',
@@ -121,19 +115,12 @@ describe('Phase 9: Derived Read-Model Search', () => {
     });
 
     // 3. Merchant Beta
-    const betaReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'beta@merchants.com',
-          password: 'Password123!',
-          tenantName: 'Merchant Beta Store',
-          role: 'MERCHANT',
-        },
-      })
-    ).json();
-    const betaToken = betaReg.accessToken;
+    const betaToken = await registerVerifiedUser(app, db, {
+      email: 'beta@merchants.com',
+      password: 'Password123!',
+      tenantName: 'Merchant Beta Store',
+      role: 'MERCHANT',
+    });
 
     await app.inject({
       method: 'POST',
@@ -160,19 +147,12 @@ describe('Phase 9: Derived Read-Model Search', () => {
     });
 
     // 4. Customer
-    const custReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'customer@buyer.com',
-          password: 'Password123!',
-          tenantName: 'Customer Tenant',
-          role: 'CUSTOMER',
-        },
-      })
-    ).json();
-    const custToken = custReg.accessToken;
+    const custToken = await registerVerifiedUser(app, db, {
+      email: 'customer@buyer.com',
+      password: 'Password123!',
+      tenantName: 'Customer Tenant',
+      role: 'CUSTOMER',
+    });
 
     return {
       adminToken,

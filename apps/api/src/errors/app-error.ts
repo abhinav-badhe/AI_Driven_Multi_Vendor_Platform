@@ -26,6 +26,11 @@ export class UnauthorizedError extends AppError {
   public readonly code = 'UNAUTHORIZED';
 }
 
+export class EmailNotVerifiedError extends AppError {
+  public readonly statusCode = 403;
+  public readonly code = 'EMAIL_NOT_VERIFIED';
+}
+
 export class ForbiddenError extends AppError {
   public readonly statusCode = 403;
   public readonly code = 'FORBIDDEN';

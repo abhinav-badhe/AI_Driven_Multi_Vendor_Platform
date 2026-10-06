@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { setAuthData, setAuthFailureHandler, apiClient } from '../../api/client';
+import { setAuthData, setAuthFailureHandler, apiClient, ApiError } from '../../api/client';
 
 export interface UserContext {
   userId: string;
@@ -20,12 +20,23 @@ export interface RegisterData {
   role: 'MERCHANT' | 'CUSTOMER';
 }
 
+export interface RegisterResult {
+  userId: string;
+  email: string;
+  requiresVerification: boolean;
+}
+
+export const isEmailNotVerifiedError = (err: unknown): boolean =>
+  err instanceof ApiError && err.code === 'EMAIL_NOT_VERIFIED';
+
 interface AuthContextType {
   user: UserContext | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<UserContext>;
-  register: (data: RegisterData) => Promise<UserContext>;
+  register: (data: RegisterData) => Promise<RegisterResult>;
+  verifyEmail: (token: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 
 }
@@ -78,7 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [clearAuth]);
 
 
-  const login = async (credentials: LoginCredentials): Promise<UserContext> => {
+  const login = useCallback(async (credentials: LoginCredentials): Promise<UserContext> => {
     const res = await apiClient<{ accessToken: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
@@ -88,19 +99,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthData(res.accessToken, me.tenantId);
     setUser(me);
     return me;
-  };
+  }, [setUser]);
 
-  const register = async (data: RegisterData): Promise<UserContext> => {
-    const res = await apiClient<{ accessToken: string }>('/auth/register', {
+  const register = useCallback(async (data: RegisterData): Promise<RegisterResult> => {
+    // Signup creates an UNVERIFIED account and emails a verification link.
+    // No session is issued — the user signs in after verifying.
+    const res = await apiClient<RegisterResult>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    setAuthData(res.accessToken, null);
-    const me = await apiClient<UserContext>('/auth/me');
-    setAuthData(res.accessToken, me.tenantId);
-    setUser(me);
-    return me;
-  };
+    return res;
+  }, []);
+
+  const verifyEmail = useCallback(async (token: string): Promise<void> => {
+    await apiClient<{ verified: boolean }>('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }, []);
+
+  const resendVerification = useCallback(async (email: string): Promise<void> => {
+    await apiClient<{ message: string }>('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }, []);
 
 
   const logout = async () => {
@@ -112,7 +135,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, register, verifyEmail, resendVerification, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -127,6 +150,8 @@ export const useAuth = () => {
       isLoading: false,
       login: async () => {},
       register: async () => {},
+      verifyEmail: async () => {},
+      resendVerification: async () => {},
       logout: async () => {},
     };
   }

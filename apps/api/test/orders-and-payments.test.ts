@@ -3,7 +3,7 @@ import { createHmac } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase } from './helpers/test-db.js';
+import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -69,6 +69,7 @@ describe('Phase 6: Orders & Payments', () => {
     await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [
       userRes.rows[0]!.id,
     ]);
+    await markAllUsersVerified(db);
     const adminLogin = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -77,19 +78,12 @@ describe('Phase 6: Orders & Payments', () => {
     const { accessToken: adminToken } = adminLogin.json();
 
     // 2. Merchant Alpha
-    const alphaReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'alpha@store.com',
-          password: 'Password123!',
-          tenantName: 'Merchant Alpha Store',
-          role: 'MERCHANT',
-        },
-      })
-    ).json();
-    const alphaToken = alphaReg.accessToken;
+    const alphaToken = await registerVerifiedUser(app, db, {
+      email: 'alpha@store.com',
+      password: 'Password123!',
+      tenantName: 'Merchant Alpha Store',
+      role: 'MERCHANT',
+    });
 
     await app.inject({
       method: 'POST',
@@ -116,19 +110,12 @@ describe('Phase 6: Orders & Payments', () => {
     });
 
     // 3. Merchant Beta
-    const betaReg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'beta@store.com',
-          password: 'Password123!',
-          tenantName: 'Merchant Beta Store',
-          role: 'MERCHANT',
-        },
-      })
-    ).json();
-    const betaToken = betaReg.accessToken;
+    const betaToken = await registerVerifiedUser(app, db, {
+      email: 'beta@store.com',
+      password: 'Password123!',
+      tenantName: 'Merchant Beta Store',
+      role: 'MERCHANT',
+    });
 
     await app.inject({
       method: 'POST',
@@ -265,33 +252,19 @@ describe('Phase 6: Orders & Payments', () => {
     ).json();
 
     // 7. Customers: Cust 1 and Cust 2
-    const cust1Reg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'cust1@buyer.com',
-          password: 'Password123!',
-          tenantName: 'Customer One Tenant',
-          role: 'CUSTOMER',
-        },
-      })
-    ).json();
-    const cust1Token = cust1Reg.accessToken;
+    const cust1Token = await registerVerifiedUser(app, db, {
+      email: 'cust1@buyer.com',
+      password: 'Password123!',
+      tenantName: 'Customer One Tenant',
+      role: 'CUSTOMER',
+    });
 
-    const cust2Reg = (
-      await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          email: 'cust2@buyer.com',
-          password: 'Password123!',
-          tenantName: 'Customer Two Tenant',
-          role: 'CUSTOMER',
-        },
-      })
-    ).json();
-    const cust2Token = cust2Reg.accessToken;
+    const cust2Token = await registerVerifiedUser(app, db, {
+      email: 'cust2@buyer.com',
+      password: 'Password123!',
+      tenantName: 'Customer Two Tenant',
+      role: 'CUSTOMER',
+    });
 
     return {
       adminToken,
@@ -800,6 +773,72 @@ describe('Phase 6: Orders & Payments', () => {
       expect(order.items[0].quantity).toBe(2);
       expect(order.items[0].unitPriceAmount).toBe(1000);
       expect(order.items[0].lineTotalAmount).toBe(2000);
+    });
+
+    it('places a cash-on-delivery order with no online capture', async () => {
+      const eco = await setupEcosystem();
+
+      await app.inject({
+        method: 'POST',
+        url: '/cart/items',
+        headers: { authorization: `Bearer ${eco.cust1Token}` },
+        payload: { listingId: eco.listA.id, quantity: 1 },
+      });
+
+      const session = (
+        await app.inject({
+          method: 'POST',
+          url: '/checkout/sessions',
+          headers: { authorization: `Bearer ${eco.cust1Token}` },
+        })
+      ).json();
+
+      await app.inject({
+        method: 'POST',
+        url: `/checkout/sessions/${session.id}/reserve`,
+        headers: { authorization: `Bearer ${eco.cust1Token}` },
+      });
+
+      const intent = (
+        await app.inject({
+          method: 'POST',
+          url: '/payments/intents',
+          headers: { authorization: `Bearer ${eco.cust1Token}` },
+          payload: { checkoutSessionId: session.id },
+        })
+      ).json();
+
+      const attempt = await app.inject({
+        method: 'POST',
+        url: `/payments/intents/${intent.id}/attempts`,
+        headers: { authorization: `Bearer ${eco.cust1Token}` },
+        payload: { paymentMethod: 'cod' },
+      });
+      expect(attempt.statusCode).toBe(200);
+
+      const intentRes = await app.inject({
+        method: 'GET',
+        url: `/payments/intents/${intent.id}`,
+        headers: { authorization: `Bearer ${eco.cust1Token}` },
+      });
+      expect(intentRes.json().paymentMethod).toBe('COD');
+
+      const orderRes = await app.inject({
+        method: 'POST',
+        url: '/orders',
+        headers: { authorization: `Bearer ${eco.cust1Token}` },
+        payload: { checkoutSessionId: session.id, paymentIntentId: intent.id },
+      });
+      expect(orderRes.statusCode).toBe(201);
+      expect(orderRes.json().paymentMethod).toBe('COD');
+
+      const listRes = await app.inject({
+        method: 'GET',
+        url: '/orders',
+        headers: { authorization: `Bearer ${eco.cust1Token}` },
+      });
+      const listed = listRes.json().find((o: { id: string }) => o.id === orderRes.json().id);
+      expect(listed.paymentMethod).toBe('COD');
     });
 
     it('creates 1 Customer Order + N Seller Orders from a multi-vendor checkout', async () => {

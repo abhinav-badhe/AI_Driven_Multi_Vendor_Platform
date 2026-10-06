@@ -192,13 +192,14 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     }
   });
 
-  it('6. register() uses same cookie contract – no refreshToken in JSON', async () => {
+  it('6. register() creates an unverified account without signing in', async () => {
     const fetchMock = vi.fn();
     global.fetch = fetchMock;
 
     fetchMock.mockResolvedValueOnce(failResponse(401)); // restore
-    fetchMock.mockResolvedValueOnce(okJson({ accessToken: ACCESS_TOKEN })); // register
-    fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE)); // /auth/me
+    fetchMock.mockResolvedValueOnce(
+      okJson({ userId: 'u-1', email: 'new@example.com', requiresVerification: true }),
+    ); // register
 
     let capturedAuth: any;
     const Probe = () => { capturedAuth = useAuth(); return null; };
@@ -207,8 +208,9 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     });
     await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
 
+    let result: any;
     await act(async () => {
-      await capturedAuth.register({
+      result = await capturedAuth.register({
         email: 'new@example.com',
         password: 'secret',
         tenantName: 'New Tenant',
@@ -221,7 +223,9 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     );
     expect(regCall).toBeDefined();
     expect(regCall![1].credentials).toBe('include');
-    expect(capturedAuth.isAuthenticated).toBe(true);
+    // No session is issued at signup: the user stays signed out until verified.
+    expect(result.requiresVerification).toBe(true);
+    expect(capturedAuth.isAuthenticated).toBe(false);
     expect(localStorage.getItem('token')).toBeNull();
   });
 
