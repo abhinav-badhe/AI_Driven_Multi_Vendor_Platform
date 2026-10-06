@@ -850,6 +850,110 @@ describe('Phase 6: Orders & Payments', () => {
       expect(cartRes.json().items).toEqual([]);
     });
 
+    it('order placement flows into merchant analytics via outbox relay', async () => {
+      const eco = await setupEcosystem();
+
+      await app.inject({
+        method: 'POST',
+        url: '/cart/items',
+        headers: { authorization: `Bearer ${eco.cust1Token}` },
+        payload: { listingId: eco.listA.id, quantity: 2 },
+      });
+
+      const session = (
+        await app.inject({
+          method: 'POST',
+          url: '/checkout/sessions',
+          headers: { authorization: `Bearer ${eco.cust1Token}` },
+        })
+      ).json();
+
+      await app.inject({
+        method: 'POST',
+        url: `/checkout/sessions/${session.id}/reserve`,
+        headers: { authorization: `Bearer ${eco.cust1Token}` },
+      });
+
+      const intent = (
+        await app.inject({
+          method: 'POST',
+          url: '/payments/intents',
+          headers: { authorization: `Bearer ${eco.cust1Token}` },
+          payload: { checkoutSessionId: session.id },
+        })
+      ).json();
+
+      await app.inject({
+        method: 'POST',
+        url: `/payments/intents/${intent.id}/attempts`,
+        headers: { authorization: `Bearer ${eco.cust1Token}` },
+        payload: { paymentMethod: 'pm_card_visa' },
+      });
+
+      const orderRes = await app.inject({
+        method: 'POST',
+        url: '/orders',
+        headers: { authorization: `Bearer ${eco.cust1Token}` },
+        payload: { checkoutSessionId: session.id, paymentIntentId: intent.id },
+      });
+      expect(orderRes.statusCode).toBe(201);
+
+      // Analytics is empty before the relay runs.
+      const before = await app.inject({
+        method: 'GET',
+        url: '/analytics/sales',
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+      });
+      expect(before.json().totals.totalOrders).toBe(0);
+
+      // Run the outbox relay as admin, then merchant analytics reflects the order.
+      const relay = await app.inject({
+        method: 'POST',
+        url: '/events/outbox/process',
+        headers: { authorization: `Bearer ${eco.adminToken}` },
+        payload: { batchSize: 50 },
+      });
+      expect(relay.statusCode).toBe(200);
+
+      const salesRes = await app.inject({
+        method: 'GET',
+        url: '/analytics/sales',
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+      });
+      expect(salesRes.statusCode).toBe(200);
+      const sales = salesRes.json();
+      expect(sales.totals.totalOrders).toBe(1);
+      expect(sales.totals.grossSales).toBe('2000.0000');
+      expect(sales.trends.length).toBeGreaterThan(0);
+
+      const productsRes = await app.inject({
+        method: 'GET',
+        url: '/analytics/products',
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+      });
+      expect(productsRes.statusCode).toBe(200);
+      expect(productsRes.json().products).toHaveLength(1);
+      expect(productsRes.json().products[0].unitsSold).toBe(2);
+
+      const opsRes = await app.inject({
+        method: 'GET',
+        url: '/analytics/operations',
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+      });
+      expect(opsRes.statusCode).toBe(200);
+      expect(opsRes.json().operations.paymentSuccessCount).toBe(1);
+
+      // Merchant-triggered rebuild keeps working and preserves the facts.
+      const rebuild = await app.inject({
+        method: 'POST',
+        url: '/analytics/rebuild',
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: {},
+      });
+      expect(rebuild.statusCode).toBe(200);
+      expect(rebuild.json().status).toBe('COMPLETED');
+    });
+
     it('creates 1 Customer Order + N Seller Orders from a multi-vendor checkout', async () => {
       const eco = await setupEcosystem();
 

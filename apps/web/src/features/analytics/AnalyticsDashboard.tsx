@@ -4,7 +4,7 @@ import {
   analyticsApi,
   type SalesAnalyticsDto,
   type ProductAnalyticsItemDto,
-  type OperationsAnalyticsDto,
+  type OperationsResponseDto,
   type MlModelDto,
   type MlModelType,
   type MlPredictionDto,
@@ -20,17 +20,23 @@ import { EmptyState, Skeleton } from "../../components/ui/empty";
 import { Label } from "../../components/ui/input";
 import { KpiCard } from "../../components/ui/kpi";
 import { Table, THead, TH, TD } from "../../components/ui/table";
-import { formatMoney } from "../../lib/format";
+import { formatPrice } from "../../lib/format";
 import { cn } from "../../lib/utils";
 
 type Tab = "sales" | "products" | "models" | "operations" | "events";
+
+// Server money arrives as decimal strings in MINOR units ("160998.0000").
+const money = (v: string | number | null | undefined, currency: string): string => {
+  const n = typeof v === "string" ? parseFloat(v) : (v ?? 0);
+  return formatPrice(Number.isFinite(n) ? n : 0, currency, 2);
+};
 
 export const AnalyticsDashboard = () => {
   const { user, login } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("sales");
   const [sales, setSales] = useState<SalesAnalyticsDto | null>(null);
   const [products, setProducts] = useState<ProductAnalyticsItemDto[]>([]);
-  const [operations, setOperations] = useState<OperationsAnalyticsDto | null>(null);
+  const [operations, setOperations] = useState<OperationsResponseDto | null>(null);
   const [models, setModels] = useState<MlModelDto[]>([]);
   const [predictions, setPredictions] = useState<MlPredictionDto[]>([]);
   const [trainType, setTrainType] = useState<MlModelType>("DEMAND_FORECASTING");
@@ -43,6 +49,8 @@ export const AnalyticsDashboard = () => {
   const [processFeedback, setProcessFeedback] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRebuilding, setIsRebuilding] = useState(false);
+  const [rebuildMsg, setRebuildMsg] = useState<string | null>(null);
 
   const loadEvents = async () => {
     try {
@@ -160,6 +168,37 @@ export const AnalyticsDashboard = () => {
     }
   };
 
+  const reloadAll = async () => {
+    try {
+      const [salesData, productsData, opsData] = await Promise.all([
+        analyticsApi.getSalesAnalytics("day").catch(() => null),
+        analyticsApi.getProductAnalytics(10).catch(() => []),
+        analyticsApi.getOperationsAnalytics().catch(() => null),
+      ]);
+      setSales(salesData);
+      setProducts(Array.isArray(productsData) ? productsData : []);
+      setOperations(opsData);
+    } catch {
+      // Keep existing state on refresh failure.
+    }
+  };
+
+  const handleRebuild = async () => {
+    setIsRebuilding(true);
+    setRebuildMsg(null);
+    try {
+      const res = await analyticsApi.rebuildAnalytics();
+      setRebuildMsg(
+        `Rebuilt ${res.factsRebuilt} facts from ${res.sourceEventCount} events.`
+      );
+      await reloadAll();
+    } catch (err: unknown) {
+      setRebuildMsg(err instanceof Error ? err.message : "Rebuild failed.");
+    } finally {
+      setIsRebuilding(false);
+    }
+  };
+
   if (user?.role !== "MERCHANT" && user?.role !== "ADMINISTRATOR") {
     return (
       <div className="mx-auto w-full max-w-xl p-4">
@@ -214,34 +253,44 @@ export const AnalyticsDashboard = () => {
 
   return (
     <div className="space-y-4 p-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Analytics</h1>
-        <p className="mt-1 text-[13px] text-muted-foreground">
-          Sales trends, product performance, and demand forecasts.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Analytics</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Sales trends, product performance, and demand forecasts.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" disabled={isRebuilding} onClick={handleRebuild}>
+          {isRebuilding ? "Rebuilding…" : "Refresh data"}
+        </Button>
       </div>
 
       {error && <Alert tone="error">{error}</Alert>}
+      {rebuildMsg && (
+        <Alert tone={rebuildMsg.includes("failed") || rebuildMsg.includes("Error") ? "error" : "success"}>
+          {rebuildMsg}
+        </Alert>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label="Gross revenue"
-          value={formatMoney((sales?.grossSalesAmount ?? 0) / 100, currency)}
-          hint={`net ${formatMoney((sales?.netSalesAmount ?? 0) / 100, currency)}`}
+          value={money(sales?.totals.grossSales, currency)}
+          hint={`net ${money(sales?.totals.netSales, currency)}`}
         />
         <KpiCard
           label="Orders"
-          value={String(sales?.totalOrders ?? 0)}
+          value={String(sales?.totals.totalOrders ?? 0)}
           hint="in period"
         />
         <KpiCard
           label="Average order value"
-          value={formatMoney((sales?.averageOrderValue ?? 0) / 100, currency)}
+          value={money(sales?.totals.averageOrderValue, currency)}
           hint="per order"
         />
         <KpiCard
           label="Payment success"
-          value={operations ? `${(operations.paymentSuccessRate * 100).toFixed(1)}%` : "—"}
+          value={operations?.operations.paymentSuccessRate ?? "—"}
           hint="verified transactions"
         />
       </div>
@@ -273,24 +322,24 @@ export const AnalyticsDashboard = () => {
             <CardDescription>Daily gross and net sales.</CardDescription>
           </CardHeader>
           <CardContent>
-            {!sales?.timeline || sales.timeline.length === 0 ? (
+            {!sales?.trends || sales.trends.length === 0 ? (
               <EmptyState
                 icon={BarChart3}
                 title="No sales in this period"
-                description="Completed orders will appear here as daily revenue."
+                description="Completed orders will appear here as daily revenue. Use Refresh data after new orders."
               />
             ) : (
               <ul className="divide-y divide-border rounded-md border border-border">
-                {sales.timeline.map((t, idx) => (
+                {sales.trends.map((t, idx) => (
                   <li key={idx} className="flex items-center justify-between gap-2 px-3 py-2 text-[13px]">
                     <div>
-                      <p className="font-medium">{t.period}</p>
-                      <p className="tnum text-xs text-muted-foreground">{t.ordersCount} orders</p>
+                      <p className="font-medium">{t.date}</p>
+                      <p className="tnum text-xs text-muted-foreground">{t.orders} orders</p>
                     </div>
                     <div className="text-right">
-                      <p className="tnum font-semibold">{formatMoney(t.grossSales / 100, sales.currency)}</p>
+                      <p className="tnum font-semibold">{money(t.grossSales, sales.currency)}</p>
                       <p className="tnum text-xs text-muted-foreground">
-                        net {formatMoney(t.netSales / 100, sales.currency)}
+                        net {money(t.netSales, sales.currency)}
                       </p>
                     </div>
                   </li>
@@ -305,7 +354,7 @@ export const AnalyticsDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle>Top products</CardTitle>
-            <CardDescription>Units, revenue, and conversion.</CardDescription>
+            <CardDescription>Units, revenue, and orders per product.</CardDescription>
           </CardHeader>
           <CardContent>
             {products.length === 0 ? (
@@ -321,20 +370,22 @@ export const AnalyticsDashboard = () => {
                     <TH>Product</TH>
                     <TH className="text-right">Units</TH>
                     <TH className="text-right">Revenue</TH>
-                    <TH className="text-right">Views</TH>
-                    <TH className="text-right">Conv.</TH>
+                    <TH className="text-right">Orders</TH>
                   </tr>
                 </THead>
                 <tbody>
                   {products.map((p) => (
                     <tr key={p.productId}>
-                      <TD className="font-medium">{p.productTitle}</TD>
-                      <TD className="tnum text-right">{p.totalUnitsSold}</TD>
-                      <TD className="tnum text-right font-medium">
-                        {formatMoney(p.totalRevenueAmount / 100, currency)}
+                      <TD className="font-medium">{p.title ?? p.productId}</TD>
+                      <TD className="tnum text-right">
+                        {p.unitsSold ?? p.totalUnitsSold ?? 0}
                       </TD>
-                      <TD className="tnum text-right text-muted-foreground">{p.viewsCount}</TD>
-                      <TD className="tnum text-right">{(p.conversionRate * 100).toFixed(1)}%</TD>
+                      <TD className="tnum text-right font-medium">
+                        {money(p.revenue ?? p.totalRevenueAmount ?? 0, currency)}
+                      </TD>
+                      <TD className="tnum text-right text-muted-foreground">
+                        {p.orderCount ?? "—"}
+                      </TD>
                     </tr>
                   ))}
                 </tbody>
@@ -498,19 +549,25 @@ export const AnalyticsDashboard = () => {
 
       {activeTab === "operations" && (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard label="Payment attempts" value={String(operations?.totalPaymentsAttempted ?? 0)} />
-          <KpiCard label="Shipments dispatched" value={String(operations?.totalShipmentsDispatched ?? 0)} />
           <KpiCard
-            label="Return rate"
-            value={operations ? `${(operations.returnRate * 100).toFixed(1)}%` : "—"}
+            label="Payment attempts"
+            value={String(
+              (operations?.operations.paymentSuccessCount ?? 0) +
+                (operations?.operations.paymentFailCount ?? 0)
+            )}
           />
           <KpiCard
-            label="Avg fulfillment time"
-            value={
-              operations?.averageFulfillmentTimeHours
-                ? `${operations.averageFulfillmentTimeHours}h`
-                : "—"
-            }
+            label="Shipments dispatched"
+            value={String(operations?.operations.shipmentCount ?? 0)}
+          />
+          <KpiCard
+            label="Returns"
+            value={String(operations?.operations.returnCount ?? 0)}
+          />
+          <KpiCard
+            label="Payment failures"
+            value={String(operations?.operations.paymentFailCount ?? 0)}
+            hint={operations?.operations.paymentFailureRate ?? ""}
           />
         </div>
       )}

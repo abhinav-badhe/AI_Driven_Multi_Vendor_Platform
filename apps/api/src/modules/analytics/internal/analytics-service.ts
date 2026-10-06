@@ -650,13 +650,134 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
    * and throws an error rather than silently reporting partial success.
    * Does NOT modify transactional business truth.
    */
+  /**
+   * Backfills analytics facts straight from transactional order tables for
+   * seller orders that never emitted outbox events (e.g. placed before event
+   * emission existed). Uses the same ingestEvent path as live events with
+   * deterministic IDs, so reruns and the live path never double-count
+   * (fact writes are ON CONFLICT DO NOTHING).
+   */
+  private async backfillOrdersFromTransactions(
+    tx: DatabaseConnection,
+    tenantId: string,
+  ): Promise<number> {
+    let factsRebuilt = 0;
+
+    const sellerOrders = await tx.query<{
+      id: string;
+      customer_order_id: string;
+      status: string;
+      currency: string;
+      total_amount: number | string;
+      created_at: string | Date;
+    }>(
+      `SELECT id, customer_order_id, status, currency, total_amount, created_at
+       FROM seller_orders
+       WHERE seller_tenant_id = $1
+       ORDER BY created_at ASC`,
+      [tenantId],
+    );
+
+    for (const so of sellerOrders.rows) {
+      const occurredAt =
+        so.created_at instanceof Date ? so.created_at.toISOString() : new Date(so.created_at).toISOString();
+      const customerOrder = (
+        await tx.query<{
+          customer_tenant_id: string;
+          currency: string;
+          created_at: string | Date;
+        }>(
+          `SELECT customer_tenant_id, currency, created_at FROM customer_orders WHERE id = $1`,
+          [so.customer_order_id],
+        )
+      ).rows[0];
+
+      const items = await tx.query<{
+        product_id: string;
+        sku_code: string;
+        listing_id: string;
+        quantity: number | string;
+        unit_price_amount: number | string;
+        product_name: string;
+      }>(
+        `SELECT product_id, sku_code, listing_id, quantity, unit_price_amount, product_name
+         FROM order_items WHERE seller_order_id = $1`,
+        [so.id],
+      );
+
+      const orderEvent: DomainEvent = {
+        eventId: `backfill-order-${so.id}`,
+        eventType: EventTypes.ORDER_CREATED,
+        eventVersion: 1,
+        aggregateType: 'order',
+        aggregateId: so.id,
+        tenantId,
+        occurredAt,
+        payload: {
+          orderId: so.id,
+          customerOrderId: so.customer_order_id,
+          customerId: customerOrder?.customer_tenant_id ?? null,
+          merchantId: tenantId,
+          currency: so.currency,
+          totalAmount: Number(so.total_amount),
+          status: so.status,
+          createdAt: occurredAt,
+          items: items.rows.map((it) => ({
+            sellerOrderId: so.id,
+            merchantId: tenantId,
+            productId: it.product_id,
+            sku: it.sku_code,
+            listingId: it.listing_id,
+            quantity: Number(it.quantity),
+            unitPrice: Number(it.unit_price_amount),
+            price: Number(it.unit_price_amount),
+          })),
+        },
+        metadata: {},
+      };
+
+      const orderResult = await this.ingestEvent(orderEvent, tx);
+      if (orderResult.success) factsRebuilt++;
+
+      if (so.status !== 'CANCELLED') {
+        const payEvent: DomainEvent = {
+          eventId: `backfill-pay-${so.id}`,
+          eventType: EventTypes.PAYMENT_SUCCEEDED,
+          eventVersion: 1,
+          aggregateType: 'payment_intent',
+          aggregateId: `backfill-intent-${so.id}`,
+          tenantId,
+          occurredAt,
+          payload: {
+            paymentIntentId: `backfill-intent-${so.id}`,
+            orderId: so.id,
+            merchantId: tenantId,
+            amount: Number(so.total_amount),
+            currency: so.currency,
+          },
+          metadata: {},
+        };
+        const payResult = await this.ingestEvent(payEvent, tx);
+        if (payResult.success) factsRebuilt++;
+      }
+    }
+
+    return factsRebuilt;
+  }
+
   async rebuildProjections(
     actor: AuthorizedActor,
     tenantId: string,
   ): Promise<RebuildAnalyticsResultDto> {
-    RbacPolicy.requirePermission(actor, 'analytics:rebuild');
+    // Administrators may rebuild any tenant; merchants may rebuild only
+    // their own tenant (the query scope below enforces the same boundary).
     if (actor.role !== 'ADMINISTRATOR') {
-      throw new ForbiddenError('Only administrators can trigger analytics rebuild');
+      RbacPolicy.requirePermission(actor, 'analytics:read-own');
+      if (tenantId !== actor.tenantId) {
+        throw new ForbiddenError('Merchants may only rebuild their own tenant analytics');
+      }
+    } else {
+      RbacPolicy.requirePermission(actor, 'analytics:rebuild');
     }
 
     const rebuildId = randomUUID();
@@ -717,14 +838,20 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
           }
         }
 
-        // 4. Count distinct aggregates rebuilt within transaction
+        // 4. Backfill seller orders that never emitted outbox events
+        // (orders placed before event emission existed). Deterministic
+        // event/fact IDs make this rerun-safe alongside the live path.
+        const backfilled = await this.backfillOrdersFromTransactions(tx, tenantId);
+        factsRebuilt += backfilled;
+
+        // 5. Count distinct aggregates rebuilt within transaction
         const aggRes = await tx.query<{ count: number | string }>(
           `SELECT COUNT(*) as count FROM analytics_daily_metrics WHERE tenant_id = $1`,
           [tenantId],
         );
         aggregatesRebuilt = Number(aggRes.rows[0]?.count ?? 0);
 
-        // 5. Record rebuild audit entry as COMPLETED within transaction
+        // 6. Record rebuild audit entry as COMPLETED within transaction
         await this.repo.recordRebuildAudit(tx, {
           id: rebuildId,
           tenantId,

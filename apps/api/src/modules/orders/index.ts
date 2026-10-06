@@ -5,6 +5,7 @@ import type { CatalogService } from '../catalog/index.js';
 import type { InventoryService } from '../inventory/index.js';
 import type { PaymentService } from '../payment/index.js';
 import { OrderService } from './internal/order-service.js';
+import type { OutboxService } from '../events/index.js';
 import type {
   CreateOrderInput,
   CustomerOrderDto,
@@ -37,6 +38,7 @@ export interface OrdersModule {
     catalogService: CatalogService,
     inventoryService: InventoryService,
     paymentService: PaymentService,
+    outboxService?: OutboxService | undefined,
   ): OrderService;
   createConsumer(
     db: DatabaseConnection,
@@ -55,6 +57,7 @@ export const ordersModule: OrdersModule = {
     catalogService: CatalogService,
     inventoryService: InventoryService,
     paymentService: PaymentService,
+    outboxService?: OutboxService | undefined,
   ): OrderService {
     return new OrderService(
       db,
@@ -63,6 +66,7 @@ export const ordersModule: OrdersModule = {
       catalogService,
       inventoryService,
       paymentService,
+      outboxService,
     );
   },
   createConsumer(

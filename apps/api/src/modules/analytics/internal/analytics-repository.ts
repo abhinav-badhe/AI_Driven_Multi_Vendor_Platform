@@ -1,4 +1,5 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
+import { createHash } from 'node:crypto';
 import type {
   AnalyticsOrderFact,
   AnalyticsPaymentFact,
@@ -365,8 +366,13 @@ export class AnalyticsRepository {
     const settlementGross = formatMoney(settleRes.rows[0]?.gross_sum);
     const settlementNet = formatMoney(settleRes.rows[0]?.net_sum);
 
-    // 6. Upsert into analytics_daily_metrics
-    const metricId = `metric_${tenantId}_${merchantId}_${metricDate}_DAY_${currency}`;
+    // 6. Upsert into analytics_daily_metrics. The id is a hash because the
+    // natural composite key (tenant + merchant UUIDs + date + currency)
+    // exceeds the VARCHAR(64) primary key; uniqueness is still enforced by
+    // the underlying unique constraint.
+    const metricId = createHash('sha256')
+      .update(`${tenantId}|${merchantId}|${metricDate}|DAY|${currency}`)
+      .digest('hex');
     await db.query(
       `INSERT INTO analytics_daily_metrics (
         id, tenant_id, merchant_id, metric_date, granularity, currency,

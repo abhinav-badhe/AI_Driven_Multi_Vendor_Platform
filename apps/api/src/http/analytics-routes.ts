@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
 import type { AnalyticsService, TimeGranularity } from '../modules/analytics/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
-import { ForbiddenError, ValidationError } from '../errors/app-error.js';
+import { ValidationError } from '../errors/app-error.js';
 
 export function registerAnalyticsRoutes(
   app: FastifyInstance,
@@ -94,18 +94,18 @@ export function registerAnalyticsRoutes(
     },
   );
 
-  // 5. POST /analytics/rebuild (Administrative Projection Rebuild from Event Store)
+  // 5. POST /analytics/rebuild (Projection rebuild from events + order backfill)
   app.post(
     '/analytics/rebuild',
     { preHandler: authenticate },
     async (request, reply) => {
       const actor = requireActor(request);
-      if (actor.role !== 'ADMINISTRATOR') {
-        throw new ForbiddenError('Only platform administrators can trigger analytics rebuild');
-      }
-
       const body = (request.body as Record<string, unknown>) || {};
-      const targetTenantId = (body.tenantId as string) || actor.tenantId;
+      // Administrators may target any tenant; merchants are scoped to their own.
+      const targetTenantId =
+        actor.role === 'ADMINISTRATOR'
+          ? (body.tenantId as string) || actor.tenantId
+          : actor.tenantId;
       if (!targetTenantId) {
         throw new ValidationError('tenantId is required for analytics rebuild');
       }

@@ -12,6 +12,8 @@ import type { CatalogService } from '../../catalog/index.js';
 import type { InventoryService } from '../../inventory/index.js';
 import type { PaymentService } from '../../payment/index.js';
 import { paymentMethodFromMetadata } from '../../payment/index.js';
+import type { OutboxService } from '../../events/index.js';
+import { EventTypes, createDomainEvent } from '../../events/index.js';
 import {
   OrderRepository,
   type CustomerOrderRow,
@@ -93,6 +95,7 @@ export class OrderService {
     private readonly catalogService: CatalogService,
     private readonly inventoryService: InventoryService,
     private readonly paymentService: PaymentService,
+    private readonly outboxService?: OutboxService | undefined,
   ) {
     this.repo = new OrderRepository(db);
     this.db = db;
@@ -308,7 +311,64 @@ export class OrderService {
             createdOrderItemsInner.push(orderItem);
           }
         }
-        
+
+        // Analytics + notification fan-out, atomically with the order itself.
+        // One ORDER_CREATED + PAYMENT_SUCCEEDED per seller order so each
+        // merchant's facts are attributed to their own tenant.
+        if (this.outboxService) {
+          for (const [merchantTenantId, snaps] of itemsByMerchant.entries()) {
+            const sellerOrder = createdSellerOrdersInner.find(
+              (s) => s.seller_tenant_id === merchantTenantId,
+            )!;
+            const sellerTotal = snaps.reduce((sum, s) => sum + s.item.lineTotalAmount, 0);
+            await this.outboxService.recordEvent(
+              tx,
+              createDomainEvent({
+                eventType: EventTypes.ORDER_CREATED,
+                aggregateType: 'order',
+                aggregateId: sellerOrder.id,
+                tenantId: merchantTenantId,
+                payload: {
+                  orderId: sellerOrder.id,
+                  customerOrderId: customerOrderIdInner,
+                  customerId: actor.tenantId,
+                  merchantId: merchantTenantId,
+                  currency: checkout.currency,
+                  totalAmount: sellerTotal,
+                  status: 'PAID',
+                  createdAt: new Date().toISOString(),
+                  items: snaps.map((s) => ({
+                    sellerOrderId: sellerOrder.id,
+                    merchantId: merchantTenantId,
+                    productId: s.productId,
+                    sku: s.skuCode,
+                    listingId: s.item.listingId,
+                    quantity: s.item.quantity,
+                    unitPrice: s.item.unitPriceAmount,
+                    price: s.item.unitPriceAmount,
+                  })),
+                },
+              }),
+            );
+            await this.outboxService.recordEvent(
+              tx,
+              createDomainEvent({
+                eventType: EventTypes.PAYMENT_SUCCEEDED,
+                aggregateType: 'payment_intent',
+                aggregateId: payment.id,
+                tenantId: merchantTenantId,
+                payload: {
+                  paymentIntentId: payment.id,
+                  orderId: sellerOrder.id,
+                  merchantId: merchantTenantId,
+                  amount: sellerTotal,
+                  currency: checkout.currency,
+                },
+              }),
+            );
+          }
+        }
+
         return { customerOrderRowInner, createdSellerOrdersInner, createdOrderItemsInner };
       });
       customerOrderRow = result.customerOrderRowInner;

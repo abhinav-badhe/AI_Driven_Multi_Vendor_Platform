@@ -175,6 +175,7 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
           catalogService,
           inventoryService,
           paymentService,
+          outboxService ?? undefined,
         )
       : null;
 
@@ -413,6 +414,32 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       inventoryService.startExpirationWorker(60000);
       app.addHook('onClose', async () => {
         inventoryService.stopExpirationWorker();
+      });
+    }
+
+    // Outbox relay: publish pending domain events to the transport every 10s
+    // so derived projections (search, analytics, recommendations) stay fresh
+    // without manual admin triggers. Email dispatch stays explicit via the
+    // notification processing endpoint. Disabled under NODE_ENV=test so
+    // suites keep deterministic control via POST /events/outbox/process.
+    if (outboxService && config.app.nodeEnv !== 'test') {
+      let relayRunning = false;
+      const outboxRelay = setInterval(() => {
+        if (relayRunning) return;
+        relayRunning = true;
+        outboxService
+          .publishPendingEvents({ batchSize: 100 })
+          .catch((err: unknown) => {
+            rootLogger.warn('Outbox relay publish failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+          })
+          .finally(() => {
+            relayRunning = false;
+          });
+      }, 10000);
+      app.addHook('onClose', async () => {
+        clearInterval(outboxRelay);
       });
     }
 

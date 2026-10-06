@@ -1,37 +1,54 @@
 import { apiClient } from '../../../api/client';
 
+export interface SalesTotalsDto {
+  totalOrders: number;
+  grossSales: string;
+  netSales: string;
+  refundAmount: string;
+  averageOrderValue: string;
+  unitsSold: number;
+}
+
+export interface SalesTrendPointDto {
+  date: string;
+  orders: number;
+  grossSales: string;
+  netSales: string;
+  unitsSold: number;
+  refundAmount: string;
+}
+
 export interface SalesAnalyticsDto {
   currency: string;
-  totalOrders: number;
-  grossSalesAmount: number;
-  netSalesAmount: number;
-  totalRefundAmount: number;
-  averageOrderValue: number;
-  timeline: Array<{
-    period: string;
-    ordersCount: number;
-    grossSales: number;
-    netSales: number;
-  }>;
+  totals: SalesTotalsDto;
+  trends: SalesTrendPointDto[];
+  breakdowns?: { ordersByStatus?: Record<string, number> };
 }
 
 export interface ProductAnalyticsItemDto {
   productId: string;
-  productTitle: string;
-  categoryName?: string;
-  totalUnitsSold: number;
-  totalRevenueAmount: number;
-  viewsCount: number;
-  conversionRate: number;
+  title: string | null;
+  category?: string | null;
+  totalUnitsSold?: number;
+  unitsSold?: number;
+  totalRevenueAmount?: number | string;
+  revenue?: number | string;
+  orderCount?: number;
+  refundCount?: number;
 }
 
 export interface OperationsAnalyticsDto {
-  totalPaymentsAttempted: number;
-  paymentSuccessRate: number;
-  totalShipmentsDispatched: number;
-  totalReturnsRequested: number;
-  returnRate: number;
-  averageFulfillmentTimeHours: number;
+  paymentSuccessCount: number;
+  paymentFailCount: number;
+  paymentSuccessRate: string;
+  paymentFailureRate: string;
+  shipmentCount: number;
+  returnCount: number;
+}
+
+export interface OperationsResponseDto {
+  currency: string;
+  operations: OperationsAnalyticsDto;
 }
 
 export interface MlModelDto {
@@ -95,15 +112,30 @@ export const analyticsApi = {
   },
 
   getProductAnalytics: async (limit = 10): Promise<ProductAnalyticsItemDto[]> => {
-    return apiClient<ProductAnalyticsItemDto[]>(`/analytics/products?limit=${limit}`);
+    const res = await apiClient<{ products?: ProductAnalyticsItemDto[] }>(
+      `/analytics/products?limit=${limit}`
+    );
+    return Array.isArray(res.products) ? res.products : [];
   },
 
-  getOperationsAnalytics: async (): Promise<OperationsAnalyticsDto> => {
-    return apiClient<OperationsAnalyticsDto>('/analytics/operations');
+  getOperationsAnalytics: async (): Promise<OperationsResponseDto> => {
+    return apiClient<OperationsResponseDto>('/analytics/operations');
   },
 
   getMlModels: async (): Promise<{ models: MlModelDto[] }> => {
     return apiClient<{ models: MlModelDto[] }>('/ml/models');
+  },
+
+  rebuildAnalytics: async (): Promise<{
+    status: string;
+    sourceEventCount: number;
+    factsRebuilt: number;
+    aggregatesRebuilt: number;
+  }> => {
+    return apiClient('/analytics/rebuild', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
   },
 
   trainModel: async (modelType: MlModelType): Promise<{ jobId: string; status: string }> => {
