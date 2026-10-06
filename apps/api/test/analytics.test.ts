@@ -877,6 +877,91 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       expect(sales.grossSales).toBe('2000.0000');
     });
 
+    it('Merchant rebuild backfills pre-event orders from transactional tables', async () => {
+      // Legacy seller order with items but zero outbox rows (orders placed
+      // before event emission existed) must still surface in analytics.
+      const merchant = await getMerchantToken('backfill@store.com', 'Backfill Store');
+      const tenantId = merchant.tenantId;
+
+      await db.query(
+        `INSERT INTO categories (id, name, slug) VALUES ('cat-backfill', 'Backfill', 'backfill')`,
+      );
+      await db.query(
+        `INSERT INTO products (id, title, slug, category_id, status) VALUES ('prod-backfill', 'Backfill Widget', 'backfill-widget', 'cat-backfill', 'ACTIVE')`,
+      );
+      await db.query(
+        `INSERT INTO product_skus (id, product_id, sku_code, status) VALUES ('sku-backfill', 'prod-backfill', 'BKF-001', 'ACTIVE')`,
+      );
+      await db.query(
+        `INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status) VALUES ('list-backfill', $1, 'sku-backfill', 999, 'USD', 'ACTIVE')`,
+        [tenantId],
+      );
+      await db.query(
+        `INSERT INTO tenants (id, type, name, status) VALUES ('tenant-customer-x', 'CUSTOMER', 'Backfill Customer', 'ACTIVE')`,
+      );
+      await db.query(
+        `INSERT INTO customer_orders (id, customer_tenant_id, checkout_session_id, status, currency, subtotal_amount, total_amount)
+         VALUES ('co-backfill', 'tenant-customer-x', 'chk-backfill', 'PAID', 'USD', 999, 999)`,
+      );
+      await db.query(
+        `INSERT INTO seller_orders (id, customer_order_id, seller_tenant_id, status, currency, subtotal_amount, total_amount)
+         VALUES ('so-backfill', 'co-backfill', $1, 'PAID', 'USD', 999, 999)`,
+        [tenantId],
+      );
+      await db.query(
+        `INSERT INTO order_items (id, seller_order_id, customer_order_id, listing_id, sku_id, product_id, merchant_tenant_id, product_name, sku_code, quantity, unit_price_amount, line_total_amount, currency)
+         VALUES ('oi-backfill', 'so-backfill', 'co-backfill', 'list-backfill', 'sku-backfill', 'prod-backfill', $1, 'Backfill Widget', 'BKF-001', 1, 999, 999, 'USD')`,
+        [tenantId],
+      );
+
+      const before = await app.inject({
+        method: 'GET',
+        url: '/analytics/sales',
+        headers: { authorization: `Bearer ${merchant.token}` },
+      });
+      expect(before.json().totals.totalOrders).toBe(0);
+
+      const rebuild = await app.inject({
+        method: 'POST',
+        url: '/analytics/rebuild',
+        headers: { authorization: `Bearer ${merchant.token}` },
+        payload: {},
+      });
+      expect(rebuild.statusCode).toBe(200);
+      expect(rebuild.json().status).toBe('COMPLETED');
+
+      const after = await app.inject({
+        method: 'GET',
+        url: '/analytics/sales',
+        headers: { authorization: `Bearer ${merchant.token}` },
+      });
+      expect(after.json().totals.totalOrders).toBe(1);
+      expect(after.json().totals.grossSales).toBe('999.0000');
+      expect(after.json().currency).toBe('USD');
+
+      const productsRes = await app.inject({
+        method: 'GET',
+        url: '/analytics/products',
+        headers: { authorization: `Bearer ${merchant.token}` },
+      });
+      expect(productsRes.json().products).toHaveLength(1);
+      expect(productsRes.json().products[0].unitsSold).toBe(1);
+
+      // Rerun is idempotent: no duplicate facts.
+      const again = await app.inject({
+        method: 'POST',
+        url: '/analytics/rebuild',
+        headers: { authorization: `Bearer ${merchant.token}` },
+        payload: {},
+      });
+      expect(again.statusCode).toBe(200);
+      const facts = await db.query(
+        `SELECT * FROM analytics_order_facts WHERE tenant_id = $1`,
+        [tenantId],
+      );
+      expect(facts.rows.length).toBe(1);
+    });
+
     it('Regression Gate 2: Multi-line order (1 order, 3 lines) computes exact metrics without double-counting, and order status change does not increment sales', async () => {
       const tenantId = 'tenant-surg-multiline';
       const adminToken = await getAdminToken();

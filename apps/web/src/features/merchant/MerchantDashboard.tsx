@@ -10,6 +10,7 @@ import { Alert } from "../../components/ui/alert";
 import { EmptyState, Skeleton } from "../../components/ui/empty";
 import { KpiCard } from "../../components/ui/kpi";
 import { Table, THead, TH, TD } from "../../components/ui/table";
+import { formatMoney } from "../../lib/format";
 import { cn } from "../../lib/utils";
 
 export const MerchantDashboard = () => {
@@ -87,6 +88,12 @@ export const MerchantDashboard = () => {
 
   const totalStock = inventory.reduce((sum, item) => sum + (item.onHandQuantity - item.reservedQuantity), 0);
   const totalSales = orders.reduce((sum, ord) => sum + ord.totalAmount, 0) / 100;
+  // Single-currency assumption like the rest of the console: every amount
+  // renders in the store's own currency, never a hardcoded symbol.
+  const displayCurrency =
+    orders.find((o) => o.currency)?.currency ??
+    listings.find((l) => l.currency)?.currency ??
+    "USD";
 
   return (
     <div className="space-y-4 p-4">
@@ -120,7 +127,7 @@ export const MerchantDashboard = () => {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Gross revenue</p>
             <p className="tnum mt-1 text-2xl font-semibold tracking-tight">
-              ₹{totalSales.toLocaleString("en-IN")}
+              {formatMoney(totalSales, displayCurrency)}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Before settlement deductions</p>
           </CardContent>
@@ -154,7 +161,7 @@ export const MerchantDashboard = () => {
                 <div key={row.label} className="rounded-md bg-muted px-3 py-2">
                   <dt className="text-xs text-muted-foreground">{row.label}</dt>
                   <dd className="tnum mt-0.5 text-sm font-semibold">
-                    ₹{(row.value / 100).toLocaleString("en-IN")}
+                    {formatMoney(row.value / 100, financials?.currency ?? displayCurrency)}
                   </dd>
                 </div>
               ))}
@@ -199,7 +206,7 @@ export const MerchantDashboard = () => {
                       {new Date(ord.createdAt).toLocaleDateString()}
                     </TD>
                     <TD className="tnum text-right font-medium">
-                      ₹{(ord.totalAmount / 100).toLocaleString("en-IN")}
+                      {formatMoney(ord.totalAmount / 100, ord.currency)}
                     </TD>
                     <TD>
                       <Badge variant="outline">{ord.status}</Badge>

@@ -21,6 +21,7 @@ import { Label } from "../../components/ui/input";
 import { KpiCard } from "../../components/ui/kpi";
 import { Table, THead, TH, TD } from "../../components/ui/table";
 import { formatPrice } from "../../lib/format";
+import { ErrorBoundary } from "../../components/ui/error-boundary";
 import { cn } from "../../lib/utils";
 
 type Tab = "sales" | "products" | "models" | "operations" | "events";
@@ -29,6 +30,20 @@ type Tab = "sales" | "products" | "models" | "operations" | "events";
 const money = (v: string | number | null | undefined, currency: string): string => {
   const n = typeof v === "string" ? parseFloat(v) : (v ?? 0);
   return formatPrice(Number.isFinite(n) ? n : 0, currency, 2);
+};
+
+const num = (v: unknown, fallback = 0): number => {
+  const n = typeof v === "string" ? parseFloat(v) : (v as number | null | undefined) ?? fallback;
+  return Number.isFinite(n) ? (n as number) : fallback;
+};
+
+const str = (v: unknown, fallback = "—"): string =>
+  typeof v === "string" && v.length > 0 ? v : fallback;
+
+const dateLabel = (v: unknown): string => {
+  if (typeof v !== "string" || !v) return "—";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
 };
 
 export const AnalyticsDashboard = () => {
@@ -98,12 +113,12 @@ export const AnalyticsDashboard = () => {
           analyticsApi.getMlModels().catch(() => ({ models: [] })),
         ]);
         setSales(salesData);
-        setProducts(productsData);
+        setProducts(Array.isArray(productsData) ? productsData : []);
         setOperations(opsData);
-        setModels(modelsData.models || []);
+        setModels(Array.isArray(modelsData.models) ? modelsData.models : []);
         try {
           const preds = await analyticsApi.listPredictions().catch(() => ({ predictions: [] }));
-          setPredictions(preds.predictions || []);
+          setPredictions(Array.isArray(preds.predictions) ? preds.predictions : []);
         } catch {
           setPredictions([]);
         }
@@ -126,8 +141,8 @@ export const AnalyticsDashboard = () => {
         analyticsApi.getMlModels().catch(() => ({ models: [] })),
         analyticsApi.listPredictions().catch(() => ({ predictions: [] })),
       ]);
-      setModels(modelsData.models || []);
-      setPredictions(preds.predictions || []);
+      setModels(Array.isArray(modelsData.models) ? modelsData.models : []);
+      setPredictions(Array.isArray(preds.predictions) ? preds.predictions : []);
     } catch {
       // Keep existing state on refresh failure.
     }
@@ -322,7 +337,7 @@ export const AnalyticsDashboard = () => {
             <CardDescription>Daily gross and net sales.</CardDescription>
           </CardHeader>
           <CardContent>
-            {!sales?.trends || sales.trends.length === 0 ? (
+            {!Array.isArray(sales?.trends) || sales.trends.length === 0 ? (
               <EmptyState
                 icon={BarChart3}
                 title="No sales in this period"
@@ -396,6 +411,7 @@ export const AnalyticsDashboard = () => {
       )}
 
       {activeTab === "models" && (
+        <ErrorBoundary key="models-tab" title="Models could not be displayed">
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
@@ -426,7 +442,7 @@ export const AnalyticsDashboard = () => {
                 </Button>
                 {trainingJob && (
                   <p className="tnum text-[13px] text-muted-foreground" role="status">
-                    Job {trainingJob.id.slice(0, 8)} · {trainingJob.status}
+                    Job {str(trainingJob.id).slice(0, 8)} · {str(trainingJob.status, "?")}
                     {trainingJob.status === "FAILED" && trainingJob.errorMessage
                       ? ` — ${trainingJob.errorMessage}`
                       : ""}
@@ -466,27 +482,27 @@ export const AnalyticsDashboard = () => {
                     </tr>
                   </THead>
                   <tbody>
-                    {models.map((m) => (
+                    {models.filter((m) => m && m.id).map((m) => (
                       <tr key={m.id}>
-                        <TD className="font-medium">{m.modelType}</TD>
-                        <TD className="font-mono text-xs">{m.version}</TD>
+                        <TD className="font-medium">{str(m.modelType, "?")}</TD>
+                        <TD className="font-mono text-xs">{str(m.version)}</TD>
                         <TD>
-                          <Badge variant={m.status === "APPROVED" ? "success" : "outline"}>{m.status}</Badge>
+                          <Badge variant={m.status === "APPROVED" ? "success" : "outline"}>{str(m.status, "?")}</Badge>
                         </TD>
                         <TD>
                           <Badge variant={m.dataSourceType === "REAL" ? "success" : "warning"}>
-                            {m.dataSourceType ?? "—"}
+                            {str(m.dataSourceType)}
                           </Badge>
                         </TD>
                         <TD className="tnum">
                           {m.accuracy != null
-                            ? `${(m.accuracy * 100).toFixed(1)}%`
+                            ? `${(num(m.accuracy) * 100).toFixed(1)}%`
                             : m.rmse != null
-                              ? `RMSE ${m.rmse.toFixed(3)}`
+                              ? `RMSE ${num(m.rmse).toFixed(3)}`
                               : "—"}
                         </TD>
                         <TD className="text-muted-foreground">
-                          {new Date(m.createdAt).toLocaleDateString()}
+                          {dateLabel(m.createdAt)}
                         </TD>
                       </tr>
                     ))}
@@ -520,21 +536,21 @@ export const AnalyticsDashboard = () => {
                     </tr>
                   </THead>
                   <tbody>
-                    {predictions.slice(0, 20).map((p, i) => (
+                    {predictions.filter((p) => p && p.entityId).slice(0, 20).map((p, i) => (
                       <tr key={`${p.entityId}-${p.modelType}-${i}`}>
-                        <TD className="max-w-48 truncate font-mono text-xs" title={p.entityId}>
-                          {p.entityType} {p.entityId.slice(0, 12)}
+                        <TD className="max-w-48 truncate font-mono text-xs" title={str(p.entityId, "")}>
+                          {str(p.entityType, "?")} {str(p.entityId, "").slice(0, 12)}
                         </TD>
-                        <TD className="text-xs text-muted-foreground">{p.modelType}</TD>
+                        <TD className="text-xs text-muted-foreground">{str(p.modelType, "?")}</TD>
                         <TD className="tnum text-right font-medium">
                           {p.probability != null
-                            ? `${(p.probability * 100).toFixed(1)}%`
-                            : p.predictedValue.toFixed(1)}
+                            ? `${(num(p.probability) * 100).toFixed(1)}%`
+                            : num(p.predictedValue).toFixed(1)}
                         </TD>
-                        <TD className="text-muted-foreground">{p.horizon}</TD>
+                        <TD className="text-muted-foreground">{str(p.horizon)}</TD>
                         <TD>
                           <Badge variant={p.dataSourceType === "REAL" ? "success" : "warning"}>
-                            {p.dataSourceType}
+                            {str(p.dataSourceType)}
                           </Badge>
                         </TD>
                       </tr>
@@ -545,6 +561,7 @@ export const AnalyticsDashboard = () => {
             </CardContent>
           </Card>
         </div>
+        </ErrorBoundary>
       )}
 
       {activeTab === "operations" && (

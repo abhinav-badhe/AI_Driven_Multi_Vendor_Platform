@@ -36,10 +36,10 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
   /**
    * Enforce tenant isolation and role restrictions for analytical queries.
    */
-  private resolveQueryScope(
+  private async resolveQueryScope(
     actor: AuthorizedActor,
     params: AnalyticsQueryParams,
-  ): AnalyticsQueryParams {
+  ): Promise<AnalyticsQueryParams> {
     // 1. Role-based restrictions
     if (actor.role === 'CUSTOMER') {
       throw new ForbiddenError('Customers do not have access to analytics');
@@ -63,6 +63,20 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
       throw new ValidationError('Tenant ID is required for analytics queries');
     }
 
+    // Normalize granularity case-insensitively: clients send day/week/month.
+    const rawGranularity = (params.granularity ?? 'DAY').toString().toUpperCase();
+    const granularity = (
+      ['HOUR', 'DAY', 'WEEK', 'MONTH'].includes(rawGranularity) ? rawGranularity : 'DAY'
+    ) as TimeGranularity;
+
+    // Default currency to the store's own selling currency instead of an
+    // arbitrary INR: facts are recorded per listing currency, so a wrong
+    // default silently filters everything out.
+    let effectiveCurrency = params.currency;
+    if (!effectiveCurrency) {
+      effectiveCurrency = await this.storeCurrency(effectiveTenantId);
+    }
+
     // 3. Merchant boundary:
     let effectiveMerchantId = params.merchantId;
     if (actor.role === 'MERCHANT') {
@@ -76,9 +90,29 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
       ...params,
       tenantId: effectiveTenantId,
       merchantId: effectiveMerchantId,
-      currency: params.currency ?? 'INR',
-      granularity: params.granularity ?? 'DAY',
+      currency: effectiveCurrency,
+      granularity,
     };
+  }
+
+  /**
+   * The currency a tenant actually sells in (majority listing currency),
+   * falling back to INR when the tenant has no listings.
+   */
+  private async storeCurrency(tenantId: string): Promise<string> {
+    try {
+      const res = await this.db.query<{ currency: string }>(
+        `SELECT currency FROM merchant_listings
+         WHERE tenant_id = $1
+         GROUP BY currency
+         ORDER BY COUNT(*) DESC
+         LIMIT 1`,
+        [tenantId],
+      );
+      return res.rows[0]?.currency ?? 'INR';
+    } catch {
+      return 'INR';
+    }
   }
 
   /**
@@ -88,7 +122,7 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
     actor: AuthorizedActor,
     params: AnalyticsQueryParams,
   ): Promise<CommerceKpiDto> {
-    const scope = this.resolveQueryScope(actor, params);
+    const scope = await this.resolveQueryScope(actor, params);
     const startDate = scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const endDate = scope.endDate ?? new Date().toISOString().slice(0, 10);
     const queryParams: AnalyticsQueryParams = {
@@ -163,7 +197,7 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
     actor: AuthorizedActor,
     params: AnalyticsQueryParams,
   ): Promise<MerchantAnalyticsDto> {
-    const scope = this.resolveQueryScope(actor, params);
+    const scope = await this.resolveQueryScope(actor, params);
     const startDate = scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const endDate = scope.endDate ?? new Date().toISOString().slice(0, 10);
 
@@ -196,7 +230,7 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
     actor: AuthorizedActor,
     params: AnalyticsQueryParams,
   ): Promise<ProductAnalyticsDto> {
-    const scope = this.resolveQueryScope(actor, params);
+    const scope = await this.resolveQueryScope(actor, params);
     const startDate = scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const endDate = scope.endDate ?? new Date().toISOString().slice(0, 10);
 
@@ -229,7 +263,7 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
     actor: AuthorizedActor,
     params: AnalyticsQueryParams,
   ): Promise<OperationalKpiDto> {
-    const scope = this.resolveQueryScope(actor, params);
+    const scope = await this.resolveQueryScope(actor, params);
     const startDate = scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const endDate = scope.endDate ?? new Date().toISOString().slice(0, 10);
 
