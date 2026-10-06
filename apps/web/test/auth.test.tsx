@@ -106,6 +106,34 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     expect(capturedAuth.user?.email).toBe('test@example.com');
   });
 
+  it('2b. Concurrent mounts share one session restore (no double refresh POST)', async () => {
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock;
+    fetchMock.mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('/auth/refresh')) {
+        return Promise.resolve(okJson({ accessToken: ACCESS_TOKEN }));
+      }
+      return Promise.resolve(okJson(ME_RESPONSE));
+    });
+
+    // Simulate StrictMode double-mount: two providers alive at once must
+    // still fire exactly one refresh — a second concurrent POST with the
+    // same cookie races rotation and gets the family revoked server-side.
+    await act(async () => {
+      render(
+        <>
+          <AuthProvider><div /></AuthProvider>
+          <AuthProvider><div /></AuthProvider>
+        </>
+      );
+    });
+
+    const refreshCalls = fetchMock.mock.calls.filter(
+      ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh')
+    );
+    expect(refreshCalls.length).toBe(1);
+  });
+
   it('3. Failed session restoration results in unauthenticated state (not an error)', async () => {
     mockFetchSequence([() => failResponse(401)]);
 

@@ -206,8 +206,18 @@ export const CustomerOrders = () => {
                           {sellerOrder.items && sellerOrder.items.length > 0 && (
                             <ul className="mt-1 divide-y divide-border">
                               {sellerOrder.items.map((item) => (
-                                <li key={item.id} className="flex items-center justify-between gap-2 py-2">
-                                  <div className="min-w-0">
+                                <li key={item.id} className="flex items-center gap-2 py-2">
+                                  {item.productThumbnailUrl ? (
+                                    <img
+                                      src={item.productThumbnailUrl}
+                                      alt=""
+                                      loading="lazy"
+                                      className="size-9 shrink-0 rounded border border-border object-cover"
+                                    />
+                                  ) : (
+                                    <span className="size-9 shrink-0 rounded border border-border bg-muted" aria-hidden />
+                                  )}
+                                  <div className="min-w-0 flex-1">
                                     <p className="truncate text-[13px] font-medium">
                                       {item.productName || item.skuCode}
                                     </p>

@@ -36,6 +36,7 @@ export interface OrderItemDto {
   productId: string;
   merchantTenantId: string;
   productName: string;
+  productThumbnailUrl?: string | null;
   skuCode: string;
   variantInfo: Record<string, unknown>;
   quantity: number;
@@ -358,6 +359,21 @@ export class OrderService {
       });
     }
 
+    // 8. Empty the customer's cart — its items now live on the order.
+    // Best-effort: an order must never fail because the cart cleanup did.
+    try {
+      await this.db.query(
+        `DELETE FROM cart_items WHERE cart_id IN (SELECT id FROM carts WHERE tenant_id = $1)`,
+        [actor.tenantId],
+      );
+    } catch (err: unknown) {
+      this.logger.warn('Failed to clear cart after order placement', {
+        orderId: customerOrderRow.id,
+        tenantId: actor.tenantId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
     return this.assembleFullOrderDto(customerOrderRow, createdSellerOrders, createdOrderItems);
   }
 
@@ -524,10 +540,11 @@ export class OrderService {
     const sellerOrders =
       prefetchedSellerOrders ?? (await this.repo.findSellerOrdersByCustomerOrder(order.id));
     const items = prefetchedItems ?? (await this.repo.findOrderItemsByCustomerOrder(order.id));
+    const thumbnails = await this.productThumbnailsForItems(items);
 
     const sellerDtos = sellerOrders.map((s) => {
       const sItems = items.filter((it) => it.seller_order_id === s.id);
-      return this.toSellerOrderDto(s, sItems);
+      return this.toSellerOrderDto(s, sItems, thumbnails);
     });
 
     let method = paymentMethod;
@@ -553,11 +570,31 @@ export class OrderService {
       createdAt: order.created_at.toISOString(),
       updatedAt: order.updated_at.toISOString(),
       sellerOrders: sellerDtos,
-      items: items.map((it) => this.toItemDto(it)),
+      items: items.map((it) => this.toItemDto(it, thumbnails.get(it.product_id) ?? null)),
     };
   }
 
-  private toSellerOrderDto(row: SellerOrderRow, items: OrderItemRow[] = []): SellerOrderDto {
+  /** Single-query thumbnail lookup for an order's products. */
+  private async productThumbnailsForItems(items: OrderItemRow[]): Promise<Map<string, string>> {
+    const ids = [...new Set(items.map((it) => it.product_id).filter(Boolean))];
+    const map = new Map<string, string>();
+    if (ids.length === 0) return map;
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+    const res = await this.db.query<{ id: string; thumbnail_url: string | null }>(
+      `SELECT id, thumbnail_url FROM products WHERE id IN (${placeholders})`,
+      ids,
+    );
+    for (const row of res.rows) {
+      if (row.thumbnail_url) map.set(row.id, row.thumbnail_url);
+    }
+    return map;
+  }
+
+  private toSellerOrderDto(
+    row: SellerOrderRow,
+    items: OrderItemRow[] = [],
+    thumbnails?: Map<string, string> | undefined,
+  ): SellerOrderDto {
     return {
       id: row.id,
       customerOrderId: row.customer_order_id,
@@ -570,11 +607,11 @@ export class OrderService {
       totalAmount: row.total_amount,
       createdAt: row.created_at.toISOString(),
       updatedAt: row.updated_at.toISOString(),
-      items: items.map((it) => this.toItemDto(it)),
+      items: items.map((it) => this.toItemDto(it, thumbnails?.get(it.product_id) ?? null)),
     };
   }
 
-  private toItemDto(row: OrderItemRow): OrderItemDto {
+  private toItemDto(row: OrderItemRow, thumbnailUrl?: string | null): OrderItemDto {
     return {
       id: row.id,
       sellerOrderId: row.seller_order_id,
@@ -584,6 +621,7 @@ export class OrderService {
       productId: row.product_id,
       merchantTenantId: row.merchant_tenant_id,
       productName: row.product_name,
+      productThumbnailUrl: thumbnailUrl ?? null,
       skuCode: row.sku_code,
       variantInfo: row.variant_info,
       quantity: row.quantity,

@@ -27,6 +27,10 @@ export interface CheckoutItemDto {
   listingId: string;
   skuId: string;
   merchantTenantId: string;
+  productId?: string | null;
+  productTitle?: string | null;
+  productBrand?: string | null;
+  productThumbnailUrl?: string | null;
   quantity: number;
   unitPriceAmount: number;
   lineTotalAmount: number;
@@ -859,6 +863,10 @@ export class CheckoutService {
         listingId: i.listing_id,
         skuId: i.sku_id,
         merchantTenantId: i.merchant_tenant_id,
+        productId: i.product_id ?? null,
+        productTitle: i.product_title ?? null,
+        productBrand: i.product_brand ?? null,
+        productThumbnailUrl: i.product_thumbnail_url ?? null,
         quantity: i.quantity,
         unitPriceAmount: i.unit_price_amount,
         lineTotalAmount: i.line_total_amount,

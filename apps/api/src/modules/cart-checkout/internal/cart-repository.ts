@@ -18,6 +18,10 @@ export interface CartItemRow {
   quantity: number;
   created_at: Date;
   updated_at: Date;
+  product_id?: string | null | undefined;
+  product_title?: string | null | undefined;
+  product_brand?: string | null | undefined;
+  product_thumbnail_url?: string | null | undefined;
 }
 
 export class CartRepository {
@@ -60,10 +64,15 @@ export class CartRepository {
 
   async getCartItems(cartId: string): Promise<CartItemRow[]> {
     const res = await this.db.query<CartItemRow>(
-      `SELECT id, cart_id, listing_id, sku_id, merchant_tenant_id, quantity, created_at, updated_at
-       FROM cart_items
-       WHERE cart_id = $1
-       ORDER BY created_at ASC`,
+      `SELECT ci.id, ci.cart_id, ci.listing_id, ci.sku_id, ci.merchant_tenant_id,
+              ci.quantity, ci.created_at, ci.updated_at,
+              p.id AS product_id, p.title AS product_title,
+              p.brand AS product_brand, p.thumbnail_url AS product_thumbnail_url
+       FROM cart_items ci
+       LEFT JOIN product_skus s ON s.id = ci.sku_id
+       LEFT JOIN products p ON p.id = s.product_id
+       WHERE ci.cart_id = $1
+       ORDER BY ci.created_at ASC`,
       [cartId],
     );
     return res.rows;

@@ -42,6 +42,10 @@ export interface CheckoutItemRow {
   currency: string;
   inventory_reservation_id: string | null;
   created_at: Date;
+  product_id?: string | null | undefined;
+  product_title?: string | null | undefined;
+  product_brand?: string | null | undefined;
+  product_thumbnail_url?: string | null | undefined;
 }
 
 export interface CreateCheckoutSessionInput {
@@ -164,12 +168,16 @@ export class CheckoutRepository {
 
   async getCheckoutItems(sessionId: string): Promise<CheckoutItemRow[]> {
     const res = await this.db.query<CheckoutItemRow>(
-      `SELECT id, checkout_session_id, listing_id, sku_id, merchant_tenant_id,
-              quantity, unit_price_amount, line_total_amount, currency, inventory_reservation_id,
-              created_at
-       FROM checkout_items
-       WHERE checkout_session_id = $1
-       ORDER BY created_at ASC`,
+      `SELECT ci.id, ci.checkout_session_id, ci.listing_id, ci.sku_id, ci.merchant_tenant_id,
+              ci.quantity, ci.unit_price_amount, ci.line_total_amount, ci.currency,
+              ci.inventory_reservation_id, ci.created_at,
+              p.id AS product_id, p.title AS product_title,
+              p.brand AS product_brand, p.thumbnail_url AS product_thumbnail_url
+       FROM checkout_items ci
+       LEFT JOIN product_skus s ON s.id = ci.sku_id
+       LEFT JOIN products p ON p.id = s.product_id
+       WHERE ci.checkout_session_id = $1
+       ORDER BY ci.created_at ASC`,
       [sessionId],
     );
     return res.rows;

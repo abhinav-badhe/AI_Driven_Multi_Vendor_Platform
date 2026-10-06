@@ -839,6 +839,15 @@ describe('Phase 6: Orders & Payments', () => {
       });
       const listed = listRes.json().find((o: { id: string }) => o.id === orderRes.json().id);
       expect(listed.paymentMethod).toBe('COD');
+
+      // Cart is emptied once its items move onto the order.
+      const cartRes = await app.inject({
+        method: 'GET',
+        url: '/cart',
+        headers: { authorization: `Bearer ${eco.cust1Token}` },
+      });
+      expect(cartRes.statusCode).toBe(200);
+      expect(cartRes.json().items).toEqual([]);
     });
 
     it('creates 1 Customer Order + N Seller Orders from a multi-vendor checkout', async () => {

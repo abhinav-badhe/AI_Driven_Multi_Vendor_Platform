@@ -5,6 +5,10 @@ export interface CartItemDto {
   listingId: string;
   skuId: string;
   merchantTenantId: string;
+  productId?: string | null;
+  productTitle?: string | null;
+  productBrand?: string | null;
+  productThumbnailUrl?: string | null;
   quantity: number;
   unitPriceAmount: number;
   lineTotalAmount: number;

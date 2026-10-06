@@ -219,13 +219,29 @@ export const CheckoutPage = () => {
         <Card>
           <CardContent className="p-4">
             <p className="text-sm font-semibold">Order summary</p>
-            <ul className="mt-2 flex flex-col gap-1">
+            <ul className="mt-2 flex flex-col gap-2">
               {session?.items.map((it) => (
-                <li key={it.id} className="flex justify-between gap-2 text-[13px]">
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {it.listingId.slice(0, 8)} × {it.quantity}
+                <li key={it.id} className="flex items-center gap-2 text-[13px]">
+                  {it.productThumbnailUrl ? (
+                    <img
+                      src={it.productThumbnailUrl}
+                      alt=""
+                      loading="lazy"
+                      className="size-9 shrink-0 rounded border border-border object-cover"
+                    />
+                  ) : (
+                    <span className="size-9 shrink-0 rounded border border-border bg-muted" aria-hidden />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">
+                      {it.productTitle || `Offer ${it.listingId.slice(0, 8)}`}
+                    </span>
+                    <span className="tnum block text-xs text-muted-foreground">
+                      × {it.quantity}
+                      {it.productBrand ? ` · ${it.productBrand}` : ""}
+                    </span>
                   </span>
-                  <span className="tnum">{formatPrice(it.lineTotalAmount, it.currency, 2)}</span>
+                  <span className="tnum shrink-0 font-medium">{formatPrice(it.lineTotalAmount, it.currency, 2)}</span>
                 </li>
               ))}
             </ul>

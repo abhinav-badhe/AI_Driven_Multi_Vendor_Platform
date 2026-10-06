@@ -43,6 +43,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Single-flight session restore shared across mounts. Two concurrent
+// refresh POSTs with the same cookie race the server's rotation: the loser
+// looks exactly like token theft, the family gets revoked, and the user is
+// signed out everywhere. One restore per page lifetime, awaited by all.
+let restorePromise: Promise<UserContext | null> | null = null;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,33 +65,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Session restoration
     let mounted = true;
-    const restoreSession = async () => {
-      try {
-        const refreshRes = await fetch('/api/auth/refresh', {
-          method: 'POST',
-          credentials: 'include',
-        });
-        
-        if (refreshRes.ok) {
+    if (!restorePromise) {
+      restorePromise = (async (): Promise<UserContext | null> => {
+        try {
+          const refreshRes = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            credentials: 'include',
+          });
+
+          if (!refreshRes.ok) {
+            setAuthData(null, null);
+            return null;
+          }
           const { accessToken } = await refreshRes.json();
           // We need to fetch /auth/me to get the user state because we only have the token
           setAuthData(accessToken, null);
           const me = await apiClient<UserContext>('/auth/me');
-          if (mounted) {
-            setAuthData(accessToken, me.tenantId);
-            setUser(me);
-          }
-        } else {
-          if (mounted) clearAuth();
+          setAuthData(accessToken, me.tenantId);
+          return me;
+        } catch {
+          setAuthData(null, null);
+          return null;
+        } finally {
+          restorePromise = null;
         }
-      } catch {
-        if (mounted) clearAuth();
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
+      })();
+    }
+    restorePromise.then((me) => {
+      if (!mounted) return;
+      if (me) setUser(me);
+      else clearAuth();
+      setIsLoading(false);
+    });
+    return () => {
+      mounted = false;
     };
-    restoreSession();
-    return () => { mounted = false; };
   }, [clearAuth]);
 
 

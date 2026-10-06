@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Lock, ShoppingCart, Trash2 } from "lucide-react";
+import { ImageOff, Lock, ShoppingCart, Trash2 } from "lucide-react";
 import { useCart } from "./CartContext";
 import { useAuth } from "../auth/AuthContext";
 import { Button, buttonVariants } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import { Badge } from "../../components/ui/badge";
 import { Alert } from "../../components/ui/alert";
 import { EmptyState, TableSkeleton } from "../../components/ui/empty";
 import { QtyControl } from "../../components/product/ProductCard";
@@ -114,13 +115,29 @@ export const CartPage = () => {
         <div className="flex flex-col gap-3 lg:col-span-2">
           {cart.items.map((item) => (
             <Card key={item.id}>
-              <CardContent className="flex items-center justify-between gap-3 p-4">
-                <div className="min-w-0">
+              <CardContent className="flex items-center gap-3 p-4">
+                {item.productThumbnailUrl ? (
+                  <img
+                    src={item.productThumbnailUrl}
+                    alt=""
+                    loading="lazy"
+                    className="size-16 shrink-0 rounded-md border border-border object-cover"
+                  />
+                ) : (
+                  <span className="flex size-16 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
+                    <ImageOff className="size-5 text-muted-foreground" aria-hidden />
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
-                    Offer <span className="font-mono text-xs">{item.listingId.slice(0, 10)}</span>
+                    {item.productTitle || `Offer ${item.listingId.slice(0, 8)}`}
                   </p>
-                  <p className="tnum mt-0.5 text-xs text-muted-foreground">
-                    {formatPrice(item.unitPriceAmount, item.currency, 2)} each
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                    {item.productBrand && <span>{item.productBrand}</span>}
+                    <span className="tnum">
+                      {formatPrice(item.unitPriceAmount, item.currency, 2)} each
+                    </span>
+                    {!item.isAvailable && <Badge variant="destructive">Unavailable</Badge>}
                   </p>
                   <div className="mt-2 flex items-center gap-2">
                     <QtyControl

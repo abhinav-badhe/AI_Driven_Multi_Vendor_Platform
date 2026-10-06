@@ -14,6 +14,10 @@ export interface CartItemDto {
   listingId: string;
   skuId: string;
   merchantTenantId: string;
+  productId?: string | null;
+  productTitle?: string | null;
+  productBrand?: string | null;
+  productThumbnailUrl?: string | null;
   quantity: number;
   unitPriceAmount: number;
   lineTotalAmount: number;
@@ -187,6 +191,10 @@ export class CartService {
         listingId: item.listing_id,
         skuId: item.sku_id,
         merchantTenantId: item.merchant_tenant_id,
+        productId: item.product_id ?? null,
+        productTitle: item.product_title ?? null,
+        productBrand: item.product_brand ?? null,
+        productThumbnailUrl: item.product_thumbnail_url ?? null,
         quantity: item.quantity,
         unitPriceAmount: unitPrice,
         lineTotalAmount: lineTotal,

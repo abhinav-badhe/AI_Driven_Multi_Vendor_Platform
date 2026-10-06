@@ -9,6 +9,7 @@ export interface OrderItemDto {
   productId: string;
   merchantTenantId: string;
   productName: string;
+  productThumbnailUrl?: string | null;
   skuCode: string;
   variantInfo: Record<string, unknown>;
   quantity: number;
