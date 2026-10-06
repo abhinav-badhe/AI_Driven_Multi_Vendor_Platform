@@ -100,9 +100,9 @@ export const Home = () => {
       <div className="mx-auto w-full max-w-6xl space-y-3 px-3 py-4 md:px-4" aria-label="Loading products">
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-4 w-72" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-44" />
+        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-56" />
           ))}
         </div>
       </div>
@@ -178,7 +178,7 @@ export const Home = () => {
             onAction={() => setSelectedCategory(null)}
           />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-4">
             {displayedProducts.map((p) => {
               const bestOffer = p.bestOffer || p.offers?.[0];
               const cartItem = cart?.items?.find((it) => it.listingId === bestOffer?.listingId);

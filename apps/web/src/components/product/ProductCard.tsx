@@ -6,8 +6,9 @@ import { Button } from "../ui/button";
 import { Rating, discountPercent } from "./display";
 
 // Shared product card — one consistent treatment everywhere a product is
-// listed (home, search, category). Compact, left-aligned, border-only,
-// 13–14px type. Pinned test strings preserved ("In Stock", seller offers).
+// listed (home, search). Dense and sleek: 4:3 image with overlaid discount,
+// 13px type, single metadata line. Pinned test strings preserved
+// ("In Stock", seller offers).
 export function StockBadge({ inStock }: { inStock: boolean }) {
   return (
     <Badge variant={inStock ? "success" : "outline"}>
@@ -61,7 +62,6 @@ export function ProductCard({
   title,
   brand,
   categoryName,
-  merchantName,
   priceLabel,
   compareAtLabel,
   compareAtPrice,
@@ -91,59 +91,56 @@ export function ProductCard({
 }) {
   const off = price != null ? discountPercent(price, compareAtPrice) : null;
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-2 p-4">
+    <Card className="overflow-hidden">
+      <CardContent className="flex flex-col gap-1.5 p-3">
         {thumbnailUrl && (
           <Link
             to={`/product/${productId}`}
-            className="block overflow-hidden rounded-md border border-border"
+            className="relative block overflow-hidden rounded-md border border-border bg-muted"
             aria-label={`View ${title}`}
           >
             <img
               src={thumbnailUrl}
               alt=""
               loading="lazy"
-              className="aspect-square w-full object-cover"
+              className="aspect-[4/3] w-full object-cover transition-transform duration-150 hover:scale-[1.03]"
             />
+            {off != null && (
+              <Badge variant="warning" className="absolute left-1.5 top-1.5 shadow-sm">
+                {off}% off
+              </Badge>
+            )}
           </Link>
         )}
         <div className="flex items-center justify-between gap-2">
           <StockBadge inStock={inStock} />
           {offerCount !== undefined && (
-            <span className="text-xs text-muted-foreground">
+            <span className="tnum text-xs text-muted-foreground">
               {offerCount} {offerCount === 1 ? "seller offer" : "seller offers"}
             </span>
           )}
         </div>
-        <div>
-          {brand && <p className="text-xs text-muted-foreground">{brand}</p>}
+        <div className="min-w-0">
           <Link
             to={`/product/${productId}`}
-            className="text-sm font-medium leading-snug hover:underline"
+            className="line-clamp-2 min-h-8 text-[13px] font-medium leading-snug hover:underline"
           >
             {title}
           </Link>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+            {brand && <span className="truncate">{brand}</span>}
+            {categoryName && <span className="truncate">In {categoryName}</span>}
             <Rating rating={rating} reviewCount={reviewCount} />
-            {off != null && (
-              <Badge variant="warning">{off}% off</Badge>
-            )}
-          </div>
-          {categoryName && (
-            <p className="mt-0.5 text-xs text-muted-foreground">In {categoryName}</p>
-          )}
-          {merchantName && (
-            <p className="mt-0.5 text-xs text-muted-foreground">Sold by {merchantName}</p>
-          )}
+          </p>
         </div>
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-2.5">
-          <div>
-            <p className="tnum text-base font-semibold">{priceLabel}</p>
+        <div className="mt-auto flex items-end justify-between gap-2 border-t border-border pt-2">
+          <div className="min-w-0">
+            <p className="tnum truncate text-[15px] font-semibold">{priceLabel}</p>
             {compareAtLabel && (
-              <p className="tnum text-xs text-muted-foreground line-through">{compareAtLabel}</p>
+              <p className="tnum truncate text-xs text-muted-foreground line-through">{compareAtLabel}</p>
             )}
           </div>
-          {action}
+          <div className="shrink-0">{action}</div>
         </div>
       </CardContent>
     </Card>

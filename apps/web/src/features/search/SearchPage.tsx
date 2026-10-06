@@ -254,9 +254,9 @@ export const SearchPage = () => {
           )}
 
           {isLoading ? (
-            <div className="grid gap-3 sm:grid-cols-2" aria-label="Loading results">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-44" />
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3" aria-label="Loading results">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-56" />
               ))}
             </div>
           ) : data?.items && data.items.length > 0 ? (
@@ -270,7 +270,7 @@ export const SearchPage = () => {
                 )}
               </p>
 
-              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              <div className="mt-2 grid grid-cols-2 gap-2.5 md:grid-cols-3">
                 {data.items.map((item) => {
                   const bestOffer = item.bestOffer || item.offers?.[0];
                   const cartItem = cart?.items?.find((it) => it.listingId === bestOffer?.listingId);
