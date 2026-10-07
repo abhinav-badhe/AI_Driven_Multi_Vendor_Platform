@@ -9,6 +9,8 @@ import {
   type MlModelType,
   type MlPredictionDto,
   type MlTrainingJobDto,
+  type RetrainingPolicyDto,
+  type TrainingJobHistoryDto,
 } from "./api/analytics";
 import { eventsApi, type OutboxEventDto } from "./api/events";
 import { useAuth } from "../auth/AuthContext";
@@ -58,6 +60,11 @@ export const AnalyticsDashboard = () => {
   const [trainingJob, setTrainingJob] = useState<MlTrainingJobDto | null>(null);
   const [isTraining, setIsTraining] = useState(false);
   const [trainError, setTrainError] = useState<string | null>(null);
+  const [trainingJobs, setTrainingJobs] = useState<TrainingJobHistoryDto[]>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+  const [policies, setPolicies] = useState<Record<string, RetrainingPolicyDto>>({});
+  const [isLoadingPolicies, setIsLoadingPolicies] = useState(false);
+  const [policyError, setPolicyError] = useState<string | null>(null);
   const [events, setEvents] = useState<OutboxEventDto[]>([]);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [isProcessingEvents, setIsProcessingEvents] = useState(false);
@@ -126,6 +133,7 @@ export const AnalyticsDashboard = () => {
         if (user.role === "ADMINISTRATOR") {
           await loadEvents();
         }
+        await Promise.all([loadTrainingJobs(), loadPolicies()]);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Could not load analytics.");
       } finally {
@@ -137,12 +145,14 @@ export const AnalyticsDashboard = () => {
 
   const refreshModels = async () => {
     try {
-      const [modelsData, preds] = await Promise.all([
+      const [modelsData, preds, jobs] = await Promise.all([
         analyticsApi.getMlModels().catch(() => ({ models: [] })),
         analyticsApi.listPredictions().catch(() => ({ predictions: [] })),
+        analyticsApi.listTrainingJobs().catch(() => []),
       ]);
       setModels(Array.isArray(modelsData.models) ? modelsData.models : []);
       setPredictions(Array.isArray(preds.predictions) ? preds.predictions : []);
+      setTrainingJobs(Array.isArray(jobs) ? jobs : []);
     } catch {
       // Keep existing state on refresh failure.
     }
@@ -181,6 +191,82 @@ export const AnalyticsDashboard = () => {
       );
       setIsTraining(false);
     }
+  };
+
+  const loadTrainingJobs = async (modelType?: MlModelType) => {
+    setIsLoadingJobs(true);
+    try {
+      const jobs = await analyticsApi.listTrainingJobs(modelType);
+      setTrainingJobs(jobs);
+    } catch {
+      setTrainingJobs([]);
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  };
+
+  const loadPolicies = async () => {
+    setIsLoadingPolicies(true);
+    setPolicyError(null);
+    try {
+      const types: MlModelType[] = ["DEMAND_FORECASTING", "STOCKOUT_RISK", "PURCHASE_PROPENSITY", "ANOMALY_DETECTION"];
+      const results = await Promise.all(
+        types.map((t) => analyticsApi.getRetrainingPolicy(t).then((p) => (p ? { [t]: p } : null)).catch(() => null))
+      );
+      const merged: Record<string, RetrainingPolicyDto> = {};
+      for (const r of results) {
+        if (r) Object.assign(merged, r);
+      }
+      setPolicies(merged);
+    } catch (err: unknown) {
+      setPolicyError(err instanceof Error ? err.message : "Failed to load retraining policies.");
+    } finally {
+      setIsLoadingPolicies(false);
+    }
+  };
+
+  const handleRetrain = async (modelType: MlModelType) => {
+    setPolicyError(null);
+    try {
+      const result = await analyticsApi.retrainModel(modelType);
+      if (result.retrained && result.jobId) {
+        await pollJob(result.jobId);
+      } else {
+        setPolicyError(result.reason);
+      }
+      await loadPolicies();
+    } catch (err: unknown) {
+      setPolicyError(err instanceof Error ? err.message : "Retrain trigger failed.");
+    }
+  };
+
+  const handleRollback = async (modelId: string) => {
+    setPolicyError(null);
+    try {
+      await analyticsApi.rollbackModel(modelId);
+      await refreshModels();
+    } catch (err: unknown) {
+      setPolicyError(err instanceof Error ? err.message : "Rollback failed.");
+    }
+  };
+
+  const handleSavePolicy = async (modelType: MlModelType, updates: Partial<RetrainingPolicyDto>) => {
+    setPolicyError(null);
+    try {
+      const updated = await analyticsApi.saveRetrainingPolicy(modelType, updates);
+      setPolicies((prev) => ({ ...prev, [modelType]: updated }));
+    } catch (err: unknown) {
+      setPolicyError(err instanceof Error ? err.message : "Failed to save policy.");
+    }
+  };
+
+  const handleTogglePolicy = async (modelType: MlModelType, enabled: boolean) => {
+    await handleSavePolicy(modelType, { enabled });
+  };
+
+  const handleThresholdChange = async (modelType: MlModelType, value: number) => {
+    if (value < 1) return;
+    await handleSavePolicy(modelType, { minNewOrdersThreshold: value });
   };
 
   const reloadAll = async () => {
@@ -435,6 +521,7 @@ export const AnalyticsDashboard = () => {
                     <option value="DEMAND_FORECASTING">Demand forecast</option>
                     <option value="STOCKOUT_RISK">Stockout risk</option>
                     <option value="PURCHASE_PROPENSITY">Purchase propensity</option>
+                    <option value="ANOMALY_DETECTION">Anomaly detection</option>
                   </select>
                 </div>
                 <Button size="sm" disabled={isTraining} onClick={handleTrain}>
@@ -460,7 +547,7 @@ export const AnalyticsDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle>Forecast models</CardTitle>
-              <CardDescription>Registered demand and risk models.</CardDescription>
+              <CardDescription>Registered demand, risk, and anomaly models.</CardDescription>
             </CardHeader>
             <CardContent>
               {models.length === 0 ? (
@@ -479,6 +566,7 @@ export const AnalyticsDashboard = () => {
                       <TH>Source</TH>
                       <TH>Accuracy</TH>
                       <TH>Registered</TH>
+                      <TH className="text-right">Actions</TH>
                     </tr>
                   </THead>
                   <tbody>
@@ -504,6 +592,151 @@ export const AnalyticsDashboard = () => {
                         <TD className="text-muted-foreground">
                           {dateLabel(m.createdAt)}
                         </TD>
+                        <TD className="text-right">
+                          {m.status === "APPROVED" && (
+                            <Button variant="ghost" size="sm" onClick={() => handleRollback(m.id)} disabled={isTraining}>
+                              Rollback
+                            </Button>
+                          )}
+                        </TD>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Retraining policies</CardTitle>
+              <CardDescription>
+                Automatic retraining thresholds per model. When new orders exceed
+                the threshold, a retraining job is triggered automatically.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingPolicies ? (
+                <div className="flex flex-col gap-2" aria-label="Loading policies">
+                  <Skeleton className="h-16" />
+                  <Skeleton className="h-16" />
+                </div>
+              ) : (
+                <>
+                  {policyError && (
+                    <div className="mb-2">
+                      <Alert tone="error">{policyError}</Alert>
+                    </div>
+                  )}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {(["DEMAND_FORECASTING", "STOCKOUT_RISK", "PURCHASE_PROPENSITY", "ANOMALY_DETECTION"] as MlModelType[]).map((type) => {
+                      const policy = policies[type];
+                      const enabled = policy?.enabled ?? false;
+                      const threshold = policy?.minNewOrdersThreshold ?? 10;
+                      return (
+                        <div key={type} className="rounded-md border border-border p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-[13px] font-medium">{type.replace(/_/g, " ")}</p>
+                            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                              <input
+                                type="checkbox"
+                                checked={enabled}
+                                onChange={(e) => handleTogglePolicy(type, e.target.checked)}
+                                className="size-3.5 accent-current"
+                              />
+                              Enabled
+                            </label>
+                          </div>
+                          <div className="mt-2 flex items-end gap-2">
+                            <div className="flex flex-col gap-1">
+                              <Label htmlFor={`threshold-${type}`}>Min new orders</Label>
+                            <input
+                                id={`threshold-${type}`}
+                                type="number"
+                                min={1}
+                                max={1000}
+                                defaultValue={threshold}
+                                key={`${type}-${threshold}`}
+                                onBlur={(e) => handleThresholdChange(type, Number(e.target.value) || 1)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                                }}
+                                className="mt-1 w-full h-8 rounded-md border border-input bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring"
+                              />
+                            </div>
+                            <Button size="sm" variant="outline" disabled={isTraining} onClick={() => handleRetrain(type)}>
+                              Retrain now
+                            </Button>
+                          </div>
+                          <p className="mt-1.5 text-xs text-muted-foreground">
+                            Last trained at {policy?.lastTrainedOrderCount ?? 0} orders
+                            {policy?.lastTrainedAt ? ` · ${dateLabel(policy.lastTrainedAt)}` : ""}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Training job history</CardTitle>
+              <CardDescription>Recent training jobs across all model types.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingJobs ? (
+                <div className="flex flex-col gap-2" aria-label="Loading jobs">
+                  <Skeleton className="h-12" />
+                  <Skeleton className="h-12" />
+                </div>
+              ) : trainingJobs.length === 0 ? (
+                <EmptyState
+                  icon={Activity}
+                  title="No training jobs yet"
+                  description="Train a model above to see job history here."
+                />
+              ) : (
+                <Table>
+                  <THead>
+                    <tr>
+                      <TH>Job</TH>
+                      <TH>Model</TH>
+                      <TH>Trigger</TH>
+                      <TH>Status</TH>
+                      <TH>Source</TH>
+                      <TH className="text-right">Samples</TH>
+                      <TH>Started</TH>
+                    </tr>
+                  </THead>
+                  <tbody>
+                    {trainingJobs.slice(0, 20).map((job) => (
+                      <tr key={job.id}>
+                        <TD className="font-mono text-xs">{str(job.id).slice(0, 12)}</TD>
+                        <TD className="text-xs">{str(job.modelType, "?")}</TD>
+                        <TD className="text-xs text-muted-foreground">{str(job.triggerType, "?")}</TD>
+                        <TD>
+                          <Badge
+                            variant={
+                              job.status === "COMPLETED"
+                                ? "success"
+                                : job.status === "FAILED"
+                                  ? "destructive"
+                                  : "outline"
+                            }
+                          >
+                            {str(job.status, "?")}
+                          </Badge>
+                        </TD>
+                        <TD>
+                          <Badge variant={job.dataSourceType === "REAL" ? "success" : "warning"}>
+                            {str(job.dataSourceType)}
+                          </Badge>
+                        </TD>
+                        <TD className="tnum text-right">{job.sampleCount}</TD>
+                        <TD className="text-muted-foreground">{dateLabel(job.startedAt)}</TD>
                       </tr>
                     ))}
                   </tbody>

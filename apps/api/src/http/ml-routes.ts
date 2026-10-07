@@ -281,4 +281,46 @@ export function registerMlRoutes(
       return reply.status(200).send(pred);
     },
   );
+
+  // 12. GET /ml/policies/:modelType - Get retraining policy for model type
+  app.get(
+    '/ml/policies/:modelType',
+    { preHandler: authenticate },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const actor = requireActor(request);
+      const params = request.params as { modelType: ModelType };
+      const tenantId = actor.tenantId;
+
+      const policy = await mlService.getRetrainingPolicy(actor, tenantId, params.modelType);
+      if (!policy) {
+        return reply.status(200).send({
+          tenantId,
+          modelType: params.modelType,
+          minNewOrdersThreshold: 10,
+          lastTrainedOrderCount: 0,
+          enabled: false,
+        });
+      }
+      return reply.status(200).send(policy);
+    },
+  );
+
+  // 13. PUT /ml/policies/:modelType - Save/update retraining policy
+  app.put(
+    '/ml/policies/:modelType',
+    { preHandler: authenticate },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const actor = requireActor(request);
+      const params = request.params as { modelType: ModelType };
+      const tenantId = actor.tenantId;
+      const body = (request.body as Record<string, unknown>) || {};
+
+      const policy = await mlService.saveRetrainingPolicy(actor, tenantId, params.modelType, {
+        minNewOrdersThreshold: typeof body.minNewOrdersThreshold === 'number' ? body.minNewOrdersThreshold : 10,
+        enabled: typeof body.enabled === 'boolean' ? body.enabled : true,
+      });
+
+      return reply.status(200).send(policy);
+    },
+  );
 }

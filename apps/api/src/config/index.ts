@@ -68,7 +68,13 @@ export function parseConfig(envSource: Record<string, string | undefined>): AppC
     },
     notifications: {
       resendApiKey: raw.RESEND_API_KEY || undefined,
-      emailFrom: raw.EMAIL_FROM ?? 'Store <onboarding@resend.dev>',
+      // Strip stray wrapping quotes/backticks/whitespace so a typo in
+      // EMAIL_FROM fails loudly at Resend instead of silently poisoning
+      // every send (e.g. `Store <onboarding@resend.dev>` with a backtick).
+      emailFrom: (raw.EMAIL_FROM ?? 'Store <onboarding@resend.dev>')
+        .trim()
+        .replace(/^[`'"]+|[`'"]+$/g, '')
+        .trim(),
       frontendUrl: raw.FRONTEND_URL ?? 'http://localhost:3000',
     },
   };

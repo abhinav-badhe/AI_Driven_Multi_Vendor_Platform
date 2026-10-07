@@ -9,6 +9,7 @@ import type {
   IMlStore,
   ModelType,
   RegisteredModelRecord,
+  RetrainingPolicyRecord,
   TrainModelInputDto,
   TrainingJobRecord,
 } from './ml-models.js';
@@ -691,6 +692,48 @@ export class MlService implements IMlSignalReader {
   ): Promise<DerivedPredictionRecord[]> {
     this.assertTenantAccess(actor, tenantId);
     return this.store.listPredictions(tenantId, filter);
+  }
+
+  async getRetrainingPolicy(
+    actor: AuthorizedActor,
+    tenantId: string,
+    modelType: ModelType,
+  ): Promise<RetrainingPolicyRecord | null> {
+    this.assertTenantAccess(actor, tenantId);
+    return this.store.getRetrainingPolicy(tenantId, modelType);
+  }
+
+  async saveRetrainingPolicy(
+    actor: AuthorizedActor,
+    tenantId: string,
+    modelType: ModelType,
+    updates: { minNewOrdersThreshold?: number; enabled?: boolean },
+  ): Promise<RetrainingPolicyRecord> {
+    this.assertTenantAccess(actor, tenantId);
+    let policy = await this.store.getRetrainingPolicy(tenantId, modelType);
+    const now = new Date().toISOString();
+    if (!policy) {
+      policy = {
+        id: `${tenantId}:${modelType}`,
+        tenantId,
+        modelType,
+        minNewOrdersThreshold: updates.minNewOrdersThreshold ?? 10,
+        lastTrainedOrderCount: 0,
+        enabled: updates.enabled ?? true,
+        createdAt: now,
+        updatedAt: now,
+      };
+    } else {
+      if (updates.minNewOrdersThreshold !== undefined) {
+        policy.minNewOrdersThreshold = updates.minNewOrdersThreshold;
+      }
+      if (updates.enabled !== undefined) {
+        policy.enabled = updates.enabled;
+      }
+      policy.updatedAt = now;
+    }
+    await this.store.saveRetrainingPolicy(policy);
+    return policy;
   }
 
   // --- IMlSignalReader implementation (Optional signals for recommendations) ---

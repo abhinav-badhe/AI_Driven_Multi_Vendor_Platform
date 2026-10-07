@@ -65,7 +65,7 @@ export interface MlModelDto {
   createdAt: string;
 }
 
-export type MlModelType = 'DEMAND_FORECASTING' | 'STOCKOUT_RISK' | 'PURCHASE_PROPENSITY';
+export type MlModelType = 'DEMAND_FORECASTING' | 'STOCKOUT_RISK' | 'PURCHASE_PROPENSITY' | 'ANOMALY_DETECTION';
 
 export interface MlTrainingJobDto {
   id: string;
@@ -104,6 +104,32 @@ export interface MlPredictionDto {
   riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
   horizonDays?: number;
   status?: string;
+}
+
+export interface RetrainingPolicyDto {
+  id: string;
+  tenantId: string;
+  modelType: MlModelType;
+  minNewOrdersThreshold: number;
+  lastTrainedOrderCount: number;
+  lastTrainedAt?: string | null;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TrainingJobHistoryDto {
+  id: string;
+  tenantId: string;
+  modelType: string;
+  triggerType: string;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  dataSourceType: 'REAL' | 'BOOTSTRAP';
+  sampleCount: number;
+  modelId?: string | null;
+  errorMessage?: string | null;
+  startedAt: string;
+  completedAt?: string | null;
 }
 
 export const analyticsApi = {
@@ -159,5 +185,42 @@ export const analyticsApi = {
 
   getDemandPrediction: async (productId: string): Promise<MlPredictionDto> => {
     return apiClient<MlPredictionDto>(`/ml/predictions/demand/${productId}`);
+  },
+
+  // Training job history
+  listTrainingJobs: async (modelType?: MlModelType): Promise<TrainingJobHistoryDto[]> => {
+    const params = new URLSearchParams();
+    if (modelType) params.append('modelType', modelType);
+    const res = await apiClient<{ jobs: TrainingJobHistoryDto[] }>(`/ml/jobs?${params.toString()}`);
+    return Array.isArray(res.jobs) ? res.jobs : [];
+  },
+
+  // Retraining policies
+  getRetrainingPolicy: async (modelType: MlModelType): Promise<RetrainingPolicyDto | null> => {
+    try {
+      return await apiClient<RetrainingPolicyDto>(`/ml/policies/${modelType}`);
+    } catch {
+      return null;
+    }
+  },
+
+  saveRetrainingPolicy: async (modelType: MlModelType, policy: Partial<RetrainingPolicyDto>): Promise<RetrainingPolicyDto> => {
+    return apiClient<RetrainingPolicyDto>(`/ml/policies/${modelType}`, {
+      method: 'PUT',
+      body: JSON.stringify(policy),
+    });
+  },
+
+  // Retrain trigger
+  retrainModel: async (modelType: MlModelType): Promise<{ retrained: boolean; jobId?: string; reason: string }> => {
+    return apiClient('/ml/retrain', {
+      method: 'POST',
+      body: JSON.stringify({ modelType }),
+    });
+  },
+
+  // Rollback model
+  rollbackModel: async (modelId: string): Promise<MlModelDto> => {
+    return apiClient<MlModelDto>(`/ml/models/${modelId}/rollback`, { method: 'POST' });
   },
 };
