@@ -22,6 +22,7 @@ import type {
   ProductDailyDemandRecord,
   InventoryVelocitySignal,
   CustomerActivitySignal,
+  OrderAnomalySignal,
   IAnalyticsMlFeatureReader,
 } from './analytics-models.js';
 import { AnalyticsRepository, formatMoney } from './analytics-repository.js';
@@ -995,6 +996,11 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
   async getCustomerActivitySignals(tenantId: string): Promise<CustomerActivitySignal[]> {
     if (!tenantId?.trim()) throw new ValidationError('tenantId is required');
     return this.repo.findCustomerActivitySignals(this.db, tenantId);
+  }
+
+  async getOrderAnomalySignals(tenantId: string): Promise<OrderAnomalySignal[]> {
+    if (!tenantId?.trim()) throw new ValidationError('tenantId is required');
+    return this.repo.findOrderAnomalySignals(this.db, tenantId);
   }
 }
 

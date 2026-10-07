@@ -14,6 +14,7 @@ import type {
   CustomerActivitySignal,
   IAnalyticsMlFeatureReader,
   InventoryVelocitySignal,
+  OrderAnomalySignal,
   ProductDailyDemandRecord,
 } from '../src/modules/analytics/index.js';
 import type { AuthorizedActor } from '../src/modules/identity/index.js';
@@ -23,6 +24,7 @@ class MockFeatureReader implements IAnalyticsMlFeatureReader {
   public demandRecords: ProductDailyDemandRecord[] = [];
   public inventorySignals: InventoryVelocitySignal[] = [];
   public customerSignals: CustomerActivitySignal[] = [];
+  public orderAnomalySignals: OrderAnomalySignal[] = [];
 
   async getProductDailyDemandHistory(tenantId: string, _lookbackDays = 60): Promise<ProductDailyDemandRecord[]> {
     return this.demandRecords.filter((r) => r.tenantId === tenantId);
@@ -34,6 +36,10 @@ class MockFeatureReader implements IAnalyticsMlFeatureReader {
 
   async getCustomerActivitySignals(tenantId: string): Promise<CustomerActivitySignal[]> {
     return this.customerSignals.filter((r) => r.tenantId === tenantId);
+  }
+
+  async getOrderAnomalySignals(tenantId: string): Promise<OrderAnomalySignal[]> {
+    return this.orderAnomalySignals.filter((r) => r.tenantId === tenantId);
   }
 }
 

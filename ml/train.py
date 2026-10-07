@@ -20,15 +20,18 @@ from ml.data.bootstrap import (
     generate_bootstrap_demand,
     generate_bootstrap_propensity,
     generate_bootstrap_stockout,
+    generate_bootstrap_anomaly,
 )
 from ml.data.features import (
     prepare_demand_features,
     prepare_propensity_features,
     prepare_stockout_features,
+    prepare_anomaly_features,
 )
 from ml.models.demand_forecaster import DemandForecaster
 from ml.models.propensity_predictor import PropensityPredictor
 from ml.models.stockout_predictor import StockoutPredictor
+from ml.models.anomaly_detector import AnomalyDetector
 
 
 def train_model(config: dict) -> dict:
@@ -48,6 +51,7 @@ def train_model(config: dict) -> dict:
         "DEMAND_FORECASTING": 20,
         "STOCKOUT_RISK": 10,
         "PURCHASE_PROPENSITY": 10,
+        "ANOMALY_DETECTION": 10,
     }.get(model_type, 10)
 
     if len(records) < min_required_records:
@@ -58,6 +62,8 @@ def train_model(config: dict) -> dict:
             records = generate_bootstrap_stockout(tenant_id, count=35, seed=seed)
         elif model_type == "PURCHASE_PROPENSITY":
             records = generate_bootstrap_propensity(tenant_id, count=45, seed=seed)
+        elif model_type == "ANOMALY_DETECTION":
+            records = generate_bootstrap_anomaly(tenant_id, count=40, seed=seed)
     else:
         data_source_type = "REAL"
 
@@ -77,6 +83,10 @@ def train_model(config: dict) -> dict:
         X, y, feature_names, _ = prepare_propensity_features(records, horizon_days=horizon_days)
         algorithm = config.get("algorithm", "RandomForestClassifier")
         model = PropensityPredictor(algorithm=algorithm, seed=seed, **hyperparameters)
+    elif model_type == "ANOMALY_DETECTION":
+        X, y, feature_names, _ = prepare_anomaly_features(records, horizon_days=horizon_days)
+        algorithm = config.get("algorithm", "RandomForestClassifier")
+        model = AnomalyDetector(algorithm=algorithm, seed=seed, **hyperparameters)
     else:
         raise ValueError(f"Unsupported model type: {model_type}")
 

@@ -170,6 +170,8 @@ export class MlService implements IMlSignalReader {
         rawRecords = await this.featureReader.getInventoryVelocitySignals(tenantId);
       } else if (modelType === 'PURCHASE_PROPENSITY') {
         rawRecords = await this.featureReader.getCustomerActivitySignals(tenantId);
+      } else if (modelType === 'ANOMALY_DETECTION') {
+        rawRecords = await this.featureReader.getOrderAnomalySignals(tenantId);
       }
 
       const version = (config?.version as string | undefined) ?? `v1.${Date.now()}`;
@@ -562,6 +564,23 @@ export class MlService implements IMlSignalReader {
             ],
           });
         }
+      } else if (modelType === 'ANOMALY_DETECTION') {
+        const orders = await this.featureReader.getOrderAnomalySignals(tenantId);
+        for (const ord of orders) {
+          const total = Math.max(1, ord.totalAmount);
+          const qty = Math.max(1, ord.totalQuantity);
+          featureVectors.push({
+            entityId: ord.orderId,
+            featureVector: [
+              Math.log(total),
+              ord.lineCount,
+              qty,
+              total / qty,
+              ord.hourOfDay,
+              ord.hourOfDay < 6 || ord.hourOfDay >= 23 ? 1 : 0,
+            ],
+          });
+        }
       }
 
       if (featureVectors.length === 0) return { count: 0 };
@@ -581,7 +600,9 @@ export class MlService implements IMlSignalReader {
           ? 'PRODUCT'
           : modelType === 'STOCKOUT_RISK'
             ? 'SKU'
-            : 'CUSTOMER';
+            : modelType === 'ANOMALY_DETECTION'
+              ? 'ORDER'
+              : 'CUSTOMER';
 
       const horizon = activeModel.predictionHorizon;
       const nowIso = new Date().toISOString();
@@ -654,10 +675,19 @@ export class MlService implements IMlSignalReader {
     return this.store.getPrediction(tenantId, 'PURCHASE_PROPENSITY', 'CUSTOMER', customerId);
   }
 
+  async getAnomalyPrediction(
+    actor: AuthorizedActor,
+    tenantId: string,
+    orderId: string,
+  ): Promise<DerivedPredictionRecord | null> {
+    this.assertTenantAccess(actor, tenantId);
+    return this.store.getPrediction(tenantId, 'ANOMALY_DETECTION', 'ORDER', orderId);
+  }
+
   async listPredictions(
     actor: AuthorizedActor,
     tenantId: string,
-    filter?: { modelType?: ModelType | undefined; entityType?: 'PRODUCT' | 'SKU' | 'CUSTOMER' | undefined; entityId?: string | undefined },
+    filter?: { modelType?: ModelType | undefined; entityType?: 'PRODUCT' | 'SKU' | 'CUSTOMER' | 'ORDER' | undefined; entityId?: string | undefined },
   ): Promise<DerivedPredictionRecord[]> {
     this.assertTenantAccess(actor, tenantId);
     return this.store.listPredictions(tenantId, filter);

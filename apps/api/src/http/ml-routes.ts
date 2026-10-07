@@ -245,7 +245,7 @@ export function registerMlRoutes(
       const query = (request.query as Record<string, string | undefined>) || {};
       const tenantId = query.tenantId || actor.tenantId;
       const modelType = query.modelType as ModelType | undefined;
-      const entityType = query.entityType as 'PRODUCT' | 'SKU' | 'CUSTOMER' | undefined;
+      const entityType = query.entityType as 'PRODUCT' | 'SKU' | 'CUSTOMER' | 'ORDER' | undefined;
       const entityId = query.entityId;
 
       const predictions = await mlService.listPredictions(actor, tenantId, {
@@ -255,6 +255,30 @@ export function registerMlRoutes(
       });
 
       return reply.status(200).send({ predictions });
+    },
+  );
+
+  // 11. GET /ml/predictions/anomaly/:orderId - Get order anomaly assessment
+  app.get(
+    '/ml/predictions/anomaly/:orderId',
+    { preHandler: authenticate },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const actor = requireActor(request);
+      const params = request.params as { orderId: string };
+      const query = (request.query as Record<string, string | undefined>) || {};
+      const tenantId = query.tenantId || actor.tenantId;
+
+      const pred = await mlService.getAnomalyPrediction(actor, tenantId, params.orderId);
+      if (!pred) {
+        return reply.status(200).send({
+          orderId: params.orderId,
+          anomalyProbability: null,
+          status: 'UNAVAILABLE',
+          message: 'No active anomaly assessment available for order',
+        });
+      }
+
+      return reply.status(200).send(pred);
     },
   );
 }

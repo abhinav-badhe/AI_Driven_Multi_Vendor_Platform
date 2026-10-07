@@ -3,7 +3,7 @@
  * Domain models, DTOs, and Store interfaces for Predictive ML.
  */
 
-export type ModelType = 'DEMAND_FORECASTING' | 'STOCKOUT_RISK' | 'PURCHASE_PROPENSITY';
+export type ModelType = 'DEMAND_FORECASTING' | 'STOCKOUT_RISK' | 'PURCHASE_PROPENSITY' | 'ANOMALY_DETECTION';
 
 export type ModelStatus =
   | 'TRAINING'
@@ -17,7 +17,7 @@ export type DataSourceType = 'REAL' | 'BOOTSTRAP';
 
 export type TriggerType = 'MANUAL' | 'SCHEDULED' | 'MIN_DATA_THRESHOLD';
 
-export type EntityType = 'PRODUCT' | 'SKU' | 'CUSTOMER';
+export type EntityType = 'PRODUCT' | 'SKU' | 'CUSTOMER' | 'ORDER';
 
 export interface ModelMetrics {
   train: Record<string, number>;

@@ -149,6 +149,67 @@ def prepare_stockout_features(
     return np.array(all_X), np.array(all_y), feature_names, metadata
 
 
+def prepare_anomaly_features(
+    records: List[Dict[str, Any]],
+    horizon_days: int = 7,
+) -> Tuple[np.ndarray, np.ndarray, List[str], List[Dict[str, Any]]]:
+    """
+    Extract features and heuristic target for Order Anomaly Detection.
+    Features:
+      - log_total_amount
+      - line_count
+      - total_quantity
+      - avg_unit_price
+      - hour_of_day
+      - is_night_order
+    Target (heuristic ground truth, same style as the other classifiers):
+      - 1 if the order is an extreme outlier on value, bulk size, or timing.
+    """
+    feature_names = [
+        "log_total_amount",
+        "line_count",
+        "total_quantity",
+        "avg_unit_price",
+        "hour_of_day",
+        "is_night_order",
+    ]
+
+    all_X = []
+    all_y = []
+    metadata = []
+
+    for rec in records:
+        total = max(1.0, float(rec.get("totalAmount", 100)))
+        line_count = float(rec.get("lineCount", 1))
+        total_qty = max(1.0, float(rec.get("totalQuantity", 1)))
+        hour = float(rec.get("hourOfDay", 12))
+        avg_unit = total / total_qty
+        is_night = 1.0 if (hour < 6 or hour >= 23) else 0.0
+
+        # Heuristic label: extreme value, bulk quantity, or odd-hour bulk buy
+        anomaly_score = 0.0
+        if total >= 20000:
+            anomaly_score += 0.5
+        if total_qty >= 40:
+            anomaly_score += 0.3
+        if is_night and total_qty >= 10:
+            anomaly_score += 0.3
+        if avg_unit >= 15000:
+            anomaly_score += 0.2
+        target = 1.0 if anomaly_score >= 0.5 else 0.0
+
+        all_X.append([np.log(total), line_count, total_qty, avg_unit, hour, is_night])
+        all_y.append(target)
+        metadata.append({
+            "orderId": rec.get("orderId", ""),
+        })
+
+    if not all_X:
+        return np.empty((0, len(feature_names))), np.empty((0,)), feature_names, []
+
+    return np.array(all_X), np.array(all_y), feature_names, metadata
+
+
 def prepare_propensity_features(
     records: List[Dict[str, Any]],
     horizon_days: int = 14,

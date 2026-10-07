@@ -153,3 +153,48 @@ def generate_bootstrap_propensity(
         })
 
     return records
+
+
+def generate_bootstrap_anomaly(
+    tenant_id: str,
+    order_ids: List[str] = None,
+    count: int = 40,
+    seed: int = 42,
+) -> List[Dict[str, Any]]:
+    """
+    Generate synthetic order stream for anomaly detection cold start.
+    Mostly ordinary orders plus a minority of clear outliers (huge totals,
+    bulk quantities, odd-hour placement).
+    """
+    rng = np.random.RandomState(seed)
+    if not order_ids:
+        order_ids = [f"ord-bootstrap-{i}" for i in range(1, count + 1)]
+
+    records: List[Dict[str, Any]] = []
+    for i, order_id in enumerate(order_ids):
+        if i % 10 == 9:
+            # Anomalous order: extreme value, bulk quantity, odd hour
+            total = float(rng.uniform(20000, 90000))
+            line_count = int(rng.uniform(8, 20))
+            total_qty = int(rng.uniform(40, 200))
+            hour = int(rng.choice([0, 1, 2, 3, 4, 23]))
+        else:
+            # Ordinary order
+            total = float(rng.uniform(500, 8000))
+            line_count = int(rng.uniform(1, 4))
+            total_qty = int(rng.uniform(1, 8))
+            hour = int(rng.uniform(8, 21))
+
+        records.append({
+            "tenantId": tenant_id,
+            "orderId": order_id,
+            "totalAmount": round(total, 2),
+            "lineCount": line_count,
+            "totalQuantity": total_qty,
+            "hourOfDay": hour,
+            "dayOfWeek": int(rng.uniform(0, 6)),
+            "dataSourceType": "BOOTSTRAP",
+            "isSynthetic": True,
+        })
+
+    return records

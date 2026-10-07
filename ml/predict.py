@@ -46,10 +46,13 @@ def generate_predictions(payload: dict) -> dict:
                 "probability": None,
                 "confidence": 0.85,
             })
-    elif model_type in ["STOCKOUT_RISK", "PURCHASE_PROPENSITY"]:
+    elif model_type in ["STOCKOUT_RISK", "PURCHASE_PROPENSITY", "ANOMALY_DETECTION"]:
         probas = model.predict_proba(X)
         for i, item in enumerate(features_input):
-            p = float(probas[i])
+            row = np.asarray(probas[i]).ravel()
+            # Binary classifiers emit [P(class 0), P(class 1)]; use the
+            # positive-class probability, falling back to a single score.
+            p = float(row[1]) if row.size > 1 else float(row[0])
             results.append({
                 "entityId": item["entityId"],
                 "predictionValue": round(p, 4),

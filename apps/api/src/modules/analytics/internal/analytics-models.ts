@@ -307,6 +307,16 @@ export interface CustomerActivitySignal {
   monetaryTotal: number;
 }
 
+export interface OrderAnomalySignal {
+  tenantId: string;
+  orderId: string;
+  totalAmount: number;
+  lineCount: number;
+  totalQuantity: number;
+  hourOfDay: number;
+  dayOfWeek: number;
+}
+
 /**
  * Read-only, typed, tenant-aware Analytics interface for Predictive ML feature extraction.
  */
@@ -314,5 +324,6 @@ export interface IAnalyticsMlFeatureReader {
   getProductDailyDemandHistory(tenantId: string, lookbackDays?: number): Promise<ProductDailyDemandRecord[]>;
   getInventoryVelocitySignals(tenantId: string): Promise<InventoryVelocitySignal[]>;
   getCustomerActivitySignals(tenantId: string): Promise<CustomerActivitySignal[]>;
+  getOrderAnomalySignals(tenantId: string): Promise<OrderAnomalySignal[]>;
 }
 

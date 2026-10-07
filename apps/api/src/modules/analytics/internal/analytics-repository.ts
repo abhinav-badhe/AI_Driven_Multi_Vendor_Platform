@@ -18,6 +18,7 @@ import type {
   ProductDailyDemandRecord,
   InventoryVelocitySignal,
   CustomerActivitySignal,
+  OrderAnomalySignal,
 } from './analytics-models.js';
 
 export function formatMoney(val: number | string | null | undefined): string {
@@ -954,6 +955,53 @@ export class AnalyticsRepository {
         frequency90d: totOrders,
         totalOrders: totOrders,
         monetaryTotal: Number(row.monetary_total),
+      };
+    });
+  }
+
+  /**
+   * Query per-order signals for ML Order Anomaly Detection, straight from
+   * transactional tables (ground truth, not derived facts).
+   */
+  async findOrderAnomalySignals(
+    db: DatabaseConnection,
+    tenantId: string,
+  ): Promise<OrderAnomalySignal[]> {
+    const sql = `
+      SELECT
+        so.id AS order_id,
+        so.total_amount,
+        COUNT(oi.id) AS line_count,
+        COALESCE(SUM(oi.quantity), 0) AS total_quantity,
+        so.created_at
+      FROM seller_orders so
+      JOIN order_items oi
+        ON oi.seller_order_id = so.id AND oi.merchant_tenant_id = $1
+      WHERE so.seller_tenant_id = $1
+        AND so.status != 'CANCELLED'
+      GROUP BY so.id, so.total_amount, so.created_at
+      ORDER BY so.created_at DESC
+      LIMIT 500
+    `;
+
+    const res = await db.query<{
+      order_id: string;
+      total_amount: number | string;
+      line_count: number | string;
+      total_quantity: number | string;
+      created_at: string | Date;
+    }>(sql, [tenantId]);
+
+    return res.rows.map((row) => {
+      const at = row.created_at instanceof Date ? row.created_at : new Date(row.created_at);
+      return {
+        tenantId,
+        orderId: row.order_id,
+        totalAmount: Number(row.total_amount),
+        lineCount: Number(row.line_count),
+        totalQuantity: Number(row.total_quantity),
+        hourOfDay: isNaN(at.getTime()) ? 12 : at.getHours(),
+        dayOfWeek: isNaN(at.getTime()) ? 3 : at.getDay(),
       };
     });
   }

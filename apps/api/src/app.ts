@@ -443,6 +443,30 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       });
     }
 
+    // Notification processor: dispatch pending emails/sms/push every 30s
+    // so price-drop alerts and other marketing notifications are delivered
+    // without requiring manual admin triggers.
+    if (notificationService && config.app.nodeEnv !== 'test') {
+      let processorRunning = false;
+      const notificationProcessor = setInterval(() => {
+        if (processorRunning) return;
+        processorRunning = true;
+        notificationService
+          .processPendingNotifications({ batchSize: 50 })
+          .catch((err: unknown) => {
+            rootLogger.warn('Notification processor failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+          })
+          .finally(() => {
+            processorRunning = false;
+          });
+      }, 30000);
+      app.addHook('onClose', async () => {
+        clearInterval(notificationProcessor);
+      });
+    }
+
     // Phase 14 AI Module initialization
     const aiStore = dbConn ? new SqlAiStore(dbConn) : new InMemoryAiStore();
     const vectorStore = new InMemoryVectorStore();

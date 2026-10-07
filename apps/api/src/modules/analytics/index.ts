@@ -35,6 +35,7 @@ import {
   type ProductDailyDemandRecord,
   type InventoryVelocitySignal,
   type CustomerActivitySignal,
+  type OrderAnomalySignal,
   type IAnalyticsMlFeatureReader,
 } from './internal/analytics-models.js';
 
@@ -65,6 +66,7 @@ export type {
   ProductDailyDemandRecord,
   InventoryVelocitySignal,
   CustomerActivitySignal,
+  OrderAnomalySignal,
   IAnalyticsMlFeatureReader,
 };
 
