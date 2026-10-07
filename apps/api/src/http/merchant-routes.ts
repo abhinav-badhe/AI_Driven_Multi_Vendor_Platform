@@ -3,6 +3,12 @@ import type { IdentityService } from '../modules/identity/index.js';
 import type { MerchantService } from '../modules/merchant/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ValidationError } from '../errors/app-error.js';
+import {
+  CachePresets,
+  CacheTags,
+  cacheKey,
+  sendCached,
+} from './cache-helper.js';
 
 export function registerMerchantRoutes(
   app: FastifyInstance,
@@ -33,6 +39,10 @@ export function registerMerchantRoutes(
         contactEmail: body.contactEmail,
       });
 
+      await app.cache.invalidateTags(
+        CacheTags.merchant,
+        `${CacheTags.merchant}:tenant:${actor.tenantId}`,
+      );
       return reply.status(201).send(profile);
     },
   );
@@ -43,8 +53,17 @@ export function registerMerchantRoutes(
     { preHandler: authenticate },
     async (request, reply) => {
       const actor = requireActor(request);
-      const profile = await merchantService.getProfile(actor);
-      return reply.status(200).send(profile);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('merchants', 'me', actor.tenantId),
+          tags: [CacheTags.merchant, `${CacheTags.merchant}:tenant:${actor.tenantId}`],
+          preset: CachePresets.merchantScoped,
+        },
+        () => merchantService.getProfile(actor),
+      );
     },
   );
 
@@ -62,6 +81,10 @@ export function registerMerchantRoutes(
         contactEmail: typeof body.contactEmail === 'string' ? body.contactEmail : undefined,
       });
 
+      await app.cache.invalidateTags(
+        CacheTags.merchant,
+        `${CacheTags.merchant}:tenant:${actor.tenantId}`,
+      );
       return reply.status(200).send(profile);
     },
   );
@@ -73,6 +96,10 @@ export function registerMerchantRoutes(
     async (request, reply) => {
       const actor = requireActor(request);
       const profile = await merchantService.submitForVerification(actor);
+      await app.cache.invalidateTags(
+        CacheTags.merchant,
+        `${CacheTags.merchant}:tenant:${actor.tenantId}`,
+      );
       return reply.status(200).send(profile);
     },
   );
@@ -85,6 +112,10 @@ export function registerMerchantRoutes(
       const actor = requireActor(request);
       const { tenantId } = request.params as { tenantId: string };
       const profile = await merchantService.approveMerchant(actor, tenantId);
+      await app.cache.invalidateTags(
+        CacheTags.merchant,
+        `${CacheTags.merchant}:tenant:${tenantId}`,
+      );
       return reply.status(200).send(profile);
     },
   );
@@ -100,6 +131,10 @@ export function registerMerchantRoutes(
       if (typeof body.reason !== 'string') throw new ValidationError('reason is required');
 
       const profile = await merchantService.rejectMerchant(actor, tenantId, body.reason);
+      await app.cache.invalidateTags(
+        CacheTags.merchant,
+        `${CacheTags.merchant}:tenant:${tenantId}`,
+      );
       return reply.status(200).send(profile);
     },
   );

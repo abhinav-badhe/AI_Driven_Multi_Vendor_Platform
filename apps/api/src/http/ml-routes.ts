@@ -3,6 +3,12 @@ import type { IdentityService } from '../modules/identity/index.js';
 import type { MlService, ModelType } from '../modules/analytics-ml/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ValidationError, NotFoundError, ForbiddenError } from '../errors/app-error.js';
+import {
+  CachePresets,
+  CacheTags,
+  cacheKey,
+  sendCached,
+} from './cache-helper.js';
 
 export function registerMlRoutes(
   app: FastifyInstance,
@@ -37,6 +43,7 @@ export function registerMlRoutes(
         triggerType: 'MANUAL',
       });
 
+      await app.cache.invalidateTags(CacheTags.mlSignals);
       return reply.status(202).send({
         jobId: job.id,
         tenantId: job.tenantId,
@@ -64,6 +71,7 @@ export function registerMlRoutes(
       }
 
       const result = await mlService.retrainIfEligible(actor, tenantId, modelType);
+      await app.cache.invalidateTags(CacheTags.mlSignals);
       return reply.status(200).send(result);
     },
   );
@@ -79,6 +87,7 @@ export function registerMlRoutes(
       }
 
       const results = await mlService.evaluateAllRetrainingPolicies();
+      await app.cache.invalidateTags(CacheTags.mlSignals);
       return reply.status(200).send({ evaluations: results });
     },
   );
@@ -94,6 +103,7 @@ export function registerMlRoutes(
       const tenantId = query.tenantId || actor.tenantId;
 
       const model = await mlService.rollbackModel(actor, tenantId, params.modelId);
+      await app.cache.invalidateTags(CacheTags.mlSignals);
       return reply.status(200).send(model);
     },
   );
@@ -108,8 +118,17 @@ export function registerMlRoutes(
       const tenantId = query.tenantId || actor.tenantId;
       const modelType = query.modelType as ModelType | undefined;
 
-      const models = await mlService.listModels(actor, tenantId, modelType);
-      return reply.status(200).send({ models });
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('ml', 'models', tenantId, modelType ?? ''),
+          tags: [CacheTags.mlSignals, `${CacheTags.mlSignals}:tenant:${tenantId}`],
+          preset: CachePresets.ml,
+        },
+        async () => ({ models: await mlService.listModels(actor, tenantId, modelType) }),
+      );
     },
   );
 
@@ -123,11 +142,23 @@ export function registerMlRoutes(
       const query = (request.query as Record<string, string | undefined>) || {};
       const tenantId = query.tenantId || actor.tenantId;
 
-      const model = await mlService.getModelById(actor, tenantId, params.modelId);
-      if (!model) {
-        throw new NotFoundError(`Model ${params.modelId} not found`);
-      }
-      return reply.status(200).send(model);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('ml', 'models', params.modelId, tenantId),
+          tags: [CacheTags.mlSignals, `${CacheTags.mlSignals}:model:${params.modelId}`],
+          preset: CachePresets.ml,
+        },
+        async () => {
+          const model = await mlService.getModelById(actor, tenantId, params.modelId);
+          if (!model) {
+            throw new NotFoundError(`Model ${params.modelId} not found`);
+          }
+          return model;
+        },
+      );
     },
   );
 
@@ -141,12 +172,22 @@ export function registerMlRoutes(
       const tenantId = query.tenantId || actor.tenantId;
       const modelType = query.modelType as ModelType | undefined;
 
-      const jobs = await mlService.listTrainingJobs(actor, tenantId, modelType);
-      return reply.status(200).send({ jobs });
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('ml', 'jobs', tenantId, modelType ?? ''),
+          tags: [CacheTags.mlSignals, `${CacheTags.mlSignals}:tenant:${tenantId}`],
+          preset: CachePresets.merchantScoped,
+        },
+        async () => ({ jobs: await mlService.listTrainingJobs(actor, tenantId, modelType) }),
+      );
     },
   );
 
   // 6b. GET /ml/jobs/:jobId - Get specific training job
+  // Job status flips while training runs — short TTL only.
   app.get(
     '/ml/jobs/:jobId',
     { preHandler: authenticate },
@@ -156,11 +197,23 @@ export function registerMlRoutes(
       const query = (request.query as Record<string, string | undefined>) || {};
       const tenantId = query.tenantId || actor.tenantId;
 
-      const job = await mlService.getTrainingJobById(actor, tenantId, params.jobId);
-      if (!job) {
-        throw new NotFoundError(`Training job ${params.jobId} not found`);
-      }
-      return reply.status(200).send(job);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('ml', 'jobs', params.jobId, tenantId),
+          tags: [CacheTags.mlSignals, `${CacheTags.mlSignals}:job:${params.jobId}`],
+          preset: CachePresets.merchantScoped,
+        },
+        async () => {
+          const job = await mlService.getTrainingJobById(actor, tenantId, params.jobId);
+          if (!job) {
+            throw new NotFoundError(`Training job ${params.jobId} not found`);
+          }
+          return job;
+        },
+      );
     },
   );
 
@@ -174,17 +227,28 @@ export function registerMlRoutes(
       const query = (request.query as Record<string, string | undefined>) || {};
       const tenantId = query.tenantId || actor.tenantId;
 
-      const pred = await mlService.getDemandPrediction(actor, tenantId, params.productId);
-      if (!pred) {
-        return reply.status(200).send({
-          productId: params.productId,
-          predictedDemand: null,
-          status: 'UNAVAILABLE',
-          message: 'No active prediction available for product',
-        });
-      }
-
-      return reply.status(200).send(pred);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('ml', 'pred', 'demand', params.productId, tenantId),
+          tags: [CacheTags.mlSignals, `${CacheTags.mlSignals}:demand:${params.productId}`],
+          preset: CachePresets.ml,
+        },
+        async () => {
+          const pred = await mlService.getDemandPrediction(actor, tenantId, params.productId);
+          if (!pred) {
+            return {
+              productId: params.productId,
+              predictedDemand: null,
+              status: 'UNAVAILABLE',
+              message: 'No active prediction available for product',
+            };
+          }
+          return pred;
+        },
+      );
     },
   );
 
@@ -198,17 +262,28 @@ export function registerMlRoutes(
       const query = (request.query as Record<string, string | undefined>) || {};
       const tenantId = query.tenantId || actor.tenantId;
 
-      const pred = await mlService.getStockoutPrediction(actor, tenantId, params.sku);
-      if (!pred) {
-        return reply.status(200).send({
-          sku: params.sku,
-          stockoutProbability: null,
-          status: 'UNAVAILABLE',
-          message: 'No active prediction available for SKU',
-        });
-      }
-
-      return reply.status(200).send(pred);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('ml', 'pred', 'stockout', params.sku, tenantId),
+          tags: [CacheTags.mlSignals, `${CacheTags.mlSignals}:stockout:${params.sku}`],
+          preset: CachePresets.ml,
+        },
+        async () => {
+          const pred = await mlService.getStockoutPrediction(actor, tenantId, params.sku);
+          if (!pred) {
+            return {
+              sku: params.sku,
+              stockoutProbability: null,
+              status: 'UNAVAILABLE',
+              message: 'No active prediction available for SKU',
+            };
+          }
+          return pred;
+        },
+      );
     },
   );
 
@@ -222,17 +297,28 @@ export function registerMlRoutes(
       const query = (request.query as Record<string, string | undefined>) || {};
       const tenantId = query.tenantId || actor.tenantId;
 
-      const pred = await mlService.getPropensityPrediction(actor, tenantId, params.customerId);
-      if (!pred) {
-        return reply.status(200).send({
-          customerId: params.customerId,
-          propensityProbability: null,
-          status: 'UNAVAILABLE',
-          message: 'No active prediction available for customer',
-        });
-      }
-
-      return reply.status(200).send(pred);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('ml', 'pred', 'propensity', params.customerId, tenantId),
+          tags: [CacheTags.mlSignals, `${CacheTags.mlSignals}:propensity:${params.customerId}`],
+          preset: CachePresets.ml,
+        },
+        async () => {
+          const pred = await mlService.getPropensityPrediction(actor, tenantId, params.customerId);
+          if (!pred) {
+            return {
+              customerId: params.customerId,
+              propensityProbability: null,
+              status: 'UNAVAILABLE',
+              message: 'No active prediction available for customer',
+            };
+          }
+          return pred;
+        },
+      );
     },
   );
 
@@ -248,13 +334,30 @@ export function registerMlRoutes(
       const entityType = query.entityType as 'PRODUCT' | 'SKU' | 'CUSTOMER' | 'ORDER' | undefined;
       const entityId = query.entityId;
 
-      const predictions = await mlService.listPredictions(actor, tenantId, {
-        modelType,
-        entityType,
-        entityId,
-      });
-
-      return reply.status(200).send({ predictions });
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey(
+            'ml',
+            'predictions',
+            tenantId,
+            modelType ?? '',
+            entityType ?? '',
+            entityId ?? '',
+          ),
+          tags: [CacheTags.mlSignals, `${CacheTags.mlSignals}:tenant:${tenantId}`],
+          preset: CachePresets.ml,
+        },
+        async () => ({
+          predictions: await mlService.listPredictions(actor, tenantId, {
+            modelType,
+            entityType,
+            entityId,
+          }),
+        }),
+      );
     },
   );
 
@@ -268,17 +371,28 @@ export function registerMlRoutes(
       const query = (request.query as Record<string, string | undefined>) || {};
       const tenantId = query.tenantId || actor.tenantId;
 
-      const pred = await mlService.getAnomalyPrediction(actor, tenantId, params.orderId);
-      if (!pred) {
-        return reply.status(200).send({
-          orderId: params.orderId,
-          anomalyProbability: null,
-          status: 'UNAVAILABLE',
-          message: 'No active anomaly assessment available for order',
-        });
-      }
-
-      return reply.status(200).send(pred);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('ml', 'pred', 'anomaly', params.orderId, tenantId),
+          tags: [CacheTags.mlSignals, `${CacheTags.mlSignals}:anomaly:${params.orderId}`],
+          preset: CachePresets.ml,
+        },
+        async () => {
+          const pred = await mlService.getAnomalyPrediction(actor, tenantId, params.orderId);
+          if (!pred) {
+            return {
+              orderId: params.orderId,
+              anomalyProbability: null,
+              status: 'UNAVAILABLE',
+              message: 'No active anomaly assessment available for order',
+            };
+          }
+          return pred;
+        },
+      );
     },
   );
 
@@ -291,17 +405,29 @@ export function registerMlRoutes(
       const params = request.params as { modelType: ModelType };
       const tenantId = actor.tenantId;
 
-      const policy = await mlService.getRetrainingPolicy(actor, tenantId, params.modelType);
-      if (!policy) {
-        return reply.status(200).send({
-          tenantId,
-          modelType: params.modelType,
-          minNewOrdersThreshold: 10,
-          lastTrainedOrderCount: 0,
-          enabled: false,
-        });
-      }
-      return reply.status(200).send(policy);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('ml', 'policies', params.modelType, tenantId),
+          tags: [CacheTags.mlSignals, `${CacheTags.mlSignals}:policy:${params.modelType}`],
+          preset: CachePresets.ml,
+        },
+        async () => {
+          const policy = await mlService.getRetrainingPolicy(actor, tenantId, params.modelType);
+          if (!policy) {
+            return {
+              tenantId,
+              modelType: params.modelType,
+              minNewOrdersThreshold: 10,
+              lastTrainedOrderCount: 0,
+              enabled: false,
+            };
+          }
+          return policy;
+        },
+      );
     },
   );
 
@@ -320,6 +446,10 @@ export function registerMlRoutes(
         enabled: typeof body.enabled === 'boolean' ? body.enabled : true,
       });
 
+      await app.cache.invalidateTags(
+        CacheTags.mlSignals,
+        `${CacheTags.mlSignals}:policy:${params.modelType}`,
+      );
       return reply.status(200).send(policy);
     },
   );

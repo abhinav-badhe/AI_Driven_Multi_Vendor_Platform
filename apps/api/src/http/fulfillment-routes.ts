@@ -8,6 +8,12 @@ import type {
   CreateReturnItemInput,
 } from '../modules/fulfillment/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
+import {
+  CachePresets,
+  CacheTags,
+  cacheKey,
+  sendCached,
+} from './cache-helper.js';
 
 export function registerFulfillmentRoutes(
   app: FastifyInstance,
@@ -58,6 +64,10 @@ export function registerFulfillmentRoutes(
         idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
       });
 
+      await app.cache.invalidateTags(
+        CacheTags.fulfillment,
+        `${CacheTags.fulfillment}:tenant:${actor.tenantId}`,
+      );
       return reply.status(201).send(shipment);
     },
   );
@@ -69,8 +79,17 @@ export function registerFulfillmentRoutes(
     async (request, reply) => {
       const actor = requireActor(request);
       const params = request.params as { id: string };
-      const shipment = await fulfillmentService.getShipment(actor, params.id);
-      return reply.status(200).send(shipment);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('fulfillment', 'shipments', params.id, actor.tenantId),
+          tags: [CacheTags.fulfillment, `${CacheTags.fulfillment}:shipment:${params.id}`],
+          preset: CachePresets.orderView,
+        },
+        () => fulfillmentService.getShipment(actor, params.id),
+      );
     },
   );
 
@@ -85,8 +104,23 @@ export function registerFulfillmentRoutes(
         customerOrderId?: string | undefined;
       } | undefined) ?? {};
 
-      const shipments = await fulfillmentService.listShipments(actor, query);
-      return reply.status(200).send(shipments);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey(
+            'fulfillment',
+            'shipments',
+            actor.tenantId,
+            query.sellerOrderId ?? '',
+            query.customerOrderId ?? '',
+          ),
+          tags: [CacheTags.fulfillment, `${CacheTags.fulfillment}:tenant:${actor.tenantId}`],
+          preset: CachePresets.orderView,
+        },
+        () => fulfillmentService.listShipments(actor, query),
+      );
     },
   );
 
@@ -112,6 +146,14 @@ export function registerFulfillmentRoutes(
         actor,
         params.id,
         body.status as ShipmentStatus,
+      );
+      // Delivery/completion transitions cascade into seller-order state.
+      await app.cache.invalidateTags(
+        CacheTags.fulfillment,
+        `${CacheTags.fulfillment}:shipment:${params.id}`,
+        CacheTags.orders,
+        `${CacheTags.orders}:order:${updated.customerOrderId}`,
+        `${CacheTags.orders}:seller-order:${updated.sellerOrderId}`,
       );
       return reply.status(200).send(updated);
     },
@@ -144,6 +186,10 @@ export function registerFulfillmentRoutes(
         trackingNumber: body.trackingNumber,
         trackingUrl: typeof body.trackingUrl === 'string' ? body.trackingUrl : undefined,
       });
+      await app.cache.invalidateTags(
+        CacheTags.fulfillment,
+        `${CacheTags.fulfillment}:shipment:${params.id}`,
+      );
       return reply.status(200).send(updated);
     },
   );
@@ -192,6 +238,10 @@ export function registerFulfillmentRoutes(
         idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
       });
 
+      await app.cache.invalidateTags(
+        CacheTags.fulfillment,
+        `${CacheTags.fulfillment}:tenant:${actor.tenantId}`,
+      );
       return reply.status(201).send(ret);
     },
   );
@@ -203,8 +253,17 @@ export function registerFulfillmentRoutes(
     async (request, reply) => {
       const actor = requireActor(request);
       const params = request.params as { id: string };
-      const ret = await fulfillmentService.getReturn(actor, params.id);
-      return reply.status(200).send(ret);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('fulfillment', 'returns', params.id, actor.tenantId),
+          tags: [CacheTags.fulfillment, `${CacheTags.fulfillment}:return:${params.id}`],
+          preset: CachePresets.orderView,
+        },
+        () => fulfillmentService.getReturn(actor, params.id),
+      );
     },
   );
 
@@ -219,8 +278,23 @@ export function registerFulfillmentRoutes(
         sellerOrderId?: string | undefined;
       } | undefined) ?? {};
 
-      const returns = await fulfillmentService.listReturns(actor, query);
-      return reply.status(200).send(returns);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey(
+            'fulfillment',
+            'returns',
+            actor.tenantId,
+            query.customerOrderId ?? '',
+            query.sellerOrderId ?? '',
+          ),
+          tags: [CacheTags.fulfillment, `${CacheTags.fulfillment}:tenant:${actor.tenantId}`],
+          preset: CachePresets.orderView,
+        },
+        () => fulfillmentService.listReturns(actor, query),
+      );
     },
   );
 
@@ -261,6 +335,13 @@ export function registerFulfillmentRoutes(
         },
       );
 
+      // Return completion can trigger refunds and restocks — refresh the
+      // return view, the affected order views, and availability together.
+      await app.cache.invalidateTags(
+        CacheTags.fulfillment,
+        `${CacheTags.fulfillment}:return:${params.id}`,
+        CacheTags.orders,
+      );
       return reply.status(200).send(updated);
     },
   );
@@ -274,6 +355,8 @@ export function registerFulfillmentRoutes(
       const signature = (request.headers['x-carrier-signature'] as string) ?? '';
 
       const result = await fulfillmentService.handleCarrierCallback(rawBody, signature);
+      // Carrier scans can complete seller orders — refresh tracking views.
+      await app.cache.invalidateTags(CacheTags.fulfillment, CacheTags.orders);
       return reply.status(200).send(result);
     },
   );

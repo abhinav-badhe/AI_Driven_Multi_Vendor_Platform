@@ -1,8 +1,29 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
 import type { AnalyticsService, TimeGranularity } from '../modules/analytics/index.js';
+import type { AuthorizedActor } from '../modules/identity/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ValidationError } from '../errors/app-error.js';
+import {
+  CachePresets,
+  CacheTags,
+  cacheKey,
+  sendCached,
+  visibilityClass,
+} from './cache-helper.js';
+
+function analyticsKey(
+  request: FastifyRequest,
+  actor: AuthorizedActor,
+  view: string,
+  query: Record<string, string | undefined>,
+): string {
+  const parts = Object.entries(query)
+    .filter((entry): entry is [string, string] => entry[1] !== undefined)
+    .map(([k, v]) => `${k}=${v}`)
+    .sort();
+  return cacheKey('analytics', view, actor.tenantId, visibilityClass(request), ...parts);
+}
 
 export function registerAnalyticsRoutes(
   app: FastifyInstance,
@@ -10,6 +31,29 @@ export function registerAnalyticsRoutes(
   analyticsService: AnalyticsService,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
+
+  // Cached dashboard views: aggregates refresh on every order/payment event,
+  // so a short TTL + SWR keeps dashboards instant without freezing numbers.
+  const sendAnalytics = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    view: string,
+    loader: () => Promise<unknown>,
+  ): Promise<void> => {
+    const actor = requireActor(request);
+    const query = (request.query as Record<string, string | undefined>) || {};
+    return sendCached(
+      app,
+      request,
+      reply,
+      {
+        key: analyticsKey(request, actor, view, query),
+        tags: [CacheTags.analytics, `${CacheTags.analytics}:tenant:${actor.tenantId}`],
+        preset: CachePresets.analytics,
+      },
+      loader,
+    );
+  };
 
   // 1. GET /analytics/sales (Commerce KPIs: Orders, Gross/Net Sales, Refunds, AOV, Trends)
   app.get(
@@ -19,16 +63,16 @@ export function registerAnalyticsRoutes(
       const actor = requireActor(request);
       const query = request.query as Record<string, string | undefined>;
 
-      const result = await analyticsService.getCommerceKpis(actor, {
-        startDate: query.startDate,
-        endDate: query.endDate,
-        granularity: query.granularity as TimeGranularity | undefined,
-        currency: query.currency,
-        merchantId: query.merchantId,
-        tenantId: query.tenantId,
-      });
-
-      return reply.status(200).send(result);
+      return sendAnalytics(request, reply, 'sales', () =>
+        analyticsService.getCommerceKpis(actor, {
+          startDate: query.startDate,
+          endDate: query.endDate,
+          granularity: query.granularity as TimeGranularity | undefined,
+          currency: query.currency,
+          merchantId: query.merchantId,
+          tenantId: query.tenantId,
+        }),
+      );
     },
   );
 
@@ -40,16 +84,16 @@ export function registerAnalyticsRoutes(
       const actor = requireActor(request);
       const query = request.query as Record<string, string | undefined>;
 
-      const result = await analyticsService.getMerchantAnalytics(actor, {
-        startDate: query.startDate,
-        endDate: query.endDate,
-        granularity: query.granularity as TimeGranularity | undefined,
-        currency: query.currency,
-        merchantId: query.merchantId,
-        tenantId: query.tenantId,
-      });
-
-      return reply.status(200).send(result);
+      return sendAnalytics(request, reply, 'merchants', () =>
+        analyticsService.getMerchantAnalytics(actor, {
+          startDate: query.startDate,
+          endDate: query.endDate,
+          granularity: query.granularity as TimeGranularity | undefined,
+          currency: query.currency,
+          merchantId: query.merchantId,
+          tenantId: query.tenantId,
+        }),
+      );
     },
   );
 
@@ -61,16 +105,16 @@ export function registerAnalyticsRoutes(
       const actor = requireActor(request);
       const query = request.query as Record<string, string | undefined>;
 
-      const result = await analyticsService.getProductPerformance(actor, {
-        startDate: query.startDate,
-        endDate: query.endDate,
-        granularity: query.granularity as TimeGranularity | undefined,
-        currency: query.currency,
-        merchantId: query.merchantId,
-        tenantId: query.tenantId,
-      });
-
-      return reply.status(200).send(result);
+      return sendAnalytics(request, reply, 'products', () =>
+        analyticsService.getProductPerformance(actor, {
+          startDate: query.startDate,
+          endDate: query.endDate,
+          granularity: query.granularity as TimeGranularity | undefined,
+          currency: query.currency,
+          merchantId: query.merchantId,
+          tenantId: query.tenantId,
+        }),
+      );
     },
   );
 
@@ -82,15 +126,15 @@ export function registerAnalyticsRoutes(
       const actor = requireActor(request);
       const query = request.query as Record<string, string | undefined>;
 
-      const result = await analyticsService.getOperationalKpis(actor, {
-        startDate: query.startDate,
-        endDate: query.endDate,
-        granularity: query.granularity as TimeGranularity | undefined,
-        currency: query.currency,
-        tenantId: query.tenantId,
-      });
-
-      return reply.status(200).send(result);
+      return sendAnalytics(request, reply, 'operations', () =>
+        analyticsService.getOperationalKpis(actor, {
+          startDate: query.startDate,
+          endDate: query.endDate,
+          granularity: query.granularity as TimeGranularity | undefined,
+          currency: query.currency,
+          tenantId: query.tenantId,
+        }),
+      );
     },
   );
 
@@ -111,6 +155,10 @@ export function registerAnalyticsRoutes(
       }
 
       const result = await analyticsService.rebuildProjections(actor, targetTenantId);
+      await app.cache.invalidateTags(
+        CacheTags.analytics,
+        `${CacheTags.analytics}:tenant:${targetTenantId}`,
+      );
       return reply.status(200).send(result);
     },
   );

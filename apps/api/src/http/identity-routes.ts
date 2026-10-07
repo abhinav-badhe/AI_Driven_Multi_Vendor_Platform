@@ -1,14 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
 import { createAuthMiddleware, createOptionalAuthMiddleware, requireActor } from './auth-middleware.js';
-import { InMemoryRateLimiter } from './rate-limiter.js';
+import { InMemoryRateLimiter, type RateLimiter } from './rate-limiter.js';
 import { ValidationError } from '../errors/app-error.js';
 
 export function registerIdentityRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
   options?: {
-    rateLimiter?: InMemoryRateLimiter;
+    rateLimiter?: RateLimiter;
     verification?: {
       frontendUrl: string;
       sendEmail: (to: string, subject: string, body: string) => Promise<unknown>;

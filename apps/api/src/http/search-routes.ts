@@ -8,6 +8,13 @@ import {
   requireActor,
 } from './auth-middleware.js';
 import { ValidationError, ForbiddenError } from '../errors/app-error.js';
+import {
+  CachePresets,
+  CacheTags,
+  cacheKey,
+  sendCached,
+  visibilityClass,
+} from './cache-helper.js';
 
 export function registerSearchRoutes(
   app: FastifyInstance,
@@ -76,8 +83,34 @@ export function registerSearchRoutes(
         includeInactive,
       };
 
-      const result = await searchService.search(actor, searchParams);
-      return reply.status(200).send(result);
+      // Normalized key over every effective filter plus the visibility
+      // class (includeInactive is privilege-gated).
+      const keyParts = [
+        `q=${searchParams.q ?? ''}`,
+        `cat=${searchParams.categoryId ?? ''}`,
+        `mer=${searchParams.merchantId ?? ''}`,
+        `brand=${searchParams.brand ?? ''}`,
+        `min=${searchParams.minPrice ?? ''}`,
+        `max=${searchParams.maxPrice ?? ''}`,
+        `stock=${searchParams.inStock ?? ''}`,
+        `sort=${searchParams.sortBy ?? ''}`,
+        `page=${searchParams.page ?? ''}`,
+        `size=${searchParams.pageSize ?? ''}`,
+        `incl=${includeInactive ? '1' : '0'}`,
+        `vis=${visibilityClass(request)}`,
+      ].sort();
+
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('search', ...keyParts),
+          tags: [CacheTags.search],
+          preset: CachePresets.search,
+        },
+        () => searchService.search(actor, searchParams),
+      );
     },
   );
 
@@ -89,8 +122,17 @@ export function registerSearchRoutes(
       const actor = request.actor ?? null;
       const { id } = request.params as { id: string };
 
-      const document = await searchService.getDocumentById(actor, id);
-      return reply.status(200).send(document);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('search', 'documents', id, visibilityClass(request)),
+          tags: [CacheTags.search, `${CacheTags.search}:doc:${id}`],
+          preset: CachePresets.search,
+        },
+        () => searchService.getDocumentById(actor, id),
+      );
     },
   );
 
@@ -105,6 +147,7 @@ export function registerSearchRoutes(
       }
 
       const result = await searchService.rebuildProjection(actor);
+      await app.cache.invalidateTags(CacheTags.search);
       return reply.status(200).send(result);
     },
   );
@@ -152,6 +195,7 @@ export function registerSearchRoutes(
         }
       }
 
+      await app.cache.invalidateTags(CacheTags.search, `${CacheTags.search}:doc:${body.productId}`);
       return reply.status(200).send(result);
     },
   );
@@ -206,6 +250,7 @@ export function registerSearchRoutes(
         }
       }
 
+      await app.cache.invalidateTags(CacheTags.search, `${CacheTags.search}:doc:${body.listingId}`);
       return reply.status(200).send(result);
     },
   );
@@ -222,6 +267,7 @@ export function registerSearchRoutes(
 
       const { id } = request.params as { id: string };
       const removed = await searchService.removeProductProjection(id);
+      await app.cache.invalidateTags(CacheTags.search, `${CacheTags.search}:doc:${id}`);
       return reply.status(200).send({ removed });
     },
   );
@@ -241,6 +287,11 @@ export function registerSearchRoutes(
         listingId: string;
       };
       const removed = await searchService.removeListingProjection(productId, listingId);
+      await app.cache.invalidateTags(
+        CacheTags.search,
+        `${CacheTags.search}:doc:${productId}`,
+        `${CacheTags.search}:doc:${listingId}`,
+      );
       return reply.status(200).send({ removed });
     },
   );

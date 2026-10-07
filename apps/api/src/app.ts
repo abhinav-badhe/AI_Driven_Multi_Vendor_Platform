@@ -11,6 +11,8 @@ import {
 import { createErrorHandler } from './errors/handler.js';
 import { createDatabaseService, type DatabaseService } from './infra/database/index.js';
 import { createRedisService, type RedisService } from './infra/redis/index.js';
+import { CacheService } from './infra/redis/cache.js';
+import { CompositeRateLimiter } from './http/rate-limiter.js';
 import { PostgresPoolConnection, type DatabaseConnection } from './infra/database/connection.js';
 import { MigrationRunner } from './infra/database/migrations/runner.js';
 import { seedDemoData } from './infra/database/seed.js';
@@ -84,6 +86,9 @@ declare module 'fastify' {
     requestId: string;
     logger: Logger;
   }
+  interface FastifyInstance {
+    cache: CacheService;
+  }
 }
 
 export interface AppDependencies {
@@ -91,6 +96,7 @@ export interface AppDependencies {
   logger?: Logger | undefined;
   database?: DatabaseService | undefined;
   redis?: RedisService | undefined;
+  cache?: CacheService | undefined;
   searchStore?: ISearchStore | undefined;
   eventTransport?: EventTransport | undefined;
   dbConnection?: DatabaseConnection | undefined;
@@ -110,7 +116,16 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     });
 
   const db = dependencies.database ?? createDatabaseService(config.postgres);
-  const redis = dependencies.redis ?? createRedisService(config.redis);
+  const redis = dependencies.redis ?? createRedisService(config.redis, rootLogger);
+  const cacheService = dependencies.cache ?? new CacheService(redis);
+
+  // Global API guardrail: generous per-route limit that only bites during
+  // abuse bursts. Disabled under NODE_ENV=test so suites keep deterministic
+  // control over request volume (mirrors the outbox relay below).
+  const globalRateLimiter =
+    config.app.nodeEnv !== 'test'
+      ? new CompositeRateLimiter(redis, { windowMs: 60_000, maxRequests: 600 }, undefined, 'rl:global')
+      : null;
 
   // Database connection (may be injected for testing)
   let dbConn: DatabaseConnection | null = dependencies.dbConnection ?? null;
@@ -144,7 +159,13 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
 
   const inventoryService =
     dbConn && marketplaceService
-      ? inventoryModule.createService(dbConn, rootLogger, marketplaceService, outboxService ?? undefined)
+      ? inventoryModule.createService(
+          dbConn,
+          rootLogger,
+          marketplaceService,
+          outboxService ?? undefined,
+          cacheService,
+        )
       : null;
   const cartService =
     dbConn && marketplaceService
@@ -287,6 +308,20 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     credentials: true,
   });
 
+  // Shared cache-aside service for route handlers (fail-open by design).
+  app.decorate('cache', cacheService);
+
+  // Release the Redis connection on shutdown so test runners and
+  // production deploys never hang on an open handle.
+  app.addHook('onClose', async () => {
+    await redis.shutdown();
+  });
+
+  if (globalRateLimiter) {
+    const globalRateLimitHook = globalRateLimiter.middleware();
+    app.addHook('preHandler', globalRateLimitHook);
+  }
+
   // Global Error Handler
   app.setErrorHandler(createErrorHandler(rootLogger));
 
@@ -359,6 +394,9 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     checkoutService
   ) {
     registerIdentityRoutes(app, identityService, {
+      // Distributed enforcement across instances with in-memory
+      // fallback — identical to the previous limiter when Redis is down.
+      rateLimiter: new CompositeRateLimiter(redis),
       verification: notificationService
         ? {
             frontendUrl: config.notifications.frontendUrl,

@@ -7,6 +7,12 @@ import type {
   FinancialAdjustmentType,
 } from '../modules/settlement-ledger/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
+import {
+  CachePresets,
+  CacheTags,
+  cacheKey,
+  sendCached,
+} from './cache-helper.js';
 
 export function registerSettlementRoutes(
   app: FastifyInstance,
@@ -24,12 +30,17 @@ export function registerSettlementRoutes(
       const params = request.params as { merchantId: string };
       const query = request.query as { currency?: string };
 
-      const summary = await settlementService.getFinancialSummary(
-        actor,
-        params.merchantId,
-        query.currency ?? 'INR',
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('settlement', 'summary', params.merchantId, query.currency ?? 'INR'),
+          tags: [CacheTags.settlement, `${CacheTags.settlement}:merchant:${params.merchantId}`],
+          preset: CachePresets.merchantScoped,
+        },
+        () => settlementService.getFinancialSummary(actor, params.merchantId, query.currency ?? 'INR'),
       );
-      return reply.status(200).send(summary);
     },
   );
 
@@ -50,17 +61,39 @@ export function registerSettlementRoutes(
         offset?: string;
       };
 
-      const entries = await settlementService.listLedgerEntries(actor, params.merchantId, {
-        entryType: query.entryType as LedgerEntryType | undefined,
-        sourceType: query.sourceType,
-        sourceId: query.sourceId,
-        startDate: query.startDate,
-        endDate: query.endDate,
-        limit: query.limit ? parseInt(query.limit, 10) : undefined,
-        offset: query.offset ? parseInt(query.offset, 10) : undefined,
-      });
+      const filterParts = [
+        query.entryType ? `type=${query.entryType}` : '',
+        query.sourceType ? `src=${query.sourceType}` : '',
+        query.sourceId ? `srcId=${query.sourceId}` : '',
+        query.startDate ? `from=${query.startDate}` : '',
+        query.endDate ? `to=${query.endDate}` : '',
+        query.limit ? `limit=${query.limit}` : '',
+        query.offset ? `offset=${query.offset}` : '',
+      ]
+        .filter((p) => p.length > 0)
+        .sort();
 
-      return reply.status(200).send({ entries });
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('settlement', 'ledger', params.merchantId, ...filterParts),
+          tags: [CacheTags.settlement, `${CacheTags.settlement}:merchant:${params.merchantId}`],
+          preset: CachePresets.merchantScoped,
+        },
+        async () => ({
+          entries: await settlementService.listLedgerEntries(actor, params.merchantId, {
+            entryType: query.entryType as LedgerEntryType | undefined,
+            sourceType: query.sourceType,
+            sourceId: query.sourceId,
+            startDate: query.startDate,
+            endDate: query.endDate,
+            limit: query.limit ? parseInt(query.limit, 10) : undefined,
+            offset: query.offset ? parseInt(query.offset, 10) : undefined,
+          }),
+        }),
+      );
     },
   );
 
@@ -93,6 +126,7 @@ export function registerSettlementRoutes(
         idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
       });
 
+      await app.cache.invalidateTags(CacheTags.settlement);
       return reply.status(201).send(result);
     },
   );
@@ -140,6 +174,7 @@ export function registerSettlementRoutes(
         idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
       });
 
+      await app.cache.invalidateTags(CacheTags.settlement);
       return reply.status(201).send(result);
     },
   );
@@ -183,6 +218,7 @@ export function registerSettlementRoutes(
         idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
       });
 
+      await app.cache.invalidateTags(CacheTags.settlement);
       return reply.status(201).send(result);
     },
   );
@@ -223,6 +259,7 @@ export function registerSettlementRoutes(
         idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
       });
 
+      await app.cache.invalidateTags(CacheTags.settlement);
       return reply.status(201).send(settlement);
     },
   );
@@ -235,8 +272,17 @@ export function registerSettlementRoutes(
       const actor = requireActor(request);
       const params = request.params as { settlementId: string };
 
-      const settlement = await settlementService.getSettlement(actor, params.settlementId);
-      return reply.status(200).send(settlement);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('settlement', 'settlements', params.settlementId, actor.tenantId),
+          tags: [CacheTags.settlement, `${CacheTags.settlement}:id:${params.settlementId}`],
+          preset: CachePresets.merchantScoped,
+        },
+        () => settlementService.getSettlement(actor, params.settlementId),
+      );
     },
   );
 
@@ -272,6 +318,10 @@ export function registerSettlementRoutes(
         },
       );
 
+      await app.cache.invalidateTags(
+        CacheTags.settlement,
+        `${CacheTags.settlement}:id:${params.settlementId}`,
+      );
       return reply.status(200).send(settlement);
     },
   );

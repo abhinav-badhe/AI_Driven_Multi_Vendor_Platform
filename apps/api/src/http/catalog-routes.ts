@@ -4,6 +4,13 @@ import type { CatalogService } from '../modules/catalog/index.js';
 import type { ProductStatus, SkuStatus } from '../modules/catalog/index.js';
 import { createAuthMiddleware, createOptionalAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ValidationError } from '../errors/app-error.js';
+import {
+  CachePresets,
+  CacheTags,
+  cacheKey,
+  sendCached,
+  visibilityClass,
+} from './cache-helper.js';
 
 export function registerCatalogRoutes(
   app: FastifyInstance,
@@ -36,6 +43,7 @@ export function registerCatalogRoutes(
         parentId: typeof body.parentId === 'string' ? body.parentId : null,
       });
 
+      await app.cache.invalidateTags(CacheTags.categories, CacheTags.search);
       return reply.status(201).send(category);
     },
   );
@@ -44,9 +52,18 @@ export function registerCatalogRoutes(
   app.get(
     '/categories',
     { preHandler: optionalAuth },
-    async (_request, reply) => {
-      const categories = await catalogService.listCategories();
-      return reply.status(200).send(categories);
+    async (request, reply) => {
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('categories', 'list'),
+          tags: [CacheTags.categories],
+          preset: CachePresets.categories,
+        },
+        () => catalogService.listCategories(),
+      );
     },
   );
 
@@ -56,8 +73,17 @@ export function registerCatalogRoutes(
     { preHandler: optionalAuth },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const category = await catalogService.getCategoryById(id);
-      return reply.status(200).send(category);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('categories', id),
+          tags: [CacheTags.categories, `${CacheTags.categories}:${id}`],
+          preset: CachePresets.categories,
+        },
+        () => catalogService.getCategoryById(id),
+      );
     },
   );
 
@@ -99,6 +125,7 @@ export function registerCatalogRoutes(
             : undefined,
       });
 
+      await app.cache.invalidateTags(CacheTags.products, CacheTags.search);
       return reply.status(201).send(product);
     },
   );
@@ -116,15 +143,36 @@ export function registerCatalogRoutes(
         offset?: string;
       };
 
-      const products = await catalogService.listProducts({
-        categoryId: query.categoryId,
-        status: query.status,
-        search: query.search,
-        limit: query.limit ? parseInt(query.limit, 10) : undefined,
-        offset: query.offset ? parseInt(query.offset, 10) : undefined,
-      });
+      // Normalized key: only defined filters, sorted, so equivalent
+      // queries share one entry regardless of parameter order.
+      const filterParts = [
+        query.categoryId ? `cat=${query.categoryId}` : '',
+        query.status ? `status=${query.status}` : '',
+        query.search ? `q=${query.search}` : '',
+        query.limit ? `limit=${query.limit}` : '',
+        query.offset ? `offset=${query.offset}` : '',
+      ]
+        .filter((p) => p.length > 0)
+        .sort();
 
-      return reply.status(200).send(products);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('products', 'list', ...filterParts),
+          tags: [CacheTags.products],
+          preset: CachePresets.catalogList,
+        },
+        () =>
+          catalogService.listProducts({
+            categoryId: query.categoryId,
+            status: query.status,
+            search: query.search,
+            limit: query.limit ? parseInt(query.limit, 10) : undefined,
+            offset: query.offset ? parseInt(query.offset, 10) : undefined,
+          }),
+      );
     },
   );
 
@@ -134,8 +182,17 @@ export function registerCatalogRoutes(
     { preHandler: optionalAuth },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const product = await catalogService.getProductById(id);
-      return reply.status(200).send(product);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('products', id),
+          tags: [CacheTags.products, `${CacheTags.products}:${id}`],
+          preset: CachePresets.catalogDetail,
+        },
+        () => catalogService.getProductById(id),
+      );
     },
   );
 
@@ -145,8 +202,17 @@ export function registerCatalogRoutes(
     { preHandler: optionalAuth },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const reviews = await catalogService.listProductReviews(id);
-      return reply.status(200).send(reviews);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('products', id, 'reviews'),
+          tags: [CacheTags.reviews, `${CacheTags.products}:${id}`],
+          preset: CachePresets.reviews,
+        },
+        () => catalogService.listProductReviews(id),
+      );
     },
   );
 
@@ -184,6 +250,11 @@ export function registerCatalogRoutes(
             : undefined,
       });
 
+      await app.cache.invalidateTags(
+        CacheTags.products,
+        `${CacheTags.products}:${id}`,
+        CacheTags.search,
+      );
       return reply.status(200).send(product);
     },
   );
@@ -200,6 +271,11 @@ export function registerCatalogRoutes(
       if (typeof body.status !== 'string') throw new ValidationError('status is required');
 
       const product = await catalogService.setProductStatus(actor, id, body.status as ProductStatus);
+      await app.cache.invalidateTags(
+        CacheTags.products,
+        `${CacheTags.products}:${id}`,
+        CacheTags.search,
+      );
       return reply.status(200).send(product);
     },
   );
@@ -230,19 +306,35 @@ export function registerCatalogRoutes(
             : undefined,
       });
 
+      await app.cache.invalidateTags(
+        CacheTags.skus,
+        `${CacheTags.products}:${productId}`,
+        CacheTags.search,
+      );
       return reply.status(201).send(sku);
     },
   );
 
   // GET /products/:id/skus
+  // Visibility varies by role (admins see non-active SKUs), so the role is
+  // part of the key — a public entry can never serve an admin view.
   app.get(
     '/products/:id/skus',
     { preHandler: optionalAuth },
     async (request, reply) => {
       const { id: productId } = request.params as { id: string };
       const actor = request.actor ?? null;
-      const skus = await catalogService.listSkusByProduct(productId, actor);
-      return reply.status(200).send(skus);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('products', productId, 'skus', visibilityClass(request)),
+          tags: [CacheTags.skus, `${CacheTags.products}:${productId}`],
+          preset: CachePresets.catalogDetail,
+        },
+        () => catalogService.listSkusByProduct(productId, actor),
+      );
     },
   );
 
@@ -252,8 +344,17 @@ export function registerCatalogRoutes(
     { preHandler: optionalAuth },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const sku = await catalogService.getSkuById(id);
-      return reply.status(200).send(sku);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('skus', id),
+          tags: [CacheTags.skus, `${CacheTags.skus}:${id}`],
+          preset: CachePresets.catalogDetail,
+        },
+        () => catalogService.getSkuById(id),
+      );
     },
   );
 
@@ -279,6 +380,12 @@ export function registerCatalogRoutes(
             : undefined,
       });
 
+      await app.cache.invalidateTags(
+        CacheTags.skus,
+        `${CacheTags.skus}:${id}`,
+        `${CacheTags.products}:${sku.productId}`,
+        CacheTags.search,
+      );
       return reply.status(200).send(sku);
     },
   );
@@ -295,6 +402,12 @@ export function registerCatalogRoutes(
       if (typeof body.status !== 'string') throw new ValidationError('status is required');
 
       const sku = await catalogService.setSkuStatus(actor, id, body.status as SkuStatus);
+      await app.cache.invalidateTags(
+        CacheTags.skus,
+        `${CacheTags.skus}:${id}`,
+        `${CacheTags.products}:${sku.productId}`,
+        CacheTags.search,
+      );
       return reply.status(200).send(sku);
     },
   );

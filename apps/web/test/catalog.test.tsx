@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Home } from '../src/features/home/Home';
 import { CategoryPage } from '../src/features/catalog/Category';
 import { ProductPage } from '../src/features/catalog/Product';
+import { __resetClientCacheForTests } from '../src/api/client';
 
 const createFetchResponse = (data: any, status = 200, ok = true) => {
   return Promise.resolve({
@@ -19,6 +20,9 @@ describe('Catalog & Marketplace Frontend Tests', () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     global.fetch = fetchMock;
+    // The apiClient response cache is module-level: reset between tests so
+    // one test's cached entries never satisfy another test's fetches.
+    __resetClientCacheForTests();
   });
 
   afterEach(() => {

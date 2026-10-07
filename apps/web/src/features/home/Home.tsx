@@ -30,27 +30,37 @@ export const Home = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const catData = await catalogApi.getCategories();
+        // Parallel fan-out: categories, recommendations, and the product
+        // grid load concurrently instead of sequentially.
+        const [catData, recItems, searchItems] = await Promise.all([
+          // Categories stay load-bearing: a failure here surfaces the error
+          // banner exactly as before. Recommendations and the product grid
+          // degrade gracefully on their own.
+          catalogApi.getCategories(),
+          (async (): Promise<RecommendationItemDto[]> => {
+            try {
+              if (isAuthenticated) {
+                const recs = await recommendationsApi.getPersonalized(4);
+                return recs.items || [];
+              }
+              const trending = await recommendationsApi.getTrending(4).catch(() => ({ items: [] as RecommendationItemDto[] }));
+              return trending.items || [];
+            } catch {
+              return [];
+            }
+          })(),
+          (async (): Promise<SearchProductResultDto[]> => {
+            try {
+              const searchData = await searchApi.search({ pageSize: 12 }).catch(() => ({ items: [] as SearchProductResultDto[] }));
+              return searchData.items || [];
+            } catch {
+              return [];
+            }
+          })(),
+        ]);
         setCategories(catData || []);
-
-        try {
-          if (isAuthenticated) {
-            const recs = await recommendationsApi.getPersonalized(4);
-            setRecommendations(recs.items || []);
-          } else {
-            const trending = await recommendationsApi.getTrending(4).catch(() => ({ items: [] }));
-            setRecommendations(trending.items || []);
-          }
-        } catch {
-          // Graceful fallback
-        }
-
-        try {
-          const searchData = await searchApi.search({ pageSize: 12 }).catch(() => ({ items: [] }));
-          setProducts(searchData.items || []);
-        } catch {
-          // Graceful fallback
-        }
+        setRecommendations(recItems);
+        setProducts(searchItems);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load products");
       } finally {
@@ -60,13 +70,29 @@ export const Home = () => {
     fetchData();
   }, [isAuthenticated]);
 
-  const handleAddToCart = async (listingId: string) => {
+  const handleAddToCart = async (
+    listingId: string,
+    optimistic?: { skuId: string; merchantId: string; priceAmount: number; currency: string; title?: string | null | undefined; thumbnailUrl?: string | null | undefined },
+  ) => {
     setActionLoadingId(listingId);
     try {
       if (!isAuthenticated) {
         await login({ email: "customer@example.com", password: "password123" });
       }
-      await addItem(listingId, 1);
+      await addItem(
+        listingId,
+        1,
+        optimistic
+          ? {
+              skuId: optimistic.skuId,
+              merchantTenantId: optimistic.merchantId,
+              unitPriceAmount: optimistic.priceAmount,
+              currency: optimistic.currency,
+              productTitle: optimistic.title ?? null,
+              productThumbnailUrl: optimistic.thumbnailUrl ?? null,
+            }
+          : undefined,
+      );
     } catch (err: unknown) {
       alert(`Could not add to cart: ${err instanceof Error ? err.message : "Item unavailable"}`);
     } finally {
@@ -217,7 +243,16 @@ export const Home = () => {
                         <Button
                           size="sm"
                           disabled={actionLoadingId === bestOffer.listingId}
-                          onClick={() => handleAddToCart(bestOffer.listingId)}
+                          onClick={() =>
+                            handleAddToCart(bestOffer.listingId, {
+                              skuId: bestOffer.skuId,
+                              merchantId: bestOffer.merchantId,
+                              priceAmount: bestOffer.priceAmount,
+                              currency: bestOffer.currency,
+                              title: p.title,
+                              thumbnailUrl: display.thumbnailUrl,
+                            })
+                          }
                         >
                           {actionLoadingId === bestOffer.listingId ? "Adding…" : "Add to cart"}
                         </Button>

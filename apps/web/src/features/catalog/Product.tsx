@@ -439,7 +439,14 @@ export const ProductPage = () => {
                             if (!isAuthenticated) {
                               await login({ email: "customer@example.com", password: "password123" });
                             }
-                            await addItem(listing.id, 1);
+                            await addItem(listing.id, 1, {
+                              skuId: listing.skuId,
+                              merchantTenantId: listing.tenantId,
+                              unitPriceAmount: listing.priceAmount,
+                              currency: listing.currency,
+                              productTitle: product?.title ?? null,
+                              productThumbnailUrl: product?.thumbnailUrl ?? null,
+                            });
                             setAddedListingId(listing.id);
                           } catch (err: unknown) {
                             alert(err instanceof Error ? err.message : "Failed to add item to cart");

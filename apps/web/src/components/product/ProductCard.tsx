@@ -4,6 +4,7 @@ import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Rating, discountPercent } from "./display";
+import { prefetch } from "../../api/client";
 
 // Shared product card — one consistent treatment everywhere a product is
 // listed (home, search). Dense and sleek: 4:3 image with overlaid discount,
@@ -90,8 +91,14 @@ export function ProductCard({
   action: React.ReactNode;
 }) {
   const off = price != null ? discountPercent(price, compareAtPrice) : null;
+  // Hover/keyboard intent warms the product page's critical data so the
+  // navigation lands on an already-cached view.
+  const warmDetail = () => {
+    prefetch(`/products/${productId}`);
+    prefetch(`/products/${productId}/skus`);
+  };
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden" onMouseEnter={warmDetail} onFocus={warmDetail}>
       <CardContent className="flex flex-col gap-1.5 p-3">
         {thumbnailUrl && (
           <Link

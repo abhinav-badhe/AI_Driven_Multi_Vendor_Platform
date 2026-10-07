@@ -3,6 +3,15 @@ import type { IdentityService } from '../modules/identity/index.js';
 import type { InventoryService } from '../modules/inventory/index.js';
 import { createAuthMiddleware, createOptionalAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ValidationError } from '../errors/app-error.js';
+import {
+  CachePresets,
+  CacheTags,
+  cacheKey,
+  inventoryItemTag,
+  inventoryListingTag,
+  inventoryMerchantTag,
+  sendCached,
+} from './cache-helper.js';
 
 export function registerInventoryRoutes(
   app: FastifyInstance,
@@ -51,22 +60,44 @@ export function registerInventoryRoutes(
     async (request, reply) => {
       const actor = requireActor(request);
       const query = request.query as { limit?: string; offset?: string };
-      const items = await inventoryService.listInventory(actor, {
-        limit: query.limit ? parseInt(query.limit, 10) : undefined,
-        offset: query.offset ? parseInt(query.offset, 10) : undefined,
-      });
-      return reply.status(200).send(items);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('inventory', 'merchant', actor.tenantId, query.limit ?? '', query.offset ?? ''),
+          tags: [CacheTags.inventory, inventoryMerchantTag(actor.tenantId)],
+          preset: CachePresets.merchantScoped,
+        },
+        () =>
+          inventoryService.listInventory(actor, {
+            limit: query.limit ? parseInt(query.limit, 10) : undefined,
+            offset: query.offset ? parseInt(query.offset, 10) : undefined,
+          }),
+      );
     },
   );
 
   // GET /inventory/availability/:listingId (Public availability view - sanitized DTO)
+  // Advisory only: short TTL + SWR. Checkout revalidates against the ledger
+  // and reserves atomically, and every stock mutation invalidates this entry
+  // from inside the inventory transaction.
   app.get(
     '/inventory/availability/:listingId',
     { preHandler: optionalAuth },
     async (request, reply) => {
       const { listingId } = request.params as { listingId: string };
-      const availability = await inventoryService.getAvailabilityByListingId(listingId);
-      return reply.status(200).send(availability);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('inventory', 'availability', listingId),
+          tags: [CacheTags.availability, inventoryListingTag(listingId)],
+          preset: CachePresets.availability,
+        },
+        () => inventoryService.getAvailabilityByListingId(listingId),
+      );
     },
   );
 
@@ -77,8 +108,17 @@ export function registerInventoryRoutes(
     async (request, reply) => {
       const actor = requireActor(request);
       const { listingId } = request.params as { listingId: string };
-      const item = await inventoryService.getInventoryByListingId(actor, listingId);
-      return reply.status(200).send(item);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('inventory', 'by-listing', listingId, actor.tenantId),
+          tags: [CacheTags.inventory, inventoryListingTag(listingId)],
+          preset: CachePresets.merchantScoped,
+        },
+        () => inventoryService.getInventoryByListingId(actor, listingId),
+      );
     },
   );
 
@@ -89,8 +129,17 @@ export function registerInventoryRoutes(
     async (request, reply) => {
       const actor = requireActor(request);
       const { id } = request.params as { id: string };
-      const item = await inventoryService.getInventoryById(actor, id);
-      return reply.status(200).send(item);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('inventory', 'item', id, actor.tenantId),
+          tags: [CacheTags.inventory, inventoryItemTag(id)],
+          preset: CachePresets.merchantScoped,
+        },
+        () => inventoryService.getInventoryById(actor, id),
+      );
     },
   );
 
@@ -169,14 +218,25 @@ export function registerInventoryRoutes(
   );
 
   // GET /inventory/:id/movements
+  // Append-only ledger: invalidated by every mutation of this item via the
+  // service-level hook, so a short TTL is safe.
   app.get(
     '/inventory/:id/movements',
     { preHandler: authenticate },
     async (request, reply) => {
       const actor = requireActor(request);
       const { id } = request.params as { id: string };
-      const movements = await inventoryService.getMovements(actor, id);
-      return reply.status(200).send(movements);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('inventory', 'item', id, 'movements', actor.tenantId),
+          tags: [CacheTags.inventory, inventoryItemTag(id)],
+          preset: CachePresets.merchantScoped,
+        },
+        () => inventoryService.getMovements(actor, id),
+      );
     },
   );
 

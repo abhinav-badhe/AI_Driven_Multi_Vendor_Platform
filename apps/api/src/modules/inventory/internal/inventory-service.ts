@@ -19,6 +19,19 @@ import {
   InsufficientInventoryError,
 } from '../../../errors/app-error.js';
 import { OutboxService, EventTypes, createDomainEvent } from '../../events/index.js';
+import {
+  inventoryItemTag,
+  inventoryListingTag,
+  inventoryMerchantTag,
+} from '../../../infra/redis/cache-keys.js';
+
+/**
+ * Minimal invalidation surface the inventory context accepts from infra.
+ * Fire-and-forget by contract: implementations must never throw.
+ */
+export interface InventoryCacheInvalidator {
+  invalidateTags(...tags: string[]): Promise<void>;
+}
 
 export interface InventoryItemDto {
   id: string;
@@ -98,6 +111,7 @@ export class InventoryService {
     private readonly logger: Logger,
     private readonly marketplaceService: ListingService,
     private readonly outboxService?: OutboxService,
+    private readonly cacheInvalidator?: InventoryCacheInvalidator | undefined,
   ) {
     this.repo = new InventoryRepository();
   }
@@ -107,6 +121,20 @@ export class InventoryService {
     inv: InventoryItemRow,
     actorId?: string,
   ): Promise<void> {
+    // Derived-cache invalidation runs on EVERY stock mutation, independent of
+    // the outbox: over-invalidation only costs a recompute, while a missed
+    // invalidation serves stale availability. Fire-and-forget so the
+    // transaction never waits on cache infrastructure.
+    if (this.cacheInvalidator) {
+      void this.cacheInvalidator
+        .invalidateTags(
+          inventoryListingTag(inv.listing_id),
+          inventoryItemTag(inv.id),
+          inventoryMerchantTag(inv.tenant_id),
+        )
+        .catch(() => {});
+    }
+
     if (!this.outboxService) return;
 
     const availableQuantity = Math.max(

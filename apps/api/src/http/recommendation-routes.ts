@@ -3,6 +3,12 @@ import type { IdentityService } from '../modules/identity/index.js';
 import type { RecommendationService } from '../modules/recommendations/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ForbiddenError, ValidationError } from '../errors/app-error.js';
+import {
+  CachePresets,
+  CacheTags,
+  cacheKey,
+  sendCached,
+} from './cache-helper.js';
 
 export function registerRecommendationRoutes(
   app: FastifyInstance,
@@ -12,6 +18,7 @@ export function registerRecommendationRoutes(
   const authenticate = createAuthMiddleware(identityService);
 
   // 1. GET /recommendations & GET /recommendations/personalized (Personalized customer recommendations)
+  // Strictly per-user entries — the user id is part of the key.
   const handlePersonalized = async (request: FastifyRequest, reply: FastifyReply) => {
     const actor = requireActor(request);
     const query = (request.query as Record<string, string | undefined>) || {};
@@ -21,8 +28,17 @@ export function registerRecommendationRoutes(
       ? { limit, correlationId: request.correlationId }
       : { correlationId: request.correlationId };
 
-    const result = await recommendationService.getPersonalizedRecommendations(actor, options);
-    return reply.status(200).send(result);
+    return sendCached(
+      app,
+      request,
+      reply,
+      {
+        key: cacheKey('recommendations', 'personalized', actor.tenantId, actor.userId, limit ?? ''),
+        tags: [CacheTags.recommendations, `${CacheTags.recommendations}:user:${actor.userId}`],
+        preset: CachePresets.recommendations,
+      },
+      () => recommendationService.getPersonalizedRecommendations(actor, options),
+    );
   };
 
   app.get('/recommendations', { preHandler: authenticate }, handlePersonalized);
@@ -42,8 +58,17 @@ export function registerRecommendationRoutes(
         ? { limit, correlationId: request.correlationId }
         : { correlationId: request.correlationId };
 
-      const result = await recommendationService.getSimilarProducts(actor, params.productId, options);
-      return reply.status(200).send(result);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('recommendations', 'similar', params.productId, actor.tenantId, limit ?? ''),
+          tags: [CacheTags.recommendations, `${CacheTags.recommendations}:product:${params.productId}`],
+          preset: CachePresets.recommendations,
+        },
+        () => recommendationService.getSimilarProducts(actor, params.productId, options),
+      );
     },
   );
 
@@ -60,8 +85,17 @@ export function registerRecommendationRoutes(
         ? { limit, correlationId: request.correlationId }
         : { correlationId: request.correlationId };
 
-      const result = await recommendationService.getTrendingRecommendations(actor, options);
-      return reply.status(200).send(result);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('recommendations', 'trending', actor.tenantId, limit ?? ''),
+          tags: [CacheTags.recommendations, `${CacheTags.recommendations}:tenant:${actor.tenantId}`],
+          preset: CachePresets.recommendations,
+        },
+        () => recommendationService.getTrendingRecommendations(actor, options),
+      );
     },
   );
 
@@ -79,13 +113,17 @@ export function registerRecommendationRoutes(
         ? { limit, correlationId: request.correlationId }
         : { correlationId: request.correlationId };
 
-      const result = await recommendationService.getFrequentlyBoughtTogether(
-        actor,
-        params.productId,
-        options,
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('recommendations', 'fbt', params.productId, actor.tenantId, limit ?? ''),
+          tags: [CacheTags.recommendations, `${CacheTags.recommendations}:product:${params.productId}`],
+          preset: CachePresets.recommendations,
+        },
+        () => recommendationService.getFrequentlyBoughtTogether(actor, params.productId, options),
       );
-
-      return reply.status(200).send(result);
     },
   );
 
@@ -106,6 +144,7 @@ export function registerRecommendationRoutes(
       }
 
       const result = await recommendationService.rebuildRecommendations(actor, targetTenantId);
+      await app.cache.invalidateTags(CacheTags.recommendations);
       return reply.status(200).send(result);
     },
   );

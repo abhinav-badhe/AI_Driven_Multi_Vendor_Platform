@@ -27,6 +27,9 @@ export type {
 };
 
 import type { OutboxService } from '../events/index.js';
+import type { InventoryCacheInvalidator } from './internal/inventory-service.js';
+
+export type { InventoryCacheInvalidator };
 
 export interface InventoryModule {
   readonly contextName: 'inventory';
@@ -35,6 +38,7 @@ export interface InventoryModule {
     logger: Logger,
     marketplaceService: ListingService,
     outboxService?: OutboxService,
+    cacheInvalidator?: InventoryCacheInvalidator | undefined,
   ): InventoryService;
 }
 
@@ -45,8 +49,9 @@ export const inventoryModule: InventoryModule = {
     logger: Logger,
     marketplaceService: ListingService,
     outboxService?: OutboxService,
+    cacheInvalidator?: InventoryCacheInvalidator | undefined,
   ): InventoryService {
-    return new InventoryService(db, logger, marketplaceService, outboxService);
+    return new InventoryService(db, logger, marketplaceService, outboxService, cacheInvalidator);
   },
 };
 

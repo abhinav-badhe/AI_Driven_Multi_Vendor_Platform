@@ -32,13 +32,29 @@ export const SearchPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAddToCart = async (listingId: string) => {
+  const handleAddToCart = async (
+    listingId: string,
+    optimistic?: { skuId: string; merchantId: string; priceAmount: number; currency: string; title?: string | null | undefined; thumbnailUrl?: string | null | undefined },
+  ) => {
     setActionLoadingId(listingId);
     try {
       if (!isAuthenticated) {
         await login({ email: "customer@example.com", password: "password123" });
       }
-      await addItem(listingId, 1);
+      await addItem(
+        listingId,
+        1,
+        optimistic
+          ? {
+              skuId: optimistic.skuId,
+              merchantTenantId: optimistic.merchantId,
+              unitPriceAmount: optimistic.priceAmount,
+              currency: optimistic.currency,
+              productTitle: optimistic.title ?? null,
+              productThumbnailUrl: optimistic.thumbnailUrl ?? null,
+            }
+          : undefined,
+      );
     } catch (err: unknown) {
       alert(`Could not add to cart: ${err instanceof Error ? err.message : "Error"}`);
     } finally {
@@ -314,7 +330,16 @@ export const SearchPage = () => {
                             <Button
                               size="sm"
                               disabled={actionLoadingId === bestOffer.listingId}
-                              onClick={() => handleAddToCart(bestOffer.listingId)}
+                              onClick={() =>
+                                handleAddToCart(bestOffer.listingId, {
+                                  skuId: bestOffer.skuId,
+                                  merchantId: bestOffer.merchantId,
+                                  priceAmount: bestOffer.priceAmount,
+                                  currency: bestOffer.currency,
+                                  title: item.title,
+                                  thumbnailUrl: display.thumbnailUrl,
+                                })
+                              }
                             >
                               {actionLoadingId === bestOffer.listingId ? "Adding…" : "Add to cart"}
                             </Button>

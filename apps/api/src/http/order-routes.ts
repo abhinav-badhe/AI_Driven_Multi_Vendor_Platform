@@ -2,6 +2,12 @@ import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
 import type { OrderService, SellerOrderStatus } from '../modules/orders/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
+import {
+  CachePresets,
+  CacheTags,
+  cacheKey,
+  sendCached,
+} from './cache-helper.js';
 
 export function registerOrderRoutes(
   app: FastifyInstance,
@@ -47,6 +53,10 @@ export function registerOrderRoutes(
           typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
       });
 
+      await app.cache.invalidateTags(
+        CacheTags.orders,
+        `${CacheTags.orders}:customer:${actor.tenantId}`,
+      );
       return reply.status(201).send(order);
     },
   );
@@ -65,8 +75,17 @@ export function registerOrderRoutes(
       const limit = query.limit ? parseInt(query.limit, 10) : undefined;
       const offset = query.offset ? parseInt(query.offset, 10) : undefined;
 
-      const orders = await orderService.listCustomerOrders(actor, { limit, offset });
-      return reply.status(200).send(orders);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('orders', 'customer', actor.tenantId, limit ?? '', offset ?? ''),
+          tags: [CacheTags.orders, `${CacheTags.orders}:customer:${actor.tenantId}`],
+          preset: CachePresets.orderView,
+        },
+        () => orderService.listCustomerOrders(actor, { limit, offset }),
+      );
     },
   );
 
@@ -78,8 +97,17 @@ export function registerOrderRoutes(
       const actor = requireActor(request);
       const { id } = request.params as { id: string };
 
-      const order = await orderService.getCustomerOrder(actor, id);
-      return reply.status(200).send(order);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('orders', 'customer-order', id, actor.tenantId),
+          tags: [CacheTags.orders, `${CacheTags.orders}:order:${id}`],
+          preset: CachePresets.orderView,
+        },
+        () => orderService.getCustomerOrder(actor, id),
+      );
     },
   );
 
@@ -97,8 +125,17 @@ export function registerOrderRoutes(
       const limit = query.limit ? parseInt(query.limit, 10) : undefined;
       const offset = query.offset ? parseInt(query.offset, 10) : undefined;
 
-      const orders = await orderService.listSellerOrders(actor, { limit, offset });
-      return reply.status(200).send(orders);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('orders', 'seller', actor.tenantId, limit ?? '', offset ?? ''),
+          tags: [CacheTags.orders, `${CacheTags.orders}:seller:${actor.tenantId}`],
+          preset: CachePresets.orderView,
+        },
+        () => orderService.listSellerOrders(actor, { limit, offset }),
+      );
     },
   );
 
@@ -110,8 +147,17 @@ export function registerOrderRoutes(
       const actor = requireActor(request);
       const { id } = request.params as { id: string };
 
-      const order = await orderService.getSellerOrder(actor, id);
-      return reply.status(200).send(order);
+      return sendCached(
+        app,
+        request,
+        reply,
+        {
+          key: cacheKey('orders', 'seller-order', id, actor.tenantId),
+          tags: [CacheTags.orders, `${CacheTags.orders}:seller-order:${id}`],
+          preset: CachePresets.orderView,
+        },
+        () => orderService.getSellerOrder(actor, id),
+      );
     },
   );
 
@@ -141,6 +187,12 @@ export function registerOrderRoutes(
         body.status as SellerOrderStatus,
       );
 
+      await app.cache.invalidateTags(
+        CacheTags.orders,
+        `${CacheTags.orders}:seller:${actor.tenantId}`,
+        `${CacheTags.orders}:seller-order:${id}`,
+        `${CacheTags.orders}:order:${order.customerOrderId}`,
+      );
       return reply.status(200).send(order);
     },
   );
