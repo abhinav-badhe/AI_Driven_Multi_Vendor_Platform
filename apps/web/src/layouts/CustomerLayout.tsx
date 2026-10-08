@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { Search, ShoppingCart, User } from "lucide-react";
+import { Heart, Search, ShoppingCart, User } from "lucide-react";
 import { useCart } from "../features/cart/CartContext";
 import { useAuth } from "../features/auth/AuthContext";
 import { AiAssistant } from "../features/ai/AiAssistant";
@@ -69,6 +69,10 @@ export const CustomerLayout = () => {
                 Admin
               </Link>
             )}
+            <Link to="/wishlist" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+              <Heart aria-hidden />
+              Wishlist
+            </Link>
             <Link to="/cart" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
               <ShoppingCart aria-hidden />
               Cart

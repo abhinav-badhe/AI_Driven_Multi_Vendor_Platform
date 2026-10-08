@@ -129,6 +129,7 @@ export class PaymentService {
     private readonly outboxService: OutboxService,
     provider?: PaymentProvider,
     webhookSecret = 'whsec_mock_default_secret_for_tests',
+    private readonly webhookToleranceSeconds = 300,
   ) {
     this.repo = new PaymentRepository(db);
     this.provider = provider ?? new MockPaymentProvider();
@@ -202,15 +203,20 @@ export class PaymentService {
       return this.toIntentDto(existingSessionIntent, attempts);
     }
 
+    const intentId = randomUUID();
+
     // Call provider
     const providerResult = await this.provider.createIntent({
       amount,
       currency,
-      metadata: input.metadata,
+      metadata: {
+        ...(input.metadata ?? {}),
+        internalIntentId: intentId,
+        paymentIntentId: intentId,
+      },
       idempotencyKey: input.idempotencyKey,
     });
 
-    const intentId = randomUUID();
     let row: PaymentIntentRow;
     try {
       row = await this.repo.createPaymentIntent({
@@ -223,7 +229,10 @@ export class PaymentService {
         provider: this.provider.name,
         clientSecret: providerResult.clientSecret,
         idempotencyKey: input.idempotencyKey ?? null,
-        metadata: input.metadata,
+        metadata: {
+          ...(input.metadata ?? {}),
+          providerTransactionId: providerResult.providerTransactionId,
+        },
       });
     } catch (err: unknown) {
       // Idempotency race conflict recovery
@@ -318,8 +327,12 @@ export class PaymentService {
     await this.repo.updateIntentStatus(intent.id, ['CREATED', 'PROCESSING', 'REQUIRES_PAYMENT_METHOD'], 'PROCESSING');
 
     // Call Provider
+    const providerTxnId =
+      (intent.metadata?.providerTransactionId as string | undefined) ??
+      `txn_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
+
     const providerResult = await this.provider.createAttempt({
-      providerTransactionId: `txn_${randomUUID().replace(/-/g, '').slice(0, 16)}`,
+      providerTransactionId: providerTxnId,
       amount: intent.amount,
       currency: intent.currency,
       paymentMethod: input.paymentMethod,
@@ -329,6 +342,9 @@ export class PaymentService {
     const attemptId = randomUUID();
     let attemptRow: PaymentAttemptRow;
 
+    const dbAttemptStatus: PaymentAttemptStatus =
+      providerResult.status === 'REQUIRES_ACTION' ? 'PROCESSING' : providerResult.status;
+
     try {
       attemptRow = await this.repo.createPaymentAttempt({
         id: attemptId,
@@ -337,10 +353,16 @@ export class PaymentService {
         providerTransactionId: providerResult.providerTransactionId,
         amount: intent.amount,
         currency: intent.currency,
-        status: providerResult.status,
-        failureCode: providerResult.failureCode,
-        failureMessage: providerResult.failureMessage,
-        providerResponse: providerResult.rawResponse,
+        status: dbAttemptStatus,
+        failureCode: providerResult.status === 'REQUIRES_ACTION' ? 'requires_action' : providerResult.failureCode,
+        failureMessage:
+          providerResult.status === 'REQUIRES_ACTION'
+            ? 'Cardholder action required (3DS / SCA)'
+            : providerResult.failureMessage,
+        providerResponse: {
+          ...(providerResult.rawResponse ?? {}),
+          status: providerResult.status === 'REQUIRES_ACTION' ? 'requires_action' : providerResult.status,
+        },
         idempotencyKey: input.idempotencyKey ?? null,
       });
     } catch (err: unknown) {
@@ -368,8 +390,40 @@ export class PaymentService {
       const method = normalizePaymentMethod(input.paymentMethod);
       const currentMeta =
         intent.metadata && typeof intent.metadata === 'object' ? intent.metadata : {};
-      await this.repo.updateIntentStatus(intent.id, 'PROCESSING', 'SUCCEEDED', {
-        metadata: { ...currentMeta, paymentMethod: method },
+
+      await this.db.withTransaction(async (tx) => {
+        const txRepo = new PaymentRepository(tx);
+        await txRepo.updateIntentStatus(
+          intent.id,
+          ['CREATED', 'PROCESSING', 'REQUIRES_PAYMENT_METHOD'],
+          'SUCCEEDED',
+          {
+            metadata: { ...currentMeta, paymentMethod: method },
+          },
+        );
+
+        await this.outboxService.recordEvent(
+          tx,
+          createDomainEvent({
+            eventType: EventTypes.PAYMENT_SUCCEEDED,
+            aggregateType: 'PaymentIntent',
+            aggregateId: intent.id,
+            tenantId: intent.customer_tenant_id,
+            payload: {
+              checkoutSessionId: intent.checkout_session_id,
+              amount: intent.amount,
+              currency: intent.currency,
+              paymentMethod: method,
+            },
+          }),
+        );
+      });
+    } else if (providerResult.status === 'REQUIRES_ACTION') {
+      await this.repo.updateIntentStatus(intent.id, ['CREATED', 'PROCESSING'], 'PROCESSING', {
+        metadata: {
+          requiresAction: true,
+          clientSecret: intent.client_secret,
+        },
       });
     } else {
       await this.repo.updateIntentStatus(intent.id, 'PROCESSING', 'FAILED', {
@@ -388,8 +442,13 @@ export class PaymentService {
     rawBody: string,
     signatureHeader: string,
   ): Promise<WebhookProcessResultDto> {
-    // 1. Signature Verification
-    const isValid = this.provider.verifyWebhookSignature(rawBody, signatureHeader, this.webhookSecret);
+    // 1. Signature Verification with Timestamp Tolerance
+    const isValid = this.provider.verifyWebhookSignature(
+      rawBody,
+      signatureHeader,
+      this.webhookSecret,
+      this.webhookToleranceSeconds,
+    );
     if (!isValid) {
       this.logger.warn('Rejected payment webhook due to invalid signature', { providerName });
       throw new UnauthorizedError('Invalid payment webhook signature');
@@ -420,9 +479,15 @@ export class PaymentService {
     // 4 & 5. Handle Event Transitions and Persist in Deduplication Ledger ATOMICALLY
     return this.db.withTransaction(async (tx) => {
       const txRepo = new PaymentRepository(tx);
+      let intent: PaymentIntentRow | null = null;
       if (event.paymentIntentId) {
-        const intent = await txRepo.findIntentById(event.paymentIntentId);
-        if (intent) {
+        intent = await txRepo.findIntentById(event.paymentIntentId);
+      }
+      if (!intent && event.providerTransactionId) {
+        intent = await txRepo.findIntentByProviderTransactionId(event.providerTransactionId);
+      }
+
+      if (intent) {
           if (event.eventType === 'payment_intent.succeeded' || event.status === 'SUCCEEDED') {
             if (intent.status !== 'SUCCEEDED') {
               await txRepo.updateIntentStatus(intent.id, ['CREATED', 'PROCESSING'], 'SUCCEEDED');
@@ -446,7 +511,6 @@ export class PaymentService {
               });
             }
           }
-        }
       }
 
       const webhookRowId = randomUUID();
@@ -628,6 +692,11 @@ export class PaymentService {
   }
 
   private toAttemptDto(row: PaymentAttemptRow): PaymentAttemptDto {
+    const isRequiresAction =
+      row.status === 'PROCESSING' &&
+      (row.failure_code === 'requires_action' ||
+        (row.provider_response as Record<string, unknown>)?.['status'] === 'requires_action');
+
     return {
       id: row.id,
       paymentIntentId: row.payment_intent_id,
@@ -635,7 +704,7 @@ export class PaymentService {
       providerTransactionId: row.provider_transaction_id,
       amount: row.amount,
       currency: row.currency,
-      status: row.status,
+      status: isRequiresAction ? 'REQUIRES_ACTION' : row.status,
       failureCode: row.failure_code,
       failureMessage: row.failure_message,
       providerResponse: row.provider_response,

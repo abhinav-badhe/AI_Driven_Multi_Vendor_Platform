@@ -32,6 +32,8 @@ export class AnalyticsEventConsumer extends BaseEventConsumer {
       EventTypes.MARKETPLACE_LISTING_CREATED,
       EventTypes.MARKETPLACE_LISTING_UPDATED,
       EventTypes.MARKETPLACE_LISTING_DEACTIVATED,
+      EventTypes.COUPON_REDEEMED,
+      EventTypes.COUPON_REDEMPTION_REVERSED,
     ];
 
     for (const evt of events) {

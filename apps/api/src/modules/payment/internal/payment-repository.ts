@@ -8,7 +8,7 @@ export type PaymentIntentStatus =
   | 'CANCELLED'
   | 'REQUIRES_PAYMENT_METHOD';
 
-export type PaymentAttemptStatus = 'INITIATED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED';
+export type PaymentAttemptStatus = 'INITIATED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'REQUIRES_ACTION';
 
 export type WebhookProcessStatus = 'PROCESSED' | 'FAILED' | 'IGNORED';
 
@@ -142,6 +142,22 @@ export class PaymentRepository {
        ORDER BY created_at DESC
        LIMIT 1`,
       [checkoutSessionId],
+    );
+    return res.rows[0] ?? null;
+  }
+
+  async findIntentByProviderTransactionId(providerTxnId: string): Promise<PaymentIntentRow | null> {
+    const res = await this.db.query<PaymentIntentRow>(
+      `SELECT pi.id, pi.customer_tenant_id, pi.checkout_session_id, pi.order_id, pi.amount, pi.currency,
+              pi.status, pi.provider, pi.client_secret, pi.idempotency_key, pi.metadata, pi.created_at, pi.updated_at
+       FROM payment_intents pi
+       WHERE (pi.metadata->>'providerTransactionId' = $1)
+          OR pi.id IN (
+            SELECT payment_intent_id FROM payment_attempts WHERE provider_transaction_id = $1
+          )
+       ORDER BY pi.created_at DESC
+       LIMIT 1`,
+      [providerTxnId],
     );
     return res.rows[0] ?? null;
   }

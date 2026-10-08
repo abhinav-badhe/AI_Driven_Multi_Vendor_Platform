@@ -6,12 +6,15 @@ import {
   ValidationError,
   UnauthorizedError,
   ForbiddenError,
+  ConflictError,
   InvalidStateTransitionError,
 } from '../../../errors/app-error.js';
 import { RbacPolicy, type AuthorizedActor } from '../../identity/rbac/policy.js';
-import type { OrderService } from '../../orders/index.js';
+import type { OrderService, SellerOrderDto, OrderItemDto } from '../../orders/index.js';
 import type { PaymentService } from '../../payment/index.js';
 import type { InventoryService } from '../../inventory/index.js';
+import type { OutboxService } from '../../events/index.js';
+import { EventTypes, createDomainEvent } from '../../events/index.js';
 import {
   FulfillmentRepository,
   type ShipmentRow,
@@ -23,6 +26,9 @@ import {
 } from './fulfillment-repository.js';
 import {
   type CarrierProvider,
+  type CarrierAddress,
+  type CarrierTrackingEvent,
+  type ProviderShipmentResult,
   MockCarrierProvider,
 } from './carrier-provider.js';
 
@@ -35,6 +41,9 @@ export interface CreateShipmentInput {
   sellerOrderId: string;
   items: CreateShipmentItemInput[];
   carrier?: string | undefined;
+  serviceLevel?: string | undefined;
+  senderAddress?: CarrierAddress | undefined;
+  recipientAddress?: CarrierAddress | undefined;
   trackingNumber?: string | undefined;
   trackingUrl?: string | undefined;
   idempotencyKey?: string | null | undefined;
@@ -84,6 +93,8 @@ export interface ShipmentDto {
   carrier: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;
+  carrierShipmentId?: string | null | undefined;
+  labelUrl?: string | null | undefined;
   shippedAt: string | null;
   deliveredAt: string | null;
   estimatedDeliveryAt: string | null;
@@ -128,6 +139,8 @@ export class FulfillmentService {
   private readonly repo: FulfillmentRepository;
   private readonly carrierProvider: CarrierProvider;
   private readonly callbackSecret: string;
+  private readonly outboxService?: OutboxService | undefined;
+  private readonly webhookToleranceSeconds: number;
 
   constructor(
     private readonly db: DatabaseConnection,
@@ -137,10 +150,15 @@ export class FulfillmentService {
     private readonly inventoryService: InventoryService,
     carrierProvider?: CarrierProvider,
     callbackSecret = 'whsec_carrier_mock_secret',
+    outboxService?: OutboxService | undefined,
+    webhookToleranceSeconds = 300,
+    private readonly carrierOperationLeaseTimeoutMs = 30000,
   ) {
     this.repo = new FulfillmentRepository(db);
     this.carrierProvider = carrierProvider ?? new MockCarrierProvider();
     this.callbackSecret = callbackSecret;
+    this.outboxService = outboxService;
+    this.webhookToleranceSeconds = webhookToleranceSeconds;
   }
 
   private readonly mutexLocks = new Map<string, Promise<void>>();
@@ -280,7 +298,198 @@ export class FulfillmentService {
       }
     }
 
-    // 5. Transactional Shipment Creation
+    // 5. EXTERNAL CARRIER API CALL (OUTSIDE POSTGRESQL TRANSACTION)
+    // Ensures we do NOT hold an active database lock or transaction open during external HTTP calls
+    const carrierIdempotencyKey = input.idempotencyKey
+      ? `${sellerOrder.sellerTenantId}:${input.idempotencyKey}`
+      : `ship_${sellerOrder.id}_${randomUUID()}`;
+
+    const senderAddress: CarrierAddress = input.senderAddress ?? {
+      name: `Merchant ${sellerOrder.sellerTenantId}`,
+      street1: '123 Merchant Boulevard',
+      city: 'San Francisco',
+      state: 'CA',
+      postalCode: '94105',
+      country: 'US',
+    };
+
+    let recipientAddress: CarrierAddress;
+    if (input.recipientAddress) {
+      recipientAddress = input.recipientAddress;
+    } else {
+      let snapRecipient: CarrierAddress | null = null;
+      try {
+        const customerOrder = await this.orderService.getCustomerOrder(adminActor, sellerOrder.customerOrderId);
+        if (customerOrder.shippingAddress) {
+          const snap = customerOrder.shippingAddress;
+          snapRecipient = {
+            name: snap.recipientName,
+            street1: snap.addressLine1,
+            street2: snap.addressLine2 ?? undefined,
+            city: snap.city,
+            state: snap.state,
+            postalCode: snap.postalCode,
+            country: snap.country,
+            phone: snap.phone ?? undefined,
+          };
+        }
+      } catch {
+        // Fall back gracefully if order could not be retrieved
+      }
+
+      recipientAddress = snapRecipient ?? {
+        name: `Customer ${sellerOrder.customerOrderId.slice(0, 8)}`,
+        street1: '456 Customer Ave',
+        city: 'San Francisco',
+        state: 'CA',
+        postalCode: '94107',
+        country: 'US',
+      };
+    }
+
+    let carrierResult: ProviderShipmentResult;
+
+    // Check if a carrier shipment was already durably created in PostgreSQL
+    const existingOp = await this.repo.findCarrierOperation(carrierIdempotencyKey);
+
+    if (existingOp && existingOp.status === 'COMPLETED' && existingOp.carrier_shipment_id) {
+      this.logger.info(
+        'Reconciled existing carrier shipment from durable PostgreSQL carrier_shipment_operations',
+        {
+          idempotencyKey: carrierIdempotencyKey,
+          carrierShipmentId: existingOp.carrier_shipment_id,
+          trackingNumber: existingOp.tracking_number,
+        },
+      );
+      carrierResult = {
+        carrierShipmentId: existingOp.carrier_shipment_id,
+        carrier: existingOp.carrier,
+        trackingNumber: existingOp.tracking_number || `TRK_${randomUUID().slice(0, 8).toUpperCase()}`,
+        trackingUrl: existingOp.tracking_url,
+        labelUrl: existingOp.label_url,
+        status: 'READY_TO_SHIP',
+        estimatedDeliveryAt: null,
+        metadata: existingOp.response_payload,
+      };
+    } else {
+      // Coordinate across concurrent requests / multi-instance processes via PostgreSQL
+      const claimToken = randomUUID();
+      const claimResult = await this.repo.claimCarrierOperation({
+        sellerOrderId: sellerOrder.id,
+        sellerTenantId: sellerOrder.sellerTenantId,
+        carrier: input.carrier || 'shippo',
+        idempotencyKey: carrierIdempotencyKey,
+        claimToken,
+        leaseTimeoutMs: this.carrierOperationLeaseTimeoutMs,
+      });
+
+      if (!claimResult.claimed) {
+        // Another instance or concurrent request already claimed this operation
+        let polledOp = claimResult.operation;
+        if (polledOp.status === 'IN_PROGRESS') {
+          // Poll up to 25 iterations (2.5 seconds) for the active owner to complete the carrier call
+          for (let i = 0; i < 25 && polledOp.status === 'IN_PROGRESS'; i++) {
+            await new Promise((r) => setTimeout(r, 100));
+            const fresh = await this.repo.findCarrierOperation(carrierIdempotencyKey);
+            if (fresh) polledOp = fresh;
+          }
+        }
+
+        if (polledOp.status === 'COMPLETED' && polledOp.carrier_shipment_id) {
+          // Check if the other instance also completed the business transaction in shipments
+          if (input.idempotencyKey) {
+            const existingShipment = await this.repo.findShipmentByIdempotency(
+              sellerOrder.sellerTenantId,
+              input.idempotencyKey,
+            );
+            if (existingShipment) {
+              const items = await this.repo.findShipmentItemsByShipment(existingShipment.id);
+              return this.toShipmentDto(existingShipment, items);
+            }
+          }
+
+          carrierResult = {
+            carrierShipmentId: polledOp.carrier_shipment_id,
+            carrier: polledOp.carrier,
+            trackingNumber: polledOp.tracking_number || `TRK_${randomUUID().slice(0, 8).toUpperCase()}`,
+            trackingUrl: polledOp.tracking_url,
+            labelUrl: polledOp.label_url,
+            status: 'READY_TO_SHIP',
+            estimatedDeliveryAt: null,
+            metadata: polledOp.response_payload,
+          };
+        } else {
+          // Polling finished without completion. The active owner might have crashed or its lease expired.
+          // Attempt atomic stale-lease reclamation in PostgreSQL.
+          const reclaimToken = randomUUID();
+          const reclaimAttempt = await this.repo.claimCarrierOperation({
+            sellerOrderId: sellerOrder.id,
+            sellerTenantId: sellerOrder.sellerTenantId,
+            carrier: input.carrier || 'shippo',
+            idempotencyKey: carrierIdempotencyKey,
+            claimToken: reclaimToken,
+            leaseTimeoutMs: this.carrierOperationLeaseTimeoutMs,
+          });
+
+          if (reclaimAttempt.claimed) {
+            // Stale lease successfully reclaimed! We now safely own the operation.
+            carrierResult = await this.executeCarrierCallAndPersist({
+              carrierIdempotencyKey,
+              sellerOrder,
+              senderAddress,
+              recipientAddress,
+              orderItemsMap,
+              input,
+            });
+          } else if (
+            reclaimAttempt.operation.status === 'COMPLETED' &&
+            reclaimAttempt.operation.carrier_shipment_id
+          ) {
+            // Check if internal shipment already created
+            if (input.idempotencyKey) {
+              const existingShipment = await this.repo.findShipmentByIdempotency(
+                sellerOrder.sellerTenantId,
+                input.idempotencyKey,
+              );
+              if (existingShipment) {
+                const items = await this.repo.findShipmentItemsByShipment(existingShipment.id);
+                return this.toShipmentDto(existingShipment, items);
+              }
+            }
+
+            carrierResult = {
+              carrierShipmentId: reclaimAttempt.operation.carrier_shipment_id,
+              carrier: reclaimAttempt.operation.carrier,
+              trackingNumber:
+                reclaimAttempt.operation.tracking_number ||
+                `TRK_${randomUUID().slice(0, 8).toUpperCase()}`,
+              trackingUrl: reclaimAttempt.operation.tracking_url,
+              labelUrl: reclaimAttempt.operation.label_url,
+              status: 'READY_TO_SHIP',
+              estimatedDeliveryAt: null,
+              metadata: reclaimAttempt.operation.response_payload,
+            };
+          } else {
+            throw new ConflictError(
+              `Concurrent fulfillment in progress for seller order '${sellerOrder.id}'. Please retry shortly.`,
+            );
+          }
+        }
+      } else {
+        // We claimed the operation. Call external carrier API (OUTSIDE PostgreSQL transaction)
+        carrierResult = await this.executeCarrierCallAndPersist({
+          carrierIdempotencyKey,
+          sellerOrder,
+          senderAddress,
+          recipientAddress,
+          orderItemsMap,
+          input,
+        });
+      }
+    }
+
+    // 6. SHORT ATOMIC POSTGRESQL TRANSACTION
+    // Atomically persist shipment, items, status update, and outbox event
     const shipmentId = randomUUID();
     return this.db.withTransaction(async (tx) => {
       // Database row-level lock on seller order to serialize fulfillment across application processes
@@ -314,17 +523,32 @@ export class FulfillmentService {
         }
       }
 
+      const effectiveCarrier = carrierResult.carrier || input.carrier || 'MockLogistics';
+      const effectiveTracking =
+        carrierResult.trackingNumber ||
+        input.trackingNumber ||
+        `TRK_${randomUUID().slice(0, 8).toUpperCase()}`;
+      const effectiveTrackingUrl = carrierResult.trackingUrl || input.trackingUrl || null;
+      const effectiveStatus = carrierResult.status || 'READY_TO_SHIP';
+
       const shipmentRow = await txRepo.createShipment({
         id: shipmentId,
         sellerOrderId: sellerOrder.id,
         customerOrderId: sellerOrder.customerOrderId,
         sellerTenantId: sellerOrder.sellerTenantId,
-        status: 'READY_TO_SHIP',
-        carrier: input.carrier,
-        trackingNumber: input.trackingNumber,
-        trackingUrl: input.trackingUrl,
-        idempotencyKey: input.idempotencyKey,
-        metadata: input.metadata,
+        status: effectiveStatus,
+        carrier: effectiveCarrier,
+        trackingNumber: effectiveTracking,
+        trackingUrl: effectiveTrackingUrl,
+        carrierShipmentId: carrierResult.carrierShipmentId,
+        labelUrl: carrierResult.labelUrl,
+        idempotencyKey: input.idempotencyKey ?? null,
+        metadata: {
+          ...(input.metadata ?? {}),
+          ...(carrierResult.metadata ?? {}),
+          carrierShipmentId: carrierResult.carrierShipmentId,
+          labelUrl: carrierResult.labelUrl,
+        },
       });
 
       const itemRows: ShipmentItemRow[] = [];
@@ -351,8 +575,89 @@ export class FulfillmentService {
         }
       }
 
+      // 7. Atomic Outbox Event in SAME PostgreSQL transaction
+      if (this.outboxService) {
+        const outboxEvent = createDomainEvent({
+          eventType: EventTypes.FULFILLMENT_SHIPMENT_CREATED,
+          eventVersion: 1,
+          aggregateType: 'shipment',
+          aggregateId: shipmentId,
+          tenantId: sellerOrder.sellerTenantId,
+          payload: {
+            shipmentId,
+            sellerOrderId: sellerOrder.id,
+            customerOrderId: sellerOrder.customerOrderId,
+            carrier: effectiveCarrier,
+            carrierShipmentId: carrierResult.carrierShipmentId,
+            trackingNumber: effectiveTracking,
+            status: effectiveStatus,
+            items: input.items,
+          },
+        });
+        await this.outboxService.recordEvent(tx, outboxEvent);
+      }
+
       return this.toShipmentDto(shipmentRow, itemRows);
     });
+  }
+
+  private async executeCarrierCallAndPersist(params: {
+    carrierIdempotencyKey: string;
+    sellerOrder: SellerOrderDto;
+    senderAddress: CarrierAddress;
+    recipientAddress: CarrierAddress;
+    orderItemsMap: Map<string, OrderItemDto>;
+    input: CreateShipmentInput;
+  }): Promise<ProviderShipmentResult> {
+    const {
+      carrierIdempotencyKey,
+      sellerOrder,
+      senderAddress,
+      recipientAddress,
+      orderItemsMap,
+      input,
+    } = params;
+
+    try {
+      const carrierResult = await this.carrierProvider.createShipment({
+        sellerOrderId: sellerOrder.id,
+        customerOrderId: sellerOrder.customerOrderId,
+        senderAddress,
+        recipientAddress,
+        items: input.items.map((it) => {
+          const orderItem = orderItemsMap.get(it.orderItemId);
+          return {
+            orderItemId: it.orderItemId,
+            productTitle: orderItem?.productName,
+            quantity: it.quantity,
+            unitPrice: orderItem?.unitPriceAmount,
+          };
+        }),
+        carrier: input.carrier,
+        trackingNumber: input.trackingNumber,
+        serviceLevel: input.serviceLevel,
+        idempotencyKey: carrierIdempotencyKey,
+        metadata: input.metadata,
+      });
+
+      // Durably persist the carrier shipment result into PostgreSQL (independent commit)
+      await this.repo.completeCarrierOperation(
+        carrierIdempotencyKey,
+        {
+          carrierShipmentId: carrierResult.carrierShipmentId,
+          carrier: carrierResult.carrier,
+          trackingNumber: carrierResult.trackingNumber,
+          trackingUrl: carrierResult.trackingUrl,
+          labelUrl: carrierResult.labelUrl,
+          responsePayload: (carrierResult.metadata as Record<string, unknown>) ?? {},
+        },
+      );
+
+      return carrierResult;
+    } catch (carrierErr) {
+      await this.repo.failCarrierOperation(carrierIdempotencyKey);
+      throw carrierErr;
+    }
   }
 
   async getShipment(actor: AuthorizedActor, id: string): Promise<ShipmentDto> {
@@ -474,23 +779,144 @@ export class FulfillmentService {
       extra.deliveredAt = new Date();
     }
 
-    const updated = await this.repo.updateShipmentStatus(
-      shipmentId,
-      current.status,
-      nextStatus,
-      extra,
-    );
-    if (!updated) {
-      throw new InvalidStateTransitionError('Concurrent modification conflict on shipment status update');
+    return this.db.withTransaction(async (tx) => {
+      const txRepo = new FulfillmentRepository(tx);
+      const updated = await txRepo.updateShipmentStatus(
+        shipmentId,
+        current.status,
+        nextStatus,
+        extra,
+      );
+      if (!updated) {
+        throw new InvalidStateTransitionError('Concurrent modification conflict on shipment status update');
+      }
+
+      // If shipment is DELIVERED, evaluate if Seller Order can transition to COMPLETED
+      if (nextStatus === 'DELIVERED') {
+        await this.evaluateSellerOrderCompletionInTx(tx, current.seller_order_id);
+      }
+
+      // Record outbox event in tx
+      if (this.outboxService) {
+        const outboxEvent = createDomainEvent({
+          eventType: EventTypes.FULFILLMENT_SHIPMENT_STATUS_CHANGED,
+          eventVersion: 1,
+          aggregateType: 'shipment',
+          aggregateId: shipmentId,
+          tenantId: current.seller_tenant_id,
+          payload: {
+            shipmentId,
+            sellerOrderId: current.seller_order_id,
+            customerOrderId: current.customer_order_id,
+            carrier: current.carrier,
+            trackingNumber: current.tracking_number,
+            previousStatus: current.status,
+            newStatus: nextStatus,
+          },
+        });
+        await this.outboxService.recordEvent(tx, outboxEvent);
+      }
+
+      const items = await txRepo.findShipmentItemsByShipment(updated.id);
+      return this.toShipmentDto(updated, items);
+    });
+  }
+
+  async cancelShipment(
+    actor: AuthorizedActor,
+    shipmentId: string,
+    reason?: string,
+  ): Promise<ShipmentDto> {
+    const current = await this.repo.findShipmentById(shipmentId);
+    if (!current) {
+      throw new NotFoundError(`Shipment '${shipmentId}' not found`);
     }
 
-    // If shipment is DELIVERED, evaluate if Seller Order can transition to COMPLETED
-    if (nextStatus === 'DELIVERED') {
-      await this.evaluateSellerOrderCompletion(current.seller_order_id, actor);
+    if (actor.role !== 'ADMINISTRATOR') {
+      RbacPolicy.requirePermission(actor, 'fulfillment:update-own');
+      RbacPolicy.requireTenantMatch(actor, current.seller_tenant_id);
     }
 
-    const items = await this.repo.findShipmentItemsByShipment(updated.id);
-    return this.toShipmentDto(updated, items);
+    if (current.status !== 'PENDING' && current.status !== 'READY_TO_SHIP') {
+      throw new InvalidStateTransitionError(
+        `Cannot cancel shipment in status '${current.status}'. Only PENDING or READY_TO_SHIP shipments can be cancelled.`,
+      );
+    }
+
+    // Call carrier cancellation if carrier shipment id exists
+    const carrierShipmentId =
+      current.carrier_shipment_id ||
+      (current.metadata?.['carrierShipmentId'] as string | undefined);
+    if (carrierShipmentId && this.carrierProvider.cancelShipment) {
+      try {
+        await this.carrierProvider.cancelShipment(carrierShipmentId);
+      } catch (err) {
+        this.logger.warn('Carrier cancellation call warning', {
+          shipmentId,
+          carrierShipmentId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    return this.db.withTransaction(async (tx) => {
+      const txRepo = new FulfillmentRepository(tx);
+      const updated = await txRepo.updateShipmentStatus(
+        shipmentId,
+        current.status,
+        'CANCELLED',
+        {
+          metadata: {
+            ...current.metadata,
+            cancelReason: reason || 'Merchant cancelled',
+            cancelledAt: new Date().toISOString(),
+          },
+        },
+      );
+      if (!updated) {
+        throw new InvalidStateTransitionError('Concurrent modification conflict on shipment cancellation');
+      }
+
+      if (this.outboxService) {
+        const outboxEvent = createDomainEvent({
+          eventType: EventTypes.FULFILLMENT_SHIPMENT_STATUS_CHANGED,
+          eventVersion: 1,
+          aggregateType: 'shipment',
+          aggregateId: shipmentId,
+          tenantId: current.seller_tenant_id,
+          payload: {
+            shipmentId,
+            sellerOrderId: current.seller_order_id,
+            customerOrderId: current.customer_order_id,
+            previousStatus: current.status,
+            newStatus: 'CANCELLED',
+            reason,
+          },
+        });
+        await this.outboxService.recordEvent(tx, outboxEvent);
+      }
+
+      const items = await txRepo.findShipmentItemsByShipment(shipmentId);
+      return this.toShipmentDto(updated, items);
+    });
+  }
+
+  async getShipmentTracking(
+    actor: AuthorizedActor,
+    shipmentId: string,
+  ): Promise<CarrierTrackingEvent> {
+    const shipment = await this.getShipment(actor, shipmentId);
+    if (!shipment.carrier || !shipment.trackingNumber) {
+      return {
+        eventId: `trk_${shipmentId}`,
+        carrier: shipment.carrier || 'Unknown',
+        trackingNumber: shipment.trackingNumber || '',
+        status: shipment.status,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    return await this.carrierProvider.getTracking(shipment.carrier, shipment.trackingNumber);
   }
 
   async updateShipmentTracking(
@@ -526,112 +952,164 @@ export class FulfillmentService {
     return this.toShipmentDto(updated, items);
   }
 
+  // --- CARRIER WEBHOOK TRANSACTION ---
+
   async handleCarrierCallback(
     rawBody: string,
     signatureHeader: string,
   ): Promise<{ processed: boolean; deduplicated?: boolean; shipmentId: string; status: ShipmentStatus }> {
+    // 1. Signature Verification outside transaction (rejects invalid/expired signatures)
     const isValid = this.carrierProvider.verifyCallbackSignature(
       rawBody,
       signatureHeader,
       this.callbackSecret,
+      this.webhookToleranceSeconds,
     );
     if (!isValid) {
-      this.logger.warn('Rejected carrier callback due to invalid signature');
+      this.logger.warn('Rejected carrier callback due to invalid signature or expired timestamp');
       throw new UnauthorizedError('Invalid carrier callback signature');
     }
 
     const event = this.carrierProvider.parseTrackingCallback(rawBody);
-    const shipment = await this.repo.findShipmentByTracking(event.carrier, event.trackingNumber);
-    if (!shipment) {
-      throw new NotFoundError(
-        `Shipment with carrier '${event.carrier}' and tracking '${event.trackingNumber}' not found`,
-      );
-    }
 
-    // 1. Durable Deduplication Check on (carrier, provider_event_id)
-    const existingEvent = await this.repo.findCarrierWebhookEvent(event.carrier, event.eventId);
-    if (existingEvent) {
-      return {
-        processed: true,
-        deduplicated: true,
-        shipmentId: shipment.id,
-        status: shipment.status,
-      };
-    }
+    // 2. Single Atomic PostgreSQL Transaction
+    return this.db.withTransaction(async (tx) => {
+        const txRepo = new FulfillmentRepository(tx);
 
-    // 2. Record Event in carrier_webhook_events
-    try {
-      await this.repo.recordCarrierWebhookEvent({
-        id: randomUUID(),
-        carrier: event.carrier,
-        providerEventId: event.eventId,
-        trackingNumber: event.trackingNumber,
-        status: event.status,
-        payload: {
-          location: event.location,
-          timestamp: event.timestamp,
-        },
-      });
-    } catch (err: unknown) {
-      if (
-        err instanceof Error &&
-        (err.message.includes('uq_carrier_webhook_event') ||
-          (err as { code?: string }).code === '23505')
-      ) {
-        return {
-          processed: true,
-          deduplicated: true,
-          shipmentId: shipment.id,
-          status: shipment.status,
+        // Lock shipment row to serialize concurrent webhook deliveries
+        const shipment = await txRepo.findShipmentByTrackingForUpdate(event.carrier, event.trackingNumber);
+        if (!shipment) {
+          throw new NotFoundError(
+            `Shipment with carrier '${event.carrier}' and tracking '${event.trackingNumber}' not found`,
+          );
+        }
+
+        // Replay / Duplicate check in carrier_webhook_events
+        const existingEvent = await txRepo.findCarrierWebhookEvent(event.carrier, event.eventId);
+        if (existingEvent) {
+          return {
+            processed: true,
+            deduplicated: true,
+            shipmentId: shipment.id,
+            status: shipment.status,
+          };
+        }
+
+        // Record in carrier_webhook_events ledger
+        try {
+          await txRepo.recordCarrierWebhookEvent({
+            id: randomUUID(),
+            carrier: event.carrier,
+            providerEventId: event.eventId,
+            trackingNumber: event.trackingNumber,
+            status: event.status,
+            payload: {
+              location: event.location,
+              timestamp: event.timestamp,
+              signature: event.signature,
+            },
+          });
+        } catch (err: unknown) {
+          if (
+            err instanceof Error &&
+            (err.message.includes('uq_carrier_webhook_event') ||
+              (err as { code?: string }).code === '23505')
+          ) {
+            return {
+              processed: true,
+              deduplicated: true,
+              shipmentId: shipment.id,
+              status: shipment.status,
+            };
+          }
+          throw err;
+        }
+
+        // State machine validation / Out-of-order protection:
+        // Monotonic progression: do not regress terminal or forward states
+        const validTransitions: Record<ShipmentStatus, ShipmentStatus[]> = {
+          PENDING: ['READY_TO_SHIP', 'CANCELLED'],
+          READY_TO_SHIP: ['SHIPPED', 'CANCELLED'],
+          SHIPPED: ['IN_TRANSIT', 'FAILED'],
+          IN_TRANSIT: ['OUT_FOR_DELIVERY', 'FAILED'],
+          OUT_FOR_DELIVERY: ['DELIVERED', 'FAILED'],
+          DELIVERED: ['RETURNED'],
+          CANCELLED: [],
+          FAILED: [],
+          RETURNED: [],
         };
-      }
-      throw err;
-    }
 
-    const systemActor: AuthorizedActor = {
-      userId: 'system_carrier',
-      tenantId: shipment.seller_tenant_id,
-      role: 'ADMINISTRATOR',
-    };
+        let latestStatus = shipment.status;
+        if (shipment.status !== event.status && validTransitions[shipment.status]?.includes(event.status)) {
+          const extra: { shippedAt?: Date; deliveredAt?: Date } = {};
+          if (event.status === 'SHIPPED') extra.shippedAt = new Date(event.timestamp);
+          else if (event.status === 'DELIVERED') extra.deliveredAt = new Date(event.timestamp);
 
-    // If callback status matches or is forward transition, apply it
-    let latestStatus = shipment.status;
-    if (shipment.status !== event.status) {
-      try {
-        const updated = await this.updateShipmentStatus(systemActor, shipment.id, event.status);
-        latestStatus = updated.status;
-      } catch (err) {
-        this.logger.warn('Carrier status transition not applicable to current shipment state', {
-          shipmentId: shipment.id,
-          currentStatus: shipment.status,
-          eventStatus: event.status,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-    }
+          const updated = await txRepo.updateShipmentStatus(
+            shipment.id,
+            shipment.status,
+            event.status,
+            extra,
+          );
+          if (updated) {
+            latestStatus = updated.status;
 
-    return { processed: true, shipmentId: shipment.id, status: latestStatus };
+            // Record outbox event in same transaction
+            if (this.outboxService) {
+              const outboxEvt = createDomainEvent({
+                eventType: EventTypes.FULFILLMENT_SHIPMENT_STATUS_CHANGED,
+                eventVersion: 1,
+                aggregateType: 'shipment',
+                aggregateId: shipment.id,
+                tenantId: shipment.seller_tenant_id,
+                payload: {
+                  shipmentId: shipment.id,
+                  sellerOrderId: shipment.seller_order_id,
+                  customerOrderId: shipment.customer_order_id,
+                  carrier: shipment.carrier,
+                  trackingNumber: shipment.tracking_number,
+                  previousStatus: shipment.status,
+                  newStatus: event.status,
+                  location: event.location,
+                  timestamp: event.timestamp,
+                },
+              });
+              await this.outboxService.recordEvent(tx, outboxEvt);
+            }
+
+            if (event.status === 'DELIVERED') {
+              await this.evaluateSellerOrderCompletionInTx(tx, shipment.seller_order_id);
+            }
+          }
+        }
+
+        return { processed: true, shipmentId: shipment.id, status: latestStatus };
+      });
   }
 
-  private async evaluateSellerOrderCompletion(
+  private async evaluateSellerOrderCompletionInTx(
+    tx: DatabaseConnection,
     sellerOrderId: string,
-    actor: AuthorizedActor,
   ): Promise<void> {
     try {
-      const adminActor: AuthorizedActor = { ...actor, role: 'ADMINISTRATOR' };
-      const sellerOrder = await this.orderService.getSellerOrder(adminActor, sellerOrderId);
-      if (!sellerOrder || sellerOrder.status === 'COMPLETED') return;
-
-      const shipments = await this.repo.findShipmentsBySellerOrder(sellerOrderId);
+      const txRepo = new FulfillmentRepository(tx);
+      const shipments = await txRepo.findShipmentsBySellerOrder(sellerOrderId);
       if (shipments.length === 0) return;
 
       const allDelivered = shipments.every((s) => s.status === 'DELIVERED');
       if (!allDelivered) return;
 
-      // Check if all order item quantities are fully fulfilled
+      const adminActor: AuthorizedActor = {
+        userId: 'system_carrier',
+        tenantId: shipments[0]!.seller_tenant_id,
+        role: 'ADMINISTRATOR',
+      };
+      const sellerOrder = await this.orderService.getSellerOrder(adminActor, sellerOrderId);
+      if (!sellerOrder || sellerOrder.status === 'COMPLETED') return;
+
       let fullyFulfilled = true;
       for (const item of sellerOrder.items ?? []) {
-        const delivered = await this.repo.getTotalDeliveredQuantityByOrderItem(item.id);
+        const delivered = await txRepo.getTotalDeliveredQuantityByOrderItem(item.id);
         if (delivered < item.quantity) {
           fullyFulfilled = false;
           break;
@@ -642,7 +1120,7 @@ export class FulfillmentService {
         await this.orderService.updateSellerOrderStatus(adminActor, sellerOrderId, 'COMPLETED');
       }
     } catch (err) {
-      this.logger.warn('Failed to evaluate seller order completion', {
+      this.logger.warn('Failed to evaluate seller order completion in tx', {
         sellerOrderId,
         error: err instanceof Error ? err.message : String(err),
       });
@@ -836,6 +1314,26 @@ export class FulfillmentService {
         itemRows.push(itemRow);
       }
 
+      // Outbox event for return request
+      if (this.outboxService) {
+        const outboxEvt = createDomainEvent({
+          eventType: EventTypes.FULFILLMENT_RETURN_STATUS_CHANGED,
+          eventVersion: 1,
+          aggregateType: 'return',
+          aggregateId: returnId,
+          tenantId: sellerOrder.sellerTenantId,
+          payload: {
+            returnId,
+            customerOrderId: customerOrder.id,
+            sellerOrderId: sellerOrder.id,
+            status: 'REQUESTED',
+            reason: input.reason,
+            items: input.items,
+          },
+        });
+        await this.outboxService.recordEvent(tx, outboxEvt);
+      }
+
       return this.toReturnDto(returnRow, itemRows);
     });
   }
@@ -966,12 +1464,59 @@ export class FulfillmentService {
       receivedAt?: Date | undefined;
       completedAt?: Date | undefined;
       refundId?: string | undefined;
+      metadata?: Record<string, unknown> | undefined;
     } = {};
 
     if (nextStatus === 'APPROVED') extra.approvedAt = new Date();
     else if (nextStatus === 'REJECTED') extra.rejectedAt = new Date();
     else if (nextStatus === 'RECEIVED') extra.receivedAt = new Date();
     else if (nextStatus === 'COMPLETED') extra.completedAt = new Date();
+
+    // If return is APPROVED, call carrier for return shipment label if supported
+    if (nextStatus === 'APPROVED' && this.carrierProvider.createReturnShipment) {
+      try {
+        const returnItems = await this.repo.findReturnItemsByReturn(current.id);
+        const returnShipmentResult = await this.carrierProvider.createReturnShipment({
+          returnId: current.id,
+          sellerOrderId: current.seller_order_id,
+          customerOrderId: current.customer_order_id,
+          senderAddress: {
+            name: `Customer ${current.customer_tenant_id.slice(0, 8)}`,
+            street1: '456 Customer Ave',
+            city: 'San Francisco',
+            state: 'CA',
+            postalCode: '94107',
+            country: 'US',
+          },
+          recipientAddress: {
+            name: `Merchant ${current.seller_tenant_id}`,
+            street1: '123 Merchant Boulevard',
+            city: 'San Francisco',
+            state: 'CA',
+            postalCode: '94105',
+            country: 'US',
+          },
+          items: returnItems.map((ri) => ({
+            orderItemId: ri.order_item_id,
+            quantity: ri.quantity,
+          })),
+          idempotencyKey: `ret_ship_${current.id}`,
+        });
+
+        extra.metadata = {
+          ...(current.metadata ?? {}),
+          returnCarrier: returnShipmentResult.carrier,
+          returnTrackingNumber: returnShipmentResult.trackingNumber,
+          returnLabelUrl: returnShipmentResult.labelUrl,
+          returnShipmentId: returnShipmentResult.carrierShipmentId,
+        };
+      } catch (err) {
+        this.logger.warn('Could not generate carrier return shipment label', {
+          returnId: current.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
 
     // HANDOFF: When return is COMPLETED, trigger Payment Refund & Inventory restocking
     if (nextStatus === 'COMPLETED') {
@@ -1044,18 +1589,41 @@ export class FulfillmentService {
       }
     }
 
-    const updated = await this.repo.updateReturnStatus(
-      returnId,
-      current.status,
-      nextStatus,
-      extra,
-    );
-    if (!updated) {
-      throw new InvalidStateTransitionError('Concurrent modification conflict on return status update');
-    }
+    return this.db.withTransaction(async (tx) => {
+      const txRepo = new FulfillmentRepository(tx);
+      const updated = await txRepo.updateReturnStatus(
+        returnId,
+        current.status,
+        nextStatus,
+        extra,
+      );
+      if (!updated) {
+        throw new InvalidStateTransitionError('Concurrent modification conflict on return status update');
+      }
 
-    const items = await this.repo.findReturnItemsByReturn(updated.id);
-    return this.toReturnDto(updated, items);
+      // Outbox event in same transaction
+      if (this.outboxService) {
+        const outboxEvt = createDomainEvent({
+          eventType: EventTypes.FULFILLMENT_RETURN_STATUS_CHANGED,
+          eventVersion: 1,
+          aggregateType: 'return',
+          aggregateId: returnId,
+          tenantId: current.seller_tenant_id,
+          payload: {
+            returnId,
+            customerOrderId: current.customer_order_id,
+            sellerOrderId: current.seller_order_id,
+            previousStatus: current.status,
+            newStatus: nextStatus,
+            refundId: extra.refundId ?? null,
+          },
+        });
+        await this.outboxService.recordEvent(tx, outboxEvt);
+      }
+
+      const items = await txRepo.findReturnItemsByReturn(updated.id);
+      return this.toReturnDto(updated, items);
+    });
   }
 
   // --- DTO CONVERTERS ---
@@ -1070,6 +1638,14 @@ export class FulfillmentService {
       carrier: row.carrier,
       trackingNumber: row.tracking_number,
       trackingUrl: row.tracking_url,
+      carrierShipmentId:
+        row.carrier_shipment_id ??
+        (row.metadata?.['carrierShipmentId'] as string | undefined) ??
+        null,
+      labelUrl:
+        row.label_url ??
+        (row.metadata?.['labelUrl'] as string | undefined) ??
+        null,
       shippedAt: row.shipped_at ? row.shipped_at.toISOString() : null,
       deliveredAt: row.delivered_at ? row.delivered_at.toISOString() : null,
       estimatedDeliveryAt: row.estimated_delivery_at

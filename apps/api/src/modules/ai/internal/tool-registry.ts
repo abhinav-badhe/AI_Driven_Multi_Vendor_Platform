@@ -16,6 +16,7 @@ import type { IMlSignalReader } from '../../analytics-ml/index.js';
 import type { FulfillmentService } from '../../fulfillment/index.js';
 import type { PaymentService } from '../../payment/index.js';
 import type { SearchService } from '../../search/index.js';
+import type { CartService, CheckoutService } from '../../cart-checkout/index.js';
 
 export interface ToolRegistryDependencies {
   orderService?: OrderService | undefined;
@@ -27,6 +28,8 @@ export interface ToolRegistryDependencies {
   fulfillmentService?: FulfillmentService | undefined;
   paymentService?: PaymentService | undefined;
   searchService?: SearchService | undefined;
+  cartService?: CartService | undefined;
+  checkoutService?: CheckoutService | undefined;
 }
 
 export class ToolRegistry {
@@ -476,6 +479,336 @@ export class ToolRegistry {
           amount: intent.amount,
           currency: intent.currency,
           createdAt: intent.createdAt,
+        };
+      },
+    });
+
+    // --- 8. Search & Category Tools ---
+
+    this.registerTool({
+      name: 'search_products',
+      description: 'Searches products and canonical catalog listings by keyword or category',
+      inputSchema: z.object({
+        query: z.string().min(1),
+        limit: z.number().optional().default(5),
+      }),
+      outputSchema: z.array(
+        z.object({
+          id: z.string(),
+          title: z.string(),
+          brand: z.string().nullable().optional(),
+          minPrice: z.number().nullable().optional(),
+          maxPrice: z.number().nullable().optional(),
+          offerCount: z.number().optional(),
+        }),
+      ),
+      requiredPermission: 'catalog:read',
+      owningContext: 'search',
+      auditClassification: 'READ_PUBLIC',
+      execute: async (ctx, input) => {
+        if (!this.deps.searchService) return [];
+        const results = await this.deps.searchService.search(ctx.actor, {
+          q: input.query,
+          pageSize: input.limit,
+        });
+        return results.items.map((it) => ({
+          id: it.productId,
+          title: it.title,
+          brand: it.brand ?? null,
+          minPrice: it.minPrice ?? null,
+          maxPrice: it.maxPrice ?? null,
+          offerCount: it.offers?.length ?? it.totalOffersCount ?? 0,
+        }));
+      },
+    });
+
+    this.registerTool({
+      name: 'browse_categories',
+      description: 'Lists all canonical product categories and departments available on the platform',
+      inputSchema: z.object({
+        parentId: z.string().nullable().optional(),
+      }),
+      outputSchema: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          slug: z.string(),
+          parentId: z.string().nullable().optional(),
+        }),
+      ),
+      requiredPermission: 'catalog:read',
+      owningContext: 'catalog',
+      auditClassification: 'READ_PUBLIC',
+      execute: async () => {
+        if (!this.deps.catalogService) return [];
+        const categories = await this.deps.catalogService.listCategories();
+        return categories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          parentId: c.parentId ?? null,
+        }));
+      },
+    });
+
+    this.registerTool({
+      name: 'get_product_offers',
+      description: 'Retrieves all available merchant listing offers, prices, and stock for a product',
+      inputSchema: z.object({
+        productId: z.string(),
+      }),
+      outputSchema: z.array(
+        z.object({
+          listingId: z.string(),
+          merchantTenantId: z.string(),
+          priceAmount: z.number(),
+          currency: z.string(),
+          compareAtPrice: z.number().nullable().optional(),
+          status: z.string(),
+        }),
+      ),
+      requiredPermission: 'listing:read-any',
+      owningContext: 'marketplace',
+      auditClassification: 'READ_PUBLIC',
+      execute: async (ctx, input) => {
+        if (!this.deps.listingService || !this.deps.catalogService) return [];
+        // First retrieve SKUs for the product
+        try {
+          const skus = await this.deps.catalogService.listSkusByProduct(input.productId, ctx.actor);
+          const allOffers: Array<{
+            listingId: string;
+            merchantTenantId: string;
+            priceAmount: number;
+            currency: string;
+            compareAtPrice: number | null | undefined;
+            status: string;
+          }> = [];
+
+          for (const sku of skus) {
+            const listings = await this.deps.listingService.getActiveListingsForSku(sku.id);
+            for (const l of listings) {
+              allOffers.push({
+                listingId: l.id,
+                merchantTenantId: l.tenantId,
+                priceAmount: l.priceAmount,
+                currency: l.currency,
+                compareAtPrice: l.compareAtPrice,
+                status: l.status,
+              });
+            }
+          }
+          return allOffers;
+        } catch {
+          return [];
+        }
+      },
+    });
+
+    // --- 9. Cart & Checkout Commerce Tools ---
+
+    this.registerTool({
+      name: 'add_to_cart',
+      description: 'Adds a merchant listing product to the customer shopping cart',
+      inputSchema: z.object({
+        listingId: z.string(),
+        quantity: z.number().int().positive().default(1),
+      }),
+      outputSchema: z.object({
+        cartId: z.string(),
+        itemCount: z.number(),
+        subtotalAmount: z.number(),
+        currency: z.string().nullable(),
+        addedListingId: z.string(),
+        quantityAdded: z.number(),
+      }),
+      requiredPermission: 'cart:write-own',
+      owningContext: 'cart-checkout',
+      auditClassification: 'MUTATE',
+      execute: async (ctx, input) => {
+        if (!this.deps.cartService) {
+          throw new NotFoundError('Cart service unavailable');
+        }
+        const qty = input.quantity ?? 1;
+        const cart = await this.deps.cartService.addItem(ctx.actor, {
+          listingId: input.listingId,
+          quantity: qty,
+        });
+        return {
+          cartId: cart.id,
+          itemCount: cart.itemCount,
+          subtotalAmount: cart.subtotalAmount,
+          currency: cart.currency,
+          addedListingId: input.listingId,
+          quantityAdded: qty,
+        };
+      },
+    });
+
+    this.registerTool({
+      name: 'get_cart',
+      description: 'Retrieves current items, quantities, and subtotal in the customer shopping cart',
+      inputSchema: z.object({}),
+      outputSchema: z.object({
+        cartId: z.string(),
+        itemCount: z.number(),
+        subtotalAmount: z.number(),
+        currency: z.string().nullable(),
+        items: z.array(
+          z.object({
+            listingId: z.string(),
+            productTitle: z.string().nullable().optional(),
+            quantity: z.number(),
+            unitPriceAmount: z.number(),
+            lineTotalAmount: z.number(),
+          }),
+        ),
+      }),
+      requiredPermission: 'cart:read-own',
+      owningContext: 'cart-checkout',
+      auditClassification: 'READ_SENSITIVE',
+      execute: async (ctx) => {
+        if (!this.deps.cartService) {
+          return { cartId: '', itemCount: 0, subtotalAmount: 0, currency: 'USD', items: [] };
+        }
+        const cart = await this.deps.cartService.getOrCreateCart(ctx.actor);
+        return {
+          cartId: cart.id,
+          itemCount: cart.itemCount,
+          subtotalAmount: cart.subtotalAmount,
+          currency: cart.currency,
+          items: cart.items.map((it) => ({
+            listingId: it.listingId,
+            productTitle: it.productTitle ?? null,
+            quantity: it.quantity,
+            unitPriceAmount: it.unitPriceAmount,
+            lineTotalAmount: it.lineTotalAmount,
+          })),
+        };
+      },
+    });
+
+    this.registerTool({
+      name: 'start_checkout',
+      description: 'Initiates a checkout session from the active cart and reserves inventory',
+      inputSchema: z.object({
+        idempotencyKey: z.string().optional(),
+      }),
+      outputSchema: z.object({
+        checkoutSessionId: z.string(),
+        status: z.string(),
+        totalAmount: z.number(),
+        currency: z.string(),
+        itemCount: z.number(),
+        expiresAt: z.string(),
+      }),
+      requiredPermission: 'checkout:create-own',
+      owningContext: 'cart-checkout',
+      auditClassification: 'MUTATE',
+      execute: async (ctx, input) => {
+        if (!this.deps.checkoutService) {
+          throw new NotFoundError('Checkout service unavailable');
+        }
+        const idempotencyKey = input.idempotencyKey ?? `wa-chk-${ctx.correlationId}`;
+        let session = await this.deps.checkoutService.createCheckoutSession(ctx.actor, {
+          idempotencyKey,
+        });
+        if (session.status === 'OPEN') {
+          session = await this.deps.checkoutService.reserveCheckoutInventory(ctx.actor, session.id);
+        }
+        return {
+          checkoutSessionId: session.id,
+          status: session.status,
+          totalAmount: session.totalAmount,
+          currency: session.currency,
+          itemCount: session.items.length,
+          expiresAt: session.expiresAt,
+        };
+      },
+    });
+
+    this.registerTool({
+      name: 'complete_payment',
+      description: 'Processes payment and finalizes the customer order from a reserved checkout session',
+      inputSchema: z.object({
+        checkoutSessionId: z.string(),
+        paymentMethod: z.string().optional().default('pm_card_visa'),
+      }),
+      outputSchema: z.object({
+        orderId: z.string(),
+        status: z.string(),
+        totalAmount: z.number(),
+        currency: z.string(),
+        sellerOrderCount: z.number(),
+        createdAt: z.string(),
+      }),
+      requiredPermission: 'order:create-own',
+      owningContext: 'orders',
+      auditClassification: 'MUTATE',
+      execute: async (ctx, input) => {
+        if (!this.deps.checkoutService || !this.deps.paymentService || !this.deps.orderService) {
+          throw new NotFoundError('Order or Payment service unavailable');
+        }
+        const session = await this.deps.checkoutService.getCheckoutSession(ctx.actor, input.checkoutSessionId);
+
+        const intent = await this.deps.paymentService.createPaymentIntent(ctx.actor, {
+          checkoutSessionId: session.id,
+          idempotencyKey: `wa-pi-${session.id}`,
+        });
+
+        const attempt = await this.deps.paymentService.createPaymentAttempt(
+          ctx.actor,
+          intent.id,
+          {
+            paymentMethod: input.paymentMethod,
+            idempotencyKey: `wa-att-${session.id}`,
+          },
+        );
+
+        if (attempt.status !== 'SUCCEEDED') {
+          throw new Error(`Payment declined: ${attempt.failureMessage ?? 'Card was declined'}`);
+        }
+
+        const order = await this.deps.orderService.createOrderFromCheckout(ctx.actor, {
+          checkoutSessionId: session.id,
+          paymentIntentId: intent.id,
+          idempotencyKey: `wa-ord-${session.id}`,
+        });
+
+        return {
+          orderId: order.id,
+          status: order.status,
+          totalAmount: order.totalAmount,
+          currency: order.currency,
+          sellerOrderCount: order.sellerOrders?.length ?? 1,
+          createdAt: order.createdAt,
+        };
+      },
+    });
+
+    this.registerTool({
+      name: 'get_return_policy',
+      description: 'Retrieves return and refund eligibility rules, conditions, and instructions',
+      inputSchema: z.object({
+        category: z.string().optional(),
+      }),
+      outputSchema: z.object({
+        windowDays: z.number(),
+        conditions: z.array(z.string()),
+        instructions: z.string(),
+      }),
+      requiredPermission: 'catalog:read',
+      owningContext: 'fulfillment',
+      auditClassification: 'READ_PUBLIC',
+      execute: async () => {
+        return {
+          windowDays: 30,
+          conditions: [
+            'Item must be unused and in original packaging',
+            'Proof of purchase or Order ID is required',
+            'Return shipping label will be provided upon approval',
+          ],
+          instructions:
+            'To initiate a return, navigate to Orders in your account or message our support with your Order ID. Once approved by the merchant, refunds are credited to the original payment method.',
         };
       },
     });

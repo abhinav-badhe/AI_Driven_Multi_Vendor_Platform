@@ -82,6 +82,31 @@ export interface AnalyticsCatalogFact {
   occurredAt: string;
 }
 
+export interface AnalyticsPromotionFact {
+  factId: string;
+  eventId: string;
+  tenantId: string;
+  merchantId: string | null;
+  promotionId: string;
+  couponCode: string | null;
+  orderId: string | null;
+  discountAmount: string;
+  currency: string;
+  occurredAt: string;
+}
+
+export interface PromotionAnalyticsDto {
+  totalRedemptions: number;
+  totalDiscountAmount: number;
+  promotionAttributedSales: number;
+  promotions: Array<{
+    promotionId: string;
+    couponCode: string | null;
+    redemptionCount: number;
+    discountAmount: number;
+  }>;
+}
+
 export interface AnalyticsDailyMetricRecord {
   id: string;
   tenantId: string;

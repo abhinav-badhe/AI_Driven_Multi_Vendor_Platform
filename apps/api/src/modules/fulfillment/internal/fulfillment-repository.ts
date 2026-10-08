@@ -21,6 +21,8 @@ export interface ShipmentRow {
   carrier: string | null;
   tracking_number: string | null;
   tracking_url: string | null;
+  carrier_shipment_id?: string | null;
+  label_url?: string | null;
   shipped_at: Date | null;
   delivered_at: Date | null;
   estimated_delivery_at: Date | null;
@@ -79,17 +81,21 @@ export class FulfillmentRepository {
     carrier?: string | null | undefined;
     trackingNumber?: string | null | undefined;
     trackingUrl?: string | null | undefined;
+    carrierShipmentId?: string | null | undefined;
+    labelUrl?: string | null | undefined;
     idempotencyKey?: string | null | undefined;
     metadata?: Record<string, unknown> | undefined;
   }): Promise<ShipmentRow> {
     const res = await this.db.query<ShipmentRow>(
       `INSERT INTO shipments (
         id, seller_order_id, customer_order_id, seller_tenant_id, status,
-        carrier, tracking_number, tracking_url, idempotency_key, metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
+        idempotency_key, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING id, seller_order_id, customer_order_id, seller_tenant_id, status,
-                carrier, tracking_number, tracking_url, shipped_at, delivered_at,
-                estimated_delivery_at, idempotency_key, metadata, created_at, updated_at`,
+                carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
+                shipped_at, delivered_at, estimated_delivery_at, idempotency_key, metadata,
+                created_at, updated_at`,
       [
         data.id,
         data.sellerOrderId,
@@ -99,6 +105,8 @@ export class FulfillmentRepository {
         data.carrier ?? null,
         data.trackingNumber ?? null,
         data.trackingUrl ?? null,
+        data.carrierShipmentId ?? null,
+        data.labelUrl ?? null,
         data.idempotencyKey ?? null,
         JSON.stringify(data.metadata ?? {}),
       ],
@@ -124,8 +132,9 @@ export class FulfillmentRepository {
   async findShipmentById(id: string): Promise<ShipmentRow | null> {
     const res = await this.db.query<ShipmentRow>(
       `SELECT id, seller_order_id, customer_order_id, seller_tenant_id, status,
-              carrier, tracking_number, tracking_url, shipped_at, delivered_at,
-              estimated_delivery_at, idempotency_key, metadata, created_at, updated_at
+              carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
+              shipped_at, delivered_at, estimated_delivery_at, idempotency_key, metadata,
+              created_at, updated_at
        FROM shipments
        WHERE id = $1`,
       [id],
@@ -139,8 +148,9 @@ export class FulfillmentRepository {
   ): Promise<ShipmentRow | null> {
     const res = await this.db.query<ShipmentRow>(
       `SELECT id, seller_order_id, customer_order_id, seller_tenant_id, status,
-              carrier, tracking_number, tracking_url, shipped_at, delivered_at,
-              estimated_delivery_at, idempotency_key, metadata, created_at, updated_at
+              carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
+              shipped_at, delivered_at, estimated_delivery_at, idempotency_key, metadata,
+              created_at, updated_at
        FROM shipments
        WHERE seller_tenant_id = $1 AND idempotency_key = $2`,
       [sellerTenantId, idempotencyKey],
@@ -152,8 +162,9 @@ export class FulfillmentRepository {
   async findShipmentsBySellerOrder(sellerOrderId: string): Promise<ShipmentRow[]> {
     const res = await this.db.query<ShipmentRow>(
       `SELECT id, seller_order_id, customer_order_id, seller_tenant_id, status,
-              carrier, tracking_number, tracking_url, shipped_at, delivered_at,
-              estimated_delivery_at, idempotency_key, metadata, created_at, updated_at
+              carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
+              shipped_at, delivered_at, estimated_delivery_at, idempotency_key, metadata,
+              created_at, updated_at
        FROM shipments
        WHERE seller_order_id = $1
        ORDER BY created_at ASC`,
@@ -165,8 +176,9 @@ export class FulfillmentRepository {
   async findShipmentsByCustomerOrder(customerOrderId: string): Promise<ShipmentRow[]> {
     const res = await this.db.query<ShipmentRow>(
       `SELECT id, seller_order_id, customer_order_id, seller_tenant_id, status,
-              carrier, tracking_number, tracking_url, shipped_at, delivered_at,
-              estimated_delivery_at, idempotency_key, metadata, created_at, updated_at
+              carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
+              shipped_at, delivered_at, estimated_delivery_at, idempotency_key, metadata,
+              created_at, updated_at
        FROM shipments
        WHERE customer_order_id = $1
        ORDER BY created_at ASC`,
@@ -180,8 +192,9 @@ export class FulfillmentRepository {
     filter?: { limit?: number | undefined; offset?: number | undefined } | undefined,
   ): Promise<ShipmentRow[]> {
     let query = `SELECT id, seller_order_id, customer_order_id, seller_tenant_id, status,
-                        carrier, tracking_number, tracking_url, shipped_at, delivered_at,
-                        estimated_delivery_at, idempotency_key, metadata, created_at, updated_at
+                        carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
+                        shipped_at, delivered_at, estimated_delivery_at, idempotency_key, metadata,
+                        created_at, updated_at
                  FROM shipments
                  WHERE seller_tenant_id = $1
                  ORDER BY created_at DESC`;
@@ -212,11 +225,26 @@ export class FulfillmentRepository {
   async findShipmentByTracking(carrier: string, trackingNumber: string): Promise<ShipmentRow | null> {
     const res = await this.db.query<ShipmentRow>(
       `SELECT id, seller_order_id, customer_order_id, seller_tenant_id, status,
-              carrier, tracking_number, tracking_url, shipped_at, delivered_at,
-              estimated_delivery_at, idempotency_key, metadata, created_at, updated_at
+              carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
+              shipped_at, delivered_at, estimated_delivery_at, idempotency_key, metadata,
+              created_at, updated_at
        FROM shipments
        WHERE carrier = $1 AND tracking_number = $2
        LIMIT 1`,
+      [carrier, trackingNumber],
+    );
+    return res.rows[0] ?? null;
+  }
+
+  async findShipmentByTrackingForUpdate(carrier: string, trackingNumber: string): Promise<ShipmentRow | null> {
+    const res = await this.db.query<ShipmentRow>(
+      `SELECT id, seller_order_id, customer_order_id, seller_tenant_id, status,
+              carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
+              shipped_at, delivered_at, estimated_delivery_at, idempotency_key, metadata,
+              created_at, updated_at
+       FROM shipments
+       WHERE carrier = $1 AND tracking_number = $2
+       FOR UPDATE`,
       [carrier, trackingNumber],
     );
     return res.rows[0] ?? null;
@@ -289,8 +317,9 @@ export class FulfillmentRepository {
 
     query += ` WHERE id = $1 AND status IN (${placeholders})
       RETURNING id, seller_order_id, customer_order_id, seller_tenant_id, status,
-                carrier, tracking_number, tracking_url, shipped_at, delivered_at,
-                estimated_delivery_at, idempotency_key, metadata, created_at, updated_at`;
+                carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
+                shipped_at, delivered_at, estimated_delivery_at, idempotency_key, metadata,
+                created_at, updated_at`;
 
     const res = await this.db.query<ShipmentRow>(query, params);
     return res.rows[0] ?? null;
@@ -307,8 +336,9 @@ export class FulfillmentRepository {
        SET carrier = $2, tracking_number = $3, tracking_url = $4, updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
        RETURNING id, seller_order_id, customer_order_id, seller_tenant_id, status,
-                 carrier, tracking_number, tracking_url, shipped_at, delivered_at,
-                 estimated_delivery_at, idempotency_key, metadata, created_at, updated_at`,
+                 carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
+                 shipped_at, delivered_at, estimated_delivery_at, idempotency_key, metadata,
+                 created_at, updated_at`,
       [id, carrier, trackingNumber, trackingUrl ?? null],
     );
     return res.rows[0] ?? null;
@@ -565,6 +595,120 @@ export class FulfillmentRepository {
     );
     return res.rows[0]!;
   }
+
+  async claimCarrierOperation(data: {
+    sellerOrderId: string;
+    sellerTenantId: string;
+    carrier: string;
+    idempotencyKey: string;
+    claimToken: string;
+    leaseTimeoutMs?: number | undefined;
+  }): Promise<{ claimed: boolean; operation: CarrierOperationRow }> {
+    const insertRes = await this.db.query<CarrierOperationRow>(
+      `INSERT INTO carrier_shipment_operations (
+        idempotency_key, seller_order_id, seller_tenant_id, carrier, status, claim_token, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, 'IN_PROGRESS', $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT (idempotency_key) DO NOTHING
+      RETURNING *`,
+      [data.idempotencyKey, data.sellerOrderId, data.sellerTenantId, data.carrier, data.claimToken],
+    );
+
+    if (insertRes.rows.length > 0 && insertRes.rows[0]?.claim_token === data.claimToken) {
+      return { claimed: true, operation: insertRes.rows[0]! };
+    }
+
+    // Row already exists. Check if it is eligible for atomic lease reclaim:
+    // It can only be reclaimed if status = 'FAILED' OR (status = 'IN_PROGRESS' AND updated_at < staleThreshold).
+    // An active 'IN_PROGRESS' operation (updated_at >= staleThreshold) or 'COMPLETED' operation is NEVER reclaimed.
+    const leaseTimeoutMs = data.leaseTimeoutMs ?? 30000;
+    const staleThreshold = new Date(Date.now() - leaseTimeoutMs);
+
+    const reclaimRes = await this.db.query<CarrierOperationRow>(
+      `UPDATE carrier_shipment_operations
+       SET status = 'IN_PROGRESS',
+           claim_token = $1,
+           carrier = $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE idempotency_key = $3
+         AND (
+           status = 'FAILED'
+           OR (status = 'IN_PROGRESS' AND updated_at < $4)
+         )
+       RETURNING *`,
+      [data.claimToken, data.carrier, data.idempotencyKey, staleThreshold],
+    );
+
+    if (reclaimRes.rows.length > 0 && reclaimRes.rows[0]?.claim_token === data.claimToken) {
+      return { claimed: true, operation: reclaimRes.rows[0]! };
+    }
+
+    const existingRes = await this.db.query<CarrierOperationRow>(
+      `SELECT * FROM carrier_shipment_operations
+       WHERE idempotency_key = $1`,
+      [data.idempotencyKey],
+    );
+
+    return { claimed: false, operation: existingRes.rows[0]! };
+  }
+
+  async findCarrierOperation(
+    idempotencyKey: string,
+  ): Promise<CarrierOperationRow | null> {
+    const res = await this.db.query<CarrierOperationRow>(
+      `SELECT * FROM carrier_shipment_operations
+       WHERE idempotency_key = $1`,
+      [idempotencyKey],
+    );
+    return res.rows[0] ?? null;
+  }
+
+  async completeCarrierOperation(
+    idempotencyKey: string,
+    result: {
+      carrierShipmentId: string;
+      carrier: string;
+      trackingNumber: string;
+      trackingUrl?: string | null | undefined;
+      labelUrl?: string | null | undefined;
+      responsePayload: Record<string, unknown>;
+    },
+  ): Promise<CarrierOperationRow> {
+    const res = await this.db.query<CarrierOperationRow>(
+      `UPDATE carrier_shipment_operations
+       SET status = 'COMPLETED',
+           carrier_shipment_id = $1,
+           carrier = $2,
+           tracking_number = $3,
+           tracking_url = $4,
+           label_url = $5,
+           response_payload = $6,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE idempotency_key = $7
+       RETURNING *`,
+      [
+        result.carrierShipmentId,
+        result.carrier,
+        result.trackingNumber,
+        result.trackingUrl ?? null,
+        result.labelUrl ?? null,
+        JSON.stringify(result.responsePayload),
+        idempotencyKey,
+      ],
+    );
+    return res.rows[0]!;
+  }
+
+  async failCarrierOperation(
+    idempotencyKey: string,
+  ): Promise<void> {
+    await this.db.query(
+      `UPDATE carrier_shipment_operations
+       SET status = 'FAILED',
+           updated_at = CURRENT_TIMESTAMP
+       WHERE idempotency_key = $1`,
+      [idempotencyKey],
+    );
+  }
 }
 
 export interface CarrierWebhookEventRow {
@@ -576,3 +720,20 @@ export interface CarrierWebhookEventRow {
   payload: Record<string, unknown>;
   processed_at: Date;
 }
+
+export interface CarrierOperationRow {
+  idempotency_key: string;
+  seller_order_id: string;
+  seller_tenant_id: string;
+  carrier: string;
+  carrier_shipment_id: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  label_url: string | null;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+  claim_token?: string | null;
+  response_payload: Record<string, unknown>;
+  created_at: Date;
+  updated_at: Date;
+}
+

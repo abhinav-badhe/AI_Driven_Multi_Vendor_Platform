@@ -56,6 +56,31 @@ export const EventTypes = {
 
   // Inventory Domain Events
   INVENTORY_STOCK_CHANGED: 'inventory.stock_changed.v1',
+  INVENTORY_STOCK_AVAILABLE: 'inventory.stock_available.v1',
+
+  // Promotion & Coupon Domain Events
+  PROMOTION_CREATED: 'promotion.created.v1',
+  PROMOTION_UPDATED: 'promotion.updated.v1',
+  PROMOTION_ACTIVATED: 'promotion.activated.v1',
+  PROMOTION_DEACTIVATED: 'promotion.deactivated.v1',
+  COUPON_REDEEMED: 'promotion.coupon_redeemed.v1',
+  COUPON_REDEMPTION_REVERSED: 'promotion.coupon_redemption_reversed.v1',
+
+  // Review Domain Events
+  REVIEW_SUBMITTED: 'review.submitted.v1',
+  REVIEW_APPROVED: 'review.approved.v1',
+  REVIEW_REJECTED: 'review.rejected.v1',
+  REVIEW_UPDATED: 'review.updated.v1',
+  REVIEW_DELETED: 'review.deleted.v1',
+
+  // Wishlist Domain Events
+  WISHLIST_ITEM_ADDED: 'wishlist.item_added.v1',
+  WISHLIST_ITEM_REMOVED: 'wishlist.item_removed.v1',
+
+  // Back-in-Stock Domain Events
+  BACK_IN_STOCK_SUBSCRIBED: 'customer.back_in_stock.subscribed.v1',
+  BACK_IN_STOCK_UNSUBSCRIBED: 'customer.back_in_stock.unsubscribed.v1',
+  BACK_IN_STOCK_NOTIFICATION_SENT: 'customer.back_in_stock.notification_sent.v1',
 } as const;
 
 export type EventType = (typeof EventTypes)[keyof typeof EventTypes];
@@ -69,6 +94,7 @@ const SUPPORTED_EVENT_VERSIONS: Record<string, number[]> = {
   'marketplace.listing.updated.v1': [1],
   'marketplace.listing.deactivated.v1': [1],
   'inventory.stock_changed.v1': [1],
+  'inventory.stock_available.v1': [1],
   'order.created.v1': [1],
   'order.status_changed.v1': [1],
   'payment.succeeded.v1': [1],
@@ -78,6 +104,22 @@ const SUPPORTED_EVENT_VERSIONS: Record<string, number[]> = {
   'fulfillment.shipment_status_changed.v1': [1],
   'fulfillment.return_status_changed.v1': [1],
   'settlement.status_changed.v1': [1],
+  'promotion.created.v1': [1],
+  'promotion.updated.v1': [1],
+  'promotion.activated.v1': [1],
+  'promotion.deactivated.v1': [1],
+  'promotion.coupon_redeemed.v1': [1],
+  'promotion.coupon_redemption_reversed.v1': [1],
+  'review.submitted.v1': [1],
+  'review.approved.v1': [1],
+  'review.rejected.v1': [1],
+  'review.updated.v1': [1],
+  'review.deleted.v1': [1],
+  'wishlist.item_added.v1': [1],
+  'wishlist.item_removed.v1': [1],
+  'customer.back_in_stock.subscribed.v1': [1],
+  'customer.back_in_stock.unsubscribed.v1': [1],
+  'customer.back_in_stock.notification_sent.v1': [1],
 };
 
 export function isEventVersionSupported(eventType: string, version: number): boolean {

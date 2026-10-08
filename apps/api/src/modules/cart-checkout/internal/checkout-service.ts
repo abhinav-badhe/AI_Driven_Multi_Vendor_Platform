@@ -21,6 +21,8 @@ import {
 } from '../../../errors/app-error.js';
 import { randomUUID } from 'node:crypto';
 
+import type { CustomerAddressService, AddressSnapshot } from '../../customer/index.js';
+
 export interface CheckoutItemDto {
   id: string;
   checkoutSessionId: string;
@@ -56,6 +58,9 @@ export interface CheckoutSessionDto {
   cancelledAt?: string | null;
   failedAt?: string | null;
   failureReason?: string | null;
+  couponCode?: string | null;
+  appliedPromotions?: unknown[];
+  shippingAddress?: AddressSnapshot | null;
   items: CheckoutItemDto[];
   createdAt: string;
   updatedAt: string;
@@ -64,6 +69,8 @@ export interface CheckoutSessionDto {
 export interface CreateCheckoutSessionInput {
   idempotencyKey?: string | null | undefined;
   expiresInMinutes?: number | undefined;
+  addressId?: string | null | undefined;
+  shippingAddress?: AddressSnapshot | Record<string, unknown> | null | undefined;
 }
 
 export class CheckoutService {
@@ -76,6 +83,7 @@ export class CheckoutService {
     private readonly listingService: ListingService,
     private readonly catalogService: CatalogService,
     private readonly inventoryService: InventoryService,
+    private readonly addressService?: CustomerAddressService | undefined,
   ) {
     this.cartRepo = new CartRepository(db);
     this.checkoutRepo = new CheckoutRepository(db);
@@ -208,6 +216,9 @@ export class CheckoutService {
     const taxAmount = 0;
     const totalAmount = subtotalAmount + shippingAmount + taxAmount - discountAmount;
 
+    // Resolve shipping address securely
+    const resolvedShippingAddress = await this.resolveShippingAddress(actor, input);
+
     // 4. Persist Checkout Session in OPEN status (with constraint conflict recovery)
     let sessionRow: CheckoutSessionRow;
     try {
@@ -224,6 +235,7 @@ export class CheckoutService {
         totalAmount,
         idempotencyKey: input?.idempotencyKey ?? null,
         expiresAt,
+        shippingAddress: resolvedShippingAddress ? JSON.stringify(resolvedShippingAddress) : null,
       });
     } catch (err: unknown) {
       if (
@@ -817,6 +829,189 @@ export class CheckoutService {
     return this.toSessionDto(updated, updatedItems);
   }
 
+  async setShippingAddress(
+    actor: AuthorizedActor,
+    sessionId: string,
+    input: {
+      addressId?: string | null | undefined;
+      shippingAddress?: AddressSnapshot | Record<string, unknown> | null | undefined;
+    },
+  ): Promise<CheckoutSessionDto> {
+    RbacPolicy.requirePermission(actor, 'checkout:create-own');
+
+    const session = await this.checkoutRepo.findSessionById(sessionId);
+    if (!session) {
+      throw new NotFoundError(`Checkout session '${sessionId}' not found`);
+    }
+
+    if (session.customer_tenant_id !== actor.tenantId) {
+      throw new NotFoundError(`Checkout session '${sessionId}' not found`);
+    }
+
+    if (session.status === 'CANCELLED' || session.status === 'EXPIRED' || session.status === 'FAILED') {
+      throw new InvalidStateTransitionError(`Cannot update address on session with status '${session.status}'`);
+    }
+
+    const snapshot = await this.resolveShippingAddress(actor, input);
+
+    const updated = await this.checkoutRepo.updateShippingAddress(
+      sessionId,
+      snapshot ? JSON.stringify(snapshot) : null,
+    );
+    if (!updated) {
+      throw new NotFoundError(`Checkout session '${sessionId}' not found`);
+    }
+
+    const items = await this.checkoutRepo.getCheckoutItems(sessionId);
+    return this.toSessionDto(updated, items);
+  }
+
+  private validateManualAddressSnapshot(raw: unknown): AddressSnapshot {
+    if (!raw || typeof raw !== 'object') {
+      throw new CheckoutValidationError('Manual shipping address must be an object');
+    }
+    const input = raw as Record<string, unknown>;
+
+    const recipientName = typeof input.recipientName === 'string' ? input.recipientName.trim() : '';
+    if (!recipientName) {
+      throw new CheckoutValidationError('recipientName is required in shipping address');
+    }
+    if (recipientName.length > 100) {
+      throw new CheckoutValidationError('recipientName exceeds maximum length of 100');
+    }
+
+    const phone = typeof input.phone === 'string' ? input.phone.trim() : '';
+    if (!phone) {
+      throw new CheckoutValidationError('phone is required in shipping address');
+    }
+    if (phone.length > 30) {
+      throw new CheckoutValidationError('phone exceeds maximum length of 30');
+    }
+
+    const addressLine1 = typeof input.addressLine1 === 'string' ? input.addressLine1.trim() : '';
+    if (!addressLine1) {
+      throw new CheckoutValidationError('addressLine1 is required in shipping address');
+    }
+    if (addressLine1.length > 200) {
+      throw new CheckoutValidationError('addressLine1 exceeds maximum length of 200');
+    }
+
+    const addressLine2 = typeof input.addressLine2 === 'string' ? input.addressLine2.trim() : null;
+    if (addressLine2 && addressLine2.length > 200) {
+      throw new CheckoutValidationError('addressLine2 exceeds maximum length of 200');
+    }
+
+    const landmark = typeof input.landmark === 'string' ? input.landmark.trim() : null;
+    if (landmark && landmark.length > 100) {
+      throw new CheckoutValidationError('landmark exceeds maximum length of 100');
+    }
+
+    const city = typeof input.city === 'string' ? input.city.trim() : '';
+    if (!city) {
+      throw new CheckoutValidationError('city is required in shipping address');
+    }
+    if (city.length > 100) {
+      throw new CheckoutValidationError('city exceeds maximum length of 100');
+    }
+
+    const state = typeof input.state === 'string' ? input.state.trim() : '';
+    if (!state) {
+      throw new CheckoutValidationError('state is required in shipping address');
+    }
+    if (state.length > 100) {
+      throw new CheckoutValidationError('state exceeds maximum length of 100');
+    }
+
+    const postalCode = typeof input.postalCode === 'string' ? input.postalCode.trim() : '';
+    if (!postalCode) {
+      throw new CheckoutValidationError('postalCode is required in shipping address');
+    }
+    if (postalCode.length > 20) {
+      throw new CheckoutValidationError('postalCode exceeds maximum length of 20');
+    }
+
+    const country = typeof input.country === 'string' && input.country.trim() ? input.country.trim() : 'US';
+    if (country.length > 50) {
+      throw new CheckoutValidationError('country exceeds maximum length of 50');
+    }
+
+    let latitude: number | null = null;
+    if (input.latitude !== undefined && input.latitude !== null) {
+      const latNum = Number(input.latitude);
+      if (Number.isNaN(latNum) || latNum < -90 || latNum > 90) {
+        throw new CheckoutValidationError('latitude must be a valid number between -90 and 90');
+      }
+      latitude = latNum;
+    }
+
+    let longitude: number | null = null;
+    if (input.longitude !== undefined && input.longitude !== null) {
+      const lngNum = Number(input.longitude);
+      if (Number.isNaN(lngNum) || lngNum < -180 || lngNum > 180) {
+        throw new CheckoutValidationError('longitude must be a valid number between -180 and 180');
+      }
+      longitude = lngNum;
+    }
+
+    const googlePlaceId = typeof input.googlePlaceId === 'string' ? input.googlePlaceId.trim() : null;
+    const formattedAddress = typeof input.formattedAddress === 'string' ? input.formattedAddress.trim() : null;
+
+    // Strict security rule: Manual entry CANNOT claim an existing addressId or another customer's data
+    return {
+      sourceType: 'MANUAL_ENTRY',
+      label: 'Other',
+      recipientName,
+      phone,
+      addressLine1,
+      addressLine2,
+      landmark,
+      city,
+      state,
+      postalCode,
+      country,
+      latitude,
+      longitude,
+      googlePlaceId,
+      formattedAddress,
+    };
+  }
+
+  private async resolveShippingAddress(
+    actor: AuthorizedActor,
+    input?: {
+      addressId?: string | null | undefined;
+      shippingAddress?: AddressSnapshot | Record<string, unknown> | null | undefined;
+    } | undefined,
+  ): Promise<AddressSnapshot | null> {
+    // 1. Preferred secure flow: addressId -> authenticated ownership check -> PostgreSQL lookup -> server snapshot
+    if (input?.addressId) {
+      if (!this.addressService) {
+        throw new CheckoutValidationError('Address service unavailable');
+      }
+      const addr = await this.addressService.getAddressById(actor, input.addressId);
+      return this.addressService.toSnapshot(addr);
+    }
+
+    // 2. Manual entry: fully validated, sanitized, server-authoritative
+    if (input?.shippingAddress) {
+      return this.validateManualAddressSnapshot(input.shippingAddress);
+    }
+
+    // 3. Fallback: default customer address if exists
+    if (this.addressService) {
+      try {
+        const defaultAddr = await this.addressService.getDefaultAddress(actor);
+        if (defaultAddr) {
+          return this.addressService.toSnapshot(defaultAddr);
+        }
+      } catch {
+        // Non-blocking if default address cannot be fetched
+      }
+    }
+
+    return null;
+  }
+
   private toSessionDto(
     session: {
       id: string;
@@ -835,6 +1030,9 @@ export class CheckoutService {
       cancelled_at: Date | null;
       failed_at: Date | null;
       failure_reason: string | null;
+      coupon_code?: string | null | undefined;
+      applied_promotions?: unknown;
+      shipping_address?: unknown;
       created_at: Date;
       updated_at: Date;
     },
@@ -857,6 +1055,18 @@ export class CheckoutService {
       cancelledAt: session.cancelled_at ? session.cancelled_at.toISOString() : null,
       failedAt: session.failed_at ? session.failed_at.toISOString() : null,
       failureReason: session.failure_reason,
+      couponCode: session.coupon_code ?? null,
+      appliedPromotions:
+        typeof session.applied_promotions === 'string'
+          ? JSON.parse(session.applied_promotions)
+          : Array.isArray(session.applied_promotions)
+            ? session.applied_promotions
+            : [],
+      shippingAddress: session.shipping_address
+        ? typeof session.shipping_address === 'string'
+          ? JSON.parse(session.shipping_address)
+          : (session.shipping_address as AddressSnapshot)
+        : null,
       items: items.map((i) => ({
         id: i.id,
         checkoutSessionId: i.checkout_session_id,

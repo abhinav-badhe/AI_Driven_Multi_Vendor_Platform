@@ -42,3 +42,25 @@ export const catalogModule: CatalogModule = {
 };
 
 export { CatalogService };
+
+export { ReviewService } from './internal/review-service.js';
+export { ReviewRepository } from './internal/review-repository.js';
+export type {
+  ReviewStatus,
+  ProductReviewRow,
+  CreateReviewInput,
+  UpdateReviewInput,
+  ProductRatingSummary,
+  ReviewEligibilityDto,
+  ListReviewsFilter,
+} from './internal/review-models.js';
+
+import { ReviewService } from './internal/review-service.js';
+
+export function createReviewService(
+  db: DatabaseConnection,
+  logger: Logger,
+  outboxService?: import('../events/index.js').OutboxService,
+): ReviewService {
+  return new ReviewService(db, logger, outboxService);
+}

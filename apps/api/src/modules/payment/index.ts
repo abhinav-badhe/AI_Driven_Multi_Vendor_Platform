@@ -13,6 +13,12 @@ import {
   type ProviderRefundInput,
   type ProviderRefundResult,
 } from './internal/payment-provider.js';
+import {
+  StripePaymentProvider,
+  type StripePaymentConfig,
+  toStripeAmount,
+  fromStripeAmount,
+} from './internal/stripe-payment-provider.js';
 import type {
   CreatePaymentIntentInput,
   CreatePaymentAttemptInput,
@@ -62,6 +68,7 @@ export interface PaymentModule {
     outboxService: OutboxService,
     provider?: PaymentProvider,
     webhookSecret?: string,
+    webhookToleranceSeconds?: number,
   ): PaymentService;
 }
 
@@ -74,9 +81,27 @@ export const paymentModule: PaymentModule = {
     outboxService: OutboxService,
     provider?: PaymentProvider,
     webhookSecret?: string,
+    webhookToleranceSeconds?: number,
   ): PaymentService {
-    return new PaymentService(db, logger, checkoutService, outboxService, provider, webhookSecret);
+    return new PaymentService(
+      db,
+      logger,
+      checkoutService,
+      outboxService,
+      provider,
+      webhookSecret,
+      webhookToleranceSeconds,
+    );
   },
 };
 
-export { PaymentService, MockPaymentProvider, normalizePaymentMethod, paymentMethodFromMetadata };
+export {
+  PaymentService,
+  MockPaymentProvider,
+  StripePaymentProvider,
+  type StripePaymentConfig,
+  toStripeAmount,
+  fromStripeAmount,
+  normalizePaymentMethod,
+  paymentMethodFromMetadata,
+};

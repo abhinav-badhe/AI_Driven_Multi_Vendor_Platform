@@ -29,6 +29,25 @@ export interface CheckoutSessionDto {
   shippingAmount: number;
   taxAmount: number;
   totalAmount: number;
+  couponCode?: string | null;
+  appliedPromotions?: unknown[];
+  shippingAddress?: {
+    id?: string;
+    label?: string;
+    recipientName: string;
+    phone: string;
+    addressLine1: string;
+    addressLine2?: string | null;
+    landmark?: string | null;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    googlePlaceId?: string | null;
+    formattedAddress?: string | null;
+  } | null;
   expiresAt: string;
   reservedAt?: string | null;
   items: CheckoutItemDto[];
@@ -71,11 +90,38 @@ export interface OrderConfirmationDto {
   createdAt: string;
 }
 
+export interface PaymentAttemptDto {
+  id: string;
+  paymentIntentId: string;
+  provider: string;
+  providerTransactionId: string;
+  amount: number;
+  currency: string;
+  status: 'SUCCEEDED' | 'FAILED' | 'PROCESSING' | 'REQUIRES_ACTION';
+  failureCode?: string | null;
+  failureMessage?: string | null;
+  providerResponse?: Record<string, unknown>;
+}
+
 export const checkoutApi = {
-  createSession: async (): Promise<CheckoutSessionDto> => {
+  createSession: async (options?: { addressId?: string | undefined; shippingAddress?: unknown }): Promise<CheckoutSessionDto> => {
     return apiClient<CheckoutSessionDto>('/checkout/sessions', {
       method: 'POST',
-      body: JSON.stringify({ idempotencyKey: `chk_${Date.now()}` }),
+      body: JSON.stringify({
+        idempotencyKey: `chk_${Date.now()}`,
+        addressId: options?.addressId,
+        shippingAddress: options?.shippingAddress,
+      }),
+    });
+  },
+
+  setShippingAddress: async (
+    sessionId: string,
+    payload: { addressId?: string; shippingAddress?: unknown },
+  ): Promise<CheckoutSessionDto> => {
+    return apiClient<CheckoutSessionDto>(`/checkout/sessions/${sessionId}/address`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   },
 
@@ -96,8 +142,8 @@ export const checkoutApi = {
     });
   },
 
-  submitPaymentAttempt: async (intentId: string, paymentMethod = 'pm_card_visa'): Promise<{ status: string }> => {
-    return apiClient<{ status: string }>(`/payments/intents/${intentId}/attempts`, {
+  submitPaymentAttempt: async (intentId: string, paymentMethod = 'pm_card_visa'): Promise<PaymentAttemptDto> => {
+    return apiClient<PaymentAttemptDto>(`/payments/intents/${intentId}/attempts`, {
       method: 'POST',
       body: JSON.stringify({
         paymentMethod,
@@ -114,6 +160,34 @@ export const checkoutApi = {
         paymentIntentId,
         idempotencyKey: `ord_${checkoutSessionId}`,
       }),
+    });
+  },
+
+  applyCoupon: async (
+    sessionId: string,
+    couponCode: string,
+  ): Promise<{
+    discountAmount: number;
+    totalAmount: number;
+    couponCode: string;
+    appliedPromotions: unknown[];
+  }> => {
+    return apiClient(`/checkout/sessions/${sessionId}/coupon`, {
+      method: 'POST',
+      body: JSON.stringify({ couponCode }),
+    });
+  },
+
+  removeCoupon: async (
+    sessionId: string,
+  ): Promise<{
+    discountAmount: number;
+    totalAmount: number;
+    couponCode: null;
+    appliedPromotions: [];
+  }> => {
+    return apiClient(`/checkout/sessions/${sessionId}/coupon`, {
+      method: 'DELETE',
     });
   },
 };

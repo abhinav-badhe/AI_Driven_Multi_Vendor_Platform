@@ -24,7 +24,7 @@ export interface ProviderCreateAttemptInput {
 
 export interface ProviderAttemptResult {
   providerTransactionId: string;
-  status: 'SUCCEEDED' | 'FAILED';
+  status: 'SUCCEEDED' | 'FAILED' | 'REQUIRES_ACTION';
   failureCode?: string | undefined;
   failureMessage?: string | undefined;
   rawResponse?: Record<string, unknown> | undefined;
@@ -60,7 +60,7 @@ export interface PaymentProvider {
   readonly name: string;
   createIntent(input: ProviderCreateIntentInput): Promise<ProviderIntentResult>;
   createAttempt(input: ProviderCreateAttemptInput): Promise<ProviderAttemptResult>;
-  verifyWebhookSignature(rawBody: string, signature: string, secret: string): boolean;
+  verifyWebhookSignature(rawBody: string, signature: string, secret?: string, toleranceSeconds?: number): boolean;
   parseWebhookEvent(rawBody: string): ProviderWebhookEvent;
   createRefund(input: ProviderRefundInput): Promise<ProviderRefundResult>;
 }
@@ -92,6 +92,23 @@ export class MockPaymentProvider implements PaymentProvider {
       input.paymentMethod?.toLowerCase().includes('fail') ||
       input.paymentMethod?.toLowerCase().includes('decline');
 
+    if (
+      input.paymentMethod === 'pm_card_threeDSecure2Required' ||
+      input.paymentMethod?.toLowerCase().includes('3ds') ||
+      input.paymentMethod?.toLowerCase().includes('action')
+    ) {
+      return {
+        providerTransactionId: input.providerTransactionId,
+        status: 'REQUIRES_ACTION',
+        failureCode: 'requires_action',
+        failureMessage: 'Cardholder action required (3DS / SCA)',
+        rawResponse: {
+          status: 'requires_action',
+          client_secret: `pi_mock_sec_${input.providerTransactionId}`,
+        },
+      };
+    }
+
     if (isDeclined) {
       return {
         providerTransactionId: input.providerTransactionId,
@@ -115,7 +132,7 @@ export class MockPaymentProvider implements PaymentProvider {
     };
   }
 
-  verifyWebhookSignature(rawBody: string, signature: string, secret: string): boolean {
+  verifyWebhookSignature(rawBody: string, signature: string, secret?: string, _toleranceSeconds?: number): boolean {
     if (!signature || !secret) {
       return false;
     }

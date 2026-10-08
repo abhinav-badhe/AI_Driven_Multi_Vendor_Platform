@@ -196,26 +196,6 @@ export function registerCatalogRoutes(
     },
   );
 
-  // GET /products/:id/reviews (public customer reviews for a canonical product)
-  app.get(
-    '/products/:id/reviews',
-    { preHandler: optionalAuth },
-    async (request, reply) => {
-      const { id } = request.params as { id: string };
-      return sendCached(
-        app,
-        request,
-        reply,
-        {
-          key: cacheKey('products', id, 'reviews'),
-          tags: [CacheTags.reviews, `${CacheTags.products}:${id}`],
-          preset: CachePresets.reviews,
-        },
-        () => catalogService.listProductReviews(id),
-      );
-    },
-  );
-
   // PATCH /products/:id (Admin only)
   app.patch(
     '/products/:id',

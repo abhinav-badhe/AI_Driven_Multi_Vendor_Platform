@@ -24,6 +24,7 @@ import type {
   CustomerActivitySignal,
   OrderAnomalySignal,
   IAnalyticsMlFeatureReader,
+  PromotionAnalyticsDto,
 } from './analytics-models.js';
 import { AnalyticsRepository, formatMoney } from './analytics-repository.js';
 
@@ -639,6 +640,32 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
           break;
         }
 
+        case EventTypes.COUPON_REDEEMED: {
+          const discount = Number(payload.discountAmount ?? 0);
+          if (discount < 0) {
+            await this.quarantine(event, 'NEGATIVE_DISCOUNT_AMOUNT', conn);
+            return { success: false, quarantined: true, reason: 'NEGATIVE_DISCOUNT_AMOUNT' };
+          }
+          await this.repo.recordPromotionFact(conn, {
+            factId: `fact_prm_${event.eventId}`,
+            eventId: event.eventId,
+            tenantId,
+            merchantId: (payload.merchantTenantId as string) || (payload.merchantId as string) || null,
+            promotionId: (payload.promotionId as string) || event.aggregateId,
+            couponCode: (payload.couponCode as string) || null,
+            orderId: (payload.orderId as string) || null,
+            discountAmount: formatMoney(discount),
+            currency: (payload.currency as string) || 'USD',
+            occurredAt: event.occurredAt,
+          });
+          break;
+        }
+
+        case EventTypes.COUPON_REDEMPTION_REVERSED: {
+          await this.repo.deletePromotionFactByEvent(conn, event.eventId);
+          break;
+        }
+
         default:
           this.logger.debug('Event ignored by analytics consumer', { eventType: event.eventType });
           break;
@@ -1001,6 +1028,23 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
   async getOrderAnomalySignals(tenantId: string): Promise<OrderAnomalySignal[]> {
     if (!tenantId?.trim()) throw new ValidationError('tenantId is required');
     return this.repo.findOrderAnomalySignals(this.db, tenantId);
+  }
+
+  /**
+   * Expose promotion-related analytics metrics: redemptions, discount amounts, and attributed sales.
+   */
+  async getPromotionAnalytics(
+    actor: AuthorizedActor,
+    params?: { merchantId?: string | undefined },
+  ): Promise<PromotionAnalyticsDto> {
+    let merchantId: string | undefined = params?.merchantId;
+    if (actor.role === 'MERCHANT') {
+      merchantId = actor.tenantId;
+    }
+    return this.repo.getPromotionMetrics(this.db, {
+      tenantId: actor.tenantId,
+      merchantId: merchantId ?? null,
+    });
   }
 }
 

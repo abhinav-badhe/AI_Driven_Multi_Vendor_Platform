@@ -37,6 +37,8 @@ import {
   type CustomerActivitySignal,
   type OrderAnomalySignal,
   type IAnalyticsMlFeatureReader,
+  type AnalyticsPromotionFact,
+  type PromotionAnalyticsDto,
 } from './internal/analytics-models.js';
 
 import { AnalyticsRepository, formatMoney } from './internal/analytics-repository.js';
@@ -50,6 +52,8 @@ export type {
   AnalyticsFulfillmentFact,
   AnalyticsSettlementFact,
   AnalyticsCatalogFact,
+  AnalyticsPromotionFact,
+  PromotionAnalyticsDto,
   AnalyticsDailyMetricRecord,
   AnalyticsQuarantineRecord,
   AnalyticsRebuildAuditRecord,

@@ -3,6 +3,7 @@ import type { Logger } from '../../observability/logger.js';
 import type { OrderService } from '../orders/index.js';
 import type { PaymentService } from '../payment/index.js';
 import type { InventoryService } from '../inventory/index.js';
+import type { OutboxService } from '../events/index.js';
 import { FulfillmentService } from './internal/fulfillment-service.js';
 import type {
   CreateShipmentInput,
@@ -16,14 +17,27 @@ import type {
   ReturnDto,
   ReturnItemDto,
 } from './internal/fulfillment-service.js';
-import type {
-  ShipmentStatus,
-  ReturnStatus,
+import {
+  FulfillmentRepository,
+  type ShipmentStatus,
+  type ReturnStatus,
 } from './internal/fulfillment-repository.js';
 import {
   type CarrierProvider,
+  type CarrierAddress,
+  type CarrierParcel,
+  type ProviderCreateShipmentInput,
+  type ProviderShipmentResult,
+  type ProviderCancelResult,
+  type ProviderCreateReturnInput,
+  type CarrierTrackingEvent,
   MockCarrierProvider,
 } from './internal/carrier-provider.js';
+import {
+  ShippoCarrierProvider,
+  mapShippoStatus,
+  type ShippoCarrierConfig,
+} from './internal/shippo-carrier-provider.js';
 
 export type {
   CreateShipmentInput,
@@ -39,9 +53,23 @@ export type {
   ShipmentStatus,
   ReturnStatus,
   CarrierProvider,
+  CarrierAddress,
+  CarrierParcel,
+  ProviderCreateShipmentInput,
+  ProviderShipmentResult,
+  ProviderCancelResult,
+  ProviderCreateReturnInput,
+  CarrierTrackingEvent,
+  ShippoCarrierConfig,
 };
 
-export { MockCarrierProvider, FulfillmentService };
+export {
+  MockCarrierProvider,
+  ShippoCarrierProvider,
+  mapShippoStatus,
+  FulfillmentService,
+  FulfillmentRepository,
+};
 
 export interface FulfillmentModule {
   readonly contextName: 'fulfillment';
@@ -52,6 +80,10 @@ export interface FulfillmentModule {
     paymentService: PaymentService,
     inventoryService: InventoryService,
     carrierProvider?: CarrierProvider,
+    callbackSecret?: string,
+    outboxService?: OutboxService,
+    webhookToleranceSeconds?: number,
+    carrierOperationLeaseTimeoutMs?: number,
   ): FulfillmentService;
 }
 
@@ -64,6 +96,10 @@ export const fulfillmentModule: FulfillmentModule = {
     paymentService: PaymentService,
     inventoryService: InventoryService,
     carrierProvider?: CarrierProvider,
+    callbackSecret = 'whsec_carrier_mock_secret',
+    outboxService?: OutboxService,
+    webhookToleranceSeconds = 300,
+    carrierOperationLeaseTimeoutMs = 30000,
   ): FulfillmentService {
     return new FulfillmentService(
       db,
@@ -72,6 +108,10 @@ export const fulfillmentModule: FulfillmentModule = {
       paymentService,
       inventoryService,
       carrierProvider,
+      callbackSecret,
+      outboxService,
+      webhookToleranceSeconds,
+      carrierOperationLeaseTimeoutMs,
     );
   },
 };

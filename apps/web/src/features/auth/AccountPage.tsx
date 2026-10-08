@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, MailCheck, MapPin, UserRound } from "lucide-react";
+import { Bell, MailCheck, MapPin, UserRound, BellRing } from "lucide-react";
 import { useAuth, isEmailNotVerifiedError, type LoginCredentials, type UserContext } from "./AuthContext";
 import { apiClient } from "../../api/client";
 import { Button, buttonVariants } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
+import { Badge } from "../../components/ui/badge";
 import { Alert } from "../../components/ui/alert";
 import { Input, Label } from "../../components/ui/input";
 import { cn } from "../../lib/utils";
+import { AddressBook } from "../customer/AddressBook";
+import { backInStockApi, type BackInStockSubscriptionDto } from "../customer/api/back-in-stock";
 
 interface NotificationPrefDto {
   emailEnabled?: boolean;
@@ -15,7 +18,7 @@ interface NotificationPrefDto {
   pushEnabled?: boolean;
 }
 
-type Tab = "profile" | "preferences" | "addresses";
+type Tab = "profile" | "preferences" | "addresses" | "alerts";
 
 export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin?: boolean } = {}) => {
   const navigate = useNavigate();
@@ -37,6 +40,45 @@ export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin
     pushEnabled: true,
   });
   const [prefSavedMsg, setPrefSavedMsg] = useState<string | null>(null);
+
+  const [stockAlerts, setStockAlerts] = useState<BackInStockSubscriptionDto[]>([]);
+  const [isLoadingAlerts, setIsLoadingAlerts] = useState(false);
+  const [cancellingSubId, setCancellingSubId] = useState<string | null>(null);
+  const [alertFeedback, setAlertFeedback] = useState<string | null>(null);
+
+  const loadStockAlerts = async () => {
+    setIsLoadingAlerts(true);
+    try {
+      const list = await backInStockApi.getSubscriptions();
+      setStockAlerts(Array.isArray(list) ? list : []);
+    } catch {
+      setStockAlerts([]);
+    } finally {
+      setIsLoadingAlerts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === "alerts") {
+      loadStockAlerts();
+    }
+  }, [isAuthenticated, activeTab]);
+
+  const handleCancelAlert = async (sub: BackInStockSubscriptionDto) => {
+    setCancellingSubId(sub.id);
+    try {
+      await backInStockApi.cancelSubscription(sub.productId);
+      setStockAlerts((prev) =>
+        prev.map((s) => (s.id === sub.id ? { ...s, status: 'CANCELLED' as const } : s)),
+      );
+      setAlertFeedback(`Stock alert cancelled.`);
+      setTimeout(() => setAlertFeedback(null), 3000);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to cancel stock alert");
+    } finally {
+      setCancellingSubId(null);
+    }
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -70,6 +112,7 @@ export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin
       { id: "profile", label: "Profile", icon: UserRound },
       { id: "preferences", label: "Notifications", icon: Bell },
       { id: "addresses", label: "Addresses", icon: MapPin },
+      ...(user.role === "CUSTOMER" ? [{ id: "alerts" as Tab, label: "Stock Alerts", icon: BellRing }] : []),
     ];
     return (
       <div className="mx-auto w-full max-w-2xl p-4">
@@ -122,12 +165,15 @@ export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin
                   <dt className="text-xs text-muted-foreground">Tenant</dt>
                   <dd className="mt-0.5 font-mono text-xs">{user.tenantId}</dd>
                 </div>
-                <div className="mt-1 flex gap-1.5">
+                <div className="mt-1 flex gap-1.5 flex-wrap">
                   <Link to="/orders" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
                     View orders
                   </Link>
                   <Link to="/returns" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
                     View returns
+                  </Link>
+                  <Link to="/price-alerts" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                    View price alerts
                   </Link>
                 </div>
               </dl>
@@ -168,16 +214,72 @@ export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin
             )}
 
             {activeTab === "addresses" && (
-              <div className="mt-4 flex flex-col gap-2" role="tabpanel">
-                <div className="rounded-md border border-border px-3 py-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[13px] font-semibold">Home</p>
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium">Default</span>
+              <div className="mt-4" role="tabpanel">
+                <AddressBook />
+              </div>
+            )}
+
+            {activeTab === "alerts" && (
+              <div className="mt-4 flex flex-col gap-3" role="tabpanel">
+                {alertFeedback && <Alert tone="success">{alertFeedback}</Alert>}
+                {isLoadingAlerts ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">Loading stock alerts…</div>
+                ) : stockAlerts.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border p-6 text-center">
+                    <BellRing className="mx-auto size-8 text-muted-foreground/60 mb-2" />
+                    <p className="text-sm font-medium text-foreground">No stock alerts</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      When products are out of stock, click "Notify me when available" to get alerts when restocked.
+                    </p>
                   </div>
-                  <p className="mt-1 text-[13px] text-muted-foreground">
-                    B-42, Bandra West, Mumbai, Maharashtra 400050
-                  </p>
-                </div>
+                ) : (
+                  <ul className="flex flex-col gap-2.5">
+                    {stockAlerts.map((sub) => (
+                      <li
+                        key={sub.id}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 bg-card"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              to={`/product/${sub.productId}`}
+                              className="font-medium text-sm hover:underline truncate"
+                            >
+                              {sub.product?.title ?? `Product ${sub.productId.slice(0, 8)}`}
+                            </Link>
+                            <Badge
+                              variant={
+                                sub.status === "ACTIVE"
+                                  ? "warning"
+                                  : sub.status === "NOTIFIED"
+                                  ? "success"
+                                  : "outline"
+                              }
+                              className="text-[10px]"
+                            >
+                              {sub.status}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Subscribed on {new Date(sub.createdAt).toLocaleDateString()}
+                            {sub.notifiedAt && ` • Notified on ${new Date(sub.notifiedAt).toLocaleDateString()}`}
+                          </p>
+                        </div>
+                        {sub.status === "ACTIVE" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={cancellingSubId === sub.id}
+                            onClick={() => handleCancelAlert(sub)}
+                            data-testid={`cancel-alert-${sub.productId}`}
+                          >
+                            {cancellingSubId === sub.id ? "Cancelling…" : "Cancel Alert"}
+                          </Button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </CardContent>

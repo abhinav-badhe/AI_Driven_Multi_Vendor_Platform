@@ -26,6 +26,9 @@ export interface CheckoutSessionRow {
   cancelled_at: Date | null;
   failed_at: Date | null;
   failure_reason: string | null;
+  coupon_code?: string | null;
+  applied_promotions?: unknown;
+  shipping_address?: unknown;
   created_at: Date;
   updated_at: Date;
 }
@@ -61,6 +64,7 @@ export interface CreateCheckoutSessionInput {
   totalAmount: number;
   idempotencyKey?: string | null | undefined;
   expiresAt: Date;
+  shippingAddress?: unknown | undefined;
 }
 
 export interface CreateCheckoutItemInput {
@@ -84,12 +88,12 @@ export class CheckoutRepository {
       `INSERT INTO checkout_sessions (
         id, cart_id, customer_tenant_id, status, currency,
         subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
-        idempotency_key, expires_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        idempotency_key, expires_at, shipping_address
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING id, cart_id, customer_tenant_id, status, currency,
                 subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
                 idempotency_key, expires_at, reserved_at, cancelled_at, failed_at, failure_reason,
-                created_at, updated_at`,
+                coupon_code, applied_promotions, shipping_address, created_at, updated_at`,
       [
         data.id,
         data.cartId,
@@ -103,6 +107,7 @@ export class CheckoutRepository {
         data.totalAmount,
         data.idempotencyKey ?? null,
         data.expiresAt,
+        data.shippingAddress ? JSON.stringify(data.shippingAddress) : null,
       ],
     );
     return res.rows[0]!;
@@ -113,7 +118,7 @@ export class CheckoutRepository {
       `SELECT id, cart_id, customer_tenant_id, status, currency,
               subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
               idempotency_key, expires_at, reserved_at, cancelled_at, failed_at, failure_reason,
-              created_at, updated_at
+              coupon_code, applied_promotions, shipping_address, created_at, updated_at
        FROM checkout_sessions
        WHERE id = $1`,
       [id],
@@ -129,7 +134,7 @@ export class CheckoutRepository {
       `SELECT id, cart_id, customer_tenant_id, status, currency,
               subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
               idempotency_key, expires_at, reserved_at, cancelled_at, failed_at, failure_reason,
-              created_at, updated_at
+              coupon_code, applied_promotions, shipping_address, created_at, updated_at
        FROM checkout_sessions
        WHERE customer_tenant_id = $1 AND idempotency_key = $2`,
       [customerTenantId, idempotencyKey],
@@ -225,9 +230,26 @@ export class CheckoutRepository {
       RETURNING id, cart_id, customer_tenant_id, status, currency,
                 subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
                 idempotency_key, expires_at, reserved_at, cancelled_at, failed_at, failure_reason,
-                created_at, updated_at`;
+                coupon_code, applied_promotions, shipping_address, created_at, updated_at`;
 
     const res = await this.db.query<CheckoutSessionRow>(query, params);
+    return res.rows[0] ?? null;
+  }
+
+  async updateShippingAddress(
+    id: string,
+    shippingAddress: unknown,
+  ): Promise<CheckoutSessionRow | null> {
+    const res = await this.db.query<CheckoutSessionRow>(
+      `UPDATE checkout_sessions
+       SET shipping_address = $2, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING id, cart_id, customer_tenant_id, status, currency,
+                 subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
+                 idempotency_key, expires_at, reserved_at, cancelled_at, failed_at, failure_reason,
+                 coupon_code, applied_promotions, shipping_address, created_at, updated_at`,
+      [id, shippingAddress ? JSON.stringify(shippingAddress) : null],
+    );
     return res.rows[0] ?? null;
   }
 
@@ -252,12 +274,12 @@ export class CheckoutRepository {
       `UPDATE checkout_sessions
        SET updated_at = CURRENT_TIMESTAMP, failure_reason = $2
        WHERE id = $1
-         AND status = 'VALIDATING'
-         AND (failure_reason IS NULL OR failure_reason NOT LIKE 'RECOVERY_CLAIM:%' OR updated_at < $3)
+          AND status = 'VALIDATING'
+          AND (failure_reason IS NULL OR failure_reason NOT LIKE 'RECOVERY_CLAIM:%' OR updated_at < $3)
        RETURNING id, cart_id, customer_tenant_id, status, currency,
                  subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
                  idempotency_key, expires_at, reserved_at, cancelled_at, failed_at, failure_reason,
-                 created_at, updated_at`,
+                 coupon_code, applied_promotions, shipping_address, created_at, updated_at`,
       [id, `RECOVERY_CLAIM:${claimToken}`, staleCutoff],
     );
     return res.rows[0] ?? null;

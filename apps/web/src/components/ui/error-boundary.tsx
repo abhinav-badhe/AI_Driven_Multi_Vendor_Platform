@@ -16,7 +16,6 @@ export class ErrorBoundary extends React.Component<
   }
 
   override componentDidCatch(error: unknown): void {
-    // eslint-disable-next-line no-console
     console.error("[ui] section failed to render", error);
   }
 

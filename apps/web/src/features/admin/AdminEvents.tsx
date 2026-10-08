@@ -21,7 +21,7 @@ export const AdminEvents = () => {
 
   useEffect(() => {
     if (user?.role !== 'ADMINISTRATOR') return;
-    apiClient<unknown>('/events?limit=50')
+    apiClient<unknown>('/events/outbox?limit=50')
       .then((res) => {
         const list = Array.isArray(res)
           ? (res as OutboxEvent[])

@@ -53,6 +53,22 @@ export class InMemoryAiStore implements IAiStore {
     return null;
   }
 
+  async listConversations(
+    tenantId: string,
+    channel?: ChannelType,
+    limit = 50,
+  ): Promise<ConversationRecord[]> {
+    const list: ConversationRecord[] = [];
+    for (const conv of this.conversations.values()) {
+      if (conv.tenantId === tenantId && (!channel || conv.channel === channel)) {
+        list.push({ ...conv });
+      }
+    }
+    return list
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, limit);
+  }
+
   async updateConversation(
     tenantId: string,
     id: string,
@@ -200,6 +216,31 @@ export class InMemoryAiStore implements IAiStore {
     const key = `${tenantId}:${messageId}`;
     const wh = this.processedWebhooks.get(key);
     return wh ? { ...wh } : null;
+  }
+
+  async listWebhooks(tenantId: string, limit = 50): Promise<WhatsAppWebhookRecord[]> {
+    const res: WhatsAppWebhookRecord[] = [];
+    for (const wh of this.processedWebhooks.values()) {
+      if (wh.tenantId === tenantId) {
+        res.push({ ...wh });
+      }
+    }
+    return res
+      .sort((a, b) => b.processedAt.localeCompare(a.processedAt))
+      .slice(0, limit);
+  }
+
+  async updateWebhookStatus(
+    tenantId: string,
+    messageId: string,
+    status: WhatsAppWebhookRecord['status'],
+  ): Promise<void> {
+    const key = `${tenantId}:${messageId}`;
+    const wh = this.processedWebhooks.get(key);
+    if (wh) {
+      wh.status = status;
+      wh.processedAt = new Date().toISOString();
+    }
   }
 
   // --- AI Audit Logs ---

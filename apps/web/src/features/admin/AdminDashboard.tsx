@@ -41,6 +41,12 @@ export const AdminDashboard = () => {
   const [ragResult, setRagResult] = useState<RagQueryResult | null>(null);
   const [isQueryingRag, setIsQueryingRag] = useState(false);
   const [ragError, setRagError] = useState<string | null>(null);
+  
+  const [isRebuildingRecs, setIsRebuildingRecs] = useState(false);
+  const [rebuildRecsMsg, setRebuildRecsMsg] = useState<string | null>(null);
+
+  const [isSweepingAlerts, setIsSweepingAlerts] = useState(false);
+  const [sweepMsg, setSweepMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.role === "ADMINISTRATOR") {
@@ -63,6 +69,38 @@ export const AdminDashboard = () => {
       setRebuildMsg(err instanceof Error ? err.message : "Rebuild failed");
     } finally {
       setIsRebuilding(false);
+    }
+  };
+
+  const handleSweepPriceAlerts = async () => {
+    setIsSweepingAlerts(true);
+    setSweepMsg(null);
+    try {
+      const res = await apiClient<{ success: boolean; triggeredCount: number }>("/price-alerts/sweep", {
+        method: "POST",
+        body: JSON.stringify({ sinceDays: 90 }),
+      });
+      setSweepMsg(`Sweep completed successfully. Triggered ${res.triggeredCount} price alerts.`);
+    } catch (err: unknown) {
+      setSweepMsg(err instanceof Error ? `Failed: ${err.message}` : "Failed to run sweep");
+    } finally {
+      setIsSweepingAlerts(false);
+    }
+  };
+
+  const handleRebuildRecs = async () => {
+    setIsRebuildingRecs(true);
+    setRebuildRecsMsg(null);
+    try {
+      const res = await apiClient<{ rebuiltCount: number; message: string }>("/recommendations/rebuild", {
+        method: "POST",
+        body: JSON.stringify({ tenantId: user?.tenantId }),
+      });
+      setRebuildRecsMsg(`Success: ${res.rebuiltCount} recommendations processed.`);
+    } catch (err: unknown) {
+      setRebuildRecsMsg(err instanceof Error ? `Failed: ${err.message}` : "Failed to rebuild recommendations");
+    } finally {
+      setIsRebuildingRecs(false);
     }
   };
 
@@ -171,6 +209,30 @@ export const AdminDashboard = () => {
                 {isRebuilding ? "Rebuilding…" : "Rebuild index"}
               </Button>
               {rebuildMsg && <p className="mt-2 text-[13px] text-muted-foreground">{rebuildMsg}</p>}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Price Alerts Sweep</CardTitle>
+              <CardDescription>Manually trigger a price drop scan.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="secondary" onClick={handleSweepPriceAlerts} disabled={isSweepingAlerts}>
+                {isSweepingAlerts ? "Scanning…" : "Run price scan"}
+              </Button>
+              {sweepMsg && <p className="mt-2 text-[13px] text-muted-foreground">{sweepMsg}</p>}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Recommendations</CardTitle>
+              <CardDescription>Manually trigger a personalized recs rebuild.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="secondary" onClick={handleRebuildRecs} disabled={isRebuildingRecs}>
+                {isRebuildingRecs ? "Rebuilding…" : "Rebuild recommendations"}
+              </Button>
+              {rebuildRecsMsg && <p className="mt-2 text-[13px] text-muted-foreground">{rebuildRecsMsg}</p>}
             </CardContent>
           </Card>
           <Card>

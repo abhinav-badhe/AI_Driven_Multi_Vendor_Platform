@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ImageOff, Lock, ShoppingCart, Trash2 } from "lucide-react";
+import { Heart, ImageOff, Lock, ShoppingCart, Trash2 } from "lucide-react";
 import { useCart } from "./CartContext";
 import { useAuth } from "../auth/AuthContext";
+import { wishlistApi } from "../customer/api/wishlist";
 import { Button, buttonVariants } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
@@ -13,11 +14,27 @@ import { formatPrice } from "../../lib/format";
 import { cn } from "../../lib/utils";
 
 export const CartPage = () => {
-  const { cart, updateQuantity, removeItem, isLoading } = useCart();
+  const { cart, updateQuantity, removeItem, refreshCart, isLoading } = useCart();
   const { isAuthenticated, login } = useAuth();
   const navigate = useNavigate();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const handleSaveForLater = async (itemId: string) => {
+    setUpdatingId(itemId);
+    setError(null);
+    try {
+      await wishlistApi.saveForLater(itemId);
+      await refreshCart();
+      setSuccessMsg("Item saved to your wishlist.");
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save item for later");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const handleUpdate = async (itemId: string, newQty: number) => {
     if (newQty <= 0) {
@@ -102,6 +119,14 @@ export const CartPage = () => {
         Cart ({itemCount} {itemCount === 1 ? "item" : "items"})
       </h1>
 
+      {successMsg && (
+        <div className="mt-3">
+          <Alert tone="success" title="Cart updated">
+            {successMsg}
+          </Alert>
+        </div>
+      )}
+
       {error && (
         <div className="mt-3">
           <Alert tone="error" title="Cart update failed">
@@ -139,7 +164,7 @@ export const CartPage = () => {
                     </span>
                     {!item.isAvailable && <Badge variant="destructive">Unavailable</Badge>}
                   </p>
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <QtyControl
                       small
                       quantity={item.quantity}
@@ -147,6 +172,16 @@ export const CartPage = () => {
                       onDecrease={() => handleUpdate(item.id, item.quantity - 1)}
                       onIncrease={() => handleUpdate(item.id, item.quantity + 1)}
                     />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={updatingId === item.id}
+                      onClick={() => handleSaveForLater(item.id)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Heart aria-hidden className="size-4" />
+                      Save for later
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"

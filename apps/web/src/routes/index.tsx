@@ -13,9 +13,11 @@ import { CategoryPage } from '../features/catalog/Category';
 import { ProductPage } from '../features/catalog/Product';
 import { SearchPage } from '../features/search/SearchPage';
 import { CartPage } from '../features/cart/CartPage';
+import { WishlistPage } from '../features/customer/WishlistPage';
 import { CheckoutPage } from '../features/checkout/CheckoutPage';
 import { CustomerOrders } from '../features/orders/CustomerOrders';
 import { CustomerReturns } from '../features/orders/CustomerReturns';
+import { PriceAlertsPage } from '../features/customer/PriceAlertsPage';
 
 import { MerchantDashboard } from '../features/merchant/MerchantDashboard';
 import { MerchantListings } from '../features/merchant/MerchantListings';
@@ -26,6 +28,7 @@ import { MerchantFinance } from '../features/merchant/MerchantFinance';
 import { MerchantFulfillment } from '../features/merchant/MerchantFulfillment';
 import { MerchantReturns } from '../features/merchant/MerchantReturns';
 import { MerchantSettings } from '../features/merchant/MerchantSettings';
+import { MerchantReviews } from '../features/merchant/MerchantReviews';
 
 import { AdminDashboard } from '../features/admin/AdminDashboard';
 import { AdminMerchants } from '../features/admin/AdminMerchants';
@@ -38,8 +41,11 @@ import { AdminOrders } from '../features/admin/AdminOrders';
 import { AdminPayments } from '../features/admin/AdminPayments';
 import { AdminEvents } from '../features/admin/AdminEvents';
 import { AdminSecurity } from '../features/admin/AdminSecurity';
+import { AdminReviews } from '../features/admin/AdminReviews';
+import { AdminNotifications } from '../features/admin/AdminNotifications';
 import { AnalyticsDashboard } from '../features/analytics/AnalyticsDashboard';
 import { ShipmentTracker } from '../features/fulfillment/ShipmentTracker';
+import { PromotionManagement } from '../features/promotions/PromotionManagement';
 
 export const AppRoutes = () => {
   return (
@@ -54,6 +60,8 @@ export const AppRoutes = () => {
               <Route path="category/:id" element={<CategoryPage />} />
               <Route path="product/:id" element={<ProductPage />} />
               <Route path="cart" element={<CartPage />} />
+              <Route path="wishlist" element={<WishlistPage />} />
+              <Route path="price-alerts" element={<PriceAlertsPage />} />
               <Route path="checkout" element={<CheckoutPage />} />
               <Route path="orders" element={<CustomerOrders />} />
               <Route path="orders/:id" element={<CustomerOrders />} />
@@ -77,7 +85,9 @@ export const AppRoutes = () => {
               <Route path="orders" element={<MerchantOrders />} />
               <Route path="fulfillment" element={<MerchantFulfillment />} />
               <Route path="returns" element={<MerchantReturns />} />
+              <Route path="reviews" element={<MerchantReviews />} />
               <Route path="finance" element={<MerchantFinance />} />
+              <Route path="promotions" element={<PromotionManagement role="MERCHANT" />} />
               <Route path="analytics" element={<AnalyticsDashboard />} />
               <Route path="onboarding" element={<MerchantOnboarding />} />
               <Route path="settings" element={<MerchantSettings />} />
@@ -93,10 +103,13 @@ export const AppRoutes = () => {
               <Route path="inventory" element={<AdminInventory />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="payments" element={<AdminPayments />} />
+              <Route path="promotions" element={<PromotionManagement role="ADMINISTRATOR" />} />
               <Route path="settlements" element={<AdminSettlements />} />
               <Route path="settlement" element={<AdminSettlements />} />
               <Route path="events" element={<AdminEvents />} />
               <Route path="security" element={<AdminSecurity />} />
+              <Route path="reviews" element={<AdminReviews />} />
+              <Route path="notifications" element={<AdminNotifications />} />
               <Route path="analytics" element={<AnalyticsDashboard />} />
             </Route>
           </Routes>

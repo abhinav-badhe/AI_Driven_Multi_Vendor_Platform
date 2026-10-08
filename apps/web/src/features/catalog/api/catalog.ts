@@ -28,15 +28,43 @@ export type Product = {
   updatedAt: string;
 };
 
+export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export type ProductReview = {
   id: string;
   productId: string;
+  customerId?: string | null;
   rating: number;
+  title?: string | null;
   comment?: string | null;
   reviewerName?: string | null;
   reviewerEmail?: string | null;
+  status?: ReviewStatus;
+  verifiedPurchase?: boolean;
+  moderationNote?: string | null;
   reviewedAt?: string | null;
   createdAt: string;
+  updatedAt?: string;
+};
+
+export type ProductRatingSummary = {
+  productId: string;
+  averageRating: number;
+  totalReviews: number;
+  distribution: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+};
+
+export type ReviewEligibility = {
+  hasPurchased: boolean;
+  alreadyReviewed: boolean;
+  isEligible: boolean;
+  existingReviewId?: string;
 };
 
 export type SkuStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
@@ -73,7 +101,39 @@ export const catalogApi = {
     return apiClient<Product>(`/products/${id}`);
   },
   getProductReviews: async (productId: string): Promise<ProductReview[]> => {
-    return apiClient<ProductReview[]>(`/products/${productId}/reviews`);
+    return apiClient<ProductReview[]>(`/api/v1/products/${productId}/reviews`);
+  },
+  getProductRatingSummary: async (productId: string): Promise<ProductRatingSummary> => {
+    return apiClient<ProductRatingSummary>(`/api/v1/products/${productId}/rating-summary`);
+  },
+  getReviewEligibility: async (productId: string): Promise<ReviewEligibility> => {
+    return apiClient<ReviewEligibility>(`/api/v1/products/${productId}/review-eligibility`);
+  },
+  submitReview: async (
+    productId: string,
+    data: { rating: number; title?: string | undefined; comment: string },
+  ): Promise<ProductReview> => {
+    return apiClient<ProductReview>(`/api/v1/products/${productId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  updateReview: async (
+    reviewId: string,
+    data: { rating?: number | undefined; title?: string | undefined; comment?: string | undefined },
+  ): Promise<ProductReview> => {
+    return apiClient<ProductReview>(`/api/v1/reviews/${reviewId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+  deleteReview: async (reviewId: string): Promise<void> => {
+    return apiClient<void>(`/api/v1/reviews/${reviewId}`, {
+      method: 'DELETE',
+    });
+  },
+  getCustomerReviews: async (): Promise<ProductReview[]> => {
+    return apiClient<ProductReview[]>('/api/v1/customer/reviews');
   },
   recordView: async (
     productId: string,

@@ -20,7 +20,7 @@ describe('Database Migrations (PostgreSQL Engine)', () => {
   it('applies migrations forward in deterministic order on a clean database', async () => {
     const initialStatus = await runner.getStatus(db);
     expect(initialStatus.applied.length).toBe(0);
-    expect(initialStatus.pending.length).toBe(19);
+    expect(initialStatus.pending.length).toBe(25);
     expect(initialStatus.pending[0]).toContain('0001_identity_schema.sql');
     expect(initialStatus.pending[1]).toContain('0002_merchant_schema.sql');
     expect(initialStatus.pending[2]).toContain('0003_catalog_and_listings_schema.sql');
@@ -40,12 +40,18 @@ describe('Database Migrations (PostgreSQL Engine)', () => {
     expect(initialStatus.pending[16]).toContain('0017_email_verification_schema.sql');
     expect(initialStatus.pending[17]).toContain('0018_price_watches_schema.sql');
     expect(initialStatus.pending[18]).toContain('0019_anomaly_prediction_entity_schema.sql');
+    expect(initialStatus.pending[19]).toContain('0020_carrier_shipment_enhancements.sql');
+    expect(initialStatus.pending[20]).toContain('0021_promotions_and_coupons_schema.sql');
+    expect(initialStatus.pending[21]).toContain('0022_customer_addresses_and_order_snapshots.sql');
+    expect(initialStatus.pending[22]).toContain('0023_product_reviews_and_moderation.sql');
+    expect(initialStatus.pending[23]).toContain('0024_customer_wishlist.sql');
+    expect(initialStatus.pending[24]).toContain('0025_back_in_stock_subscriptions.sql');
 
     const applied = await runner.up(db);
-    expect(applied.length).toBe(19);
+    expect(applied.length).toBe(25);
 
     const afterStatus = await runner.getStatus(db);
-    expect(afterStatus.applied.length).toBe(19);
+    expect(afterStatus.applied.length).toBe(25);
     expect(afterStatus.pending.length).toBe(0);
   });
 
@@ -506,6 +512,34 @@ describe('Database Migrations (PostgreSQL Engine)', () => {
       INSERT INTO search_seller_offers (listing_id, generation, product_id, merchant_id, sku_id, sku_code, price_amount, status)
       VALUES ('list-1', 1, 'prod-1', 'm-1', 'sku-1', 'SKU-001', 1500, 'ACTIVE');
     `);
+
+    // 0024: Wishlist items constraints
+    await db.query(`
+      INSERT INTO wishlist_items (id, customer_id, tenant_id, product_id, sku_id)
+      VALUES ('wish-1', 'u-1', 't-1', 'prod-1', 'sku-1');
+    `);
+
+    // Duplicate wishlist item for same customer and product must fail unique constraint
+    await expect(
+      db.query(`
+        INSERT INTO wishlist_items (id, customer_id, tenant_id, product_id, sku_id)
+        VALUES ('wish-2', 'u-1', 't-1', 'prod-1', 'sku-1');
+      `),
+    ).rejects.toThrow();
+
+    // 0025: Back in stock subscriptions constraints
+    await db.query(`
+      INSERT INTO back_in_stock_subscriptions (id, customer_id, tenant_id, product_id, sku_id, status)
+      VALUES ('sub-1', 'u-1', 't-1', 'prod-1', 'sku-1', 'ACTIVE');
+    `);
+
+    // Duplicate subscription for same customer and product must fail unique constraint
+    await expect(
+      db.query(`
+        INSERT INTO back_in_stock_subscriptions (id, customer_id, tenant_id, product_id, sku_id, status)
+        VALUES ('sub-2', 'u-1', 't-1', 'prod-1', 'sku-1', 'ACTIVE');
+      `),
+    ).rejects.toThrow();
   });
 });
 

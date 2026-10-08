@@ -19,6 +19,8 @@ import type {
   InventoryVelocitySignal,
   CustomerActivitySignal,
   OrderAnomalySignal,
+  AnalyticsPromotionFact,
+  PromotionAnalyticsDto,
 } from './analytics-models.js';
 
 export function formatMoney(val: number | string | null | undefined): string {
@@ -1004,6 +1006,119 @@ export class AnalyticsRepository {
         dayOfWeek: isNaN(at.getTime()) ? 3 : at.getDay(),
       };
     });
+  }
+
+  /**
+   * Record promotion redemption fact.
+   */
+  async recordPromotionFact(
+    db: DatabaseConnection,
+    fact: AnalyticsPromotionFact,
+  ): Promise<void> {
+    const sql = `
+      INSERT INTO analytics_promotion_facts (
+        fact_id, event_id, tenant_id, merchant_id, promotion_id,
+        coupon_code, order_id, discount_amount, currency, occurred_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ON CONFLICT (event_id) DO NOTHING
+    `;
+    await db.query(sql, [
+      fact.factId,
+      fact.eventId,
+      fact.tenantId,
+      fact.merchantId ?? null,
+      fact.promotionId,
+      fact.couponCode ?? null,
+      fact.orderId ?? null,
+      fact.discountAmount,
+      fact.currency,
+      fact.occurredAt,
+    ]);
+  }
+
+  /**
+   * Delete promotion fact by event (e.g., reversal).
+   */
+  async deletePromotionFactByEvent(
+    db: DatabaseConnection,
+    eventId: string,
+  ): Promise<void> {
+    await db.query(`DELETE FROM analytics_promotion_facts WHERE event_id = $1`, [eventId]);
+  }
+
+  /**
+   * Get promotion metrics for merchant or platform.
+   */
+  async getPromotionMetrics(
+    db: DatabaseConnection,
+    params: { tenantId: string; merchantId?: string | null | undefined },
+  ): Promise<PromotionAnalyticsDto> {
+    const conditions = ['tenant_id = $1'];
+    const values: unknown[] = [params.tenantId];
+
+    if (params.merchantId) {
+      conditions.push('merchant_id = $2');
+      values.push(params.merchantId);
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    const summarySql = `
+      SELECT
+        COUNT(*) as total_redemptions,
+        COALESCE(SUM(discount_amount), 0) as total_discount_amount
+      FROM analytics_promotion_facts
+      WHERE ${whereClause}
+    `;
+
+    const summaryRes = await db.query<{
+      total_redemptions: number | string;
+      total_discount_amount: number | string;
+    }>(summarySql, values);
+
+    const breakdownSql = `
+      SELECT
+        promotion_id,
+        coupon_code,
+        COUNT(*) as redemption_count,
+        COALESCE(SUM(discount_amount), 0) as discount_amount
+      FROM analytics_promotion_facts
+      WHERE ${whereClause}
+      GROUP BY promotion_id, coupon_code
+      ORDER BY redemption_count DESC
+      LIMIT 100
+    `;
+
+    const breakdownRes = await db.query<{
+      promotion_id: string;
+      coupon_code: string | null;
+      redemption_count: number | string;
+      discount_amount: number | string;
+    }>(breakdownSql, values);
+
+    // Sales attributed to orders that used a promotion
+    const salesSql = `
+      SELECT COALESCE(SUM(total_amount), 0) as attributed_sales
+      FROM customer_orders
+      WHERE id IN (
+        SELECT order_id FROM analytics_promotion_facts
+        WHERE ${whereClause} AND order_id IS NOT NULL
+      )
+    `;
+
+    const salesRes = await db.query<{ attributed_sales: number | string }>(salesSql, values);
+
+    return {
+      totalRedemptions: Number(summaryRes.rows[0]?.total_redemptions ?? 0),
+      totalDiscountAmount: Math.round(Number(summaryRes.rows[0]?.total_discount_amount ?? 0)),
+      promotionAttributedSales: Math.round(Number(salesRes.rows[0]?.attributed_sales ?? 0)),
+      promotions: breakdownRes.rows.map((row) => ({
+        promotionId: row.promotion_id,
+        couponCode: row.coupon_code,
+        redemptionCount: Number(row.redemption_count),
+        discountAmount: Math.round(Number(row.discount_amount)),
+      })),
+    };
   }
 }
 

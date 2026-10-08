@@ -74,7 +74,28 @@ export type Permission =
   | 'ai:chat'
   | 'ai:documents:manage'
   | 'ai:documents:read'
-  | 'ai:diagnostics:read';
+  | 'ai:diagnostics:read'
+  | 'promotion:create-own'
+  | 'promotion:read-own'
+  | 'promotion:update-own'
+  | 'promotion:read-any'
+  | 'promotion:manage-any'
+  | 'promotion:validate'
+  | 'customer:address:read-own'
+  | 'customer:address:manage-own'
+  | 'customer:address:read-any'
+  | 'customer:address:manage-any'
+  | 'review:create-own'
+  | 'review:read-own'
+  | 'review:update-own'
+  | 'review:delete-own'
+  | 'review:read-any'
+  | 'review:moderate-own'
+  | 'review:moderate-any'
+  | 'wishlist:read-own'
+  | 'wishlist:write-own'
+  | 'back-in-stock:read-own'
+  | 'back-in-stock:write-own';
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   CUSTOMER: [
@@ -98,6 +119,19 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'return:read-own',
     'return:cancel-own',
     'ai:chat',
+    'promotion:validate',
+    'promotion:read-any',
+    'customer:address:read-own',
+    'customer:address:manage-own',
+    'review:create-own',
+    'review:read-own',
+    'review:update-own',
+    'review:delete-own',
+    'review:read-any',
+    'wishlist:read-own',
+    'wishlist:write-own',
+    'back-in-stock:read-own',
+    'back-in-stock:write-own',
   ],
   MERCHANT: [
     'identity:read-self',
@@ -107,7 +141,6 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'merchant:update-own',
     'merchant:submit-for-verification',
     'catalog:read',
-    'catalog:create',
     'catalog:status',
     'listing:create',
 
@@ -136,6 +169,12 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'ai:chat',
     'ai:documents:manage',
     'ai:documents:read',
+    'promotion:create-own',
+    'promotion:read-own',
+    'promotion:update-own',
+    'promotion:validate',
+    'review:read-any',
+    'review:moderate-own',
   ],
   ADMINISTRATOR: [
     'identity:read-self',
@@ -202,6 +241,27 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'ai:documents:manage',
     'ai:documents:read',
     'ai:diagnostics:read',
+    'promotion:create-own',
+    'promotion:read-own',
+    'promotion:update-own',
+    'promotion:read-any',
+    'promotion:manage-any',
+    'promotion:validate',
+    'customer:address:read-own',
+    'customer:address:manage-own',
+    'customer:address:read-any',
+    'customer:address:manage-any',
+    'review:create-own',
+    'review:read-own',
+    'review:update-own',
+    'review:delete-own',
+    'review:read-any',
+    'review:moderate-own',
+    'review:moderate-any',
+    'wishlist:read-own',
+    'wishlist:write-own',
+    'back-in-stock:read-own',
+    'back-in-stock:write-own',
   ],
 };
 

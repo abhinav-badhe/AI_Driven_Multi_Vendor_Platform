@@ -27,6 +27,9 @@ export interface CustomerOrderRow {
   tax_amount: number;
   total_amount: number;
   idempotency_key: string | null;
+  coupon_code?: string | null;
+  applied_promotions?: unknown;
+  shipping_address?: unknown;
   created_at: Date;
   updated_at: Date;
 }
@@ -38,6 +41,7 @@ export interface SellerOrderRow {
   status: SellerOrderStatus;
   currency: string;
   subtotal_amount: number;
+  discount_amount?: number;
   shipping_amount: number;
   tax_amount: number;
   total_amount: number;
@@ -80,16 +84,19 @@ export class OrderRepository {
     taxAmount?: number | undefined;
     totalAmount: number;
     idempotencyKey?: string | null | undefined;
+    couponCode?: string | null | undefined;
+    appliedPromotions?: unknown;
+    shippingAddress?: unknown;
   }): Promise<CustomerOrderRow> {
     const res = await this.db.query<CustomerOrderRow>(
       `INSERT INTO customer_orders (
         id, customer_tenant_id, checkout_session_id, payment_intent_id,
         status, currency, subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
-        idempotency_key
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        idempotency_key, coupon_code, applied_promotions, shipping_address
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15::jsonb)
       RETURNING id, customer_tenant_id, checkout_session_id, payment_intent_id,
                 status, currency, subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
-                idempotency_key, created_at, updated_at`,
+                idempotency_key, coupon_code, applied_promotions, shipping_address, created_at, updated_at`,
       [
         data.id,
         data.customerTenantId,
@@ -103,6 +110,9 @@ export class OrderRepository {
         data.taxAmount ?? 0,
         data.totalAmount,
         data.idempotencyKey ?? null,
+        data.couponCode ?? null,
+        JSON.stringify(data.appliedPromotions ?? []),
+        data.shippingAddress ? JSON.stringify(data.shippingAddress) : null,
       ],
     );
     return res.rows[0]!;
@@ -112,7 +122,7 @@ export class OrderRepository {
     const res = await this.db.query<CustomerOrderRow>(
       `SELECT id, customer_tenant_id, checkout_session_id, payment_intent_id,
               status, currency, subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
-              idempotency_key, created_at, updated_at
+              idempotency_key, coupon_code, applied_promotions, shipping_address, created_at, updated_at
        FROM customer_orders
        WHERE id = $1`,
       [id],
@@ -126,7 +136,7 @@ export class OrderRepository {
     const res = await this.db.query<CustomerOrderRow>(
       `SELECT id, customer_tenant_id, checkout_session_id, payment_intent_id,
               status, currency, subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
-              idempotency_key, created_at, updated_at
+              idempotency_key, coupon_code, applied_promotions, shipping_address, created_at, updated_at
        FROM customer_orders
        WHERE checkout_session_id = $1`,
       [checkoutSessionId],
@@ -141,7 +151,7 @@ export class OrderRepository {
     const res = await this.db.query<CustomerOrderRow>(
       `SELECT id, customer_tenant_id, checkout_session_id, payment_intent_id,
               status, currency, subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
-              idempotency_key, created_at, updated_at
+              idempotency_key, coupon_code, applied_promotions, shipping_address, created_at, updated_at
        FROM customer_orders
        WHERE customer_tenant_id = $1 AND idempotency_key = $2`,
       [customerTenantId, idempotencyKey],
@@ -158,7 +168,7 @@ export class OrderRepository {
     const res = await this.db.query<CustomerOrderRow>(
       `SELECT id, customer_tenant_id, checkout_session_id, payment_intent_id,
               status, currency, subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
-              idempotency_key, created_at, updated_at
+              idempotency_key, coupon_code, applied_promotions, shipping_address, created_at, updated_at
        FROM customer_orders
        WHERE customer_tenant_id = $1
        ORDER BY created_at DESC
@@ -182,7 +192,7 @@ export class OrderRepository {
        WHERE id = $1 AND status IN (${placeholders})
        RETURNING id, customer_tenant_id, checkout_session_id, payment_intent_id,
                  status, currency, subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
-                 idempotency_key, created_at, updated_at`,
+                 idempotency_key, coupon_code, applied_promotions, shipping_address, created_at, updated_at`,
       [id, nextStatus, ...allowed],
     );
     return res.rows[0] ?? null;
@@ -195,6 +205,7 @@ export class OrderRepository {
     status: SellerOrderStatus;
     currency: string;
     subtotalAmount: number;
+    discountAmount?: number | undefined;
     shippingAmount?: number | undefined;
     taxAmount?: number | undefined;
     totalAmount: number;
@@ -202,10 +213,10 @@ export class OrderRepository {
     const res = await this.db.query<SellerOrderRow>(
       `INSERT INTO seller_orders (
         id, customer_order_id, seller_tenant_id, status, currency,
-        subtotal_amount, shipping_amount, tax_amount, total_amount
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING id, customer_order_id, seller_tenant_id, status, currency,
-                subtotal_amount, shipping_amount, tax_amount, total_amount, created_at, updated_at`,
+                subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount, created_at, updated_at`,
       [
         data.id,
         data.customerOrderId,
@@ -213,6 +224,7 @@ export class OrderRepository {
         data.status,
         data.currency,
         data.subtotalAmount,
+        data.discountAmount ?? 0,
         data.shippingAmount ?? 0,
         data.taxAmount ?? 0,
         data.totalAmount,
@@ -224,7 +236,7 @@ export class OrderRepository {
   async findSellerOrdersByCustomerOrder(customerOrderId: string): Promise<SellerOrderRow[]> {
     const res = await this.db.query<SellerOrderRow>(
       `SELECT id, customer_order_id, seller_tenant_id, status, currency,
-              subtotal_amount, shipping_amount, tax_amount, total_amount, created_at, updated_at
+              subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount, created_at, updated_at
        FROM seller_orders
        WHERE customer_order_id = $1
        ORDER BY created_at ASC`,
@@ -236,7 +248,7 @@ export class OrderRepository {
   async findSellerOrderById(id: string): Promise<SellerOrderRow | null> {
     const res = await this.db.query<SellerOrderRow>(
       `SELECT id, customer_order_id, seller_tenant_id, status, currency,
-              subtotal_amount, shipping_amount, tax_amount, total_amount, created_at, updated_at
+              subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount, created_at, updated_at
        FROM seller_orders
        WHERE id = $1`,
       [id],
@@ -252,7 +264,7 @@ export class OrderRepository {
     const offset = filter?.offset ?? 0;
     const res = await this.db.query<SellerOrderRow>(
       `SELECT id, customer_order_id, seller_tenant_id, status, currency,
-              subtotal_amount, shipping_amount, tax_amount, total_amount, created_at, updated_at
+              subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount, created_at, updated_at
        FROM seller_orders
        WHERE seller_tenant_id = $1
        ORDER BY created_at DESC
@@ -275,7 +287,7 @@ export class OrderRepository {
        SET status = $2, updated_at = CURRENT_TIMESTAMP
        WHERE id = $1 AND status IN (${placeholders})
        RETURNING id, customer_order_id, seller_tenant_id, status, currency,
-                 subtotal_amount, shipping_amount, tax_amount, total_amount, created_at, updated_at`,
+                 subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount, created_at, updated_at`,
       [id, nextStatus, ...allowed],
     );
     return res.rows[0] ?? null;

@@ -29,6 +29,8 @@ export type {
   SellerOrderStatus,
 };
 
+import type { PromotionService } from '../promotion-pricing/index.js';
+
 export interface OrdersModule {
   readonly contextName: 'orders';
   createService(
@@ -39,6 +41,7 @@ export interface OrdersModule {
     inventoryService: InventoryService,
     paymentService: PaymentService,
     outboxService?: OutboxService | undefined,
+    promotionService?: PromotionService | undefined,
   ): OrderService;
   createConsumer(
     db: DatabaseConnection,
@@ -58,6 +61,7 @@ export const ordersModule: OrdersModule = {
     inventoryService: InventoryService,
     paymentService: PaymentService,
     outboxService?: OutboxService | undefined,
+    promotionService?: PromotionService | undefined,
   ): OrderService {
     return new OrderService(
       db,
@@ -67,6 +71,7 @@ export const ordersModule: OrdersModule = {
       inventoryService,
       paymentService,
       outboxService,
+      promotionService,
     );
   },
   createConsumer(

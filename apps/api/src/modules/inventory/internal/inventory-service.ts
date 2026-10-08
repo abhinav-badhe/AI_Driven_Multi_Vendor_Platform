@@ -120,6 +120,7 @@ export class InventoryService {
     tx: DatabaseConnection,
     inv: InventoryItemRow,
     actorId?: string,
+    previousAvailableQuantity: number = 0,
   ): Promise<void> {
     // Derived-cache invalidation runs on EVERY stock mutation, independent of
     // the outbox: over-invalidation only costs a recompute, while a missed
@@ -167,6 +168,47 @@ export class InventoryService {
     });
 
     await this.outboxService.recordEvent(tx, event);
+
+    // INVENTORY_STOCK_AVAILABLE must only be emitted when stock transitions
+    // from unavailable/out-of-stock (previous <= 0) to available (new > 0).
+    const isTransitionToAvailable = previousAvailableQuantity <= 0 && availableQuantity > 0;
+
+    if (isTransitionToAvailable) {
+      let productId: string | undefined = undefined;
+      try {
+        const skuRow = await tx.query<{ product_id: string }>(
+          'SELECT product_id FROM product_skus WHERE id = $1',
+          [inv.sku_id],
+        );
+        productId = skuRow.rows[0]?.product_id;
+      } catch {
+        // non-blocking lookup failure
+      }
+
+      const availableEvent = createDomainEvent({
+        eventType: EventTypes.INVENTORY_STOCK_AVAILABLE,
+        eventVersion: 1,
+        aggregateType: 'InventoryItem',
+        aggregateId: inv.id,
+        tenantId: inv.tenant_id,
+        payload: {
+          inventoryId: inv.id,
+          listingId: inv.listing_id,
+          skuId: inv.sku_id,
+          productId,
+          availableQuantity,
+          previousAvailableQuantity,
+          isAvailable: true,
+          updatedAt: inv.updated_at,
+        },
+        metadata: {
+          actorId,
+          source: 'inventory-service',
+        },
+      });
+
+      await this.outboxService.recordEvent(tx, availableEvent);
+    }
   }
 
   private readonly mutexLocks = new Map<string, Promise<void>>();
@@ -256,7 +298,7 @@ export class InventoryService {
         });
       }
 
-      await this.emitStockChangedEvent(tx, row, actor.userId);
+      await this.emitStockChangedEvent(tx, row, actor.userId, 0);
 
       return this.toItemDto(row);
     });
@@ -398,7 +440,11 @@ export class InventoryService {
         throw err;
       }
 
-      await this.emitStockChangedEvent(tx, updated, actor.userId);
+      const previousAvailable = Math.max(
+        0,
+        current.on_hand_quantity - current.reserved_quantity - current.non_sellable_quantity,
+      );
+      await this.emitStockChangedEvent(tx, updated, actor.userId, previousAvailable);
 
       return this.toItemDto(updated);
     });
@@ -451,7 +497,11 @@ export class InventoryService {
         notes: notes ?? null,
       });
 
-      await this.emitStockChangedEvent(tx, updated, actor.userId);
+      const previousAvailable = Math.max(
+        0,
+        current.on_hand_quantity - current.reserved_quantity - current.non_sellable_quantity,
+      );
+      await this.emitStockChangedEvent(tx, updated, actor.userId, previousAvailable);
 
       return this.toItemDto(updated);
     });
@@ -565,7 +615,11 @@ export class InventoryService {
         throw err;
       }
 
-      await this.emitStockChangedEvent(tx, updated, actor.userId);
+      const previousAvailable = Math.max(
+        0,
+        current.on_hand_quantity - current.reserved_quantity - current.non_sellable_quantity,
+      );
+      await this.emitStockChangedEvent(tx, updated, actor.userId, previousAvailable);
 
       return this.toItemDto(updated);
     });
@@ -664,7 +718,11 @@ export class InventoryService {
           notes: `Reservation ${reservation.id} hold`,
         });
 
-        await this.emitStockChangedEvent(tx, updatedInv, actor.userId);
+        const previousAvailable = Math.max(
+          0,
+          updatedInv.on_hand_quantity - (updatedInv.reserved_quantity - input.quantity) - updatedInv.non_sellable_quantity,
+        );
+        await this.emitStockChangedEvent(tx, updatedInv, actor.userId, previousAvailable);
 
         return this.toReservationDto(reservation);
       });
@@ -771,7 +829,11 @@ export class InventoryService {
         notes: notes ?? 'Reservation released',
       });
 
-      await this.emitStockChangedEvent(tx, updatedInv, actor.userId);
+      const previousAvailable = Math.max(
+        0,
+        updatedInv.on_hand_quantity - (updatedInv.reserved_quantity + res.quantity) - updatedInv.non_sellable_quantity,
+      );
+      await this.emitStockChangedEvent(tx, updatedInv, actor.userId, previousAvailable);
 
       return this.toReservationDto(updatedRes);
     });
@@ -836,7 +898,11 @@ export class InventoryService {
         notes: notes ?? 'Reservation consumed by order/checkout',
       });
 
-      await this.emitStockChangedEvent(tx, updatedInv, actor.userId);
+      const previousAvailable = Math.max(
+        0,
+        updatedInv.on_hand_quantity - updatedInv.reserved_quantity - updatedInv.non_sellable_quantity,
+      );
+      await this.emitStockChangedEvent(tx, updatedInv, actor.userId, previousAvailable);
 
       return this.toReservationDto(updatedRes);
     });
@@ -889,7 +955,11 @@ export class InventoryService {
         notes: notes ?? 'Reservation expired',
       });
 
-      await this.emitStockChangedEvent(tx, updatedInv, 'SYSTEM_EXPIRATION');
+      const previousAvailable = Math.max(
+        0,
+        updatedInv.on_hand_quantity - (updatedInv.reserved_quantity + res.quantity) - updatedInv.non_sellable_quantity,
+      );
+      await this.emitStockChangedEvent(tx, updatedInv, 'SYSTEM_EXPIRATION', previousAvailable);
 
       return this.toReservationDto(updatedRes);
     });
@@ -935,7 +1005,11 @@ export class InventoryService {
           actorId: 'SYSTEM_EXPIRATION',
           notes: 'Automatic background expiration',
         });
-        await this.emitStockChangedEvent(tx, updatedInv, 'SYSTEM_EXPIRATION');
+        const previousAvailable = Math.max(
+          0,
+          updatedInv.on_hand_quantity - (updatedInv.reserved_quantity + res.quantity) - updatedInv.non_sellable_quantity,
+        );
+        await this.emitStockChangedEvent(tx, updatedInv, 'SYSTEM_EXPIRATION', previousAvailable);
         processedCount++;
       }
       return processedCount;

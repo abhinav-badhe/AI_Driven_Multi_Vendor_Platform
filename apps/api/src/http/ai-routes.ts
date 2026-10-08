@@ -18,6 +18,7 @@ export interface AiRoutesOptions {
   whatsAppAdapter: WhatsAppAdapter;
   store: IAiStore;
   whatsAppWebhookSecret?: string | undefined;
+  whatsAppVerifyToken?: string | undefined;
 }
 
 const chatBodySchema = z.object({
@@ -82,7 +83,14 @@ export function registerAiRoutes(
   options: AiRoutesOptions,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
-  const { orchestrator, ragService, whatsAppAdapter, store, whatsAppWebhookSecret } = options;
+  const {
+    orchestrator,
+    ragService,
+    whatsAppAdapter,
+    store,
+    whatsAppWebhookSecret,
+    whatsAppVerifyToken,
+  } = options;
 
   // 1. Interactive Chat Endpoint
   app.post(
@@ -213,7 +221,32 @@ export function registerAiRoutes(
     },
   );
 
-  // 7. WhatsApp Inbound Webhook Endpoint (No JWT auth, HMAC signature verification)
+  // 7. WhatsApp Webhook Verification Handshake (Meta GET Challenge)
+  app.get('/ai/whatsapp/webhook', async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as {
+      'hub.mode'?: string;
+      'hub.verify_token'?: string;
+      'hub.challenge'?: string;
+    };
+
+    const expectedToken = whatsAppVerifyToken ?? 'commerce_wa_verify_token_default';
+    const verification = whatsAppAdapter.verifyWebhookSubscription(
+      {
+        mode: query['hub.mode'],
+        verifyToken: query['hub.verify_token'],
+        challenge: query['hub.challenge'],
+      },
+      expectedToken,
+    );
+
+    if (verification.valid && verification.challenge) {
+      return reply.status(200).type('text/plain').send(verification.challenge);
+    }
+
+    return reply.status(403).send({ error: 'Forbidden: Invalid verify token' });
+  });
+
+  // 8. WhatsApp Inbound Webhook Endpoint (HMAC signature verification + dual payload support)
   app.post('/ai/whatsapp/webhook', async (req: FastifyRequest, reply: FastifyReply) => {
     const signature =
       (req.headers['x-hub-signature-256'] as string | undefined) ??
@@ -222,27 +255,99 @@ export function registerAiRoutes(
 
     const secret = whatsAppWebhookSecret ?? 'default-wa-secret-123';
     const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    const body = waWebhookBodySchema.parse(typeof req.body === 'string' ? JSON.parse(req.body) : req.body);
+    const parsedBody =
+      typeof req.body === 'string'
+        ? (JSON.parse(req.body) as Record<string, unknown>)
+        : (req.body as Record<string, unknown>);
 
-    const result = await whatsAppAdapter.handleInboundWebhook({
-      rawBody,
-      signatureHeader: signature,
-      webhookSecret: secret,
-      tenantId: body.tenantId,
-      message: {
+    const inboundMessages = whatsAppAdapter.parseWebhookPayload(parsedBody, 'default-tenant');
+
+    if (inboundMessages.length === 0) {
+      // Direct schema validation fallback for testing or manual invocations
+      const body = waWebhookBodySchema.parse(parsedBody);
+      inboundMessages.push({
         messageId: body.messageId,
         fromNumber: body.from,
         toNumber: body.to,
         text: body.text,
         timestamp: new Date().toISOString(),
         tenantId: body.tenantId,
-      },
-    });
+      });
+    }
 
-    return reply.status(200).send({ success: true, ...result });
+    const results = [];
+    for (const message of inboundMessages) {
+      const result = await whatsAppAdapter.handleInboundWebhook({
+        rawBody,
+        signatureHeader: signature,
+        webhookSecret: secret,
+        tenantId: message.tenantId,
+        message,
+      });
+      results.push(result);
+    }
+
+    const primaryResult = results[0] ?? { processed: false };
+    return reply.status(200).send({
+      success: true,
+      processedCount: results.filter((r) => r.processed).length,
+      ...primaryResult,
+      results,
+    });
   });
 
-  // 8. WhatsApp Customer Phone Linking Endpoint
+  // 9. WhatsApp Customer Phone Linking Endpoint
+  // 9a. WhatsApp Customer Phone Linking Request (Dispatches 6-digit verification code)
+  app.post(
+    '/ai/whatsapp/link/request',
+    { preHandler: authenticate },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const actor = requireActor(req);
+      RbacPolicy.requirePermission(actor, 'ai:chat');
+
+      const body = waLinkBodySchema.parse(req.body);
+      const result = await whatsAppAdapter.requestPhoneLinking(
+        actor.tenantId,
+        actor.userId,
+        body.phoneNumber,
+      );
+
+      return reply.status(200).send({
+        success: true,
+        message: 'Verification code sent to WhatsApp phone number',
+        expiresAt: result.expiresAt,
+      });
+    },
+  );
+
+  // 9b. WhatsApp Customer Phone Linking Confirmation (Verifies 6-digit code)
+  app.post(
+    '/ai/whatsapp/link/verify',
+    { preHandler: authenticate },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const actor = requireActor(req);
+      RbacPolicy.requirePermission(actor, 'ai:chat');
+
+      const body = z.object({
+        phoneNumber: z.string().min(5),
+        code: z.string().length(6),
+      }).parse(req.body);
+
+      const verified = await whatsAppAdapter.confirmPhoneLinking(
+        actor.tenantId,
+        actor.userId,
+        body.phoneNumber,
+        body.code,
+      );
+
+      return reply.status(200).send({
+        success: verified,
+        message: 'Phone number verified and linked successfully',
+      });
+    },
+  );
+
+  // 9c. Direct WhatsApp Phone Linking (Admin or test setup)
   app.post(
     '/ai/whatsapp/link',
     { preHandler: authenticate },
@@ -264,6 +369,78 @@ export function registerAiRoutes(
         phoneNumber: mapping.phoneNumber,
         isVerified: mapping.isVerified,
       });
+    },
+  );
+
+  // 10. Admin WhatsApp Integration & Status Endpoint
+  app.get(
+    '/ai/whatsapp/status',
+    { preHandler: authenticate },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const actor = requireActor(req);
+      RbacPolicy.requirePermission(actor, 'admin:manage-users');
+
+      const provider = whatsAppAdapter.getProvider();
+      const webhooks = await store.listWebhooks(actor.tenantId, 100);
+      const conversations = await store.listConversations(actor.tenantId, 'WHATSAPP', 100);
+
+      const processedCount = webhooks.filter((w) => w.status === 'PROCESSED').length;
+      const duplicateCount = webhooks.filter((w) => w.status === 'DUPLICATE').length;
+      const failedCount = webhooks.filter((w) => w.status === 'FAILED').length;
+
+      return reply.status(200).send({
+        provider: provider.providerName,
+        status: 'ACTIVE',
+        webhookEndpoint: '/ai/whatsapp/webhook',
+        verifyTokenConfigured: Boolean(whatsAppVerifyToken),
+        totalWebhooksReceived: webhooks.length,
+        processedCount,
+        duplicateCount,
+        failedCount,
+        activeConversationsCount: conversations.length,
+      });
+    },
+  );
+
+  // 11. Admin WhatsApp Recent Conversations
+  app.get(
+    '/ai/whatsapp/conversations',
+    { preHandler: authenticate },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const actor = requireActor(req);
+      RbacPolicy.requirePermission(actor, 'admin:manage-users');
+
+      const limit = Number((req.query as { limit?: string } | undefined)?.limit ?? 50);
+      const conversations = await store.listConversations(actor.tenantId, 'WHATSAPP', limit);
+      return reply.status(200).send({ conversations });
+    },
+  );
+
+  // 12. Admin WhatsApp Webhooks Activity Feed
+  app.get(
+    '/ai/whatsapp/webhooks',
+    { preHandler: authenticate },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const actor = requireActor(req);
+      RbacPolicy.requirePermission(actor, 'admin:manage-users');
+
+      const limit = Number((req.query as { limit?: string } | undefined)?.limit ?? 50);
+      const webhooks = await store.listWebhooks(actor.tenantId, limit);
+      return reply.status(200).send({ webhooks });
+    },
+  );
+
+  // 13. Admin AI Audit Logs
+  app.get(
+    '/ai/audit',
+    { preHandler: authenticate },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const actor = requireActor(req);
+      RbacPolicy.requirePermission(actor, 'admin:view-audit');
+
+      const limit = Number((req.query as { limit?: string } | undefined)?.limit ?? 100);
+      const logs = await store.listAuditLogs(actor.tenantId, limit);
+      return reply.status(200).send({ logs });
     },
   );
 }

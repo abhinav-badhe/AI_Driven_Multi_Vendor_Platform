@@ -73,6 +73,7 @@ export function ProductCard({
   rating,
   reviewCount,
   action,
+  wishlistAction,
 }: {
   productId: string;
   title: string;
@@ -89,6 +90,7 @@ export function ProductCard({
   rating?: number | null | undefined;
   reviewCount?: number | undefined;
   action: React.ReactNode;
+  wishlistAction?: React.ReactNode | undefined;
 }) {
   const off = price != null ? discountPercent(price, compareAtPrice) : null;
   // Hover/keyboard intent warms the product page's critical data so the
@@ -120,12 +122,15 @@ export function ProductCard({
           </Link>
         )}
         <div className="flex items-center justify-between gap-2">
-          <StockBadge inStock={inStock} />
-          {offerCount !== undefined && (
-            <span className="tnum text-xs text-muted-foreground">
-              {offerCount} {offerCount === 1 ? "seller offer" : "seller offers"}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5">
+            <StockBadge inStock={inStock} />
+            {offerCount !== undefined && (
+              <span className="tnum text-xs text-muted-foreground">
+                {offerCount} {offerCount === 1 ? "seller offer" : "seller offers"}
+              </span>
+            )}
+          </div>
+          {wishlistAction}
         </div>
         <div className="min-w-0">
           <Link

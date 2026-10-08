@@ -979,64 +979,6 @@
       "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/apple/thumbnail.webp"
     },
     {
-      "id": 17,
-      "title": "Beef Steak",
-      "description": "High-quality beef steak, great for grilling or cooking to your preferred level of doneness.",
-      "category": "groceries",
-      "price": 12.99,
-      "discountPercentage": 9.61,
-      "rating": 4.47,
-      "stock": 86,
-      "tags": [
-        "meat"
-      ],
-      "sku": "GRO-BRD-BEE-017",
-      "weight": 10,
-      "dimensions": {
-        "width": 18.9,
-        "height": 5.77,
-        "depth": 18.57
-      },
-      "warrantyInformation": "3 year warranty",
-      "shippingInformation": "Ships overnight",
-      "availabilityStatus": "In Stock",
-      "reviews": [
-        {
-          "rating": 3,
-          "comment": "Would not recommend!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Eleanor Tyler",
-          "reviewerEmail": "eleanor.tyler@x.dummyjson.com"
-        },
-        {
-          "rating": 4,
-          "comment": "Fast shipping!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Alexander Jones",
-          "reviewerEmail": "alexander.jones@x.dummyjson.com"
-        },
-        {
-          "rating": 5,
-          "comment": "Great value for money!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Natalie Harris",
-          "reviewerEmail": "natalie.harris@x.dummyjson.com"
-        }
-      ],
-      "returnPolicy": "60 days return policy",
-      "minimumOrderQuantity": 43,
-      "meta": {
-        "createdAt": "2024-10-02T14:03:32.118Z",
-        "updatedAt": "2025-10-24T16:51:22.869Z",
-        "barcode": "5640063409695",
-        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
-      },
-      "images": [
-        "https://cdn.dummyjson.com/product-images/groceries/beef-steak/1.webp"
-      ],
-      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/beef-steak/thumbnail.webp"
-    },
-    {
       "id": 18,
       "title": "Cat Food",
       "description": "Nutritious cat food formulated to meet the dietary needs of your feline friend.",
@@ -1094,65 +1036,6 @@
         "https://cdn.dummyjson.com/product-images/groceries/cat-food/1.webp"
       ],
       "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/cat-food/thumbnail.webp"
-    },
-    {
-      "id": 19,
-      "title": "Chicken Meat",
-      "description": "Fresh and tender chicken meat, suitable for various culinary preparations.",
-      "category": "groceries",
-      "price": 9.99,
-      "discountPercentage": 13.7,
-      "rating": 3.19,
-      "stock": 97,
-      "tags": [
-        "meat"
-      ],
-      "sku": "GRO-BRD-CHI-019",
-      "weight": 1,
-      "dimensions": {
-        "width": 11.03,
-        "height": 22.11,
-        "depth": 16.01
-      },
-      "warrantyInformation": "1 year warranty",
-      "shippingInformation": "Ships in 1 month",
-      "availabilityStatus": "In Stock",
-      "reviews": [
-        {
-          "rating": 5,
-          "comment": "Great product!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Mateo Bennett",
-          "reviewerEmail": "mateo.bennett@x.dummyjson.com"
-        },
-        {
-          "rating": 4,
-          "comment": "Highly recommended!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Jackson Evans",
-          "reviewerEmail": "jackson.evans@x.dummyjson.com"
-        },
-        {
-          "rating": 3,
-          "comment": "Not worth the price!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Sadie Morales",
-          "reviewerEmail": "sadie.morales@x.dummyjson.com"
-        }
-      ],
-      "returnPolicy": "7 days return policy",
-      "minimumOrderQuantity": 22,
-      "meta": {
-        "createdAt": "2026-02-15T02:18:37.851Z",
-        "updatedAt": "2026-03-15T17:47:08.150Z",
-        "barcode": "8829514594521",
-        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
-      },
-      "images": [
-        "https://cdn.dummyjson.com/product-images/groceries/chicken-meat/1.webp",
-        "https://cdn.dummyjson.com/product-images/groceries/chicken-meat/2.webp"
-      ],
-      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/chicken-meat/thumbnail.webp"
     },
     {
       "id": 20,
@@ -1328,122 +1211,6 @@
         "https://cdn.dummyjson.com/product-images/groceries/dog-food/1.webp"
       ],
       "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/dog-food/thumbnail.webp"
-    },
-    {
-      "id": 23,
-      "title": "Eggs",
-      "description": "Fresh eggs, a versatile ingredient for baking, cooking, or breakfast.",
-      "category": "groceries",
-      "price": 2.99,
-      "discountPercentage": 11.05,
-      "rating": 2.53,
-      "stock": 9,
-      "tags": [
-        "dairy"
-      ],
-      "sku": "GRO-BRD-EGG-023",
-      "weight": 2,
-      "dimensions": {
-        "width": 11.42,
-        "height": 7.44,
-        "depth": 16.95
-      },
-      "warrantyInformation": "1 week warranty",
-      "shippingInformation": "Ships in 1 week",
-      "availabilityStatus": "In Stock",
-      "reviews": [
-        {
-          "rating": 3,
-          "comment": "Disappointing product!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Penelope King",
-          "reviewerEmail": "penelope.king@x.dummyjson.com"
-        },
-        {
-          "rating": 3,
-          "comment": "Poor quality!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Eleanor Tyler",
-          "reviewerEmail": "eleanor.tyler@x.dummyjson.com"
-        },
-        {
-          "rating": 4,
-          "comment": "Very pleased!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Benjamin Foster",
-          "reviewerEmail": "benjamin.foster@x.dummyjson.com"
-        }
-      ],
-      "returnPolicy": "No return policy",
-      "minimumOrderQuantity": 32,
-      "meta": {
-        "createdAt": "2026-02-06T14:03:24.867Z",
-        "updatedAt": "2026-08-20T05:44:35.354Z",
-        "barcode": "3478638588469",
-        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
-      },
-      "images": [
-        "https://cdn.dummyjson.com/product-images/groceries/eggs/1.webp"
-      ],
-      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/eggs/thumbnail.webp"
-    },
-    {
-      "id": 24,
-      "title": "Fish Steak",
-      "description": "Quality fish steak, suitable for grilling, baking, or pan-searing.",
-      "category": "groceries",
-      "price": 14.99,
-      "discountPercentage": 4.23,
-      "rating": 3.78,
-      "stock": 74,
-      "tags": [
-        "seafood"
-      ],
-      "sku": "GRO-BRD-FIS-024",
-      "weight": 6,
-      "dimensions": {
-        "width": 14.95,
-        "height": 26.31,
-        "depth": 11.27
-      },
-      "warrantyInformation": "1 month warranty",
-      "shippingInformation": "Ships in 3-5 business days",
-      "availabilityStatus": "In Stock",
-      "reviews": [
-        {
-          "rating": 2,
-          "comment": "Would not buy again!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Caleb Perkins",
-          "reviewerEmail": "caleb.perkins@x.dummyjson.com"
-        },
-        {
-          "rating": 5,
-          "comment": "Excellent quality!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Isabella Jackson",
-          "reviewerEmail": "isabella.jackson@x.dummyjson.com"
-        },
-        {
-          "rating": 4,
-          "comment": "Great value for money!",
-          "date": "2025-04-30T09:41:02.053Z",
-          "reviewerName": "Nathan Dixon",
-          "reviewerEmail": "nathan.dixon@x.dummyjson.com"
-        }
-      ],
-      "returnPolicy": "60 days return policy",
-      "minimumOrderQuantity": 50,
-      "meta": {
-        "createdAt": "2025-05-24T22:00:13.090Z",
-        "updatedAt": "2025-12-05T01:25:43.902Z",
-        "barcode": "9595036192098",
-        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
-      },
-      "images": [
-        "https://cdn.dummyjson.com/product-images/groceries/fish-steak/1.webp"
-      ],
-      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/fish-steak/thumbnail.webp"
     },
     {
       "id": 25,
@@ -1795,9 +1562,4418 @@
         "https://cdn.dummyjson.com/product-images/groceries/kiwi/1.webp"
       ],
       "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/kiwi/thumbnail.webp"
+    },
+    {
+      "id": 31,
+      "title": "Lemon",
+      "description": "Zesty, juicy lemons ideal for cooking, drinks and dressings.",
+      "category": "groceries",
+      "price": 0.79,
+      "discountPercentage": 1.18,
+      "rating": 3.96,
+      "stock": 71,
+      "tags": [
+        "fruits"
+      ],
+      "sku": "GRO-BRD-LEM-031",
+      "weight": 6,
+      "dimensions": {
+        "width": 11.22,
+        "height": 6.88,
+        "depth": 12.44
+      },
+      "warrantyInformation": "3 months warranty",
+      "shippingInformation": "Ships in 1 week",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Logan Young",
+          "reviewerEmail": "logan.young@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Logan Smith",
+          "reviewerEmail": "logan.smith@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ruby Patel",
+          "reviewerEmail": "ruby.patel@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "30 days return policy",
+      "minimumOrderQuantity": 49,
+      "meta": {
+        "createdAt": "2024-12-12T11:29:31.472Z",
+        "updatedAt": "2026-09-18T07:09:56.922Z",
+        "barcode": "8059498065585",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/lemon/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/lemon/thumbnail.webp"
+    },
+    {
+      "id": 32,
+      "title": "Milk",
+      "description": "Fresh, creamy milk, a staple for drinks, cereals and cooking.",
+      "category": "groceries",
+      "price": 3.49,
+      "discountPercentage": 16.08,
+      "rating": 2.84,
+      "stock": 50,
+      "tags": [
+        "dairy"
+      ],
+      "sku": "GRO-BRD-MIL-032",
+      "weight": 6,
+      "dimensions": {
+        "width": 9.51,
+        "height": 11.78,
+        "depth": 29.43
+      },
+      "warrantyInformation": "2 year warranty",
+      "shippingInformation": "Ships overnight",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Aaron Gomez",
+          "reviewerEmail": "aaron.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Clara Patel",
+          "reviewerEmail": "clara.patel@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Isabella Long",
+          "reviewerEmail": "isabella.long@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 49,
+      "meta": {
+        "createdAt": "2025-06-25T19:07:24.717Z",
+        "updatedAt": "2026-09-17T08:06:37.424Z",
+        "barcode": "6981433179143",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/milk/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/milk/thumbnail.webp"
+    },
+    {
+      "id": 33,
+      "title": "Mulberry",
+      "description": "Sweet, juicy mulberries, great for snacking or desserts.",
+      "category": "groceries",
+      "price": 4.99,
+      "discountPercentage": 9.79,
+      "rating": 3.65,
+      "stock": 84,
+      "tags": [
+        "fruits"
+      ],
+      "sku": "GRO-BRD-MUL-033",
+      "weight": 8,
+      "dimensions": {
+        "width": 14.61,
+        "height": 21.77,
+        "depth": 24.48
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Gomez",
+          "reviewerEmail": "daniel.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ananya Smith",
+          "reviewerEmail": "ananya.smith@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Olivia Hill",
+          "reviewerEmail": "olivia.hill@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 3,
+      "meta": {
+        "createdAt": "2026-06-21T19:08:36.236Z",
+        "updatedAt": "2026-10-08T02:55:27.666Z",
+        "barcode": "4069563143954",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/mulberry/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/mulberry/thumbnail.webp"
+    },
+    {
+      "id": 34,
+      "title": "Nescafe Coffee",
+      "description": "Instant Nescafe coffee with a rich aroma, ready in seconds.",
+      "category": "groceries",
+      "price": 7.99,
+      "discountPercentage": 19.66,
+      "rating": 2.78,
+      "stock": 84,
+      "tags": [
+        "beverages"
+      ],
+      "sku": "GRO-BRD-NES-034",
+      "weight": 1,
+      "dimensions": {
+        "width": 23.16,
+        "height": 28.04,
+        "depth": 13.71
+      },
+      "warrantyInformation": "3 year warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Lucas Young",
+          "reviewerEmail": "lucas.young@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Hazel Bennett",
+          "reviewerEmail": "hazel.bennett@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ethan Harper",
+          "reviewerEmail": "ethan.harper@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 27,
+      "meta": {
+        "createdAt": "2026-08-23T06:22:01.917Z",
+        "updatedAt": "2026-10-24T08:15:42.189Z",
+        "barcode": "8485258025797",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/nescafe-coffee/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/nescafe-coffee/thumbnail.webp"
+    },
+    {
+      "id": 35,
+      "title": "Potatoes",
+      "description": "Fresh, versatile potatoes suited to boiling, baking and frying.",
+      "category": "groceries",
+      "price": 2.29,
+      "discountPercentage": 16.53,
+      "rating": 3.45,
+      "stock": 71,
+      "tags": [
+        "vegetables"
+      ],
+      "sku": "GRO-BRD-POT-035",
+      "weight": 9,
+      "dimensions": {
+        "width": 17.29,
+        "height": 11.32,
+        "depth": 19.32
+      },
+      "warrantyInformation": "2 year warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Brown",
+          "reviewerEmail": "mia.brown@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Hazel Johnson",
+          "reviewerEmail": "hazel.johnson@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Layla Foster",
+          "reviewerEmail": "layla.foster@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "30 days return policy",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2025-05-19T22:51:50.780Z",
+        "updatedAt": "2026-09-17T14:48:17.541Z",
+        "barcode": "3670887853162",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/potatoes/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/potatoes/thumbnail.webp"
+    },
+    {
+      "id": 36,
+      "title": "Protein Powder",
+      "description": "Dairy-based protein powder to support fitness and muscle recovery.",
+      "category": "groceries",
+      "price": 19.99,
+      "discountPercentage": 17.5,
+      "rating": 3.64,
+      "stock": 34,
+      "tags": [
+        "nutrition",
+        "supplements"
+      ],
+      "sku": "GRO-BRD-PRO-036",
+      "weight": 8,
+      "dimensions": {
+        "width": 16.27,
+        "height": 17.97,
+        "depth": 28.19
+      },
+      "warrantyInformation": "2 year warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 2,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Zoe Cooper",
+          "reviewerEmail": "zoe.cooper@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Noah Davis",
+          "reviewerEmail": "noah.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Isabella Wilson",
+          "reviewerEmail": "isabella.wilson@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 21,
+      "meta": {
+        "createdAt": "2024-10-10T15:57:09.785Z",
+        "updatedAt": "2026-09-19T14:52:29.348Z",
+        "barcode": "0580777854579",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/protein-powder/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/protein-powder/thumbnail.webp"
+    },
+    {
+      "id": 37,
+      "title": "Red Onions",
+      "description": "Flavourful red onions for salads, curries and everyday cooking.",
+      "category": "groceries",
+      "price": 1.49,
+      "discountPercentage": 2.21,
+      "rating": 4.85,
+      "stock": 8,
+      "tags": [
+        "vegetables"
+      ],
+      "sku": "GRO-BRD-RED-037",
+      "weight": 7,
+      "dimensions": {
+        "width": 19.5,
+        "height": 19.34,
+        "depth": 27.9
+      },
+      "warrantyInformation": "3 months warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Priya Davis",
+          "reviewerEmail": "priya.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mason Young",
+          "reviewerEmail": "mason.young@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ethan Davis",
+          "reviewerEmail": "ethan.davis@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "30 days return policy",
+      "minimumOrderQuantity": 3,
+      "meta": {
+        "createdAt": "2025-02-01T14:56:01.880Z",
+        "updatedAt": "2026-09-07T19:17:49.332Z",
+        "barcode": "9378736674714",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/red-onions/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/red-onions/thumbnail.webp"
+    },
+    {
+      "id": 38,
+      "title": "Rice",
+      "description": "Quality long-grain rice, a pantry essential for countless meals.",
+      "category": "groceries",
+      "price": 5.99,
+      "discountPercentage": 2.75,
+      "rating": 2.73,
+      "stock": 50,
+      "tags": [
+        "grains"
+      ],
+      "sku": "GRO-BRD-RIC-038",
+      "weight": 5,
+      "dimensions": {
+        "width": 14.22,
+        "height": 29.54,
+        "depth": 28.45
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships in 1 week",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Julian Nguyen",
+          "reviewerEmail": "julian.nguyen@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Lucas Price",
+          "reviewerEmail": "lucas.price@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Logan Patel",
+          "reviewerEmail": "logan.patel@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 14,
+      "meta": {
+        "createdAt": "2026-03-20T18:27:26.285Z",
+        "updatedAt": "2026-09-10T20:37:24.163Z",
+        "barcode": "4314335918381",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/rice/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/rice/thumbnail.webp"
+    },
+    {
+      "id": 39,
+      "title": "Soft Drinks",
+      "description": "Refreshing, fizzy soft drinks for parties and everyday enjoyment.",
+      "category": "groceries",
+      "price": 1.99,
+      "discountPercentage": 13.85,
+      "rating": 4.91,
+      "stock": 84,
+      "tags": [
+        "beverages"
+      ],
+      "sku": "GRO-BRD-SOF-039",
+      "weight": 8,
+      "dimensions": {
+        "width": 12.03,
+        "height": 23.76,
+        "depth": 12.28
+      },
+      "warrantyInformation": "1 year warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ruby Patel",
+          "reviewerEmail": "ruby.patel@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Wilson",
+          "reviewerEmail": "daniel.wilson@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Sophia Gomez",
+          "reviewerEmail": "sophia.gomez@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 20,
+      "meta": {
+        "createdAt": "2026-04-09T09:03:48.726Z",
+        "updatedAt": "2026-09-17T23:46:42.146Z",
+        "barcode": "6511626958359",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/soft-drinks/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/soft-drinks/thumbnail.webp"
+    },
+    {
+      "id": 40,
+      "title": "Strawberry",
+      "description": "Fresh, sweet strawberries packed with flavour and vitamin C.",
+      "category": "groceries",
+      "price": 3.99,
+      "discountPercentage": 9.4,
+      "rating": 2.69,
+      "stock": 8,
+      "tags": [
+        "fruits"
+      ],
+      "sku": "GRO-BRD-STR-040",
+      "weight": 6,
+      "dimensions": {
+        "width": 8.64,
+        "height": 25.96,
+        "depth": 14.91
+      },
+      "warrantyInformation": "Lifetime warranty",
+      "shippingInformation": "Ships in 3-5 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Very pleased!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Clara Long",
+          "reviewerEmail": "clara.long@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Emma Smith",
+          "reviewerEmail": "emma.smith@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Elijah Patel",
+          "reviewerEmail": "elijah.patel@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 13,
+      "meta": {
+        "createdAt": "2024-10-20T13:38:05.843Z",
+        "updatedAt": "2026-09-22T22:34:27.889Z",
+        "barcode": "5572234888302",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/strawberry/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/strawberry/thumbnail.webp"
+    },
+    {
+      "id": 41,
+      "title": "Tissue Paper Box",
+      "description": "Soft, absorbent tissue paper in a convenient box for home or office.",
+      "category": "groceries",
+      "price": 2.49,
+      "discountPercentage": 14.28,
+      "rating": 3.14,
+      "stock": 27,
+      "tags": [
+        "household essentials"
+      ],
+      "sku": "GRO-BRD-TIS-041",
+      "weight": 1,
+      "dimensions": {
+        "width": 17.93,
+        "height": 18.0,
+        "depth": 10.47
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships in 3-5 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Isabella Gomez",
+          "reviewerEmail": "isabella.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Liam Smith",
+          "reviewerEmail": "liam.smith@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Grace Harper",
+          "reviewerEmail": "grace.harper@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 27,
+      "meta": {
+        "createdAt": "2024-12-02T07:52:14.829Z",
+        "updatedAt": "2026-09-26T03:32:26.332Z",
+        "barcode": "3548344744519",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/tissue-paper-box/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/tissue-paper-box/thumbnail.webp"
+    },
+    {
+      "id": 42,
+      "title": "Water",
+      "description": "Pure, refreshing bottled drinking water for staying hydrated.",
+      "category": "groceries",
+      "price": 0.99,
+      "discountPercentage": 17.91,
+      "rating": 4.51,
+      "stock": 71,
+      "tags": [
+        "beverages"
+      ],
+      "sku": "GRO-BRD-WAT-042",
+      "weight": 6,
+      "dimensions": {
+        "width": 20.46,
+        "height": 9.74,
+        "depth": 20.16
+      },
+      "warrantyInformation": "1 month warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 1,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Priya Gomez",
+          "reviewerEmail": "priya.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ava Harper",
+          "reviewerEmail": "ava.harper@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Very pleased!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Layla Young",
+          "reviewerEmail": "layla.young@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 22,
+      "meta": {
+        "createdAt": "2025-02-01T15:35:38.670Z",
+        "updatedAt": "2026-09-15T00:56:44.373Z",
+        "barcode": "2680578605183",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/groceries/water/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/groceries/water/thumbnail.webp"
+    },
+    {
+      "id": 78,
+      "title": "Apple MacBook Pro 14 Inch Space Grey",
+      "description": "The MacBook Pro 14 Inch in Space Grey is a powerful, sleek laptop with Apple's M1 Pro chip and a stunning Retina display.",
+      "category": "laptops",
+      "price": 1999.99,
+      "discountPercentage": 5.51,
+      "rating": 4.08,
+      "stock": 90,
+      "tags": [
+        "laptops",
+        "apple"
+      ],
+      "brand": "Apple",
+      "sku": "LAP-APP-APP-078",
+      "weight": 2,
+      "dimensions": {
+        "width": 18.84,
+        "height": 9.67,
+        "depth": 24.15
+      },
+      "warrantyInformation": "1 week warranty",
+      "shippingInformation": "Ships in 1-2 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Elijah Price",
+          "reviewerEmail": "elijah.price@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Logan Wilson",
+          "reviewerEmail": "logan.wilson@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Very pleased!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Layla Hill",
+          "reviewerEmail": "layla.hill@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 9,
+      "meta": {
+        "createdAt": "2025-10-11T22:45:33.110Z",
+        "updatedAt": "2026-09-02T14:43:13.961Z",
+        "barcode": "6028837555597",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/laptops/apple-macbook-pro-14-inch-space-grey/1.webp",
+        "https://cdn.dummyjson.com/product-images/laptops/apple-macbook-pro-14-inch-space-grey/2.webp",
+        "https://cdn.dummyjson.com/product-images/laptops/apple-macbook-pro-14-inch-space-grey/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/laptops/apple-macbook-pro-14-inch-space-grey/thumbnail.webp"
+    },
+    {
+      "id": 79,
+      "title": "Asus Zenbook Pro Dual Screen Laptop",
+      "description": "The Asus Zenbook Pro Dual Screen Laptop packs two screens for productivity and versatility.",
+      "category": "laptops",
+      "price": 1799.99,
+      "discountPercentage": 17.58,
+      "rating": 4.6,
+      "stock": 48,
+      "tags": [
+        "laptops"
+      ],
+      "brand": "Asus",
+      "sku": "LAP-ASU-ASU-079",
+      "weight": 1,
+      "dimensions": {
+        "width": 21.03,
+        "height": 8.32,
+        "depth": 16.97
+      },
+      "warrantyInformation": "1 year warranty",
+      "shippingInformation": "Ships in 3-5 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Layla Price",
+          "reviewerEmail": "layla.price@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Isabella Davis",
+          "reviewerEmail": "isabella.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Owen Ward",
+          "reviewerEmail": "owen.ward@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 8,
+      "meta": {
+        "createdAt": "2026-02-09T23:55:20.660Z",
+        "updatedAt": "2026-10-08T16:27:59.698Z",
+        "barcode": "8479188957555",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/laptops/asus-zenbook-pro-dual-screen-laptop/1.webp",
+        "https://cdn.dummyjson.com/product-images/laptops/asus-zenbook-pro-dual-screen-laptop/2.webp",
+        "https://cdn.dummyjson.com/product-images/laptops/asus-zenbook-pro-dual-screen-laptop/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/laptops/asus-zenbook-pro-dual-screen-laptop/thumbnail.webp"
+    },
+    {
+      "id": 80,
+      "title": "Huawei Matebook X Pro",
+      "description": "The Huawei Matebook X Pro is a slim, stylish laptop with a high-resolution touchscreen display.",
+      "category": "laptops",
+      "price": 1399.99,
+      "discountPercentage": 19.68,
+      "rating": 4.66,
+      "stock": 19,
+      "tags": [
+        "laptops"
+      ],
+      "brand": "Huawei",
+      "sku": "LAP-HUA-HUA-080",
+      "weight": 3,
+      "dimensions": {
+        "width": 23.91,
+        "height": 29.0,
+        "depth": 28.92
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 1,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ruby Sharma",
+          "reviewerEmail": "ruby.sharma@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Lucas Harper",
+          "reviewerEmail": "lucas.harper@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Isabella Long",
+          "reviewerEmail": "isabella.long@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 2,
+      "meta": {
+        "createdAt": "2025-02-01T09:18:45.881Z",
+        "updatedAt": "2026-09-16T10:17:38.894Z",
+        "barcode": "7285568983298",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/laptops/huawei-matebook-x-pro/1.webp",
+        "https://cdn.dummyjson.com/product-images/laptops/huawei-matebook-x-pro/2.webp",
+        "https://cdn.dummyjson.com/product-images/laptops/huawei-matebook-x-pro/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/laptops/huawei-matebook-x-pro/thumbnail.webp"
+    },
+    {
+      "id": 81,
+      "title": "Lenovo Yoga 920",
+      "description": "The Lenovo Yoga 920 is a 2-in-1 convertible laptop with a flexible hinge for laptop or tablet use.",
+      "category": "laptops",
+      "price": 1099.99,
+      "discountPercentage": 2.61,
+      "rating": 4.54,
+      "stock": 12,
+      "tags": [
+        "laptops"
+      ],
+      "brand": "Lenovo",
+      "sku": "LAP-LEN-LEN-081",
+      "weight": 10,
+      "dimensions": {
+        "width": 6.52,
+        "height": 21.6,
+        "depth": 5.86
+      },
+      "warrantyInformation": "6 months warranty",
+      "shippingInformation": "Ships in 1-2 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ethan Brown",
+          "reviewerEmail": "ethan.brown@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Henry Gomez",
+          "reviewerEmail": "henry.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Priya Gomez",
+          "reviewerEmail": "priya.gomez@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 3,
+      "meta": {
+        "createdAt": "2025-06-28T12:05:37.637Z",
+        "updatedAt": "2026-09-28T21:58:02.559Z",
+        "barcode": "0438581762528",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/laptops/lenovo-yoga-920/1.webp",
+        "https://cdn.dummyjson.com/product-images/laptops/lenovo-yoga-920/2.webp",
+        "https://cdn.dummyjson.com/product-images/laptops/lenovo-yoga-920/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/laptops/lenovo-yoga-920/thumbnail.webp"
+    },
+    {
+      "id": 82,
+      "title": "New DELL XPS 13 9300 Laptop",
+      "description": "The New DELL XPS 13 9300 is a compact, powerful laptop with a virtually borderless InfinityEdge display.",
+      "category": "laptops",
+      "price": 1499.99,
+      "discountPercentage": 0.15,
+      "rating": 2.74,
+      "stock": 3,
+      "tags": [
+        "laptops"
+      ],
+      "brand": "Dell",
+      "sku": "LAP-DEL-NEW-082",
+      "weight": 10,
+      "dimensions": {
+        "width": 26.01,
+        "height": 22.39,
+        "depth": 25.34
+      },
+      "warrantyInformation": "1 year warranty",
+      "shippingInformation": "Ships overnight",
+      "availabilityStatus": "Low Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Sophia Bennett",
+          "reviewerEmail": "sophia.bennett@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Hazel Young",
+          "reviewerEmail": "hazel.young@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mason Young",
+          "reviewerEmail": "mason.young@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 8,
+      "meta": {
+        "createdAt": "2025-02-11T02:21:14.991Z",
+        "updatedAt": "2026-09-29T04:33:18.381Z",
+        "barcode": "2866753478971",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/laptops/new-dell-xps-13-9300-laptop/1.webp",
+        "https://cdn.dummyjson.com/product-images/laptops/new-dell-xps-13-9300-laptop/2.webp",
+        "https://cdn.dummyjson.com/product-images/laptops/new-dell-xps-13-9300-laptop/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/laptops/new-dell-xps-13-9300-laptop/thumbnail.webp"
+    },
+    {
+      "id": 83,
+      "title": "Blue & Black Check Shirt",
+      "description": "A stylish and comfortable men's shirt with a classic check pattern, suitable for casual and semi-formal occasions.",
+      "category": "mens-shirts",
+      "price": 29.99,
+      "discountPercentage": 3.89,
+      "rating": 4.39,
+      "stock": 27,
+      "tags": [
+        "clothing",
+        "men's shirts"
+      ],
+      "brand": "Fashion Trends",
+      "sku": "MEN-FAS-BLU-083",
+      "weight": 6,
+      "dimensions": {
+        "width": 22.8,
+        "height": 20.49,
+        "depth": 8.94
+      },
+      "warrantyInformation": "1 month warranty",
+      "shippingInformation": "Ships in 1-2 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 1,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Caleb Davis",
+          "reviewerEmail": "caleb.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mason Gomez",
+          "reviewerEmail": "mason.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Clara Kelly",
+          "reviewerEmail": "clara.kelly@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 25,
+      "meta": {
+        "createdAt": "2024-09-07T21:54:12.533Z",
+        "updatedAt": "2026-09-27T05:33:33.279Z",
+        "barcode": "5721283576990",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/1.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/2.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/3.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/thumbnail.webp"
+    },
+    {
+      "id": 84,
+      "title": "Gigabyte Aorus Men Tshirt",
+      "description": "A cool, casual t-shirt for gaming enthusiasts with the Aorus logo and a sleek design.",
+      "category": "mens-shirts",
+      "price": 24.99,
+      "discountPercentage": 5.07,
+      "rating": 4.21,
+      "stock": 60,
+      "tags": [
+        "clothing",
+        "men's t-shirts"
+      ],
+      "brand": "Gigabyte",
+      "sku": "MEN-GIG-GIG-084",
+      "weight": 8,
+      "dimensions": {
+        "width": 16.67,
+        "height": 18.6,
+        "depth": 24.83
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships overnight",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 2,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Zoe Brown",
+          "reviewerEmail": "zoe.brown@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Nora Davis",
+          "reviewerEmail": "nora.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Emma Kelly",
+          "reviewerEmail": "emma.kelly@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 26,
+      "meta": {
+        "createdAt": "2026-07-29T13:06:47.628Z",
+        "updatedAt": "2026-09-28T06:46:00.022Z",
+        "barcode": "2520161284001",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/1.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/2.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/3.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/thumbnail.webp"
+    },
+    {
+      "id": 85,
+      "title": "Man Plaid Shirt",
+      "description": "A timeless and versatile men's shirt with a classic plaid pattern and comfortable fit.",
+      "category": "mens-shirts",
+      "price": 34.99,
+      "discountPercentage": 19.18,
+      "rating": 4.76,
+      "stock": 5,
+      "tags": [
+        "clothing",
+        "men's shirts"
+      ],
+      "brand": "Classic Wear",
+      "sku": "MEN-CLA-MAN-085",
+      "weight": 3,
+      "dimensions": {
+        "width": 12.65,
+        "height": 16.72,
+        "depth": 13.02
+      },
+      "warrantyInformation": "3 year warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "Low Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Aria Harper",
+          "reviewerEmail": "aria.harper@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Foster",
+          "reviewerEmail": "daniel.foster@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Aria Wilson",
+          "reviewerEmail": "aria.wilson@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 25,
+      "meta": {
+        "createdAt": "2025-01-15T22:13:19.116Z",
+        "updatedAt": "2026-10-04T12:53:40.604Z",
+        "barcode": "6780736087243",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/1.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/2.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/3.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/thumbnail.webp"
+    },
+    {
+      "id": 86,
+      "title": "Man Short Sleeve Shirt",
+      "description": "A breezy and stylish short sleeve shirt for warm days with a laid-back yet polished look.",
+      "category": "mens-shirts",
+      "price": 19.99,
+      "discountPercentage": 15.26,
+      "rating": 4.66,
+      "stock": 60,
+      "tags": [
+        "clothing",
+        "men's shirts"
+      ],
+      "brand": "Casual Comfort",
+      "sku": "MEN-CAS-MAN-086",
+      "weight": 10,
+      "dimensions": {
+        "width": 5.65,
+        "height": 20.0,
+        "depth": 17.95
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships overnight",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Very pleased!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Rohan Ward",
+          "reviewerEmail": "rohan.ward@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Owen Price",
+          "reviewerEmail": "owen.price@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Logan Brown",
+          "reviewerEmail": "logan.brown@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 10,
+      "meta": {
+        "createdAt": "2025-06-19T01:34:28.005Z",
+        "updatedAt": "2026-09-14T22:13:26.052Z",
+        "barcode": "4284514203817",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/1.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/2.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/3.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/thumbnail.webp"
+    },
+    {
+      "id": 87,
+      "title": "Men Check Shirt",
+      "description": "A classic, versatile shirt with a stylish check pattern that adds a smart touch to any wardrobe.",
+      "category": "mens-shirts",
+      "price": 27.99,
+      "discountPercentage": 19.1,
+      "rating": 4.95,
+      "stock": 3,
+      "tags": [
+        "clothing",
+        "men's shirts"
+      ],
+      "brand": "Urban Chic",
+      "sku": "MEN-URB-MEN-087",
+      "weight": 8,
+      "dimensions": {
+        "width": 25.94,
+        "height": 17.84,
+        "depth": 28.26
+      },
+      "warrantyInformation": "3 months warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "Low Stock",
+      "reviews": [
+        {
+          "rating": 2,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Julian Gomez",
+          "reviewerEmail": "julian.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Noah Harper",
+          "reviewerEmail": "noah.harper@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Zoe Kelly",
+          "reviewerEmail": "zoe.kelly@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 13,
+      "meta": {
+        "createdAt": "2026-07-04T09:34:55.073Z",
+        "updatedAt": "2026-10-21T11:30:59.745Z",
+        "barcode": "8288983708538",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mens-shirts/men-check-shirt/1.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/men-check-shirt/2.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/men-check-shirt/3.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shirts/men-check-shirt/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mens-shirts/men-check-shirt/thumbnail.webp"
+    },
+    {
+      "id": 88,
+      "title": "Nike Air Jordan 1 Red And Black",
+      "description": "An iconic basketball sneaker in red and black, loved by sneaker enthusiasts and athletes.",
+      "category": "mens-shoes",
+      "price": 149.99,
+      "discountPercentage": 1.74,
+      "rating": 2.58,
+      "stock": 75,
+      "tags": [
+        "footwear",
+        "athletic shoes"
+      ],
+      "brand": "Nike",
+      "sku": "MEN-NIK-NIK-088",
+      "weight": 7,
+      "dimensions": {
+        "width": 14.61,
+        "height": 7.23,
+        "depth": 21.8
+      },
+      "warrantyInformation": "1 month warranty",
+      "shippingInformation": "Ships in 1-2 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Aria Brown",
+          "reviewerEmail": "aria.brown@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Sophia Harper",
+          "reviewerEmail": "sophia.harper@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Rohan Sharma",
+          "reviewerEmail": "rohan.sharma@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "30 days return policy",
+      "minimumOrderQuantity": 16,
+      "meta": {
+        "createdAt": "2024-10-24T22:52:12.770Z",
+        "updatedAt": "2026-09-08T10:14:18.962Z",
+        "barcode": "9837252781206",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mens-shoes/nike-air-jordan-1-red-and-black/1.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/nike-air-jordan-1-red-and-black/2.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/nike-air-jordan-1-red-and-black/3.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/nike-air-jordan-1-red-and-black/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mens-shoes/nike-air-jordan-1-red-and-black/thumbnail.webp"
+    },
+    {
+      "id": 89,
+      "title": "Nike Baseball Cleats",
+      "description": "Baseball cleats built for maximum traction, stability and support on the field.",
+      "category": "mens-shoes",
+      "price": 79.99,
+      "discountPercentage": 9.91,
+      "rating": 3.55,
+      "stock": 4,
+      "tags": [
+        "footwear",
+        "sports cleats"
+      ],
+      "brand": "Nike",
+      "sku": "MEN-NIK-NIK-089",
+      "weight": 10,
+      "dimensions": {
+        "width": 13.43,
+        "height": 28.47,
+        "depth": 7.07
+      },
+      "warrantyInformation": "Lifetime warranty",
+      "shippingInformation": "Ships overnight",
+      "availabilityStatus": "Low Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Aria Kelly",
+          "reviewerEmail": "aria.kelly@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Aria Davis",
+          "reviewerEmail": "aria.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Lucas Kelly",
+          "reviewerEmail": "lucas.kelly@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 24,
+      "meta": {
+        "createdAt": "2025-04-11T19:01:37.544Z",
+        "updatedAt": "2026-09-01T14:20:39.029Z",
+        "barcode": "5279137298711",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mens-shoes/nike-baseball-cleats/1.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/nike-baseball-cleats/2.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/nike-baseball-cleats/3.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/nike-baseball-cleats/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mens-shoes/nike-baseball-cleats/thumbnail.webp"
+    },
+    {
+      "id": 90,
+      "title": "Puma Future Rider Trainers",
+      "description": "Trainers that blend retro style with modern comfort for everyday casual wear.",
+      "category": "mens-shoes",
+      "price": 89.99,
+      "discountPercentage": 12.2,
+      "rating": 3.28,
+      "stock": 12,
+      "tags": [
+        "footwear",
+        "casual shoes"
+      ],
+      "brand": "Puma",
+      "sku": "MEN-PUM-PUM-090",
+      "weight": 7,
+      "dimensions": {
+        "width": 28.41,
+        "height": 5.51,
+        "depth": 20.15
+      },
+      "warrantyInformation": "1 month warranty",
+      "shippingInformation": "Ships in 1 week",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 2,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Liam Cooper",
+          "reviewerEmail": "liam.cooper@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Caleb Hill",
+          "reviewerEmail": "caleb.hill@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Wilson",
+          "reviewerEmail": "mia.wilson@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 2,
+      "meta": {
+        "createdAt": "2026-03-13T12:42:59.745Z",
+        "updatedAt": "2026-10-24T14:13:44.304Z",
+        "barcode": "4796745219803",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mens-shoes/puma-future-rider-trainers/1.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/puma-future-rider-trainers/2.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/puma-future-rider-trainers/3.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/puma-future-rider-trainers/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mens-shoes/puma-future-rider-trainers/thumbnail.webp"
+    },
+    {
+      "id": 91,
+      "title": "Sports Sneakers Off White & Red",
+      "description": "Sports sneakers in off white and red that combine style and functionality with a bold look.",
+      "category": "mens-shoes",
+      "price": 119.99,
+      "discountPercentage": 5.86,
+      "rating": 4.95,
+      "stock": 27,
+      "tags": [
+        "footwear",
+        "athletic shoes"
+      ],
+      "brand": "Off White",
+      "sku": "MEN-OFF-SPO-091",
+      "weight": 7,
+      "dimensions": {
+        "width": 10.6,
+        "height": 22.24,
+        "depth": 13.1
+      },
+      "warrantyInformation": "1 week warranty",
+      "shippingInformation": "Ships in 1-2 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ruby Hill",
+          "reviewerEmail": "ruby.hill@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Patel",
+          "reviewerEmail": "mia.patel@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Grace Davis",
+          "reviewerEmail": "grace.davis@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 24,
+      "meta": {
+        "createdAt": "2026-08-06T18:51:57.710Z",
+        "updatedAt": "2026-09-16T00:40:52.886Z",
+        "barcode": "7328409342692",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mens-shoes/sports-sneakers-off-white-&-red/1.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/sports-sneakers-off-white-&-red/2.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/sports-sneakers-off-white-&-red/3.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/sports-sneakers-off-white-&-red/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mens-shoes/sports-sneakers-off-white-&-red/thumbnail.webp"
+    },
+    {
+      "id": 92,
+      "title": "Sports Sneakers Off White Red",
+      "description": "Another variant of the off white and red sports sneakers with a unique design and casual comfort.",
+      "category": "mens-shoes",
+      "price": 109.99,
+      "discountPercentage": 12.66,
+      "rating": 4.2,
+      "stock": 90,
+      "tags": [
+        "footwear",
+        "casual shoes"
+      ],
+      "brand": "Off White",
+      "sku": "MEN-OFF-SPO-092",
+      "weight": 10,
+      "dimensions": {
+        "width": 12.65,
+        "height": 5.9,
+        "depth": 19.86
+      },
+      "warrantyInformation": "1 year warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Very pleased!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Nora Cooper",
+          "reviewerEmail": "nora.cooper@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Very pleased!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Clara Davis",
+          "reviewerEmail": "clara.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Logan Patel",
+          "reviewerEmail": "logan.patel@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 14,
+      "meta": {
+        "createdAt": "2025-05-13T05:23:22.359Z",
+        "updatedAt": "2026-10-13T19:41:38.538Z",
+        "barcode": "3068669538965",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mens-shoes/sports-sneakers-off-white-red/1.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/sports-sneakers-off-white-red/2.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/sports-sneakers-off-white-red/3.webp",
+        "https://cdn.dummyjson.com/product-images/mens-shoes/sports-sneakers-off-white-red/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mens-shoes/sports-sneakers-off-white-red/thumbnail.webp"
+    },
+    {
+      "id": 99,
+      "title": "Amazon Echo Plus",
+      "description": "A smart speaker with built-in Alexa voice control, premium sound and smart-home hub features.",
+      "category": "mobile-accessories",
+      "price": 99.99,
+      "discountPercentage": 18.21,
+      "rating": 4.96,
+      "stock": 12,
+      "tags": [
+        "electronics",
+        "smart speakers"
+      ],
+      "brand": "Amazon",
+      "sku": "MOB-AMA-AMA-099",
+      "weight": 1,
+      "dimensions": {
+        "width": 21.56,
+        "height": 16.72,
+        "depth": 13.49
+      },
+      "warrantyInformation": "6 months warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Elijah Johnson",
+          "reviewerEmail": "elijah.johnson@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Noah Price",
+          "reviewerEmail": "noah.price@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Clara Gomez",
+          "reviewerEmail": "clara.gomez@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 2,
+      "meta": {
+        "createdAt": "2024-12-16T09:51:38.925Z",
+        "updatedAt": "2026-10-17T08:54:43.595Z",
+        "barcode": "7348124172643",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/amazon-echo-plus/1.webp",
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/amazon-echo-plus/2.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/amazon-echo-plus/thumbnail.webp"
+    },
+    {
+      "id": 100,
+      "title": "Apple Airpods",
+      "description": "Wireless earbuds with easy pairing, high-quality sound and Siri integration.",
+      "category": "mobile-accessories",
+      "price": 129.99,
+      "discountPercentage": 16.08,
+      "rating": 3.79,
+      "stock": 82,
+      "tags": [
+        "electronics",
+        "wireless earphones"
+      ],
+      "brand": "Apple",
+      "sku": "MOB-APP-APP-100",
+      "weight": 3,
+      "dimensions": {
+        "width": 19.26,
+        "height": 29.73,
+        "depth": 26.38
+      },
+      "warrantyInformation": "1 month warranty",
+      "shippingInformation": "Ships overnight",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Priya Smith",
+          "reviewerEmail": "priya.smith@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Price",
+          "reviewerEmail": "mia.price@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Nora Price",
+          "reviewerEmail": "nora.price@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 7,
+      "meta": {
+        "createdAt": "2025-02-10T09:17:32.478Z",
+        "updatedAt": "2026-10-10T10:57:56.025Z",
+        "barcode": "9506018898704",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods/1.webp",
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods/2.webp",
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods/thumbnail.webp"
+    },
+    {
+      "id": 101,
+      "title": "Apple AirPods Max Silver",
+      "description": "Premium over-ear headphones in silver with high-fidelity audio and active noise cancellation.",
+      "category": "mobile-accessories",
+      "price": 549.99,
+      "discountPercentage": 2.4,
+      "rating": 4.78,
+      "stock": 5,
+      "tags": [
+        "electronics",
+        "over-ear headphones"
+      ],
+      "brand": "Apple",
+      "sku": "MOB-APP-APP-101",
+      "weight": 1,
+      "dimensions": {
+        "width": 25.43,
+        "height": 10.81,
+        "depth": 23.67
+      },
+      "warrantyInformation": "1 month warranty",
+      "shippingInformation": "Ships in 3-5 business days",
+      "availabilityStatus": "Low Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mason Brown",
+          "reviewerEmail": "mason.brown@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ruby Gomez",
+          "reviewerEmail": "ruby.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Owen Gomez",
+          "reviewerEmail": "owen.gomez@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2026-07-16T04:13:19.823Z",
+        "updatedAt": "2026-09-08T23:48:44.479Z",
+        "barcode": "6082196121385",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods-max-silver/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods-max-silver/thumbnail.webp"
+    },
+    {
+      "id": 102,
+      "title": "Apple Airpower Wireless Charger",
+      "description": "A wireless charging mat that charges compatible Apple devices without cables.",
+      "category": "mobile-accessories",
+      "price": 79.99,
+      "discountPercentage": 9.07,
+      "rating": 2.55,
+      "stock": 75,
+      "tags": [
+        "electronics",
+        "wireless chargers"
+      ],
+      "brand": "Apple",
+      "sku": "MOB-APP-APP-102",
+      "weight": 3,
+      "dimensions": {
+        "width": 10.31,
+        "height": 15.07,
+        "depth": 23.97
+      },
+      "warrantyInformation": "Lifetime warranty",
+      "shippingInformation": "Ships in 1 week",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Grace Brown",
+          "reviewerEmail": "grace.brown@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Isabella Foster",
+          "reviewerEmail": "isabella.foster@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Henry Reed",
+          "reviewerEmail": "henry.reed@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 1,
+      "meta": {
+        "createdAt": "2024-10-18T17:14:49.889Z",
+        "updatedAt": "2026-10-24T18:18:32.370Z",
+        "barcode": "1006371711243",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpower-wireless-charger/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpower-wireless-charger/thumbnail.webp"
+    },
+    {
+      "id": 103,
+      "title": "Apple HomePod Mini Cosmic Grey",
+      "description": "A compact smart speaker in Cosmic Grey with impressive audio and Apple ecosystem integration.",
+      "category": "mobile-accessories",
+      "price": 99.99,
+      "discountPercentage": 1.45,
+      "rating": 3.35,
+      "stock": 34,
+      "tags": [
+        "electronics",
+        "smart speakers"
+      ],
+      "brand": "Apple",
+      "sku": "MOB-APP-APP-103",
+      "weight": 6,
+      "dimensions": {
+        "width": 5.88,
+        "height": 26.54,
+        "depth": 21.32
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships overnight",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Lucas Bennett",
+          "reviewerEmail": "lucas.bennett@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Elijah Sharma",
+          "reviewerEmail": "elijah.sharma@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Aria Long",
+          "reviewerEmail": "aria.long@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2025-01-07T11:16:29.001Z",
+        "updatedAt": "2026-09-09T22:04:46.362Z",
+        "barcode": "2051148294183",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-homepod-mini-cosmic-grey/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-homepod-mini-cosmic-grey/thumbnail.webp"
+    },
+    {
+      "id": 104,
+      "title": "Apple iPhone Charger",
+      "description": "A high-quality charger designed for fast and efficient iPhone charging.",
+      "category": "mobile-accessories",
+      "price": 19.99,
+      "discountPercentage": 11.29,
+      "rating": 4.65,
+      "stock": 55,
+      "tags": [
+        "electronics",
+        "chargers"
+      ],
+      "brand": "Apple",
+      "sku": "MOB-APP-APP-104",
+      "weight": 3,
+      "dimensions": {
+        "width": 25.2,
+        "height": 29.68,
+        "depth": 15.03
+      },
+      "warrantyInformation": "1 week warranty",
+      "shippingInformation": "Ships in 1-2 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ruby Davis",
+          "reviewerEmail": "ruby.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Young",
+          "reviewerEmail": "mia.young@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Very pleased!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Lucas Ward",
+          "reviewerEmail": "lucas.ward@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 2,
+      "meta": {
+        "createdAt": "2025-01-27T15:40:18.812Z",
+        "updatedAt": "2026-10-22T06:32:40.808Z",
+        "barcode": "8776040542468",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-iphone-charger/1.webp",
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-iphone-charger/2.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-iphone-charger/thumbnail.webp"
+    },
+    {
+      "id": 105,
+      "title": "Apple MagSafe Battery Pack",
+      "description": "A portable battery pack that attaches magnetically to MagSafe-compatible iPhones.",
+      "category": "mobile-accessories",
+      "price": 99.99,
+      "discountPercentage": 13.52,
+      "rating": 3.14,
+      "stock": 60,
+      "tags": [
+        "electronics",
+        "power banks"
+      ],
+      "brand": "Apple",
+      "sku": "MOB-APP-APP-105",
+      "weight": 8,
+      "dimensions": {
+        "width": 15.72,
+        "height": 25.78,
+        "depth": 6.75
+      },
+      "warrantyInformation": "1 month warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Hazel Johnson",
+          "reviewerEmail": "hazel.johnson@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Nora Price",
+          "reviewerEmail": "nora.price@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Henry Johnson",
+          "reviewerEmail": "henry.johnson@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 5,
+      "meta": {
+        "createdAt": "2025-02-10T13:27:33.233Z",
+        "updatedAt": "2026-09-23T07:15:08.052Z",
+        "barcode": "5504965709605",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-magsafe-battery-pack/1.webp",
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-magsafe-battery-pack/2.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-magsafe-battery-pack/thumbnail.webp"
+    },
+    {
+      "id": 106,
+      "title": "Apple Watch Series 4 Gold",
+      "description": "A gold smartwatch with heart rate monitoring, fitness tracking and a Retina display.",
+      "category": "mobile-accessories",
+      "price": 349.99,
+      "discountPercentage": 13.85,
+      "rating": 3.07,
+      "stock": 82,
+      "tags": [
+        "electronics",
+        "smartwatches"
+      ],
+      "brand": "Apple",
+      "sku": "MOB-APP-APP-106",
+      "weight": 9,
+      "dimensions": {
+        "width": 16.59,
+        "height": 24.61,
+        "depth": 21.76
+      },
+      "warrantyInformation": "1 month warranty",
+      "shippingInformation": "Ships in 1 week",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 2,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Priya Ward",
+          "reviewerEmail": "priya.ward@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Julian Young",
+          "reviewerEmail": "julian.young@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Layla Young",
+          "reviewerEmail": "layla.young@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "30 days return policy",
+      "minimumOrderQuantity": 5,
+      "meta": {
+        "createdAt": "2025-06-18T01:13:31.612Z",
+        "updatedAt": "2026-09-18T09:27:01.835Z",
+        "barcode": "0372056832660",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-watch-series-4-gold/1.webp",
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-watch-series-4-gold/2.webp",
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-watch-series-4-gold/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-watch-series-4-gold/thumbnail.webp"
+    },
+    {
+      "id": 107,
+      "title": "Beats Flex Wireless Earphones",
+      "description": "Comfortable wireless earphones with magnetic earbuds and up to 12 hours of battery life.",
+      "category": "mobile-accessories",
+      "price": 49.99,
+      "discountPercentage": 7.74,
+      "rating": 3.98,
+      "stock": 99,
+      "tags": [
+        "electronics",
+        "wireless earphones"
+      ],
+      "brand": "Beats",
+      "sku": "MOB-BEA-BEA-107",
+      "weight": 7,
+      "dimensions": {
+        "width": 13.81,
+        "height": 15.19,
+        "depth": 12.52
+      },
+      "warrantyInformation": "No warranty",
+      "shippingInformation": "Ships in 1 week",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 1,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Rohan Young",
+          "reviewerEmail": "rohan.young@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Aaron Ward",
+          "reviewerEmail": "aaron.ward@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Sophia Long",
+          "reviewerEmail": "sophia.long@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2025-11-29T11:48:33.907Z",
+        "updatedAt": "2026-09-26T03:59:46.587Z",
+        "barcode": "5397110098976",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/beats-flex-wireless-earphones/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/beats-flex-wireless-earphones/thumbnail.webp"
+    },
+    {
+      "id": 108,
+      "title": "iPhone 12 Silicone Case with MagSafe Plum",
+      "description": "A protective plum silicone case for iPhone 12 with MagSafe for easy accessory attachment.",
+      "category": "mobile-accessories",
+      "price": 29.99,
+      "discountPercentage": 3.5,
+      "rating": 3.77,
+      "stock": 0,
+      "tags": [
+        "electronics",
+        "phone accessories"
+      ],
+      "brand": "Apple",
+      "sku": "MOB-APP-IPH-108",
+      "weight": 3,
+      "dimensions": {
+        "width": 9.16,
+        "height": 5.31,
+        "depth": 17.28
+      },
+      "warrantyInformation": "1 week warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "Out of Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Clara Hill",
+          "reviewerEmail": "clara.hill@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Very pleased!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ethan Harper",
+          "reviewerEmail": "ethan.harper@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Aaron Gomez",
+          "reviewerEmail": "aaron.gomez@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 1,
+      "meta": {
+        "createdAt": "2025-03-20T18:08:28.272Z",
+        "updatedAt": "2026-09-13T09:15:55.867Z",
+        "barcode": "7746643231677",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/1.webp",
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/2.webp",
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/3.webp",
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/thumbnail.webp"
+    },
+    {
+      "id": 109,
+      "title": "Monopod",
+      "description": "A versatile camera monopod for stable, adjustable shooting of selfies, group photos and videos.",
+      "category": "mobile-accessories",
+      "price": 19.99,
+      "discountPercentage": 1.69,
+      "rating": 2.73,
+      "stock": 90,
+      "tags": [
+        "electronics",
+        "camera accessories"
+      ],
+      "brand": "TechGear",
+      "sku": "MOB-TEC-MON-109",
+      "weight": 6,
+      "dimensions": {
+        "width": 25.78,
+        "height": 10.37,
+        "depth": 29.76
+      },
+      "warrantyInformation": "6 months warranty",
+      "shippingInformation": "Ships in 3-5 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 2,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Caleb Sharma",
+          "reviewerEmail": "caleb.sharma@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Davis",
+          "reviewerEmail": "daniel.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Caleb Foster",
+          "reviewerEmail": "caleb.foster@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 3,
+      "meta": {
+        "createdAt": "2024-09-26T16:35:34.215Z",
+        "updatedAt": "2026-09-13T08:06:46.074Z",
+        "barcode": "2668692271383",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/monopod/1.webp",
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/monopod/2.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/monopod/thumbnail.webp"
+    },
+    {
+      "id": 110,
+      "title": "Selfie Lamp with iPhone",
+      "description": "A portable adjustable LED light that attaches to your iPhone for well-lit selfies and video calls.",
+      "category": "mobile-accessories",
+      "price": 14.99,
+      "discountPercentage": 17.48,
+      "rating": 3.18,
+      "stock": 5,
+      "tags": [
+        "electronics",
+        "selfie accessories"
+      ],
+      "brand": "GadgetMaster",
+      "sku": "MOB-GAD-SEL-110",
+      "weight": 8,
+      "dimensions": {
+        "width": 7.26,
+        "height": 21.55,
+        "depth": 27.25
+      },
+      "warrantyInformation": "1 month warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "Low Stock",
+      "reviews": [
+        {
+          "rating": 1,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ruby Brown",
+          "reviewerEmail": "ruby.brown@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ethan Gomez",
+          "reviewerEmail": "ethan.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mason Cooper",
+          "reviewerEmail": "mason.cooper@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 3,
+      "meta": {
+        "createdAt": "2025-08-30T16:22:21.480Z",
+        "updatedAt": "2026-09-06T13:24:13.714Z",
+        "barcode": "6345260645011",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/selfie-lamp-with-iphone/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/selfie-lamp-with-iphone/thumbnail.webp"
+    },
+    {
+      "id": 111,
+      "title": "Selfie Stick Monopod",
+      "description": "An extendable, foldable selfie stick compatible with smartphones and cameras.",
+      "category": "mobile-accessories",
+      "price": 12.99,
+      "discountPercentage": 12.18,
+      "rating": 4.39,
+      "stock": 55,
+      "tags": [
+        "electronics",
+        "selfie accessories"
+      ],
+      "brand": "SnapTech",
+      "sku": "MOB-SNA-SEL-111",
+      "weight": 7,
+      "dimensions": {
+        "width": 5.81,
+        "height": 27.52,
+        "depth": 15.71
+      },
+      "warrantyInformation": "1 year warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Priya Cooper",
+          "reviewerEmail": "priya.cooper@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Zoe Patel",
+          "reviewerEmail": "zoe.patel@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Elijah Price",
+          "reviewerEmail": "elijah.price@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2026-06-20T01:00:55.556Z",
+        "updatedAt": "2026-09-07T16:02:03.000Z",
+        "barcode": "1331560408378",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/selfie-stick-monopod/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/selfie-stick-monopod/thumbnail.webp"
+    },
+    {
+      "id": 112,
+      "title": "TV Studio Camera Pedestal",
+      "description": "A professional camera support system for smooth, precise movements in a studio.",
+      "category": "mobile-accessories",
+      "price": 499.99,
+      "discountPercentage": 16.49,
+      "rating": 4.45,
+      "stock": 4,
+      "tags": [
+        "electronics",
+        "camera accessories"
+      ],
+      "brand": "ProVision",
+      "sku": "MOB-PRO-TV-112",
+      "weight": 10,
+      "dimensions": {
+        "width": 15.48,
+        "height": 27.88,
+        "depth": 5.38
+      },
+      "warrantyInformation": "No warranty",
+      "shippingInformation": "Ships overnight",
+      "availabilityStatus": "Low Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ananya Foster",
+          "reviewerEmail": "ananya.foster@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Grace Cooper",
+          "reviewerEmail": "grace.cooper@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Zoe Sharma",
+          "reviewerEmail": "zoe.sharma@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2025-05-12T00:31:04.685Z",
+        "updatedAt": "2026-09-15T02:21:04.647Z",
+        "barcode": "2102549092188",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/mobile-accessories/tv-studio-camera-pedestal/1.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/mobile-accessories/tv-studio-camera-pedestal/thumbnail.webp"
+    },
+    {
+      "id": 121,
+      "title": "iPhone 5s",
+      "description": "The iPhone 5s is a classic compact smartphone that still offers a reliable everyday experience.",
+      "category": "smartphones",
+      "price": 199.99,
+      "discountPercentage": 10.0,
+      "rating": 3.78,
+      "stock": 5,
+      "tags": [
+        "smartphones",
+        "apple"
+      ],
+      "brand": "Apple",
+      "sku": "SMA-APP-IPH-121",
+      "weight": 2,
+      "dimensions": {
+        "width": 27.01,
+        "height": 27.28,
+        "depth": 20.47
+      },
+      "warrantyInformation": "2 year warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "Low Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Rohan Smith",
+          "reviewerEmail": "rohan.smith@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Hazel Brown",
+          "reviewerEmail": "hazel.brown@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Caleb Patel",
+          "reviewerEmail": "caleb.patel@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2026-04-15T12:25:30.701Z",
+        "updatedAt": "2026-09-28T22:42:44.321Z",
+        "barcode": "3645568151884",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-5s/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-5s/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-5s/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/iphone-5s/thumbnail.webp"
+    },
+    {
+      "id": 122,
+      "title": "iPhone 6",
+      "description": "The iPhone 6 is a stylish smartphone with a larger display and improved performance over earlier models.",
+      "category": "smartphones",
+      "price": 299.99,
+      "discountPercentage": 2.8,
+      "rating": 4.11,
+      "stock": 55,
+      "tags": [
+        "smartphones",
+        "apple"
+      ],
+      "brand": "Apple",
+      "sku": "SMA-APP-IPH-122",
+      "weight": 10,
+      "dimensions": {
+        "width": 12.69,
+        "height": 26.11,
+        "depth": 14.18
+      },
+      "warrantyInformation": "3 year warranty",
+      "shippingInformation": "Ships in 1 week",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ava Sharma",
+          "reviewerEmail": "ava.sharma@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Harper",
+          "reviewerEmail": "daniel.harper@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ananya Long",
+          "reviewerEmail": "ananya.long@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 8,
+      "meta": {
+        "createdAt": "2025-03-07T18:36:11.430Z",
+        "updatedAt": "2026-10-03T03:33:07.490Z",
+        "barcode": "8809320819672",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-6/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-6/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-6/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/iphone-6/thumbnail.webp"
+    },
+    {
+      "id": 123,
+      "title": "iPhone 13 Pro",
+      "description": "The iPhone 13 Pro has a powerful camera system, a high-performance chip and a stunning display.",
+      "category": "smartphones",
+      "price": 1099.99,
+      "discountPercentage": 16.91,
+      "rating": 2.81,
+      "stock": 99,
+      "tags": [
+        "smartphones",
+        "apple"
+      ],
+      "brand": "Apple",
+      "sku": "SMA-APP-IPH-123",
+      "weight": 8,
+      "dimensions": {
+        "width": 21.79,
+        "height": 22.79,
+        "depth": 28.89
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships in 3-5 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Very pleased!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Rohan Gomez",
+          "reviewerEmail": "rohan.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Patel",
+          "reviewerEmail": "daniel.patel@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Nora Young",
+          "reviewerEmail": "nora.young@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "30 days return policy",
+      "minimumOrderQuantity": 4,
+      "meta": {
+        "createdAt": "2024-09-07T17:38:25.153Z",
+        "updatedAt": "2026-10-08T08:55:09.611Z",
+        "barcode": "7875347787680",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/thumbnail.webp"
+    },
+    {
+      "id": 124,
+      "title": "iPhone X",
+      "description": "The iPhone X is a flagship phone with a bezel-less OLED display and Face ID.",
+      "category": "smartphones",
+      "price": 899.99,
+      "discountPercentage": 9.11,
+      "rating": 4.53,
+      "stock": 55,
+      "tags": [
+        "smartphones",
+        "apple"
+      ],
+      "brand": "Apple",
+      "sku": "SMA-APP-IPH-124",
+      "weight": 8,
+      "dimensions": {
+        "width": 22.16,
+        "height": 24.55,
+        "depth": 17.83
+      },
+      "warrantyInformation": "3 year warranty",
+      "shippingInformation": "Ships in 1-2 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Clara Young",
+          "reviewerEmail": "clara.young@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Julian Nguyen",
+          "reviewerEmail": "julian.nguyen@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Olivia Cooper",
+          "reviewerEmail": "olivia.cooper@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2025-07-24T06:15:18.014Z",
+        "updatedAt": "2026-09-06T06:05:12.462Z",
+        "barcode": "9819331908452",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-x/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-x/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-x/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/iphone-x/thumbnail.webp"
+    },
+    {
+      "id": 125,
+      "title": "Oppo A57",
+      "description": "The Oppo A57 is a mid-range smartphone with a sleek design and a good balance of performance and price.",
+      "category": "smartphones",
+      "price": 249.99,
+      "discountPercentage": 13.23,
+      "rating": 3.94,
+      "stock": 0,
+      "tags": [
+        "smartphones",
+        "oppo"
+      ],
+      "brand": "Oppo",
+      "sku": "SMA-OPP-OPP-125",
+      "weight": 8,
+      "dimensions": {
+        "width": 22.17,
+        "height": 28.34,
+        "depth": 18.59
+      },
+      "warrantyInformation": "3 year warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "Out of Stock",
+      "reviews": [
+        {
+          "rating": 2,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Hill",
+          "reviewerEmail": "mia.hill@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Hazel Ward",
+          "reviewerEmail": "hazel.ward@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Zoe Price",
+          "reviewerEmail": "zoe.price@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2026-04-10T14:30:17.532Z",
+        "updatedAt": "2026-10-16T23:50:59.385Z",
+        "barcode": "0161055008754",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-a57/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-a57/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-a57/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/oppo-a57/thumbnail.webp"
+    },
+    {
+      "id": 126,
+      "title": "Oppo F19 Pro Plus",
+      "description": "The Oppo F19 Pro Plus is a feature-rich smartphone with a strong focus on camera capabilities.",
+      "category": "smartphones",
+      "price": 399.99,
+      "discountPercentage": 18.19,
+      "rating": 3.74,
+      "stock": 90,
+      "tags": [
+        "smartphones",
+        "oppo"
+      ],
+      "brand": "Oppo",
+      "sku": "SMA-OPP-OPP-126",
+      "weight": 8,
+      "dimensions": {
+        "width": 19.23,
+        "height": 25.04,
+        "depth": 8.83
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships in 1-2 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Caleb Wilson",
+          "reviewerEmail": "caleb.wilson@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Grace Wilson",
+          "reviewerEmail": "grace.wilson@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Layla Foster",
+          "reviewerEmail": "layla.foster@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2025-12-15T14:46:24.953Z",
+        "updatedAt": "2026-10-18T19:43:30.462Z",
+        "barcode": "3702838222646",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-f19-pro-plus/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-f19-pro-plus/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-f19-pro-plus/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/oppo-f19-pro-plus/thumbnail.webp"
+    },
+    {
+      "id": 127,
+      "title": "Oppo K1",
+      "description": "The Oppo K1 offers stylish design and reliable performance for a wide range of users.",
+      "category": "smartphones",
+      "price": 299.99,
+      "discountPercentage": 7.63,
+      "rating": 2.97,
+      "stock": 82,
+      "tags": [
+        "smartphones",
+        "oppo"
+      ],
+      "brand": "Oppo",
+      "sku": "SMA-OPP-OPP-127",
+      "weight": 3,
+      "dimensions": {
+        "width": 11.56,
+        "height": 17.39,
+        "depth": 24.43
+      },
+      "warrantyInformation": "2 year warranty",
+      "shippingInformation": "Ships in 3-5 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Layla Kelly",
+          "reviewerEmail": "layla.kelly@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mason Johnson",
+          "reviewerEmail": "mason.johnson@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Elijah Gomez",
+          "reviewerEmail": "elijah.gomez@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 2,
+      "meta": {
+        "createdAt": "2025-02-15T22:46:40.976Z",
+        "updatedAt": "2026-09-06T07:23:15.465Z",
+        "barcode": "5682052589831",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-k1/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-k1/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-k1/3.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-k1/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/oppo-k1/thumbnail.webp"
+    },
+    {
+      "id": 128,
+      "title": "Realme C35",
+      "description": "The Realme C35 is a budget-friendly smartphone covering the essentials for everyday use.",
+      "category": "smartphones",
+      "price": 149.99,
+      "discountPercentage": 14.95,
+      "rating": 4.33,
+      "stock": 48,
+      "tags": [
+        "smartphones",
+        "realme"
+      ],
+      "brand": "Realme",
+      "sku": "SMA-REA-REA-128",
+      "weight": 10,
+      "dimensions": {
+        "width": 12.34,
+        "height": 11.68,
+        "depth": 18.84
+      },
+      "warrantyInformation": "1 week warranty",
+      "shippingInformation": "Ships in 3-5 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 2,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ava Kelly",
+          "reviewerEmail": "ava.kelly@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Caleb Reed",
+          "reviewerEmail": "caleb.reed@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Sophia Young",
+          "reviewerEmail": "sophia.young@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 9,
+      "meta": {
+        "createdAt": "2025-04-16T15:18:39.602Z",
+        "updatedAt": "2026-10-18T17:33:04.298Z",
+        "barcode": "5244106460013",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/realme-c35/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/realme-c35/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/realme-c35/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/realme-c35/thumbnail.webp"
+    },
+    {
+      "id": 129,
+      "title": "Realme X",
+      "description": "The Realme X is a mid-range smartphone with an impressive display and capable cameras.",
+      "category": "smartphones",
+      "price": 299.99,
+      "discountPercentage": 2.45,
+      "rating": 4.21,
+      "stock": 0,
+      "tags": [
+        "smartphones",
+        "realme"
+      ],
+      "brand": "Realme",
+      "sku": "SMA-REA-REA-129",
+      "weight": 10,
+      "dimensions": {
+        "width": 29.6,
+        "height": 26.35,
+        "depth": 12.84
+      },
+      "warrantyInformation": "3 year warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "Out of Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Emma Kelly",
+          "reviewerEmail": "emma.kelly@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Gomez",
+          "reviewerEmail": "daniel.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Very pleased!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Elijah Davis",
+          "reviewerEmail": "elijah.davis@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "30 days return policy",
+      "minimumOrderQuantity": 5,
+      "meta": {
+        "createdAt": "2025-06-10T10:45:36.969Z",
+        "updatedAt": "2026-10-17T13:24:13.059Z",
+        "barcode": "6045414659085",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/realme-x/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/realme-x/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/realme-x/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/realme-x/thumbnail.webp"
+    },
+    {
+      "id": 130,
+      "title": "Realme XT",
+      "description": "The Realme XT is a camera-focused smartphone with advanced sensors for sharp photos and videos.",
+      "category": "smartphones",
+      "price": 349.99,
+      "discountPercentage": 1.12,
+      "rating": 4.99,
+      "stock": 27,
+      "tags": [
+        "smartphones",
+        "realme"
+      ],
+      "brand": "Realme",
+      "sku": "SMA-REA-REA-130",
+      "weight": 3,
+      "dimensions": {
+        "width": 20.41,
+        "height": 7.95,
+        "depth": 8.13
+      },
+      "warrantyInformation": "1 year warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Nora Foster",
+          "reviewerEmail": "nora.foster@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Emma Foster",
+          "reviewerEmail": "emma.foster@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Clara Hill",
+          "reviewerEmail": "clara.hill@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 9,
+      "meta": {
+        "createdAt": "2026-03-17T13:59:34.187Z",
+        "updatedAt": "2026-10-01T22:43:27.677Z",
+        "barcode": "8864230048764",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/realme-xt/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/realme-xt/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/realme-xt/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/realme-xt/thumbnail.webp"
+    },
+    {
+      "id": 131,
+      "title": "Samsung Galaxy S7",
+      "description": "The Samsung Galaxy S7 is a flagship phone with a high-resolution display and a powerful camera.",
+      "category": "smartphones",
+      "price": 299.99,
+      "discountPercentage": 18.79,
+      "rating": 3.98,
+      "stock": 60,
+      "tags": [
+        "smartphones",
+        "samsung galaxy"
+      ],
+      "brand": "Samsung",
+      "sku": "SMA-SAM-SAM-131",
+      "weight": 3,
+      "dimensions": {
+        "width": 18.77,
+        "height": 21.19,
+        "depth": 28.94
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships in 3-5 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 1,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Grace Harper",
+          "reviewerEmail": "grace.harper@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Aaron Sharma",
+          "reviewerEmail": "aaron.sharma@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Elijah Cooper",
+          "reviewerEmail": "elijah.cooper@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 3,
+      "meta": {
+        "createdAt": "2026-05-19T21:21:16.949Z",
+        "updatedAt": "2026-10-13T11:25:25.892Z",
+        "barcode": "6538453557787",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s7/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s7/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s7/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s7/thumbnail.webp"
+    },
+    {
+      "id": 132,
+      "title": "Samsung Galaxy S8",
+      "description": "The Samsung Galaxy S8 is a premium smartphone with an Infinity Display and advanced camera.",
+      "category": "smartphones",
+      "price": 499.99,
+      "discountPercentage": 3.15,
+      "rating": 3.53,
+      "stock": 55,
+      "tags": [
+        "smartphones",
+        "samsung galaxy"
+      ],
+      "brand": "Samsung",
+      "sku": "SMA-SAM-SAM-132",
+      "weight": 8,
+      "dimensions": {
+        "width": 27.26,
+        "height": 28.67,
+        "depth": 25.26
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 2,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Kelly",
+          "reviewerEmail": "daniel.kelly@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Emma Kelly",
+          "reviewerEmail": "emma.kelly@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Sophia Ward",
+          "reviewerEmail": "sophia.ward@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 4,
+      "meta": {
+        "createdAt": "2025-09-23T06:13:57.870Z",
+        "updatedAt": "2026-10-19T09:02:15.596Z",
+        "barcode": "4906688281126",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s8/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s8/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s8/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s8/thumbnail.webp"
+    },
+    {
+      "id": 133,
+      "title": "Samsung Galaxy S10",
+      "description": "The Samsung Galaxy S10 features a dynamic AMOLED display and a versatile camera system.",
+      "category": "smartphones",
+      "price": 699.99,
+      "discountPercentage": 5.2,
+      "rating": 2.6,
+      "stock": 60,
+      "tags": [
+        "smartphones",
+        "samsung galaxy"
+      ],
+      "brand": "Samsung",
+      "sku": "SMA-SAM-SAM-133",
+      "weight": 10,
+      "dimensions": {
+        "width": 21.49,
+        "height": 9.73,
+        "depth": 27.38
+      },
+      "warrantyInformation": "6 months warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Zoe Sharma",
+          "reviewerEmail": "zoe.sharma@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Owen Cooper",
+          "reviewerEmail": "owen.cooper@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Price",
+          "reviewerEmail": "mia.price@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 9,
+      "meta": {
+        "createdAt": "2025-05-17T04:59:13.790Z",
+        "updatedAt": "2026-10-22T10:06:36.898Z",
+        "barcode": "8280258220180",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s10/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s10/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s10/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s10/thumbnail.webp"
+    },
+    {
+      "id": 134,
+      "title": "Vivo S1",
+      "description": "The Vivo S1 is a stylish mid-range smartphone with a vibrant display and capable camera.",
+      "category": "smartphones",
+      "price": 249.99,
+      "discountPercentage": 7.32,
+      "rating": 3.04,
+      "stock": 67,
+      "tags": [
+        "smartphones",
+        "vivo"
+      ],
+      "brand": "Vivo",
+      "sku": "SMA-VIV-VIV-134",
+      "weight": 3,
+      "dimensions": {
+        "width": 19.93,
+        "height": 11.18,
+        "depth": 7.65
+      },
+      "warrantyInformation": "1 year warranty",
+      "shippingInformation": "Ships in 1 week",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Lucas Foster",
+          "reviewerEmail": "lucas.foster@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Olivia Hill",
+          "reviewerEmail": "olivia.hill@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ruby Nguyen",
+          "reviewerEmail": "ruby.nguyen@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 2,
+      "meta": {
+        "createdAt": "2025-10-09T08:39:06.252Z",
+        "updatedAt": "2026-10-18T05:35:01.699Z",
+        "barcode": "7951117443256",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/vivo-s1/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/vivo-s1/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/vivo-s1/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/vivo-s1/thumbnail.webp"
+    },
+    {
+      "id": 135,
+      "title": "Vivo V9",
+      "description": "The Vivo V9 is a smartphone known for sleek design and quality selfies, with a notch display and dual camera.",
+      "category": "smartphones",
+      "price": 299.99,
+      "discountPercentage": 18.05,
+      "rating": 4.31,
+      "stock": 60,
+      "tags": [
+        "smartphones",
+        "vivo"
+      ],
+      "brand": "Vivo",
+      "sku": "SMA-VIV-VIV-135",
+      "weight": 8,
+      "dimensions": {
+        "width": 15.04,
+        "height": 9.4,
+        "depth": 25.08
+      },
+      "warrantyInformation": "3 months warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Grace Ward",
+          "reviewerEmail": "grace.ward@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Grace Kelly",
+          "reviewerEmail": "grace.kelly@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Long",
+          "reviewerEmail": "daniel.long@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2025-07-11T02:53:39.336Z",
+        "updatedAt": "2026-10-18T15:09:49.327Z",
+        "barcode": "4742843528144",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/vivo-v9/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/vivo-v9/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/vivo-v9/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/vivo-v9/thumbnail.webp"
+    },
+    {
+      "id": 136,
+      "title": "Vivo X21",
+      "description": "The Vivo X21 is a premium smartphone with an in-display fingerprint sensor and a high-resolution display.",
+      "category": "smartphones",
+      "price": 499.99,
+      "discountPercentage": 7.95,
+      "rating": 3.87,
+      "stock": 90,
+      "tags": [
+        "smartphones",
+        "vivo"
+      ],
+      "brand": "Vivo",
+      "sku": "SMA-VIV-VIV-136",
+      "weight": 6,
+      "dimensions": {
+        "width": 21.79,
+        "height": 13.39,
+        "depth": 21.91
+      },
+      "warrantyInformation": "3 year warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Priya Long",
+          "reviewerEmail": "priya.long@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Aaron Foster",
+          "reviewerEmail": "aaron.foster@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Isabella Hill",
+          "reviewerEmail": "isabella.hill@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "30 days return policy",
+      "minimumOrderQuantity": 7,
+      "meta": {
+        "createdAt": "2025-10-11T18:38:50.258Z",
+        "updatedAt": "2026-09-08T10:39:34.592Z",
+        "barcode": "9677500314503",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/vivo-x21/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/vivo-x21/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/vivo-x21/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/vivo-x21/thumbnail.webp"
+    },
+    {
+      "id": 154,
+      "title": "Black Sun Glasses",
+      "description": "Classic sunglasses with a sleek black frame and tinted lenses offering UV protection.",
+      "category": "sunglasses",
+      "price": 29.99,
+      "discountPercentage": 8.68,
+      "rating": 3.58,
+      "stock": 82,
+      "tags": [
+        "eyewear",
+        "sunglasses"
+      ],
+      "brand": "Fashion Shades",
+      "sku": "SUN-FAS-BLA-154",
+      "weight": 2,
+      "dimensions": {
+        "width": 14.87,
+        "height": 26.15,
+        "depth": 26.77
+      },
+      "warrantyInformation": "Lifetime warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ananya Reed",
+          "reviewerEmail": "ananya.reed@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Hazel Johnson",
+          "reviewerEmail": "hazel.johnson@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Henry Harper",
+          "reviewerEmail": "henry.harper@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "30 days return policy",
+      "minimumOrderQuantity": 28,
+      "meta": {
+        "createdAt": "2025-01-14T11:49:52.471Z",
+        "updatedAt": "2026-09-11T00:30:30.739Z",
+        "barcode": "3496770441047",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/sunglasses/black-sun-glasses/1.webp",
+        "https://cdn.dummyjson.com/product-images/sunglasses/black-sun-glasses/2.webp",
+        "https://cdn.dummyjson.com/product-images/sunglasses/black-sun-glasses/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/sunglasses/black-sun-glasses/thumbnail.webp"
+    },
+    {
+      "id": 155,
+      "title": "Classic Sun Glasses",
+      "description": "Timeless sunglasses with a neutral frame and UV-protected lenses for various occasions.",
+      "category": "sunglasses",
+      "price": 24.99,
+      "discountPercentage": 16.11,
+      "rating": 4.4,
+      "stock": 60,
+      "tags": [
+        "eyewear",
+        "sunglasses"
+      ],
+      "brand": "Fashion Shades",
+      "sku": "SUN-FAS-CLA-155",
+      "weight": 9,
+      "dimensions": {
+        "width": 17.73,
+        "height": 23.54,
+        "depth": 15.43
+      },
+      "warrantyInformation": "1 week warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Zoe Reed",
+          "reviewerEmail": "zoe.reed@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Brown",
+          "reviewerEmail": "mia.brown@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Noah Ward",
+          "reviewerEmail": "noah.ward@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 24,
+      "meta": {
+        "createdAt": "2025-03-12T13:52:42.689Z",
+        "updatedAt": "2026-09-16T09:37:36.695Z",
+        "barcode": "4294747818244",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/sunglasses/classic-sun-glasses/1.webp",
+        "https://cdn.dummyjson.com/product-images/sunglasses/classic-sun-glasses/2.webp",
+        "https://cdn.dummyjson.com/product-images/sunglasses/classic-sun-glasses/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/sunglasses/classic-sun-glasses/thumbnail.webp"
+    },
+    {
+      "id": 156,
+      "title": "Green and Black Glasses",
+      "description": "Eye-catching glasses with a bold combination of green and black.",
+      "category": "sunglasses",
+      "price": 34.99,
+      "discountPercentage": 3.57,
+      "rating": 4.91,
+      "stock": 75,
+      "tags": [
+        "eyewear",
+        "sunglasses"
+      ],
+      "brand": "Fashion Shades",
+      "sku": "SUN-FAS-GRE-156",
+      "weight": 10,
+      "dimensions": {
+        "width": 14.22,
+        "height": 23.8,
+        "depth": 22.19
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships overnight",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Olivia Patel",
+          "reviewerEmail": "olivia.patel@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Excellent quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Noah Ward",
+          "reviewerEmail": "noah.ward@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Liam Ward",
+          "reviewerEmail": "liam.ward@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 2,
+      "meta": {
+        "createdAt": "2026-03-13T13:19:22.607Z",
+        "updatedAt": "2026-10-24T19:06:47.454Z",
+        "barcode": "0392733057030",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/sunglasses/green-and-black-glasses/1.webp",
+        "https://cdn.dummyjson.com/product-images/sunglasses/green-and-black-glasses/2.webp",
+        "https://cdn.dummyjson.com/product-images/sunglasses/green-and-black-glasses/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/sunglasses/green-and-black-glasses/thumbnail.webp"
+    },
+    {
+      "id": 157,
+      "title": "Party Glasses",
+      "description": "Playful party glasses with unique shapes or colourful frames for celebrations.",
+      "category": "sunglasses",
+      "price": 19.99,
+      "discountPercentage": 19.61,
+      "rating": 3.69,
+      "stock": 55,
+      "tags": [
+        "eyewear",
+        "party glasses"
+      ],
+      "brand": "Fashion Fun",
+      "sku": "SUN-FAS-PAR-157",
+      "weight": 9,
+      "dimensions": {
+        "width": 22.29,
+        "height": 7.4,
+        "depth": 15.47
+      },
+      "warrantyInformation": "2 year warranty",
+      "shippingInformation": "Ships overnight",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Lucas Bennett",
+          "reviewerEmail": "lucas.bennett@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Nora Sharma",
+          "reviewerEmail": "nora.sharma@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Nguyen",
+          "reviewerEmail": "daniel.nguyen@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 18,
+      "meta": {
+        "createdAt": "2026-07-20T22:27:25.050Z",
+        "updatedAt": "2026-10-19T10:17:09.005Z",
+        "barcode": "3004263716715",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/sunglasses/party-glasses/1.webp",
+        "https://cdn.dummyjson.com/product-images/sunglasses/party-glasses/2.webp",
+        "https://cdn.dummyjson.com/product-images/sunglasses/party-glasses/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/sunglasses/party-glasses/thumbnail.webp"
+    },
+    {
+      "id": 158,
+      "title": "Sunglasses",
+      "description": "Simple, functional sunglasses with essential UV protection and a timeless look.",
+      "category": "sunglasses",
+      "price": 22.99,
+      "discountPercentage": 16.2,
+      "rating": 3.11,
+      "stock": 67,
+      "tags": [
+        "eyewear",
+        "sunglasses"
+      ],
+      "brand": "Fashion Shades",
+      "sku": "SUN-FAS-SUN-158",
+      "weight": 1,
+      "dimensions": {
+        "width": 7.03,
+        "height": 29.86,
+        "depth": 15.43
+      },
+      "warrantyInformation": "No warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ava Young",
+          "reviewerEmail": "ava.young@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ethan Gomez",
+          "reviewerEmail": "ethan.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Layla Smith",
+          "reviewerEmail": "layla.smith@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 7,
+      "meta": {
+        "createdAt": "2025-01-02T02:17:21.608Z",
+        "updatedAt": "2026-10-19T08:20:20.069Z",
+        "barcode": "3370271861581",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/sunglasses/sunglasses/1.webp",
+        "https://cdn.dummyjson.com/product-images/sunglasses/sunglasses/2.webp",
+        "https://cdn.dummyjson.com/product-images/sunglasses/sunglasses/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/sunglasses/sunglasses/thumbnail.webp"
+    },
+    {
+      "id": 172,
+      "title": "Blue Women's Handbag",
+      "description": "A stylish, spacious everyday handbag in vibrant blue with multiple compartments.",
+      "category": "womens-bags",
+      "price": 49.99,
+      "discountPercentage": 2.72,
+      "rating": 4.93,
+      "stock": 75,
+      "tags": [
+        "fashion accessories",
+        "handbags"
+      ],
+      "brand": "Fashionista",
+      "sku": "WOM-FAS-BLU-172",
+      "weight": 9,
+      "dimensions": {
+        "width": 23.32,
+        "height": 23.84,
+        "depth": 26.47
+      },
+      "warrantyInformation": "2 year warranty",
+      "shippingInformation": "Ships in 3-5 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Rohan Nguyen",
+          "reviewerEmail": "rohan.nguyen@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Caleb Patel",
+          "reviewerEmail": "caleb.patel@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Very pleased!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mason Hill",
+          "reviewerEmail": "mason.hill@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 1,
+      "meta": {
+        "createdAt": "2025-11-15T09:06:53.733Z",
+        "updatedAt": "2026-09-03T18:47:30.464Z",
+        "barcode": "9677204126347",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-bags/blue-women's-handbag/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-bags/blue-women's-handbag/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-bags/blue-women's-handbag/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-bags/blue-women's-handbag/thumbnail.webp"
+    },
+    {
+      "id": 173,
+      "title": "Heshe Women's Leather Bag",
+      "description": "A high-quality leather bag with a timeless design and durable craftsmanship.",
+      "category": "womens-bags",
+      "price": 129.99,
+      "discountPercentage": 6.4,
+      "rating": 4.41,
+      "stock": 12,
+      "tags": [
+        "fashion accessories",
+        "leather bags"
+      ],
+      "brand": "Heshe",
+      "sku": "WOM-HES-HES-173",
+      "weight": 5,
+      "dimensions": {
+        "width": 5.77,
+        "height": 7.57,
+        "depth": 16.61
+      },
+      "warrantyInformation": "1 week warranty",
+      "shippingInformation": "Ships in 3-5 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Smith",
+          "reviewerEmail": "daniel.smith@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Olivia Ward",
+          "reviewerEmail": "olivia.ward@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Liam Nguyen",
+          "reviewerEmail": "liam.nguyen@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 4,
+      "meta": {
+        "createdAt": "2025-04-09T10:32:20.575Z",
+        "updatedAt": "2026-09-07T08:09:06.556Z",
+        "barcode": "1378522238416",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-bags/heshe-women's-leather-bag/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-bags/heshe-women's-leather-bag/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-bags/heshe-women's-leather-bag/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-bags/heshe-women's-leather-bag/thumbnail.webp"
+    },
+    {
+      "id": 174,
+      "title": "Prada Women Bag",
+      "description": "An iconic designer bag that exudes elegance and luxury.",
+      "category": "womens-bags",
+      "price": 599.99,
+      "discountPercentage": 7.23,
+      "rating": 2.97,
+      "stock": 48,
+      "tags": [
+        "fashion accessories",
+        "designer bags"
+      ],
+      "brand": "Prada",
+      "sku": "WOM-PRA-PRA-174",
+      "weight": 3,
+      "dimensions": {
+        "width": 28.36,
+        "height": 16.8,
+        "depth": 27.65
+      },
+      "warrantyInformation": "Lifetime warranty",
+      "shippingInformation": "Ships in 1-2 business days",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Zoe Gomez",
+          "reviewerEmail": "zoe.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Priya Bennett",
+          "reviewerEmail": "priya.bennett@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Great value for money!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Noah Nguyen",
+          "reviewerEmail": "noah.nguyen@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "No return policy",
+      "minimumOrderQuantity": 8,
+      "meta": {
+        "createdAt": "2026-06-28T20:28:52.155Z",
+        "updatedAt": "2026-09-16T06:57:35.402Z",
+        "barcode": "1341461754420",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-bags/prada-women-bag/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-bags/prada-women-bag/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-bags/prada-women-bag/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-bags/prada-women-bag/thumbnail.webp"
+    },
+    {
+      "id": 175,
+      "title": "White Faux Leather Backpack",
+      "description": "A trendy, practical white faux leather backpack with ample storage space.",
+      "category": "womens-bags",
+      "price": 39.99,
+      "discountPercentage": 15.05,
+      "rating": 2.73,
+      "stock": 4,
+      "tags": [
+        "fashion accessories",
+        "backpacks"
+      ],
+      "brand": "Urban Chic",
+      "sku": "WOM-URB-WHI-175",
+      "weight": 4,
+      "dimensions": {
+        "width": 21.29,
+        "height": 28.33,
+        "depth": 5.28
+      },
+      "warrantyInformation": "1 year warranty",
+      "shippingInformation": "Ships in 1-2 business days",
+      "availabilityStatus": "Low Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Emma Harper",
+          "reviewerEmail": "emma.harper@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Elijah Reed",
+          "reviewerEmail": "elijah.reed@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ava Ward",
+          "reviewerEmail": "ava.ward@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "7 days return policy",
+      "minimumOrderQuantity": 5,
+      "meta": {
+        "createdAt": "2024-10-02T00:34:07.862Z",
+        "updatedAt": "2026-10-09T12:54:42.734Z",
+        "barcode": "7760553848856",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-bags/white-faux-leather-backpack/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-bags/white-faux-leather-backpack/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-bags/white-faux-leather-backpack/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-bags/white-faux-leather-backpack/thumbnail.webp"
+    },
+    {
+      "id": 176,
+      "title": "Women Handbag Black",
+      "description": "A classic, versatile black handbag that complements various outfits.",
+      "category": "womens-bags",
+      "price": 59.99,
+      "discountPercentage": 8.62,
+      "rating": 4.83,
+      "stock": 4,
+      "tags": [
+        "fashion accessories",
+        "handbags"
+      ],
+      "brand": "Elegance Collection",
+      "sku": "WOM-ELE-WOM-176",
+      "weight": 1,
+      "dimensions": {
+        "width": 21.01,
+        "height": 5.98,
+        "depth": 8.63
+      },
+      "warrantyInformation": "3 year warranty",
+      "shippingInformation": "Ships in 1 week",
+      "availabilityStatus": "Low Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Davis",
+          "reviewerEmail": "mia.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Very satisfied!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Owen Wilson",
+          "reviewerEmail": "owen.wilson@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Wilson",
+          "reviewerEmail": "mia.wilson@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 1,
+      "meta": {
+        "createdAt": "2026-07-26T09:27:27.009Z",
+        "updatedAt": "2026-09-07T21:52:52.757Z",
+        "barcode": "8752623942464",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-bags/women-handbag-black/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-bags/women-handbag-black/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-bags/women-handbag-black/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-bags/women-handbag-black/thumbnail.webp"
+    },
+    {
+      "id": 177,
+      "title": "Black Women's Gown",
+      "description": "An elegant, timeless evening gown with a sleek black design for formal events.",
+      "category": "womens-dresses",
+      "price": 129.99,
+      "discountPercentage": 4.7,
+      "rating": 2.94,
+      "stock": 0,
+      "tags": [
+        "clothing",
+        "gowns"
+      ],
+      "sku": "WOM-BRD-BLA-177",
+      "weight": 10,
+      "dimensions": {
+        "width": 14.8,
+        "height": 29.84,
+        "depth": 8.92
+      },
+      "warrantyInformation": "5 year warranty",
+      "shippingInformation": "Ships in 1-2 business days",
+      "availabilityStatus": "Out of Stock",
+      "reviews": [
+        {
+          "rating": 2,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ruby Brown",
+          "reviewerEmail": "ruby.brown@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Emma Patel",
+          "reviewerEmail": "emma.patel@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Priya Kelly",
+          "reviewerEmail": "priya.kelly@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "30 days return policy",
+      "minimumOrderQuantity": 5,
+      "meta": {
+        "createdAt": "2025-12-06T16:18:03.902Z",
+        "updatedAt": "2026-10-06T16:42:46.426Z",
+        "barcode": "3540115276113",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-dresses/black-women's-gown/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/black-women's-gown/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/black-women's-gown/3.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/black-women's-gown/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-dresses/black-women's-gown/thumbnail.webp"
+    },
+    {
+      "id": 178,
+      "title": "Corset Leather With Skirt",
+      "description": "A bold, edgy ensemble pairing a stylish corset with a matching skirt.",
+      "category": "womens-dresses",
+      "price": 89.99,
+      "discountPercentage": 11.83,
+      "rating": 2.81,
+      "stock": 99,
+      "tags": [
+        "clothing",
+        "corsets",
+        "skirts"
+      ],
+      "sku": "WOM-BRD-COR-178",
+      "weight": 6,
+      "dimensions": {
+        "width": 10.89,
+        "height": 16.04,
+        "depth": 28.67
+      },
+      "warrantyInformation": "1 week warranty",
+      "shippingInformation": "Ships in 2 weeks",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 1,
+          "comment": "Poor quality!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Clara Gomez",
+          "reviewerEmail": "clara.gomez@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Highly recommended!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Hill",
+          "reviewerEmail": "mia.hill@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Great product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ava Gomez",
+          "reviewerEmail": "ava.gomez@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 12,
+      "meta": {
+        "createdAt": "2025-08-12T06:24:25.765Z",
+        "updatedAt": "2026-09-06T14:48:24.048Z",
+        "barcode": "6261488361520",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-leather-with-skirt/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-leather-with-skirt/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-leather-with-skirt/3.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-leather-with-skirt/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-dresses/corset-leather-with-skirt/thumbnail.webp"
+    },
+    {
+      "id": 179,
+      "title": "Corset With Black Skirt",
+      "description": "A chic, versatile outfit pairing a fashionable corset with a classic black skirt.",
+      "category": "womens-dresses",
+      "price": 79.99,
+      "discountPercentage": 12.07,
+      "rating": 3.27,
+      "stock": 12,
+      "tags": [
+        "clothing",
+        "corsets",
+        "skirts"
+      ],
+      "sku": "WOM-BRD-COR-179",
+      "weight": 7,
+      "dimensions": {
+        "width": 24.57,
+        "height": 22.3,
+        "depth": 14.09
+      },
+      "warrantyInformation": "1 week warranty",
+      "shippingInformation": "Ships in 1 week",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ava Wilson",
+          "reviewerEmail": "ava.wilson@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Would buy again!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Ananya Patel",
+          "reviewerEmail": "ananya.patel@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "Not worth the price!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Henry Nguyen",
+          "reviewerEmail": "henry.nguyen@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 21,
+      "meta": {
+        "createdAt": "2025-01-10T14:38:20.429Z",
+        "updatedAt": "2026-09-15T10:11:03.568Z",
+        "barcode": "9487464397258",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-with-black-skirt/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-with-black-skirt/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-with-black-skirt/3.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-with-black-skirt/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-dresses/corset-with-black-skirt/thumbnail.webp"
+    },
+    {
+      "id": 180,
+      "title": "Dress Pea",
+      "description": "A stylish, comfortable dress with a pea pattern, ideal for casual day-to-day wear.",
+      "category": "womens-dresses",
+      "price": 49.99,
+      "discountPercentage": 6.19,
+      "rating": 4.68,
+      "stock": 55,
+      "tags": [
+        "clothing",
+        "dresses"
+      ],
+      "sku": "WOM-BRD-DRE-180",
+      "weight": 4,
+      "dimensions": {
+        "width": 5.05,
+        "height": 9.93,
+        "depth": 19.81
+      },
+      "warrantyInformation": "1 year warranty",
+      "shippingInformation": "Ships in 1 month",
+      "availabilityStatus": "In Stock",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "Highly impressed!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Mia Cooper",
+          "reviewerEmail": "mia.cooper@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "Awesome product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Grace Wilson",
+          "reviewerEmail": "grace.wilson@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "Fast shipping!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Daniel Young",
+          "reviewerEmail": "daniel.young@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "60 days return policy",
+      "minimumOrderQuantity": 10,
+      "meta": {
+        "createdAt": "2026-03-03T14:49:53.463Z",
+        "updatedAt": "2026-10-04T07:23:31.583Z",
+        "barcode": "6505654705670",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-dresses/dress-pea/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/dress-pea/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/dress-pea/3.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/dress-pea/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-dresses/dress-pea/thumbnail.webp"
+    },
+    {
+      "id": 181,
+      "title": "Marni Red & Black Suit",
+      "description": "A sophisticated, fashion-forward suit in red and black tones for a bold, confident look.",
+      "category": "womens-dresses",
+      "price": 179.99,
+      "discountPercentage": 14.11,
+      "rating": 3.85,
+      "stock": 0,
+      "tags": [
+        "clothing",
+        "suits"
+      ],
+      "sku": "WOM-BRD-MAR-181",
+      "weight": 9,
+      "dimensions": {
+        "width": 24.75,
+        "height": 7.89,
+        "depth": 13.24
+      },
+      "warrantyInformation": "6 months warranty",
+      "shippingInformation": "Ships in 1 week",
+      "availabilityStatus": "Out of Stock",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "Not as described!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Nora Bennett",
+          "reviewerEmail": "nora.bennett@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "Would not recommend!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Henry Davis",
+          "reviewerEmail": "henry.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "Disappointing product!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "Liam Brown",
+          "reviewerEmail": "liam.brown@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "90 days return policy",
+      "minimumOrderQuantity": 29,
+      "meta": {
+        "createdAt": "2025-09-27T19:47:09.105Z",
+        "updatedAt": "2026-10-09T12:33:11.549Z",
+        "barcode": "8904216311119",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-dresses/marni-red-&-black-suit/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/marni-red-&-black-suit/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/marni-red-&-black-suit/3.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/marni-red-&-black-suit/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-dresses/marni-red-&-black-suit/thumbnail.webp"
     }
   ],
-  "total": 194,
+  "total": 98,
   "skip": 0,
-  "limit": 30
+  "limit": 98
 }

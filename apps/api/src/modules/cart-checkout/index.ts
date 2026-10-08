@@ -29,6 +29,8 @@ export type {
   CheckoutStatus,
 };
 
+import type { CustomerAddressService } from '../customer/index.js';
+
 export interface CartCheckoutModule {
   readonly contextName: 'cart-checkout';
   createCartService(
@@ -42,6 +44,7 @@ export interface CartCheckoutModule {
     listingService: ListingService,
     catalogService: CatalogService,
     inventoryService: InventoryService,
+    addressService?: CustomerAddressService,
   ): CheckoutService;
 }
 
@@ -60,8 +63,16 @@ export const cartCheckoutModule: CartCheckoutModule = {
     listingService: ListingService,
     catalogService: CatalogService,
     inventoryService: InventoryService,
+    addressService?: CustomerAddressService,
   ): CheckoutService {
-    return new CheckoutService(db, logger, listingService, catalogService, inventoryService);
+    return new CheckoutService(
+      db,
+      logger,
+      listingService,
+      catalogService,
+      inventoryService,
+      addressService,
+    );
   },
 };
 

@@ -237,9 +237,16 @@ export interface IVectorStore {
   deactivateDocumentChunks(documentId: string): Promise<void>;
 }
 
+export interface WhatsAppSendResult {
+  success: boolean;
+  messageId?: string | undefined;
+  error?: string | undefined;
+}
+
 export interface IWhatsAppProvider {
+  readonly providerName: string;
   verifyWebhookSignature(rawPayload: string, signature: string, secret: string): boolean;
-  sendTextMessage(to: string, text: string): Promise<boolean>;
+  sendTextMessage(to: string, text: string): Promise<boolean | WhatsAppSendResult>;
 }
 
 export interface IAiStore {
@@ -247,6 +254,7 @@ export interface IAiStore {
   createConversation(conv: ConversationRecord): Promise<void>;
   getConversationById(tenantId: string, id: string): Promise<ConversationRecord | null>;
   findConversationByUser(tenantId: string, channel: ChannelType, externalUserId: string): Promise<ConversationRecord | null>;
+  listConversations(tenantId: string, channel?: ChannelType, limit?: number): Promise<ConversationRecord[]>;
   updateConversation(tenantId: string, id: string, updates: Partial<ConversationRecord>): Promise<void>;
 
   // Messages
@@ -276,6 +284,8 @@ export interface IAiStore {
   // Webhook Deduplication
   recordWebhook(webhook: WhatsAppWebhookRecord): Promise<boolean>; // returns false if duplicate
   getWebhook(tenantId: string, messageId: string): Promise<WhatsAppWebhookRecord | null>;
+  listWebhooks(tenantId: string, limit?: number): Promise<WhatsAppWebhookRecord[]>;
+  updateWebhookStatus(tenantId: string, messageId: string, status: WhatsAppWebhookRecord['status']): Promise<void>;
 
   // Audit Logs
   recordAudit(audit: AiAuditRecord): Promise<void>;

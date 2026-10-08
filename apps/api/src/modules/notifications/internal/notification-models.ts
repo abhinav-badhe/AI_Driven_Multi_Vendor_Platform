@@ -17,7 +17,8 @@ export type NotificationType =
   | 'SHIPMENT_STATUS_UPDATE'
   | 'RETURN_STATUS_UPDATE'
   | 'SETTLEMENT_UPDATE'
-  | 'PRICE_DROP_ALERT';
+  | 'PRICE_DROP_ALERT'
+  | 'BACK_IN_STOCK_ALERT';
 
 export interface NotificationRecord {
   id: string;

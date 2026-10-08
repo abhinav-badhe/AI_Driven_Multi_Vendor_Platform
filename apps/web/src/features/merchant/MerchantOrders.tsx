@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { Inbox } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Inbox, Truck } from "lucide-react";
 import { merchantApi, type SellerOrderDto } from "./api/merchant";
-import { Button } from "../../components/ui/button";
+import { Button, buttonVariants } from "../../components/ui/button";
+import { cn } from "../../lib/utils";
 import { Card, CardContent } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Alert } from "../../components/ui/alert";
@@ -135,6 +137,14 @@ export const MerchantOrders = () => {
                         {formatMoney(order.totalAmount / 100, order.currency)}
                       </p>
                       <Badge variant={statusVariant(order.status)}>{order.status}</Badge>
+                      {(order.status === "PAID" || order.status === "PROCESSING") && (
+                        <Link
+                          to="/merchant/fulfillment"
+                          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1")}
+                        >
+                          <Truck size={14} /> Fulfill
+                        </Link>
+                      )}
                       {next && (
                         <Button
                           size="sm"

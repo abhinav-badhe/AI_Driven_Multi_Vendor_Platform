@@ -166,6 +166,23 @@ export class SqlAiStore implements IAiStore {
     return this.mapConvRow(res.rows[0]!);
   }
 
+  async listConversations(
+    tenantId: string,
+    channel?: ChannelType,
+    limit = 50,
+  ): Promise<ConversationRecord[]> {
+    let sql = 'SELECT * FROM ai_conversations WHERE tenant_id = $1';
+    const params: unknown[] = [tenantId];
+    if (channel) {
+      sql += ' AND channel = $2';
+      params.push(channel);
+    }
+    sql += ` ORDER BY updated_at DESC LIMIT $${params.length + 1}`;
+    params.push(limit);
+    const res = await this.db.query<RawConvRow>(sql, params);
+    return res.rows.map((r) => this.mapConvRow(r));
+  }
+
   async updateConversation(
     tenantId: string,
     id: string,
@@ -460,6 +477,38 @@ export class SqlAiStore implements IAiStore {
       payloadHash: r.payload_hash,
       processedAt: typeof r.processed_at === 'string' ? r.processed_at : r.processed_at.toISOString(),
     };
+  }
+
+  async listWebhooks(tenantId: string, limit = 50): Promise<WhatsAppWebhookRecord[]> {
+    const sql = `
+      SELECT * FROM ai_whatsapp_webhooks
+      WHERE tenant_id = $1
+      ORDER BY processed_at DESC
+      LIMIT $2
+    `;
+    const res = await this.db.query<RawWebhookRow>(sql, [tenantId, limit]);
+    return res.rows.map((r) => ({
+      id: r.id,
+      providerMessageId: r.provider_message_id,
+      tenantId: r.tenant_id,
+      phoneNumber: r.phone_number,
+      status: r.status,
+      payloadHash: r.payload_hash,
+      processedAt: typeof r.processed_at === 'string' ? r.processed_at : r.processed_at.toISOString(),
+    }));
+  }
+
+  async updateWebhookStatus(
+    tenantId: string,
+    messageId: string,
+    status: WhatsAppWebhookRecord['status'],
+  ): Promise<void> {
+    const sql = `
+      UPDATE ai_whatsapp_webhooks
+      SET status = $1, processed_at = NOW()
+      WHERE tenant_id = $2 AND provider_message_id = $3
+    `;
+    await this.db.query(sql, [status, tenantId, messageId]);
   }
 
   // --- AI Audit Logs ---

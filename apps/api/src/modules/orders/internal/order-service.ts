@@ -49,6 +49,9 @@ export interface OrderItemDto {
   createdAt: string;
 }
 
+import type { PromotionService } from '../../promotion-pricing/index.js';
+import type { AddressSnapshot } from '../../customer/index.js';
+
 export interface SellerOrderDto {
   id: string;
   customerOrderId: string;
@@ -56,6 +59,7 @@ export interface SellerOrderDto {
   status: SellerOrderStatus;
   currency: string;
   subtotalAmount: number;
+  discountAmount?: number;
   shippingAmount: number;
   taxAmount: number;
   totalAmount: number;
@@ -78,6 +82,9 @@ export interface CustomerOrderDto {
   taxAmount: number;
   totalAmount: number;
   idempotencyKey: string | null;
+  couponCode?: string | null;
+  appliedPromotions?: unknown[];
+  shippingAddress?: AddressSnapshot | null;
   createdAt: string;
   updatedAt: string;
   sellerOrders: SellerOrderDto[];
@@ -96,6 +103,7 @@ export class OrderService {
     private readonly inventoryService: InventoryService,
     private readonly paymentService: PaymentService,
     private readonly outboxService?: OutboxService | undefined,
+    private readonly promotionService?: PromotionService | undefined,
   ) {
     this.repo = new OrderRepository(db);
     this.db = db;
@@ -259,6 +267,9 @@ export class OrderService {
           taxAmount: checkout.taxAmount,
           totalAmount: checkout.totalAmount,
           idempotencyKey: input.idempotencyKey ?? null,
+          couponCode: checkout.couponCode ?? null,
+          appliedPromotions: checkout.appliedPromotions ?? [],
+          shippingAddress: checkout.shippingAddress ?? null,
         });
 
         const itemsByMerchant = new Map<string, Array<(typeof itemSnapshots)[0]>>();
@@ -274,7 +285,20 @@ export class OrderService {
           const sellerSubtotal = snaps.reduce((sum, s) => sum + s.item.lineTotalAmount, 0);
           const sellerShipping = 0;
           const sellerTax = 0;
-          const sellerTotal = sellerSubtotal + sellerShipping + sellerTax;
+
+          // Attribute discount from applied promotions
+          let merchantDiscount = 0;
+          if (Array.isArray(checkout.appliedPromotions)) {
+            for (const ap of checkout.appliedPromotions as Array<{ merchantTenantId?: string | null; discountAmount?: number }>) {
+              if (ap.merchantTenantId === merchantTenantId) {
+                merchantDiscount += ap.discountAmount ?? 0;
+              } else if (!ap.merchantTenantId && checkout.subtotalAmount > 0) {
+                merchantDiscount += Math.round(((ap.discountAmount ?? 0) * sellerSubtotal) / checkout.subtotalAmount);
+              }
+            }
+          }
+          merchantDiscount = Math.min(merchantDiscount, sellerSubtotal);
+          const sellerTotal = Math.max(0, sellerSubtotal + sellerShipping + sellerTax - merchantDiscount);
 
           const sellerOrder = await txRepo.createSellerOrder({
             id: sellerOrderId,
@@ -283,6 +307,7 @@ export class OrderService {
             status: 'PAID',
             currency: checkout.currency,
             subtotalAmount: sellerSubtotal,
+            discountAmount: merchantDiscount,
             shippingAmount: sellerShipping,
             taxAmount: sellerTax,
             totalAmount: sellerTotal,
@@ -310,6 +335,16 @@ export class OrderService {
             });
             createdOrderItemsInner.push(orderItem);
           }
+        }
+
+        // Finalize promotion and coupon redemptions under transaction lock
+        if (this.promotionService) {
+          await this.promotionService.finalizeRedemption(tx, {
+            checkoutSessionId: checkout.id,
+            customerOrderId: customerOrderIdInner,
+            customerTenantId: actor.tenantId,
+            actor,
+          });
         }
 
         // Analytics + notification fan-out, atomically with the order itself.
@@ -627,6 +662,18 @@ export class OrderService {
       taxAmount: order.tax_amount,
       totalAmount: order.total_amount,
       idempotencyKey: order.idempotency_key,
+      couponCode: order.coupon_code ?? null,
+      appliedPromotions:
+        typeof order.applied_promotions === 'string'
+          ? JSON.parse(order.applied_promotions)
+          : Array.isArray(order.applied_promotions)
+            ? order.applied_promotions
+            : [],
+      shippingAddress: order.shipping_address
+        ? typeof order.shipping_address === 'string'
+          ? JSON.parse(order.shipping_address)
+          : (order.shipping_address as AddressSnapshot)
+        : null,
       createdAt: order.created_at.toISOString(),
       updatedAt: order.updated_at.toISOString(),
       sellerOrders: sellerDtos,
@@ -662,6 +709,7 @@ export class OrderService {
       status: row.status,
       currency: row.currency,
       subtotalAmount: row.subtotal_amount,
+      discountAmount: Number(row.discount_amount ?? 0),
       shippingAmount: row.shipping_amount,
       taxAmount: row.tax_amount,
       totalAmount: row.total_amount,

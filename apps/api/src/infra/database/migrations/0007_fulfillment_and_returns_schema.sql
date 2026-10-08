@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS shipments (
   carrier VARCHAR(64),
   tracking_number VARCHAR(128),
   tracking_url TEXT,
+  carrier_shipment_id VARCHAR(128),
+  label_url TEXT,
   shipped_at TIMESTAMPTZ,
   delivered_at TIMESTAMPTZ,
   estimated_delivery_at TIMESTAMPTZ,
@@ -109,4 +111,25 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_inventory_movement_type_reference ON invent
 
 -- 7. Durable Payment Refund Idempotency Uniqueness (Cross-Intent Protection)
 CREATE UNIQUE INDEX IF NOT EXISTS uq_refund_global_idempotency ON payment_refunds(idempotency_key) WHERE idempotency_key IS NOT NULL;
+
+-- 8. Carrier Shipment Operations: Durable multi-instance idempotency and restart recovery
+CREATE TABLE IF NOT EXISTS carrier_shipment_operations (
+  idempotency_key VARCHAR(255) PRIMARY KEY,
+  seller_order_id VARCHAR(36) NOT NULL REFERENCES seller_orders(id) ON DELETE RESTRICT,
+  seller_tenant_id VARCHAR(36) NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
+  carrier VARCHAR(64) NOT NULL,
+  carrier_shipment_id VARCHAR(128),
+  tracking_number VARCHAR(128),
+  tracking_url TEXT,
+  label_url TEXT,
+  status VARCHAR(32) NOT NULL DEFAULT 'IN_PROGRESS',
+  claim_token VARCHAR(64),
+  response_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_carrier_ops_order ON carrier_shipment_operations(seller_order_id);
+CREATE INDEX IF NOT EXISTS idx_carrier_ops_carrier_shipment ON carrier_shipment_operations(carrier_shipment_id);
+
 

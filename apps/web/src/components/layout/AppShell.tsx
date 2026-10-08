@@ -18,8 +18,12 @@ import {
   ArrowLeftRight,
   Activity,
   ShieldCheck,
+  MessageSquare,
   Menu,
   X,
+  Tag,
+  Star,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -37,6 +41,8 @@ export const merchantNav: NavItem[] = [
   { to: "/merchant/listings", label: "Listings", icon: Package },
   { to: "/merchant/inventory", label: "Inventory", icon: Boxes },
   { to: "/merchant/orders", label: "Orders", icon: ShoppingCart },
+  { to: "/merchant/promotions", label: "Promotions", icon: Tag },
+  { to: "/merchant/reviews", label: "Reviews", icon: Star },
   { to: "/merchant/fulfillment", label: "Fulfillment", icon: Truck },
   { to: "/merchant/returns", label: "Returns", icon: RotateCcw },
   { to: "/merchant/finance", label: "Finance", icon: Wallet },
@@ -47,6 +53,7 @@ export const merchantNav: NavItem[] = [
 
 export const adminNav: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/admin/whatsapp", label: "WhatsApp AI", icon: MessageSquare },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/merchants", label: "Merchants", icon: Store },
   { to: "/admin/catalog", label: "Catalog", icon: BookOpen },
@@ -54,6 +61,9 @@ export const adminNav: NavItem[] = [
   { to: "/admin/inventory", label: "Inventory", icon: Boxes },
   { to: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },
+  { to: "/admin/promotions", label: "Promotions", icon: Tag },
+  { to: "/admin/reviews", label: "Reviews", icon: Star },
+  { to: "/admin/notifications", label: "Notifications", icon: Bell },
   { to: "/admin/settlements", label: "Settlements", icon: ArrowLeftRight },
   { to: "/admin/events", label: "Events", icon: Activity },
   { to: "/admin/security", label: "Security", icon: ShieldCheck },

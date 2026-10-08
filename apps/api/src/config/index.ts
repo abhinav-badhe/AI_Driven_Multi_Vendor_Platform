@@ -77,6 +77,38 @@ export function parseConfig(envSource: Record<string, string | undefined>): AppC
         .trim(),
       frontendUrl: raw.FRONTEND_URL ?? 'http://localhost:3000',
     },
+    whatsapp: {
+      provider:
+        raw.WHATSAPP_PROVIDER ??
+        (raw.WHATSAPP_ACCESS_TOKEN && raw.WHATSAPP_PHONE_NUMBER_ID && raw.WHATSAPP_APP_SECRET
+          ? 'meta'
+          : 'mock'),
+      accessToken: raw.WHATSAPP_ACCESS_TOKEN || undefined,
+      phoneNumberId: raw.WHATSAPP_PHONE_NUMBER_ID || undefined,
+      appSecret: raw.WHATSAPP_APP_SECRET || undefined,
+      webhookVerifyToken: raw.WHATSAPP_WEBHOOK_VERIFY_TOKEN ?? 'commerce_wa_verify_token_default',
+      apiVersion: raw.WHATSAPP_API_VERSION ?? 'v20.0',
+    },
+    payment: {
+      provider:
+        raw.PAYMENT_PROVIDER ??
+        (raw.STRIPE_SECRET_KEY && raw.STRIPE_SECRET_KEY.startsWith('sk_') ? 'stripe' : 'mock'),
+      secretKey: raw.STRIPE_SECRET_KEY || undefined,
+      webhookSecret: raw.STRIPE_WEBHOOK_SECRET || 'whsec_mock_default_secret_for_tests',
+      publishableKey: raw.STRIPE_PUBLISHABLE_KEY || undefined,
+      apiVersion: raw.STRIPE_API_VERSION || undefined,
+      webhookToleranceSeconds: raw.STRIPE_WEBHOOK_TOLERANCE_SECONDS ?? 300,
+    },
+    shipping: {
+      provider:
+        raw.CARRIER_PROVIDER ??
+        (raw.SHIPPO_API_KEY && raw.SHIPPO_API_KEY.startsWith('shippo_') ? 'shippo' : 'mock'),
+      apiKey: raw.SHIPPO_API_KEY || undefined,
+      webhookSecret: raw.SHIPPO_WEBHOOK_SECRET || 'whsec_carrier_mock_secret',
+      baseUrl: raw.SHIPPO_BASE_URL || 'https://api.goshippo.com',
+      timeoutMs: raw.SHIPPO_TIMEOUT_MS ?? 10000,
+      webhookToleranceSeconds: raw.SHIPPO_WEBHOOK_TOLERANCE_SECONDS ?? 300,
+    },
   };
 }
 

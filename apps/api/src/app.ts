@@ -22,9 +22,14 @@ import { catalogModule } from './modules/catalog/index.js';
 import { marketplaceModule } from './modules/marketplace/index.js';
 import { inventoryModule } from './modules/inventory/index.js';
 import { cartCheckoutModule } from './modules/cart-checkout/index.js';
-import { paymentModule } from './modules/payment/index.js';
+import { paymentModule, StripePaymentProvider, MockPaymentProvider, type PaymentProvider } from './modules/payment/index.js';
 import { ordersModule } from './modules/orders/index.js';
-import { fulfillmentModule } from './modules/fulfillment/index.js';
+import {
+  fulfillmentModule,
+  ShippoCarrierProvider,
+  MockCarrierProvider,
+  type CarrierProvider,
+} from './modules/fulfillment/index.js';
 import { settlementLedgerModule } from './modules/settlement-ledger/index.js';
 import { searchModule, type ISearchStore, SqlSearchStore } from './modules/search/index.js';
 import { eventsModule, type EventTransport } from './modules/events/index.js';
@@ -33,11 +38,13 @@ import { priceAlertsModule } from './modules/price-alerts/index.js';
 import { analyticsModule } from './modules/analytics/index.js';
 import { recommendationsModule } from './modules/recommendations/index.js';
 import { analyticsMlModule } from './modules/analytics-ml/index.js';
+import { promotionPricingModule } from './modules/promotion-pricing/index.js';
 import { SqlMlStore } from './infra/ml/sql-ml-store.js';
 import { registerIdentityRoutes } from './http/identity-routes.js';
 import { registerMerchantRoutes } from './http/merchant-routes.js';
 import { registerCatalogRoutes } from './http/catalog-routes.js';
 import { registerListingRoutes } from './http/listing-routes.js';
+import { registerPromotionRoutes } from './http/promotion-routes.js';
 import { registerPriceAlertRoutes } from './http/price-alert-routes.js';
 import { registerInventoryRoutes } from './http/inventory-routes.js';
 import { registerCartRoutes } from './http/cart-routes.js';
@@ -52,6 +59,12 @@ import { registerAnalyticsRoutes } from './http/analytics-routes.js';
 import { registerRecommendationRoutes } from './http/recommendation-routes.js';
 import { registerMlRoutes } from './http/ml-routes.js';
 import { registerAiRoutes } from './http/ai-routes.js';
+import { customerModule } from './modules/customer/index.js';
+import { registerCustomerAddressRoutes } from './http/customer-address-routes.js';
+import { createReviewService } from './modules/catalog/index.js';
+import { registerReviewRoutes } from './http/review-routes.js';
+import { registerWishlistRoutes } from './http/wishlist-routes.js';
+import { registerBackInStockRoutes } from './http/back-in-stock-routes.js';
 import {
   aiModule,
   InMemoryAiStore,
@@ -59,6 +72,7 @@ import {
   MockEmbeddingProvider,
   MockLLMProvider,
   MockWhatsAppProvider,
+  MetaWhatsAppCloudProvider,
 } from './modules/ai/index.js';
 import { SqlAiStore } from './infra/ai/sql-ai-store.js';
 import { join, resolve } from 'node:path';
@@ -99,6 +113,8 @@ export interface AppDependencies {
   cache?: CacheService | undefined;
   searchStore?: ISearchStore | undefined;
   eventTransport?: EventTransport | undefined;
+  paymentProvider?: PaymentProvider | undefined;
+  carrierProvider?: CarrierProvider | undefined;
   dbConnection?: DatabaseConnection | undefined;
   skipMigrations?: boolean | undefined;
 }
@@ -171,6 +187,16 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     dbConn && marketplaceService
       ? cartCheckoutModule.createCartService(dbConn, rootLogger, marketplaceService)
       : null;
+  const customerAddressService = dbConn
+    ? customerModule.createAddressService(dbConn, rootLogger)
+    : null;
+  const wishlistService =
+    dbConn && cartService
+      ? customerModule.createWishlistService(dbConn, rootLogger, cartService, outboxService ?? undefined)
+      : null;
+  const reviewService = dbConn
+    ? createReviewService(dbConn, rootLogger, outboxService ?? undefined)
+    : null;
   const checkoutService =
     dbConn && marketplaceService && catalogService && inventoryService
       ? cartCheckoutModule.createCheckoutService(
@@ -179,13 +205,41 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
           marketplaceService,
           catalogService,
           inventoryService,
+          customerAddressService ?? undefined,
         )
       : null;
 
+  const paymentProvider =
+    dependencies.paymentProvider ??
+    (config.payment?.provider === 'stripe' && config.payment?.secretKey
+      ? new StripePaymentProvider(
+          {
+            secretKey: config.payment.secretKey,
+            webhookSecret: config.payment.webhookSecret,
+            publishableKey: config.payment.publishableKey,
+            apiVersion: config.payment.apiVersion,
+            webhookToleranceSeconds: config.payment.webhookToleranceSeconds,
+          },
+          rootLogger,
+        )
+      : new MockPaymentProvider());
+
   const paymentService =
     dbConn && checkoutService && outboxService
-      ? paymentModule.createService(dbConn, rootLogger, checkoutService, outboxService)
+      ? paymentModule.createService(
+          dbConn,
+          rootLogger,
+          checkoutService,
+          outboxService,
+          paymentProvider,
+          config.payment?.webhookSecret,
+          config.payment?.webhookToleranceSeconds,
+        )
       : null;
+
+  const promotionService = dbConn
+    ? promotionPricingModule.createService(dbConn, rootLogger, outboxService ?? undefined)
+    : null;
 
   const orderService =
     dbConn && checkoutService && catalogService && inventoryService && paymentService
@@ -197,8 +251,24 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
           inventoryService,
           paymentService,
           outboxService ?? undefined,
+          promotionService ?? undefined,
         )
       : null;
+
+  const carrierProvider =
+    dependencies.carrierProvider ??
+    (config.shipping?.provider === 'shippo' && config.shipping?.apiKey
+      ? new ShippoCarrierProvider(
+          {
+            apiKey: config.shipping.apiKey,
+            baseUrl: config.shipping.baseUrl,
+            webhookSecret: config.shipping.webhookSecret,
+            timeoutMs: config.shipping.timeoutMs,
+            webhookToleranceSeconds: config.shipping.webhookToleranceSeconds,
+          },
+          rootLogger,
+        )
+      : new MockCarrierProvider());
 
   const fulfillmentService =
     dbConn && orderService && paymentService && inventoryService
@@ -208,6 +278,10 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
           orderService,
           paymentService,
           inventoryService,
+          carrierProvider,
+          config.shipping?.webhookSecret,
+          outboxService ?? undefined,
+          config.shipping?.webhookToleranceSeconds,
         )
       : null;
 
@@ -260,6 +334,16 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
         )
       : null;
 
+  const backInStockService = dbConn
+    ? customerModule.createBackInStockService(
+        dbConn,
+        rootLogger,
+        notificationService ?? undefined,
+        outboxService ?? undefined,
+        config.notifications?.frontendUrl,
+      )
+    : null;
+
   const analyticsService = dbConn
     ? analyticsModule.createService(dbConn, rootLogger)
     : null;
@@ -284,6 +368,10 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     eventsModule.createSearchConsumer(dbConn, eventTransport, rootLogger, searchService);
     notificationModule.createConsumer(dbConn, eventTransport, rootLogger, notificationService);
     
+    if (backInStockService) {
+      customerModule.createBackInStockConsumer(dbConn, eventTransport, rootLogger, backInStockService);
+    }
+
     if (orderService) {
       ordersModule.createConsumer(dbConn, eventTransport, rootLogger, orderService);
     }
@@ -310,6 +398,9 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
 
   // Shared cache-aside service for route handlers (fail-open by design).
   app.decorate('cache', cacheService);
+  if (paymentService) {
+    app.decorate('paymentService', paymentService);
+  }
 
   // Release the Redis connection on shutdown so test runners and
   // production deploys never hang on an open handle.
@@ -413,6 +504,22 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     registerInventoryRoutes(app, identityService, inventoryService);
     registerCartRoutes(app, identityService, cartService);
     registerCheckoutRoutes(app, identityService, checkoutService);
+    if (customerAddressService) {
+      registerCustomerAddressRoutes(app, identityService, customerAddressService);
+    }
+    if (reviewService) {
+      registerReviewRoutes(app, identityService, reviewService);
+    }
+    if (wishlistService) {
+      registerWishlistRoutes(app, identityService, wishlistService);
+    }
+    if (backInStockService) {
+      registerBackInStockRoutes(app, identityService, backInStockService);
+    }
+
+    if (promotionService) {
+      registerPromotionRoutes(app, identityService, promotionService, analyticsService);
+    }
 
     if (paymentService) {
       registerPaymentRoutes(app, identityService, paymentService);
@@ -510,7 +617,21 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     const vectorStore = new InMemoryVectorStore();
     const embeddingProvider = new MockEmbeddingProvider();
     const llmProvider = new MockLLMProvider();
-    const whatsAppProvider = new MockWhatsAppProvider();
+    const whatsAppProvider =
+      config.whatsapp.provider === 'meta' &&
+      config.whatsapp.accessToken &&
+      config.whatsapp.phoneNumberId &&
+      config.whatsapp.appSecret
+        ? new MetaWhatsAppCloudProvider(
+            {
+              accessToken: config.whatsapp.accessToken,
+              phoneNumberId: config.whatsapp.phoneNumberId,
+              appSecret: config.whatsapp.appSecret,
+              apiVersion: config.whatsapp.apiVersion,
+            },
+            rootLogger,
+          )
+        : new MockWhatsAppProvider();
 
     const toolRegistry = aiModule.createToolRegistry({
       orderService: orderService ?? undefined,
@@ -522,6 +643,8 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       fulfillmentService: fulfillmentService ?? undefined,
       paymentService: paymentService ?? undefined,
       searchService,
+      cartService: cartService ?? undefined,
+      checkoutService: checkoutService ?? undefined,
     });
 
     const ragService = aiModule.createRagService(
@@ -551,7 +674,9 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       ragService,
       whatsAppAdapter,
       store: aiStore,
-      whatsAppWebhookSecret: 'commerce-whatsapp-webhook-secret',
+      whatsAppWebhookSecret:
+        config.whatsapp.appSecret ?? 'commerce-whatsapp-webhook-secret',
+      whatsAppVerifyToken: config.whatsapp.webhookVerifyToken,
     });
   }
 

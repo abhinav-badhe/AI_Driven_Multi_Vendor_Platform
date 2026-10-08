@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { PackageSearch, RotateCcw } from "lucide-react";
+import { PackageSearch, RotateCcw, Truck } from "lucide-react";
+import { apiClient } from "../../api/client";
 import { ordersApi, type CustomerOrderDto, type OrderItemDto } from "./api/orders";
 import { returnsApi, type ReturnDto } from "./api/returns";
 import { useAuth } from "../auth/AuthContext";
@@ -13,10 +14,21 @@ import { Input, Label } from "../../components/ui/input";
 import { formatPrice } from "../../lib/format";
 import { cn } from "../../lib/utils";
 
+export interface CustomerShipmentDto {
+  id: string;
+  sellerOrderId: string;
+  customerOrderId: string;
+  status: string;
+  carrier?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+}
+
 export const CustomerOrders = () => {
   const { isAuthenticated, login } = useAuth();
   const [orders, setOrders] = useState<CustomerOrderDto[]>([]);
   const [returns, setReturns] = useState<ReturnDto[]>([]);
+  const [shipments, setShipments] = useState<CustomerShipmentDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +52,15 @@ export const CustomerOrders = () => {
       ]);
       setOrders(ordersData);
       setReturns(returnsData);
+
+      // Concurrently query fulfillment shipments for all retrieved customer orders
+      const shipmentPromises = ordersData.map((o) =>
+        apiClient<CustomerShipmentDto[]>(`/fulfillment/shipments?customerOrderId=${o.id}`).catch(
+          () => [] as CustomerShipmentDto[],
+        ),
+      );
+      const nestedShipments = await Promise.all(shipmentPromises);
+      setShipments(nestedShipments.flat());
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load orders");
     } finally {
@@ -250,6 +271,40 @@ export const CustomerOrders = () => {
                               ))}
                             </ul>
                           )}
+
+                          {shipments
+                            .filter((s) => s.sellerOrderId === sellerOrder.id)
+                            .map((shipment) => (
+                              <div
+                                key={shipment.id}
+                                className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded border border-border bg-background p-2 text-xs"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Truck size={14} className="text-primary" />
+                                  <span>
+                                    <strong className="text-foreground">{shipment.carrier || "Carrier"}</strong>:{" "}
+                                    {shipment.trackingNumber || "Assigned"}
+                                  </span>
+                                  <Badge
+                                    variant={
+                                      shipment.status === "DELIVERED"
+                                        ? "success"
+                                        : shipment.status === "CANCELLED"
+                                          ? "destructive"
+                                          : "outline"
+                                    }
+                                  >
+                                    {shipment.status.replace(/_/g, " ")}
+                                  </Badge>
+                                </div>
+                                <Link
+                                  to={`/fulfillment/${shipment.id}`}
+                                  className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                                >
+                                  Track package &rarr;
+                                </Link>
+                              </div>
+                            ))}
                         </div>
                       ))}
                     </div>

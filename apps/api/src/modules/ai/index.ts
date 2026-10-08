@@ -31,6 +31,7 @@ import {
   MockWhatsAppProvider,
   type InboundWebhookInput,
 } from './internal/whatsapp-adapter.js';
+import { MetaWhatsAppCloudProvider } from './internal/meta-whatsapp-provider.js';
 import { InMemoryAiStore } from './internal/in-memory-ai-store.js';
 import { InMemoryVectorStore } from './internal/in-memory-vector-store.js';
 import { MockLLMProvider } from './internal/mock-llm-provider.js';
@@ -66,6 +67,7 @@ import type {
   WhatsAppInboundMessage,
   WhatsAppMappingRecord,
   WhatsAppWebhookRecord,
+  WhatsAppSendResult,
 } from './internal/ai-types.js';
 
 export type {
@@ -99,6 +101,7 @@ export type {
   WhatsAppInboundMessage,
   WhatsAppMappingRecord,
   WhatsAppWebhookRecord,
+  WhatsAppSendResult,
   SendMessageInput,
   OrchestratorResponse,
   ToolRegistryDependencies,
@@ -113,6 +116,7 @@ export {
   RagService,
   WhatsAppAdapter,
   MockWhatsAppProvider,
+  MetaWhatsAppCloudProvider,
   InMemoryAiStore,
   InMemoryVectorStore,
   MockLLMProvider,

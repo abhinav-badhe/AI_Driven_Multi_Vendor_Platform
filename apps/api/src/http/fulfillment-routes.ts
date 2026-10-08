@@ -6,6 +6,7 @@ import type {
   ReturnStatus,
   CreateShipmentItemInput,
   CreateReturnItemInput,
+  CarrierAddress,
 } from '../modules/fulfillment/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
 import {
@@ -32,9 +33,13 @@ export function registerFulfillmentRoutes(
         sellerOrderId?: unknown;
         items?: unknown;
         carrier?: unknown;
+        serviceLevel?: unknown;
+        senderAddress?: unknown;
+        recipientAddress?: unknown;
         trackingNumber?: unknown;
         trackingUrl?: unknown;
         idempotencyKey?: unknown;
+        metadata?: unknown;
       } | undefined) ?? {};
 
       if (typeof body.sellerOrderId !== 'string') {
@@ -59,9 +64,13 @@ export function registerFulfillmentRoutes(
         sellerOrderId: body.sellerOrderId,
         items: body.items as CreateShipmentItemInput[],
         carrier: typeof body.carrier === 'string' ? body.carrier : undefined,
+        serviceLevel: typeof body.serviceLevel === 'string' ? body.serviceLevel : undefined,
+        senderAddress: typeof body.senderAddress === 'object' && body.senderAddress !== null ? (body.senderAddress as CarrierAddress) : undefined,
+        recipientAddress: typeof body.recipientAddress === 'object' && body.recipientAddress !== null ? (body.recipientAddress as CarrierAddress) : undefined,
         trackingNumber: typeof body.trackingNumber === 'string' ? body.trackingNumber : undefined,
         trackingUrl: typeof body.trackingUrl === 'string' ? body.trackingUrl : undefined,
         idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
+        metadata: typeof body.metadata === 'object' && body.metadata !== null ? (body.metadata as Record<string, unknown>) : undefined,
       });
 
       await app.cache.invalidateTags(
@@ -191,6 +200,44 @@ export function registerFulfillmentRoutes(
         `${CacheTags.fulfillment}:shipment:${params.id}`,
       );
       return reply.status(200).send(updated);
+    },
+  );
+
+  // POST /fulfillment/shipments/:id/cancel: Cancel shipment and label with carrier
+  app.post(
+    '/fulfillment/shipments/:id/cancel',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const actor = requireActor(request);
+      const params = request.params as { id: string };
+      const body = (request.body as { reason?: unknown } | undefined) ?? {};
+
+      const cancelled = await fulfillmentService.cancelShipment(
+        actor,
+        params.id,
+        typeof body.reason === 'string' ? body.reason : undefined,
+      );
+
+      await app.cache.invalidateTags(
+        CacheTags.fulfillment,
+        `${CacheTags.fulfillment}:shipment:${params.id}`,
+        CacheTags.orders,
+        `${CacheTags.orders}:order:${cancelled.customerOrderId}`,
+        `${CacheTags.orders}:seller-order:${cancelled.sellerOrderId}`,
+      );
+      return reply.status(200).send(cancelled);
+    },
+  );
+
+  // GET /fulfillment/shipments/:id/tracking: Fetch live carrier telemetry from provider
+  app.get(
+    '/fulfillment/shipments/:id/tracking',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const actor = requireActor(request);
+      const params = request.params as { id: string };
+      const tracking = await fulfillmentService.getShipmentTracking(actor, params.id);
+      return reply.status(200).send(tracking);
     },
   );
 
@@ -352,7 +399,10 @@ export function registerFulfillmentRoutes(
     async (request, reply) => {
       const rawBody =
         typeof request.body === 'string' ? request.body : JSON.stringify(request.body);
-      const signature = (request.headers['x-carrier-signature'] as string) ?? '';
+      const signature =
+        (request.headers['shippo-signature'] as string) ??
+        (request.headers['x-carrier-signature'] as string) ??
+        '';
 
       const result = await fulfillmentService.handleCarrierCallback(rawBody, signature);
       // Carrier scans can complete seller orders — refresh tracking views.

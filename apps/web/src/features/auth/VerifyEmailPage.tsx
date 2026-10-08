@@ -47,7 +47,6 @@ export const VerifyEmailPage = () => {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   if (!token) {

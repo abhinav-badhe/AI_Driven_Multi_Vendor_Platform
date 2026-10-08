@@ -19,6 +19,8 @@ export function registerCheckoutRoutes(
       const body = (request.body as {
         idempotencyKey?: unknown;
         expiresInMinutes?: unknown;
+        addressId?: unknown;
+        shippingAddress?: unknown;
       } | undefined) ?? {};
 
       const session = await checkoutService.createCheckoutSession(actor, {
@@ -26,9 +28,38 @@ export function registerCheckoutRoutes(
           typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
         expiresInMinutes:
           typeof body.expiresInMinutes === 'number' ? body.expiresInMinutes : undefined,
+        addressId:
+          typeof body.addressId === 'string' ? body.addressId : undefined,
+        shippingAddress:
+          body.shippingAddress && typeof body.shippingAddress === 'object'
+            ? (body.shippingAddress as Record<string, unknown>)
+            : undefined,
       });
 
       return reply.status(201).send(session);
+    },
+  );
+
+  // POST /checkout/sessions/:id/address: Update checkout session shipping address
+  app.post(
+    '/checkout/sessions/:id/address',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const actor = requireActor(request);
+      const { id } = request.params as { id: string };
+      const body = (request.body as {
+        addressId?: unknown;
+        shippingAddress?: unknown;
+      } | undefined) ?? {};
+
+      const session = await checkoutService.setShippingAddress(actor, id, {
+        addressId: typeof body.addressId === 'string' ? body.addressId : undefined,
+        shippingAddress:
+          body.shippingAddress && typeof body.shippingAddress === 'object'
+            ? (body.shippingAddress as Record<string, unknown>)
+            : undefined,
+      });
+      return reply.status(200).send(session);
     },
   );
 
