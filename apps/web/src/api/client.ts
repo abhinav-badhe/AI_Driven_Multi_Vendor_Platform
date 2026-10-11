@@ -235,6 +235,8 @@ export async function apiClient<T>(
   return data;
 }
 
+const API_BASE = (import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '') : '/api');
+
 async function rawRequest<T>(
   path: string,
   options: RequestInit = {}
@@ -248,7 +250,7 @@ async function rawRequest<T>(
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
-  let response = await fetch(`/api${path}`, {
+  let response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
     credentials: 'include',
@@ -260,7 +262,7 @@ async function rawRequest<T>(
       if (!refreshPromise) {
         refreshPromise = (async () => {
           try {
-            const res = await fetch('/api/auth/refresh', {
+            const res = await fetch(`${API_BASE}/auth/refresh`, {
               method: 'POST',
               credentials: 'include',
             });
@@ -287,7 +289,7 @@ async function rawRequest<T>(
         retryHeaders.set('Content-Type', 'application/json');
         retryHeaders.set('Authorization', `Bearer ${newToken}`);
         
-        const retryRes = await fetch(`/api${path}`, {
+        const retryRes = await fetch(`${API_BASE}${path}`, {
           ...options,
           headers: retryHeaders,
           credentials: 'include',
