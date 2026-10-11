@@ -84,6 +84,33 @@ export const AdminWhatsApp = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testPrompt, setTestPrompt] = useState('');
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResponse, setTestResponse] = useState<{ query: string; reply: string; tools: string[] } | null>(null);
+
+  const handleTestWhatsApp = async (promptToSend?: string) => {
+    const text = (promptToSend || testPrompt).trim();
+    if (!text) return;
+    setIsTesting(true);
+    setError(null);
+    try {
+      const res = await apiClient<{ replyText: string; toolCallsExecuted?: string[] }>('/ai/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message: text, channel: 'WHATSAPP' }),
+      });
+      setTestResponse({
+        query: text,
+        reply: res.replyText,
+        tools: res.toolCallsExecuted || [],
+      });
+      setTestPrompt('');
+      void fetchData();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'WhatsApp test failed');
+    } finally {
+      setIsTesting(false);
+    }
+  };
 
   const fetchData = async () => {
     setIsRefreshing(true);
@@ -93,13 +120,14 @@ export const AdminWhatsApp = () => {
         apiClient<WhatsAppStatusResponse>('/ai/whatsapp/status').catch(() => null),
         apiClient<{ conversations: ConversationItem[] }>('/ai/whatsapp/conversations?limit=50').catch(() => ({ conversations: [] })),
         apiClient<{ webhooks: WebhookRecordItem[] }>('/ai/whatsapp/webhooks?limit=50').catch(() => ({ webhooks: [] })),
-        apiClient<{ records: AiAuditItem[] }>('/ai/audit?limit=50').catch(() => ({ records: [] })),
+        apiClient<{ records?: AiAuditItem[]; logs?: AiAuditItem[] }>('/ai/audit?limit=50').catch(() => ({ records: [], logs: [] })),
       ]);
 
       if (statusRes) setStatus(statusRes);
       setConversations(convsRes.conversations ?? []);
       setWebhooks(webhooksRes.webhooks ?? []);
-      setAuditLogs(auditRes.records ?? []);
+      setAuditLogs(auditRes.records ?? auditRes.logs ?? []);
+
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load WhatsApp administration telemetry');
     } finally {
@@ -353,6 +381,130 @@ export const AdminWhatsApp = () => {
                 <CheckCircle2 size={15} style={{ color: '#22c55e' }} /> Grounded Return Policies
               </div>
             </div>
+          </div>
+
+          {/* Interactive WhatsApp Catalog & AI Query Tester */}
+          <div className="card" style={{ gridColumn: '1 / -1', padding: '1.5rem', background: 'var(--card-bg, #1e293b)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <MessageSquare size={18} style={{ color: '#25D366' }} /> Test Product Catalog via WhatsApp AI
+                </h3>
+                <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.25rem 0 0' }}>
+                  Simulate asking the WhatsApp bot for products, prices, stock, or checkout. Live responses use active database listings.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {[
+                  'Find laptops',
+                  'What smartphones are available?',
+                  'Check iPhone 15',
+                  'Show headphones and audio',
+                ].map((sample) => (
+                  <button
+                    key={sample}
+                    type="button"
+                    onClick={() => void handleTestWhatsApp(sample)}
+                    disabled={isTesting}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.3rem 0.65rem',
+                      borderRadius: '6px',
+                      background: 'rgba(37, 211, 102, 0.1)',
+                      border: '1px solid rgba(37, 211, 102, 0.3)',
+                      color: '#22c55e',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {sample}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleTestWhatsApp();
+              }}
+              style={{ display: 'flex', gap: '0.75rem', marginBottom: testResponse ? '1.25rem' : '0' }}
+            >
+              <input
+                type="text"
+                placeholder="Ask about any product, brand, category, or order status..."
+                value={testPrompt}
+                onChange={(e) => setTestPrompt(e.target.value)}
+                disabled={isTesting}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-main, #0f172a)',
+                  color: 'var(--text-main, #fff)',
+                  fontSize: '0.9rem',
+                }}
+              />
+              <button
+                type="submit"
+                disabled={isTesting || !testPrompt.trim()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '8px',
+                  background: '#25D366',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  cursor: isTesting || !testPrompt.trim() ? 'not-allowed' : 'pointer',
+                  opacity: isTesting || !testPrompt.trim() ? 0.7 : 1,
+                }}
+              >
+                <Send size={16} />
+                {isTesting ? 'Querying...' : 'Ask WhatsApp Bot'}
+              </button>
+            </form>
+
+            {testResponse && (
+              <div
+                style={{
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  background: 'var(--bg-main, #0f172a)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                    User Query: <strong style={{ color: '#fff' }}>"{testResponse.query}"</strong>
+                  </span>
+                  {testResponse.tools.length > 0 && (
+                    <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
+                      Executed: {testResponse.tools.join(', ')}
+                    </span>
+                  )}
+                </div>
+                <div
+                  style={{
+                    padding: '0.85rem 1rem',
+                    borderRadius: '8px',
+                    background: 'rgba(37, 211, 102, 0.12)',
+                    borderLeft: '4px solid #25D366',
+                    whiteSpace: 'pre-wrap',
+                    fontSize: '0.9rem',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {testResponse.reply}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

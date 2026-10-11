@@ -58,13 +58,18 @@ export const CustomerReturns = () => {
             <CardTitle>Returns</CardTitle>
             <CardDescription>Sign in to view return requests, tracking status, and refunds.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-wrap gap-2.5">
             <Button
               size="sm"
-              onClick={() => login({ email: "customer@example.com", password: "password123" })}
+              onClick={async () => {
+                await login({ email: "customer@example.com", password: "password123" });
+              }}
             >
-              Sign in as demo customer
+              Sign in as Demo Customer
             </Button>
+            <Link to="/account" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              Sign in with Other Account
+            </Link>
           </CardContent>
         </Card>
       </div>

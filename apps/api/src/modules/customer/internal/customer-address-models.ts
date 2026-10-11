@@ -101,3 +101,14 @@ export interface AddressSnapshot {
   formattedAddress?: string | null | undefined;
   sourceType?: 'SAVED_ADDRESS' | 'MANUAL_ENTRY' | undefined;
 }
+
+import type { AuthorizedActor } from '../../identity/rbac/policy.js';
+
+/**
+ * Read-only interface for customer delivery addresses consumed by checkout and fulfillment.
+ */
+export interface ICustomerAddressReader {
+  getAddressById(actor: AuthorizedActor, id: string): Promise<CustomerAddressDto>;
+  getDefaultAddress(actor: AuthorizedActor): Promise<CustomerAddressDto | null>;
+  toSnapshot(address: CustomerAddressDto): AddressSnapshot;
+}

@@ -96,4 +96,13 @@ export class MerchantRepository {
     if (!row) throw new Error('Merchant profile not found');
     return row;
   }
+
+  async findAll(limit = 100): Promise<MerchantProfileRow[]> {
+    const result = await this.db.query<MerchantProfileRow>(
+      `SELECT * FROM merchant_profiles ORDER BY created_at DESC LIMIT $1`,
+      [limit],
+    );
+    return result.rows;
+  }
 }
+

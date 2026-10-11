@@ -211,10 +211,15 @@ export class AiOrchestrator {
               details: { toolArguments: tc.arguments },
             });
 
+            const toolArgs = { ...(tc.arguments ?? {}) };
+            if (toolArgs['customerId'] === 'current-customer' && actor.role === 'CUSTOMER') {
+              toolArgs['customerId'] = actor.userId;
+            }
+
             const toolResult = await this.toolRegistry.authorizeAndExecute(
               { actor, tenantId, correlationId },
               tc.name,
-              tc.arguments,
+              toolArgs,
             );
 
             chatMessages.push({

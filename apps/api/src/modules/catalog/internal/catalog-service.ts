@@ -122,7 +122,9 @@ export interface UpdateSkuInput {
   attributes?: Record<string, unknown> | undefined;
 }
 
-export class CatalogService {
+import type { ICatalogService } from './catalog-models.js';
+
+export class CatalogService implements ICatalogService {
   private readonly repo: CatalogRepository;
 
   constructor(
@@ -281,7 +283,31 @@ export class CatalogService {
   }
 
   async listProducts(filter?: ListProductsFilter): Promise<ProductDto[]> {
-    const rows = await this.repo.listProducts(filter);
+    let categoryIds: string[] | undefined = filter?.categoryIds;
+    if (filter?.categoryId && !categoryIds) {
+      try {
+        const allCategories = await this.repo.listCategories();
+        const targetId = filter.categoryId;
+        const matched = new Set<string>([targetId]);
+        const addDescendants = (parentId: string) => {
+          for (const cat of allCategories) {
+            if (cat.parent_id === parentId && !matched.has(cat.id)) {
+              matched.add(cat.id);
+              addDescendants(cat.id);
+            }
+          }
+        };
+        addDescendants(targetId);
+        categoryIds = Array.from(matched);
+      } catch {
+        categoryIds = [filter.categoryId];
+      }
+    }
+
+    const rows = await this.repo.listProducts({
+      ...filter,
+      ...(categoryIds ? { categoryIds } : {}),
+    });
     return rows.map((r) => this.toProductDto(r));
   }
 

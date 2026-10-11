@@ -9,6 +9,26 @@ import type {
 export class MockLLMProvider implements ILLMProvider {
   readonly modelId = 'mock-commerce-llm-v1';
 
+  private extractSearchQuery(userMessage: string): string {
+    let q = userMessage.trim();
+    q = q.replace(
+      /^(?:can\s+you\s+)?(?:please\s+)?(?:search(?:\s+for)?|find(?:\s+me)?|looking\s+for|show(?:\s+me)?|browse(?:\s+for)?|tell\s+me\s+about|do\s+you\s+have(?:\s+any)?|are\s+there\s+any|what\s+are\s+the|what\s+kind\s+of|what|which|is\s+there\s+any|is\s+there)\s+/i,
+      '',
+    );
+    q = q.replace(/\s+(?:are\s+)?in\s+stock\b.*$/i, '');
+    q = q.replace(/\s+available\b.*$/i, '');
+    q = q.replace(/\s+for\s+sale\b.*$/i, '');
+    q = q.replace(/\s+under\s+[₹$€£]?\s*\d+.*$/i, '');
+    q = q.replace(/\s+below\s+[₹$€£]?\s*\d+.*$/i, '');
+    q = q.replace(/[?!.,;]+$/g, '').trim();
+
+    const stopWords = ['is', 'are', 'products', 'items', 'stuff', 'stock', 'store', 'all', 'anything'];
+    if (!q || stopWords.includes(q.toLowerCase())) {
+      return 'all';
+    }
+    return q;
+  }
+
   async generateChat(
     messages: ChatMessage[],
     tools?: ToolDefinition[],
@@ -54,15 +74,76 @@ export class MockLLMProvider implements ILLMProvider {
 
       const out = parsedOutput as Record<string, unknown> | Array<Record<string, unknown>>;
 
+      // Handle Tool Execution Errors Gracefully
+      if (typeof out === 'object' && out !== null && 'error' in out) {
+        const errStr = String((out as Record<string, unknown>).error);
+        if (errStr.includes('Permission') || errStr.includes('Forbidden') || errStr.includes('denied')) {
+          return {
+            content:
+              'You do not have permission to access those specific records. Please log in with the appropriate account or ask about public store items.',
+            modelId: this.modelId,
+            tokenUsage: { promptTokens: 40, completionTokens: 25, totalTokens: 65 },
+          };
+        }
+        if (errStr.includes('NotFound') || errStr.includes('not found')) {
+          return {
+            content:
+              "I couldn't locate that specific item or order in our records. Please verify the ID or let me know what product you are looking for!",
+            modelId: this.modelId,
+            tokenUsage: { promptTokens: 40, completionTokens: 25, totalTokens: 65 },
+          };
+        }
+        return {
+          content:
+            "I wasn't able to find those details right now. Let me know if you would like to search for products or explore available categories!",
+          modelId: this.modelId,
+          tokenUsage: { promptTokens: 40, completionTokens: 25, totalTokens: 65 },
+        };
+      }
+
+      // Empty array result (e.g. search found nothing or no orders)
+      if (Array.isArray(out) && out.length === 0) {
+        return {
+          content:
+            "I couldn't find any matching products or records right now. You can try searching with different keywords (like 'headphones' or 'laptops'), or ask to browse store categories!",
+          modelId: this.modelId,
+          tokenUsage: { promptTokens: 40, completionTokens: 25, totalTokens: 65 },
+        };
+      }
+
       // Format Product Search Results
       if (Array.isArray(out) && out.length > 0 && 'title' in (out[0] ?? {}) && 'id' in (out[0] ?? {})) {
         const productList = (out as Array<Record<string, unknown>>)
-          .map((p, idx) => `${idx + 1}. ${p.title} (${p.id})${p.minPrice != null ? ` - from $${p.minPrice}` : ''}`)
+          .map((p, idx) => `${idx + 1}. ${p.title} (${p.id})${p.minPrice != null && Number(p.minPrice) > 0 ? ` - from $${p.minPrice}` : ''}`)
           .join('\n');
         return {
-          content: `Here are the matching products I found:\n${productList}\n\nWould you like to see available merchant offers or add one to your cart?`,
+          content: `Here are the matching products in stock:\n${productList}\n\nWould you like to see available merchant offers or add one to your cart?`,
           modelId: this.modelId,
           tokenUsage: { promptTokens: 60, completionTokens: 40, totalTokens: 100 },
+        };
+      }
+
+      // Format Customer Orders List
+      if (Array.isArray(out) && out.length > 0 && 'orderId' in (out[0] ?? {}) && 'totalAmount' in (out[0] ?? {})) {
+        const ordersList = (out as Array<Record<string, unknown>>)
+          .map((o) => `• Order #${o.orderId}: Status: ${o.status}. Total: $${o.totalAmount} ${o.currency}`)
+          .join('\n');
+        return {
+          content: `Here are your recent orders:\n${ordersList}\n\nLet me know which order you would like to track or inspect in detail!`,
+          modelId: this.modelId,
+          tokenUsage: { promptTokens: 60, completionTokens: 35, totalTokens: 95 },
+        };
+      }
+
+      // Format Recommendations
+      if (Array.isArray(out) && out.length > 0 && 'productId' in (out[0] ?? {}) && 'reason' in (out[0] ?? {})) {
+        const recList = (out as Array<Record<string, unknown>>)
+          .map((r, idx) => `${idx + 1}. Product ${r.productId}: ${r.reason}`)
+          .join('\n');
+        return {
+          content: `Here are recommended products for you:\n${recList}\n\nWould you like more details or offers for any of these products?`,
+          modelId: this.modelId,
+          tokenUsage: { promptTokens: 60, completionTokens: 35, totalTokens: 95 },
         };
       }
 
@@ -206,27 +287,33 @@ export class MockLLMProvider implements ILLMProvider {
     }
 
     // 4. Tool Routing Rules (Authoritative Tool Calling over Domain Services)
+    const listingOrSkuMatch = userMessage.match(/list-[a-zA-Z0-9-]+/i) ?? userMessage.match(/sku-[a-zA-Z0-9-]+/i);
+    const orderMatch =
+      userMessage.match(/ord-[a-zA-Z0-9-]+/i) ??
+      userMessage.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) ??
+      userMessage.match(/order\s+([a-zA-Z0-9-]+)/i);
+    const prodMatch = userMessage.match(/prod-[a-zA-Z0-9-]+/i);
 
-    // A. Product Search Queries
+    // A. Real-Time Stock & Inventory Queries (when a specific listing or SKU ID is explicitly given)
     if (
-      lower.includes('search') ||
-      lower.includes('find') ||
-      lower.includes('looking for') ||
-      lower.includes('browse products')
+      listingOrSkuMatch &&
+      (lower.includes('in stock') ||
+        lower.includes('stock quantity') ||
+        lower.includes('do you have') ||
+        lower.includes('stock of') ||
+        lower.includes('inventory') ||
+        lower.includes('available'))
     ) {
-      const tool = tools?.find((t) => t.name === 'search_products');
+      const tool = tools?.find((t) => t.name === 'check_inventory');
       if (tool) {
-        const queryMatch =
-          userMessage.match(/(?:search|find|looking for|browse)\s+(?:for\s+)?([a-zA-Z0-9\s_-]+)/i) ??
-          userMessage.match(/([a-zA-Z0-9_-]+)/i);
-        const query = queryMatch ? queryMatch[1]?.trim() ?? userMessage.trim() : userMessage.trim();
+        const listingId = listingOrSkuMatch[0];
         return {
           content: '',
           toolCalls: [
             {
-              id: 'tc-search-1',
-              name: 'search_products',
-              arguments: { query: query.replace(/^search\s+/i, '').trim() || 'all', limit: 5 },
+              id: 'tc-inv-1',
+              name: 'check_inventory',
+              arguments: { listingId },
             },
           ],
           modelId: this.modelId,
@@ -235,7 +322,50 @@ export class MockLLMProvider implements ILLMProvider {
       }
     }
 
-    // B. Browse Categories
+    // B. Product Search & Catalog Availability Queries
+    const isSearchQuery =
+      lower.includes('search') ||
+      lower.includes('find') ||
+      lower.includes('looking for') ||
+      lower.includes('browse products') ||
+      lower.includes('headphones') ||
+      lower.includes('earbuds') ||
+      lower.includes('laptop') ||
+      lower.includes('phone') ||
+      lower.includes('perfume') ||
+      lower.includes('watch') ||
+      lower.includes('shoes') ||
+      lower.includes('audio') ||
+      ((lower.includes('in stock') || lower.includes('available') || lower.includes('do you have')) && !listingOrSkuMatch);
+
+    if (
+      isSearchQuery &&
+      !lower.includes('categories') &&
+      !lower.includes('browse category') &&
+      !lower.includes('return') &&
+      !lower.includes('refund') &&
+      !lower.includes('cart') &&
+      !lower.includes('order')
+    ) {
+      const tool = tools?.find((t) => t.name === 'search_products');
+      if (tool) {
+        const query = this.extractSearchQuery(userMessage);
+        return {
+          content: '',
+          toolCalls: [
+            {
+              id: 'tc-search-1',
+              name: 'search_products',
+              arguments: { query, limit: 5 },
+            },
+          ],
+          modelId: this.modelId,
+          tokenUsage: { promptTokens: 35, completionTokens: 15, totalTokens: 50 },
+        };
+      }
+    }
+
+    // C. Browse Categories
     if (
       lower.includes('categories') ||
       lower.includes('browse category') ||
@@ -259,7 +389,7 @@ export class MockLLMProvider implements ILLMProvider {
       }
     }
 
-    // C. View Available Merchant Offers & Prices for Product
+    // D. View Available Merchant Offers & Prices for Product
     if (
       lower.includes('offers') ||
       lower.includes('who sells') ||
@@ -268,7 +398,6 @@ export class MockLLMProvider implements ILLMProvider {
     ) {
       const tool = tools?.find((t) => t.name === 'get_product_offers');
       if (tool) {
-        const prodMatch = userMessage.match(/prod-[a-zA-Z0-9-]+/i);
         const productId = prodMatch ? prodMatch[0] : 'prod-sample';
         return {
           content: '',
@@ -285,11 +414,10 @@ export class MockLLMProvider implements ILLMProvider {
       }
     }
 
-    // D. View Canonical Product Details
+    // E. View Canonical Product Details
     if (lower.includes('details') || lower.includes('product info') || (lower.includes('view product') && userMessage.includes('prod-'))) {
       const tool = tools?.find((t) => t.name === 'get_product');
       if (tool) {
-        const prodMatch = userMessage.match(/prod-[a-zA-Z0-9-]+/i);
         const productId = prodMatch ? prodMatch[0] : 'prod-sample';
         return {
           content: '',
@@ -298,27 +426,6 @@ export class MockLLMProvider implements ILLMProvider {
               id: 'tc-prod-1',
               name: 'get_product',
               arguments: { productId },
-            },
-          ],
-          modelId: this.modelId,
-          tokenUsage: { promptTokens: 35, completionTokens: 15, totalTokens: 50 },
-        };
-      }
-    }
-
-    // E. Real-Time Stock & Inventory Queries
-    if (lower.includes('in stock') || lower.includes('stock quantity') || lower.includes('do you have') || lower.includes('stock of')) {
-      const tool = tools?.find((t) => t.name === 'check_inventory');
-      if (tool) {
-        const match = userMessage.match(/list-[a-zA-Z0-9-]+/i) ?? userMessage.match(/sku-[a-zA-Z0-9-]+/i);
-        const listingId = match ? match[0] : 'list-default';
-        return {
-          content: '',
-          toolCalls: [
-            {
-              id: 'tc-inv-1',
-              name: 'check_inventory',
-              arguments: { listingId },
             },
           ],
           modelId: this.modelId,
@@ -423,15 +530,11 @@ export class MockLLMProvider implements ILLMProvider {
       }
     }
 
-    // J. Check Order Status
-    if (lower.includes('where is my order') || lower.includes('order status') || lower.includes('ord-') || lower.match(/order\s+[0-9a-f-]+/i)) {
+    // J. Check Specific Order Status (when order ID is provided)
+    if (orderMatch && (lower.includes('order') || lower.includes('status') || lower.includes('where is'))) {
       const tool = tools?.find((t) => t.name === 'get_order_status');
       if (tool) {
-        const orderMatch =
-          userMessage.match(/ord-[a-zA-Z0-9-]+/i) ??
-          userMessage.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) ??
-          userMessage.match(/order\s+([a-zA-Z0-9-]+)/i);
-        const orderId = orderMatch ? (orderMatch[1] ?? orderMatch[0]) : 'ord-sample-123';
+        const orderId = orderMatch[1] ?? orderMatch[0];
         return {
           content: '',
           toolCalls: [
@@ -447,8 +550,17 @@ export class MockLLMProvider implements ILLMProvider {
       }
     }
 
-    // K. Customer Orders List
-    if (lower.includes('my orders') || lower.includes('recent orders') || lower.includes('show my orders')) {
+    // K. Customer Orders List (general order status / "where is my order" without ID)
+    if (
+      lower.includes('my orders') ||
+      lower.includes('recent orders') ||
+      lower.includes('show my orders') ||
+      lower.includes('where is my order') ||
+      lower.includes('order status') ||
+      lower.includes('my order') ||
+      lower.includes('check my order') ||
+      lower.includes('track my order')
+    ) {
       const tool = tools?.find((t) => t.name === 'get_customer_orders');
       if (tool) {
         const match = lower.match(/customer\s+([a-zA-Z0-9-]+)/);
@@ -530,7 +642,7 @@ export class MockLLMProvider implements ILLMProvider {
     // 5. Default General Response
     return {
       content:
-        'Hello! I am your AI Commerce Assistant on WhatsApp. I can help you search products, check live stock, add items to your cart, place orders, check order status, track shipments, and answer policy questions. What would you like to do?',
+        'Hello! I am your AI Commerce Assistant. I can help you search products, check live stock, add items to your cart, track orders, and answer store policies. What would you like help with today?',
       modelId: this.modelId,
       tokenUsage: { promptTokens: 25, completionTokens: 30, totalTokens: 55 },
     };

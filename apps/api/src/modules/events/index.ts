@@ -38,10 +38,35 @@ import {
 
 import {
   type ConsumerExecutionResult,
+  type ConsumerOptions,
+  type ConsumerRetryOptions,
+  type ConsumerRetryResult,
   BaseEventConsumer,
+  isUniqueConstraintViolation,
 } from './internal/event-consumer.js';
 
+import {
+  type ConsumerRetryRunnerConfig,
+  ConsumerRetryRunner,
+} from './internal/consumer-retry-runner.js';
+
 import { SearchEventConsumer } from './internal/search-consumer.js';
+
+import {
+  type IOutboxReader,
+  type IOutboxService,
+  type ListOutboxEventsFilter,
+} from './internal/event-models.js';
+
+import { InMemoryOutboxStore } from './internal/in-memory-outbox-store.js';
+import {
+  HttpEventTransport,
+  type HttpEventTransportOptions,
+} from './internal/http-event-transport.js';
+import {
+  HttpOutboxClient,
+  type HttpOutboxClientOptions,
+} from './internal/http-outbox-client.js';
 
 export type {
   DomainEvent,
@@ -55,17 +80,31 @@ export type {
   PublishOptions,
   PublishResult,
   ConsumerExecutionResult,
+  ConsumerOptions,
+  ConsumerRetryOptions,
+  ConsumerRetryResult,
+  ConsumerRetryRunnerConfig,
+  IOutboxReader,
+  IOutboxService,
+  ListOutboxEventsFilter,
+  HttpEventTransportOptions,
+  HttpOutboxClientOptions,
 };
 
 export {
   EventTypes,
   createDomainEvent,
   isEventVersionSupported,
+  isUniqueConstraintViolation,
   InMemoryEventTransport,
   OutboxRepository,
   OutboxService,
   BaseEventConsumer,
   SearchEventConsumer,
+  ConsumerRetryRunner,
+  InMemoryOutboxStore,
+  HttpEventTransport,
+  HttpOutboxClient,
 };
 
 export interface EventsModule {
@@ -76,12 +115,25 @@ export interface EventsModule {
     logger: Logger,
   ): OutboxService;
   createDefaultTransport(): EventTransport;
+  createHttpTransport(
+    serviceUrl: string,
+    options?: HttpEventTransportOptions,
+  ): HttpEventTransport;
+  createHttpOutboxClient(
+    serviceUrl: string,
+    options?: HttpOutboxClientOptions,
+  ): HttpOutboxClient;
+  createInMemoryOutboxStore(transport?: EventTransport): InMemoryOutboxStore;
   createSearchConsumer(
     db: DatabaseConnection,
     transport: EventTransport,
     logger: Logger,
     searchService: SearchService,
   ): SearchEventConsumer;
+  createConsumerRetryRunner(
+    logger: Logger,
+    config?: ConsumerRetryRunnerConfig,
+  ): ConsumerRetryRunner;
 }
 
 export const eventsModule: EventsModule = {
@@ -97,6 +149,21 @@ export const eventsModule: EventsModule = {
   createDefaultTransport(): EventTransport {
     return new InMemoryEventTransport();
   },
+  createHttpTransport(
+    serviceUrl: string,
+    options?: HttpEventTransportOptions,
+  ): HttpEventTransport {
+    return new HttpEventTransport(serviceUrl, options);
+  },
+  createHttpOutboxClient(
+    serviceUrl: string,
+    options?: HttpOutboxClientOptions,
+  ): HttpOutboxClient {
+    return new HttpOutboxClient(serviceUrl, options);
+  },
+  createInMemoryOutboxStore(transport?: EventTransport): InMemoryOutboxStore {
+    return new InMemoryOutboxStore(transport);
+  },
   createSearchConsumer(
     db: DatabaseConnection,
     transport: EventTransport,
@@ -108,4 +175,11 @@ export const eventsModule: EventsModule = {
     consumer.registerSubscriptions();
     return consumer;
   },
+  createConsumerRetryRunner(
+    logger: Logger,
+    config?: ConsumerRetryRunnerConfig,
+  ): ConsumerRetryRunner {
+    return new ConsumerRetryRunner(logger, config);
+  },
 };
+

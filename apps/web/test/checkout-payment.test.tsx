@@ -12,6 +12,11 @@ vi.mock('../src/features/checkout/api/checkout', () => ({
     createPaymentIntent: vi.fn(),
     submitPaymentAttempt: vi.fn(),
     finalizeOrder: vi.fn(),
+    getPaymentConfig: vi.fn().mockResolvedValue({
+      provider: 'razorpay',
+      razorpayKeyId: 'rzp_test_mockKey123',
+      currency: 'INR',
+    }),
   },
 }));
 

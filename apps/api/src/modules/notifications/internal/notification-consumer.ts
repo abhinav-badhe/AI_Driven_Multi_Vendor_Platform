@@ -2,7 +2,7 @@ import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { DomainEvent, EventTransport } from '../../events/index.js';
 import { EventTypes, BaseEventConsumer, OutboxRepository } from '../../events/index.js';
-import type { NotificationService } from './notification-service.js';
+import type { INotificationClient } from './notification-client.js';
 
 export class NotificationEventConsumer extends BaseEventConsumer {
   constructor(
@@ -10,7 +10,7 @@ export class NotificationEventConsumer extends BaseEventConsumer {
     outboxRepo: OutboxRepository,
     transport: EventTransport,
     logger: Logger,
-    private readonly notificationService: NotificationService,
+    private readonly notificationClient: INotificationClient,
   ) {
     super('notification-dispatcher', db, outboxRepo, transport, logger);
   }
@@ -41,7 +41,7 @@ export class NotificationEventConsumer extends BaseEventConsumer {
         const customerEmail = payload.customerEmail as string | undefined;
         const customerId = payload.customerId as string | undefined;
         if (customerEmail) {
-          await this.notificationService.requestNotification({
+          await this.notificationClient.requestNotification({
             tenantId,
             customerId,
             eventId: event.eventId,
@@ -64,7 +64,7 @@ export class NotificationEventConsumer extends BaseEventConsumer {
         const customerEmail = payload.customerEmail as string | undefined;
         const customerId = payload.customerId as string | undefined;
         if (customerEmail) {
-          await this.notificationService.requestNotification({
+          await this.notificationClient.requestNotification({
             tenantId,
             customerId,
             eventId: event.eventId,
@@ -87,7 +87,7 @@ export class NotificationEventConsumer extends BaseEventConsumer {
         const customerEmail = payload.customerEmail as string | undefined;
         const customerId = payload.customerId as string | undefined;
         if (customerEmail) {
-          await this.notificationService.requestNotification({
+          await this.notificationClient.requestNotification({
             tenantId,
             customerId,
             eventId: event.eventId,
@@ -110,7 +110,7 @@ export class NotificationEventConsumer extends BaseEventConsumer {
         const customerEmail = payload.customerEmail as string | undefined;
         const customerId = payload.customerId as string | undefined;
         if (customerEmail) {
-          await this.notificationService.requestNotification({
+          await this.notificationClient.requestNotification({
             tenantId,
             customerId,
             eventId: event.eventId,
@@ -133,7 +133,7 @@ export class NotificationEventConsumer extends BaseEventConsumer {
         const customerEmail = payload.customerEmail as string | undefined;
         const customerId = payload.customerId as string | undefined;
         if (customerEmail) {
-          await this.notificationService.requestNotification({
+          await this.notificationClient.requestNotification({
             tenantId,
             customerId,
             eventId: event.eventId,
@@ -155,7 +155,7 @@ export class NotificationEventConsumer extends BaseEventConsumer {
       case EventTypes.SETTLEMENT_STATUS_CHANGED: {
         const merchantEmail = payload.merchantEmail as string | undefined;
         if (merchantEmail) {
-          await this.notificationService.requestNotification({
+          await this.notificationClient.requestNotification({
             tenantId,
             eventId: event.eventId,
             notificationType: 'SETTLEMENT_UPDATE',

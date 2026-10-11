@@ -1,12 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
-import type { CheckoutService } from '../modules/cart-checkout/index.js';
+import type { CheckoutService, ICheckoutService } from '../modules/cart-checkout/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
 
 export function registerCheckoutRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
-  checkoutService: CheckoutService,
+  checkoutService: ICheckoutService | CheckoutService,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
 

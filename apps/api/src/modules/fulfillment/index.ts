@@ -1,8 +1,8 @@
 import type { DatabaseConnection } from '../../infra/database/connection.js';
 import type { Logger } from '../../observability/logger.js';
-import type { OrderService } from '../orders/index.js';
-import type { PaymentService } from '../payment/index.js';
-import type { InventoryService } from '../inventory/index.js';
+import type { OrderService, IOrderService } from '../orders/index.js';
+import type { PaymentService, IPaymentService } from '../payment/index.js';
+import type { InventoryService, IInventoryService } from '../inventory/index.js';
 import type { OutboxService } from '../events/index.js';
 import { FulfillmentService } from './internal/fulfillment-service.js';
 import type {
@@ -67,8 +67,29 @@ export {
   MockCarrierProvider,
   ShippoCarrierProvider,
   mapShippoStatus,
+};
+
+import type {
+  IFulfillmentReader,
+  IFulfillmentService,
+} from './internal/fulfillment-models.js';
+import { InMemoryFulfillmentStore } from './internal/in-memory-fulfillment-store.js';
+import {
+  HttpFulfillmentClient,
+  type HttpFulfillmentClientOptions,
+} from './internal/http-fulfillment-client.js';
+
+export type {
+  IFulfillmentReader,
+  IFulfillmentService,
+  HttpFulfillmentClientOptions,
+};
+
+export {
   FulfillmentService,
   FulfillmentRepository,
+  InMemoryFulfillmentStore,
+  HttpFulfillmentClient,
 };
 
 export interface FulfillmentModule {
@@ -76,15 +97,20 @@ export interface FulfillmentModule {
   createService(
     db: DatabaseConnection,
     logger: Logger,
-    orderService: OrderService,
-    paymentService: PaymentService,
-    inventoryService: InventoryService,
+    orderService: IOrderService | OrderService,
+    paymentService: IPaymentService | PaymentService,
+    inventoryService: IInventoryService | InventoryService,
     carrierProvider?: CarrierProvider,
     callbackSecret?: string,
     outboxService?: OutboxService,
     webhookToleranceSeconds?: number,
     carrierOperationLeaseTimeoutMs?: number,
   ): FulfillmentService;
+  createHttpClient(
+    serviceUrl: string,
+    options?: HttpFulfillmentClientOptions,
+  ): HttpFulfillmentClient;
+  createInMemoryStore(): InMemoryFulfillmentStore;
 }
 
 export const fulfillmentModule: FulfillmentModule = {
@@ -92,9 +118,9 @@ export const fulfillmentModule: FulfillmentModule = {
   createService(
     db: DatabaseConnection,
     logger: Logger,
-    orderService: OrderService,
-    paymentService: PaymentService,
-    inventoryService: InventoryService,
+    orderService: IOrderService | OrderService,
+    paymentService: IPaymentService | PaymentService,
+    inventoryService: IInventoryService | InventoryService,
     carrierProvider?: CarrierProvider,
     callbackSecret = 'whsec_carrier_mock_secret',
     outboxService?: OutboxService,
@@ -113,5 +139,14 @@ export const fulfillmentModule: FulfillmentModule = {
       webhookToleranceSeconds,
       carrierOperationLeaseTimeoutMs,
     );
+  },
+  createHttpClient(
+    serviceUrl: string,
+    options?: HttpFulfillmentClientOptions,
+  ): HttpFulfillmentClient {
+    return new HttpFulfillmentClient(serviceUrl, options);
+  },
+  createInMemoryStore(): InMemoryFulfillmentStore {
+    return new InMemoryFulfillmentStore();
   },
 };

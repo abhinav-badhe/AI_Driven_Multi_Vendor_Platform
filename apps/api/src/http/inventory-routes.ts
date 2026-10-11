@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
-import type { InventoryService } from '../modules/inventory/index.js';
+import type { InventoryService, IInventoryService } from '../modules/inventory/index.js';
 import { createAuthMiddleware, createOptionalAuthMiddleware, requireActor } from './auth-middleware.js';
-import { ValidationError } from '../errors/app-error.js';
+import { ValidationError, ForbiddenError } from '../errors/app-error.js';
 import {
   CachePresets,
   CacheTags,
@@ -16,7 +16,7 @@ import {
 export function registerInventoryRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
-  inventoryService: InventoryService,
+  inventoryService: IInventoryService | InventoryService,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
   const optionalAuth = createOptionalAuthMiddleware(identityService);
@@ -75,6 +75,25 @@ export function registerInventoryRoutes(
             offset: query.offset ? parseInt(query.offset, 10) : undefined,
           }),
       );
+    },
+  );
+
+  // GET /admin/inventory (Platform administrator view of all inventory across all merchants)
+  app.get(
+    '/admin/inventory',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const actor = requireActor(request);
+      if (actor.role !== 'ADMINISTRATOR') {
+        throw new ForbiddenError('Only platform administrators can inspect all inventory records');
+      }
+      const query = request.query as { limit?: string; offset?: string };
+      const limit = query.limit ? parseInt(query.limit, 10) : 50;
+      const offset = query.offset ? parseInt(query.offset, 10) : 0;
+      const items = inventoryService.listAllInventory
+        ? await inventoryService.listAllInventory(actor, { limit, offset })
+        : await inventoryService.listInventory(actor, { limit, offset });
+      return reply.status(200).send(items);
     },
   );
 
@@ -143,50 +162,56 @@ export function registerInventoryRoutes(
     },
   );
 
-  // POST /inventory/:id/increase-stock
-  app.post(
-    '/inventory/:id/increase-stock',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const { id } = request.params as { id: string };
-      const body = request.body as { quantity?: unknown; notes?: unknown; referenceId?: unknown };
+  // POST /inventory/:id/increase-stock (with aliases for microservice clients)
+  const increaseStockHandler = async (
+    request: Parameters<Parameters<typeof app.post>[1]['handler']>[0],
+    reply: Parameters<Parameters<typeof app.post>[1]['handler']>[1],
+  ) => {
+    const actor = requireActor(request);
+    const { id } = request.params as { id: string };
+    const body = request.body as { quantity?: unknown; notes?: unknown; referenceId?: unknown };
 
-      if (typeof body.quantity !== 'number') throw new ValidationError('quantity is required');
+    if (typeof body.quantity !== 'number') throw new ValidationError('quantity is required');
 
-      const item = await inventoryService.increaseStock(
-        actor,
-        id,
-        body.quantity,
-        typeof body.notes === 'string' ? body.notes : undefined,
-        typeof body.referenceId === 'string' ? body.referenceId : undefined,
-      );
+    const item = await inventoryService.increaseStock(
+      actor,
+      id,
+      body.quantity,
+      typeof body.notes === 'string' ? body.notes : undefined,
+      typeof body.referenceId === 'string' ? body.referenceId : undefined,
+    );
 
-      return reply.status(200).send(item);
-    },
-  );
+    return reply.status(200).send(item);
+  };
 
-  // POST /inventory/:id/decrease-stock
-  app.post(
-    '/inventory/:id/decrease-stock',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const { id } = request.params as { id: string };
-      const body = request.body as { quantity?: unknown; notes?: unknown };
+  app.post('/inventory/:id/increase-stock', { preHandler: authenticate }, increaseStockHandler);
+  app.post('/inventory/:id/stock/increase', { preHandler: authenticate }, increaseStockHandler);
+  app.post('/inventory/:id/increase', { preHandler: authenticate }, increaseStockHandler);
 
-      if (typeof body.quantity !== 'number') throw new ValidationError('quantity is required');
+  // POST /inventory/:id/decrease-stock (with aliases for microservice clients)
+  const decreaseStockHandler = async (
+    request: Parameters<Parameters<typeof app.post>[1]['handler']>[0],
+    reply: Parameters<Parameters<typeof app.post>[1]['handler']>[1],
+  ) => {
+    const actor = requireActor(request);
+    const { id } = request.params as { id: string };
+    const body = request.body as { quantity?: unknown; notes?: unknown };
 
-      const item = await inventoryService.decreaseStock(
-        actor,
-        id,
-        body.quantity,
-        typeof body.notes === 'string' ? body.notes : undefined,
-      );
+    if (typeof body.quantity !== 'number') throw new ValidationError('quantity is required');
 
-      return reply.status(200).send(item);
-    },
-  );
+    const item = await inventoryService.decreaseStock(
+      actor,
+      id,
+      body.quantity,
+      typeof body.notes === 'string' ? body.notes : undefined,
+    );
+
+    return reply.status(200).send(item);
+  };
+
+  app.post('/inventory/:id/decrease-stock', { preHandler: authenticate }, decreaseStockHandler);
+  app.post('/inventory/:id/stock/decrease', { preHandler: authenticate }, decreaseStockHandler);
+  app.post('/inventory/:id/decrease', { preHandler: authenticate }, decreaseStockHandler);
 
   // POST /inventory/:id/adjust-non-sellable
   app.post(

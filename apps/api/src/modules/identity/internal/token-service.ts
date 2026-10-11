@@ -20,11 +20,19 @@ export interface RefreshTokenData {
   expiresAt: Date;
 }
 
+export interface Temp2FATokenPayload {
+  userId: string;
+  tenantId: string;
+  role: string;
+}
+
 export interface TokenService {
   generateAccessToken(payload: AccessTokenPayload): AccessToken;
   verifyAccessToken(token: string): AccessTokenPayload | null;
   generateRefreshToken(familyId?: string): RefreshTokenData;
   hashToken(raw: string): string;
+  generate2FATempToken(payload: Temp2FATokenPayload): string;
+  verify2FATempToken(token: string): Temp2FATokenPayload | null;
 }
 
 export class HmacTokenService implements TokenService {
@@ -114,5 +122,58 @@ export class HmacTokenService implements TokenService {
 
   hashToken(raw: string): string {
     return createHash('sha256').update(raw).digest('hex');
+  }
+
+  generate2FATempToken(payload: Temp2FATokenPayload): string {
+    const expiresAtSec = Math.floor(Date.now() / 1000) + 300; // 5 minutes
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: '2FA_TEMP' })).toString('base64url');
+    const claims = Buffer.from(
+      JSON.stringify({
+        sub: payload.userId,
+        tid: payload.tenantId,
+        rol: payload.role,
+        exp: expiresAtSec,
+        iat: Math.floor(Date.now() / 1000),
+        jti: randomUUID(),
+      }),
+    ).toString('base64url');
+
+    const sig = createHash('sha256')
+      .update(`${header}.${claims}.${this.accessTokenSecret}`)
+      .digest('base64url');
+
+    return `${header}.${claims}.${sig}`;
+  }
+
+  verify2FATempToken(token: string): Temp2FATokenPayload | null {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const [header, claims, sig] = parts;
+      if (!header || !claims || !sig) return null;
+
+      const expectedSig = createHash('sha256')
+        .update(`${header}.${claims}.${this.accessTokenSecret}`)
+        .digest('base64url');
+
+      if (sig !== expectedSig) return null;
+
+      const body = JSON.parse(Buffer.from(claims, 'base64url').toString('utf-8')) as {
+        sub: string;
+        tid: string;
+        rol: string;
+        exp: number;
+      };
+
+      if (body.exp < Math.floor(Date.now() / 1000)) return null;
+
+      return {
+        userId: body.sub,
+        tenantId: body.tid,
+        role: body.rol,
+      };
+    } catch {
+      return null;
+    }
   }
 }

@@ -87,33 +87,59 @@ export const CustomerLayout = () => {
                   <User aria-hidden />
                   <span className="truncate">{user?.email}</span>
                 </Link>
+                {user?.role === "MERCHANT" && (
+                  <Link to="/merchant" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                    Merchant Portal
+                  </Link>
+                )}
+                {user?.role === "ADMINISTRATOR" && (
+                  <Link to="/admin" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                    Admin Console
+                  </Link>
+                )}
                 <Button variant="ghost" size="sm" onClick={() => logout()}>
                   Log out
                 </Button>
               </>
             ) : (
               <>
+                <div className="hidden items-center gap-1 md:flex">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 px-2 border border-dashed border-border"
+                    onClick={async () => {
+                      await login({ email: "customer@example.com", password: "password123" });
+                    }}
+                  >
+                    Demo Customer
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 px-2 border border-dashed border-border"
+                    onClick={async () => {
+                      await login({ email: "merchant@example.com", password: "password123" });
+                      navigate("/merchant");
+                    }}
+                  >
+                    Demo Merchant
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 px-2 border border-dashed border-primary/40 text-primary font-medium"
+                    onClick={async () => {
+                      await login({ email: "leonsintegration@gmail.com", password: "Password@2163" });
+                      navigate("/admin");
+                    }}
+                  >
+                    Demo Admin
+                  </Button>
+                </div>
                 <Link to="/account" className={cn(buttonVariants({ size: "sm" }))}>
                   Sign in
                 </Link>
-                <div className="hidden gap-1 lg:flex">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    type="button"
-                    onClick={() => login({ email: "customer@example.com", password: "password123" })}
-                  >
-                    Demo customer
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    type="button"
-                    onClick={() => login({ email: "merchant@example.com", password: "password123" })}
-                  >
-                    Demo seller
-                  </Button>
-                </div>
               </>
             )}
           </div>

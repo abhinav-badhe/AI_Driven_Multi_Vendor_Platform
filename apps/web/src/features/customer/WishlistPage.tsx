@@ -126,16 +126,17 @@ export const WishlistPage = () => {
                 Sign in to view items saved for later and sync across your devices.
               </p>
               <div className="mt-4 flex flex-wrap justify-center gap-2">
-                <Link to="/account" className={cn(buttonVariants({ size: "sm" }))}>
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    await login({ email: "customer@example.com", password: "password123" });
+                  }}
+                >
+                  Sign in as Demo Customer
+                </Button>
+                <Link to="/account" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
                   Sign in
                 </Link>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => login({ email: "customer@example.com", password: "password123" })}
-                >
-                  Demo customer sign in
-                </Button>
               </div>
             </div>
           </CardContent>

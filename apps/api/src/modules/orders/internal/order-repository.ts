@@ -178,6 +178,24 @@ export class OrderRepository {
     return res.rows;
   }
 
+  async listAllCustomerOrders(
+    filter?: { limit?: number | undefined; offset?: number | undefined } | undefined,
+  ): Promise<CustomerOrderRow[]> {
+    const limit = filter?.limit ?? 50;
+    const offset = filter?.offset ?? 0;
+    const res = await this.db.query<CustomerOrderRow>(
+      `SELECT id, customer_tenant_id, checkout_session_id, payment_intent_id,
+              status, currency, subtotal_amount, discount_amount, shipping_amount, tax_amount, total_amount,
+              idempotency_key, coupon_code, applied_promotions, shipping_address, created_at, updated_at
+       FROM customer_orders
+       ORDER BY created_at DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    );
+    return res.rows;
+  }
+
+
   async updateCustomerOrderStatus(
     id: string,
     expectedStatus: CustomerOrderStatus | CustomerOrderStatus[],

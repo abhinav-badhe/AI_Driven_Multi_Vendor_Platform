@@ -129,10 +129,10 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Promotions & Coupons</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl font-semibold tracking-tight">Promotions & Coupons ({promotions.length})</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
             Manage promotional campaigns, coupon codes, discount scopes, and eligibility rules.
           </p>
         </div>

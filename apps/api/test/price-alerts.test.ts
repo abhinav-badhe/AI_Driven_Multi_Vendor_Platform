@@ -1,9 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
 import { createMigratedTestDatabase, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
+import { PriceAlertService, PriceAlertSweepRunner } from '../src/modules/price-alerts/index.js';
+import {
+  notificationModule,
+  type INotificationClient,
+  type NotificationStatus,
+} from '../src/modules/notifications/index.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
 
@@ -325,5 +331,547 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
     });
     expect(mine.statusCode).toBe(200);
     expect(mine.json()[0].unsubscribed).toBe(true);
+  });
+
+  describe('Reliability and runner lifecycle improvements', () => {
+    it('notification enqueue failure does not permanently lose the alert and recovers on later sweep', async () => {
+      await seedCatalog();
+      const cust = await customerToken();
+
+      // Customer viewed apple at 10000
+      await app.inject({
+        method: 'POST',
+        url: '/products/prod-apple/views',
+        headers: { authorization: `Bearer ${cust}` },
+        payload: { priceSeenMinor: 10000, currency: 'USD' },
+      });
+
+      // Price drops in catalog to 7500
+      await db.query(`UPDATE merchant_listings SET price_amount = 7500 WHERE id = 'list-apple'`);
+
+      // Verify watcher has last_alerted_price = null initially
+      const watchBefore = await db.query<{ last_alerted_price: number | null }>(
+        `SELECT last_alerted_price FROM product_price_watches WHERE product_id = 'prod-apple'`,
+      );
+      expect(watchBefore.rows[0]!.last_alerted_price).toBeNull();
+
+      const realNotifService = notificationModule.createService(db, app.log as any);
+      const realClient = notificationModule.createClient(realNotifService);
+
+      let failEnqueue = true;
+      const flakyClient: INotificationClient = {
+        requestNotification: vi.fn(async (input) => {
+          if (failEnqueue) {
+            throw new Error('Simulated transient database timeout while inserting notification');
+          }
+          return realClient.requestNotification(input);
+        }),
+        sendTransactionalEmail: vi.fn(),
+        processPendingNotifications: vi.fn(),
+      };
+
+      const service = new PriceAlertService(db, flakyClient, app.log as any, 'http://localhost:3000');
+
+      // Attempt 1: Transient failure during enqueue
+      const attempt1 = await service.checkProduct('prod-apple');
+      expect(attempt1.checked).toBe(true);
+      expect(attempt1.alertsSent).toBe(0);
+
+      // Verify:
+      // 1. notifications table has 0 rows (enqueue failed)
+      const notifs1 = await db.query(
+        `SELECT * FROM notifications WHERE notification_type = 'PRICE_DROP_ALERT'`,
+      );
+      expect(notifs1.rows).toHaveLength(0);
+
+      // 2. product_price_watches last_alerted_price is STILL NULL (not marked alerted!)
+      const watch1 = await db.query<{ last_alerted_price: number | null }>(
+        `SELECT last_alerted_price FROM product_price_watches WHERE product_id = 'prod-apple'`,
+      );
+      expect(watch1.rows[0]!.last_alerted_price).toBeNull();
+
+      // Attempt 2: Later retry (e.g. background sweep runner or subsequent check)
+      failEnqueue = false;
+      const attempt2 = await service.checkProduct('prod-apple');
+      expect(attempt2.checked).toBe(true);
+      expect(attempt2.alertsSent).toBe(1);
+
+      // Verify:
+      // 1. notifications table now has 1 row
+      const notifs2 = await db.query<{ status: string }>(
+        `SELECT status FROM notifications WHERE notification_type = 'PRICE_DROP_ALERT'`,
+      );
+      expect(notifs2.rows).toHaveLength(1);
+      expect(notifs2.rows[0]!.status).toBe('PENDING');
+
+      // 2. watch last_alerted_price is still null because notification is only PENDING, not confirmed delivered
+      const watch2 = await db.query<{ last_alerted_price: number | null }>(
+        `SELECT last_alerted_price FROM product_price_watches WHERE product_id = 'prod-apple'`,
+      );
+      expect(watch2.rows[0]!.last_alerted_price).toBeNull();
+    });
+
+    it('repeated sweeps or duplicate listing updates at same floor price do not create duplicate records or outbound deliveries', async () => {
+      await seedCatalog();
+      const cust = await customerToken();
+
+      // Customer views apple at 10000
+      await app.inject({
+        method: 'POST',
+        url: '/products/prod-apple/views',
+        headers: { authorization: `Bearer ${cust}` },
+        payload: { priceSeenMinor: 10000, currency: 'USD' },
+      });
+
+      const notifService = notificationModule.createService(db, app.log as any);
+      const notifClient = notificationModule.createClient(notifService);
+      const service = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+
+      // Price drops to 8000
+      await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
+
+      // 1st sweep: queues notification in PENDING state
+      const sweep1 = await service.sweepAll();
+      expect(sweep1.alertsSent).toBe(1);
+
+      const rows1 = await alertRows();
+      expect(rows1).toHaveLength(1);
+
+      // Simulate notification delivery via processPendingNotifications
+      const dispatch1 = await notifClient.processPendingNotifications();
+      expect(dispatch1.sent).toBe(1);
+
+      // Verify notification in DB is now SENT
+      const notifRecord = await db.query<{ status: string }>(
+        `SELECT status FROM notifications WHERE notification_type = 'PRICE_DROP_ALERT'`,
+      );
+      expect(notifRecord.rows[0]!.status).toBe('SENT');
+
+      // 2nd sweep: runs at the SAME floor price (8000)
+      // The sweep reconciles the existing SENT notification and marks watcher alerted!
+      const sweep2 = await service.sweepAll();
+      expect(sweep2.reconciled).toBe(1);
+      expect(sweep2.alertsSent).toBe(0);
+
+      // Verify: Still exactly 1 notification record in DB (no duplicates!)
+      const rows2 = await alertRows();
+      expect(rows2).toHaveLength(1);
+
+      // Verify: Watcher has last_alerted_price updated to 8000
+      const watchAfter = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+        `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
+      );
+      expect(Number(watchAfter.rows[0]!.last_alerted_price)).toBe(8000);
+      expect(Number(watchAfter.rows[0]!.alert_count)).toBe(1);
+
+      // 3rd sweep at the same floor price: watcher is no longer an eligible candidate
+      const sweep3 = await service.sweepAll();
+      expect(sweep3.alertsSent).toBe(0);
+
+      // Repeated dispatch finds nothing to send (no duplicate outbound deliveries)
+      const dispatch2 = await notifClient.processPendingNotifications();
+      expect(dispatch2.sent).toBe(0);
+      expect(dispatch2.claimed).toBe(0);
+
+      // Rows still exactly 1
+      const rows3 = await alertRows();
+      expect(rows3).toHaveLength(1);
+    });
+
+    it('a later lower floor price produces a new alert after previous price was alerted', async () => {
+      await seedCatalog();
+      const cust = await customerToken();
+
+      await app.inject({
+        method: 'POST',
+        url: '/products/prod-apple/views',
+        headers: { authorization: `Bearer ${cust}` },
+        payload: { priceSeenMinor: 10000, currency: 'USD' },
+      });
+
+      const notifService = notificationModule.createService(db, app.log as any);
+      const notifClient = notificationModule.createClient(notifService);
+      const service = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+
+      // 1st drop to 8000
+      await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
+      await service.checkProduct('prod-apple');
+      await notifClient.processPendingNotifications();
+      // Reconcile delivery
+      await service.sweepAll();
+
+      const notifsAfterFirst = await alertRows();
+      expect(notifsAfterFirst).toHaveLength(1);
+
+      const watch1 = await db.query<{ last_alerted_price: number | null }>(
+        `SELECT last_alerted_price FROM product_price_watches WHERE product_id = 'prod-apple'`,
+      );
+      expect(Number(watch1.rows[0]!.last_alerted_price)).toBe(8000);
+
+      // 2nd drop to lower floor: 6000
+      await db.query(`UPDATE merchant_listings SET price_amount = 6000 WHERE id = 'list-apple'`);
+      const check2 = await service.checkProduct('prod-apple');
+      expect(check2.alertsSent).toBe(1);
+
+      const notifsAfterSecond = await alertRows();
+      expect(notifsAfterSecond).toHaveLength(2);
+
+      const secondRecord = await db.query<{ event_id: string }>(
+        `SELECT event_id FROM notifications WHERE notification_type = 'PRICE_DROP_ALERT' AND event_id LIKE '%6000'`,
+      );
+      expect(secondRecord.rows).toHaveLength(1);
+      expect(secondRecord.rows[0]!.event_id).toBe('price-drop:prod-apple:6000');
+    });
+
+    it('correctly handles real notification contract statuses (PENDING, RETRY_SCHEDULED, DEAD_LETTERED, SENT)', async () => {
+      await seedCatalog();
+      const cust = await customerToken();
+
+      await app.inject({
+        method: 'POST',
+        url: '/products/prod-apple/views',
+        headers: { authorization: `Bearer ${cust}` },
+        payload: { priceSeenMinor: 10000, currency: 'USD' },
+      });
+
+      await db.query(`UPDATE merchant_listings SET price_amount = 7000 WHERE id = 'list-apple'`);
+
+      let simulatedStatus: NotificationStatus = 'PENDING';
+      const mockClient: INotificationClient = {
+        requestNotification: vi.fn(async () => ({
+          notificationId: 'notif-mock-1',
+          status: simulatedStatus,
+          channel: 'EMAIL' as const,
+          recipient: 'buyer@price.test',
+          idempotencyKey: 'key-1',
+        })),
+        sendTransactionalEmail: vi.fn(),
+        processPendingNotifications: vi.fn(),
+      };
+
+      const service = new PriceAlertService(db, mockClient, app.log as any, 'http://localhost:3000');
+
+      // 1. PENDING: queued, but NOT delivered yet -> must NOT mark alerted!
+      simulatedStatus = 'PENDING';
+      await service.checkProduct('prod-apple');
+      let watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+        `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
+      );
+      expect(watch.rows[0]!.last_alerted_price).toBeNull();
+      expect(Number(watch.rows[0]!.alert_count)).toBe(0);
+
+      // 2. RETRY_SCHEDULED: delivery failed temporarily and scheduled for retry -> must NOT mark alerted!
+      simulatedStatus = 'RETRY_SCHEDULED';
+      await service.checkProduct('prod-apple');
+      watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+        `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
+      );
+      expect(watch.rows[0]!.last_alerted_price).toBeNull();
+      expect(Number(watch.rows[0]!.alert_count)).toBe(0);
+
+      // 3. DEAD_LETTERED: delivery permanently failed -> must NOT mark alerted!
+      simulatedStatus = 'DEAD_LETTERED';
+      await service.checkProduct('prod-apple');
+      watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+        `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
+      );
+      expect(watch.rows[0]!.last_alerted_price).toBeNull();
+      expect(Number(watch.rows[0]!.alert_count)).toBe(0);
+
+      // 4. SENT: confirmed delivery -> MUST mark alerted and increment alert_count!
+      simulatedStatus = 'SENT';
+      await service.checkProduct('prod-apple');
+      watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+        `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
+      );
+      expect(Number(watch.rows[0]!.last_alerted_price)).toBe(7000);
+      expect(Number(watch.rows[0]!.alert_count)).toBe(1);
+    });
+
+    describe('PriceAlertSweepRunner lifecycle, overlap prevention, and shutdown', () => {
+      it('is not started in test mode by default, but starts when enableBackgroundWorkers is true and cleans up on shutdown', async () => {
+        // In default test app, runner is registered on app but not started
+        expect(app.priceAlertSweepRunner).toBeDefined();
+        expect(app.priceAlertSweepRunner!.isRunning).toBe(false);
+
+        // When enableBackgroundWorkers is explicitly enabled:
+        const workerConfig = parseConfig({
+          NODE_ENV: 'test',
+          PORT: '0',
+          HOST: '127.0.0.1',
+          LOG_LEVEL: 'fatal',
+          DATABASE_HOST: 'localhost',
+          DATABASE_PORT: '5432',
+          DATABASE_NAME: 'test_db',
+          DATABASE_USER: 'test_user',
+          DATABASE_PASSWORD: 'test_password',
+          DATABASE_POOL_MIN: '1',
+          DATABASE_POOL_MAX: '5',
+          REDIS_HOST: 'localhost',
+          REDIS_PORT: '6379',
+          REDIS_PASSWORD: '',
+          REDIS_TLS: 'false',
+          ACCESS_TOKEN_SECRET: TOKEN_SECRET,
+          SERVICE_NAME: 'test-api',
+          LOG_PRETTY: 'false',
+          REDACT_KEYS: 'password,token',
+        });
+
+        const workerApp = await buildApp({
+          config: workerConfig,
+          dbConnection: db,
+          skipMigrations: true,
+          enableBackgroundWorkers: true,
+        });
+        await workerApp.ready();
+
+        expect(workerApp.priceAlertSweepRunner).toBeDefined();
+        expect(workerApp.priceAlertSweepRunner!.isRunning).toBe(true);
+
+        // Shutdown cleanup: app.close() stops runner
+        await workerApp.close();
+        expect(workerApp.priceAlertSweepRunner!.isRunning).toBe(false);
+      });
+
+      it('prevents overlapping sweep cycles within the same process', async () => {
+        let sweepResolve: () => void;
+        const sweepPromise = new Promise<void>((resolve) => {
+          sweepResolve = resolve;
+        });
+
+        let sweepCallCount = 0;
+        const mockService = {
+          sweepAll: vi.fn(async () => {
+            sweepCallCount += 1;
+            await sweepPromise;
+            return { productsChecked: 1, alertsSent: 0 };
+          }),
+        } as unknown as PriceAlertService;
+
+        const runner = new PriceAlertSweepRunner(mockService, app.log as any, { intervalMs: 1000 });
+
+        // Trigger first cycle (enters in-flight execution)
+        const cycle1Promise = runner.runCycle();
+        expect(runner.isSweeping).toBe(true);
+        expect(sweepCallCount).toBe(1);
+
+        // Trigger second cycle while first is still in progress
+        const cycle2Result = await runner.runCycle();
+        // Overlap guard must skip tick and return null
+        expect(cycle2Result).toBeNull();
+        expect(sweepCallCount).toBe(1); // Service was not invoked again!
+
+        // Complete the first cycle
+        sweepResolve!();
+        const cycle1Result = await cycle1Promise;
+        expect(cycle1Result).toEqual({ productsChecked: 1, alertsSent: 0 });
+        expect(runner.isSweeping).toBe(false);
+      });
+
+      it('handles unexpected sweep errors safely without crashing or leaking overlap lock', async () => {
+        const mockService = {
+          sweepAll: vi.fn(async () => {
+            throw new Error('Database connection terminated');
+          }),
+        } as unknown as PriceAlertService;
+
+        const runner = new PriceAlertSweepRunner(mockService, app.log as any, { intervalMs: 1000 });
+
+        const result = await runner.runCycle();
+        expect(result).toBeNull();
+        // Lock must be released
+        expect(runner.isSweeping).toBe(false);
+      });
+    });
+
+    describe('Historical delivery-state reconciliation guarantees', () => {
+      it('reconciles watch after product price changes or becomes unavailable', async () => {
+        await seedCatalog();
+        const cust = await customerToken();
+
+        // Customer views product at 10000
+        await app.inject({
+          method: 'POST',
+          url: '/products/prod-apple/views',
+          headers: { authorization: `Bearer ${cust}` },
+          payload: { priceSeenMinor: 10000, currency: 'USD' },
+        });
+
+        const notifService = notificationModule.createService(db, app.log as any);
+        const notifClient = notificationModule.createClient(notifService);
+        const service = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+
+        // 1. Price drops to 8000 -> notification queued in PENDING
+        await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
+        const enqueueRes = await service.checkProduct('prod-apple');
+        expect(enqueueRes.alertsSent).toBe(1);
+
+        // Watch is still unreconciled (pending delivery)
+        let watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+          `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
+        );
+        expect(watch.rows[0]!.last_alerted_price).toBeNull();
+        expect(Number(watch.rows[0]!.alert_count)).toBe(0);
+
+        // 2. Notification processor delivers the email -> status becomes SENT
+        const dispatch = await notifClient.processPendingNotifications();
+        expect(dispatch.sent).toBe(1);
+
+        // 3. BEFORE the next sweep, the product becomes UNAVAILABLE (inactive listing)
+        await db.query(`UPDATE merchant_listings SET status = 'INACTIVE', price_amount = 9500 WHERE id = 'list-apple'`);
+
+        // Verify current floor price is now unavailable (null)
+        const floorCheck = await service.checkProduct('prod-apple');
+        expect(floorCheck.checked).toBe(false); // unavailable product
+        expect(floorCheck.alertsSent).toBe(0);
+
+        // 4. Run sweep: reconciliation must recover historical delivery state from persisted notification
+        const sweep = await service.sweepAll();
+        expect(sweep.reconciled).toBe(1);
+
+        // Watch is now properly reconciled with the 8000 drop!
+        watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+          `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
+        );
+        expect(Number(watch.rows[0]!.last_alerted_price)).toBe(8000);
+        expect(Number(watch.rows[0]!.alert_count)).toBe(1);
+
+        // Make product available again at 9500: customer should NOT be alerted for 9500 since last_alerted_price is 8000
+        await db.query(`UPDATE merchant_listings SET status = 'ACTIVE' WHERE id = 'list-apple'`);
+        const recheck = await service.checkProduct('prod-apple');
+        expect(recheck.alertsSent).toBe(0);
+      });
+
+      it('repeated reconciliation does not increment alert_count more than once for the same alert', async () => {
+        await seedCatalog();
+        const cust = await customerToken();
+
+        await app.inject({
+          method: 'POST',
+          url: '/products/prod-apple/views',
+          headers: { authorization: `Bearer ${cust}` },
+          payload: { priceSeenMinor: 10000, currency: 'USD' },
+        });
+
+        const notifService = notificationModule.createService(db, app.log as any);
+        const notifClient = notificationModule.createClient(notifService);
+        const service = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+
+        await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
+        await service.checkProduct('prod-apple');
+        await notifClient.processPendingNotifications();
+
+        // 1st reconciliation pass
+        const pass1 = await service.reconcileDeliveredAlerts();
+        expect(pass1.reconciled).toBe(1);
+
+        let watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+          `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
+        );
+        expect(Number(watch.rows[0]!.last_alerted_price)).toBe(8000);
+        expect(Number(watch.rows[0]!.alert_count)).toBe(1);
+
+        // 2nd reconciliation pass
+        const pass2 = await service.reconcileDeliveredAlerts();
+        expect(pass2.reconciled).toBe(0); // Already reconciled!
+
+        // 3rd pass via full sweep
+        const pass3 = await service.sweepAll();
+        expect(pass3.reconciled).toBe(0);
+
+        // Verify alert_count is STILL exactly 1
+        watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+          `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
+        );
+        expect(Number(watch.rows[0]!.last_alerted_price)).toBe(8000);
+        expect(Number(watch.rows[0]!.alert_count)).toBe(1);
+      });
+
+      it('dead-lettered notifications do not become falsely marked as delivered or cause unbounded repeated work', async () => {
+        await seedCatalog();
+        const cust = await customerToken();
+
+        await app.inject({
+          method: 'POST',
+          url: '/products/prod-apple/views',
+          headers: { authorization: `Bearer ${cust}` },
+          payload: { priceSeenMinor: 10000, currency: 'USD' },
+        });
+
+        const notifService = notificationModule.createService(db, app.log as any);
+        const notifClient = notificationModule.createClient(notifService);
+        const service = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+
+        await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
+        await service.checkProduct('prod-apple');
+
+        // Mark the queued notification DEAD_LETTERED directly in DB
+        await db.query(
+          `UPDATE notifications SET status = 'DEAD_LETTERED', attempt_count = 3 WHERE notification_type = 'PRICE_DROP_ALERT'`,
+        );
+
+        // Run reconciliation: must not mark dead-lettered as delivered
+        const rec = await service.reconcileDeliveredAlerts();
+        expect(rec.reconciled).toBe(0);
+
+        let watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+          `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
+        );
+        expect(watch.rows[0]!.last_alerted_price).toBeNull();
+        expect(Number(watch.rows[0]!.alert_count)).toBe(0);
+
+        // Subsequent sweeps must NOT repeatedly attempt to send alerts or do unbounded work for the dead-lettered price
+        const sweep1 = await service.sweepAll();
+        expect(sweep1.alertsSent).toBe(0);
+        expect(sweep1.reconciled).toBe(0);
+
+        const sweep2 = await service.sweepAll();
+        expect(sweep2.alertsSent).toBe(0);
+        expect(sweep2.reconciled).toBe(0);
+
+        // notifications table must still contain exactly 1 record
+        const notifs = await alertRows();
+        expect(notifs).toHaveLength(1);
+      });
+
+      it('survives service restart and executes concurrent reconciliation idempotently', async () => {
+        await seedCatalog();
+        const cust = await customerToken();
+
+        await app.inject({
+          method: 'POST',
+          url: '/products/prod-apple/views',
+          headers: { authorization: `Bearer ${cust}` },
+          payload: { priceSeenMinor: 10000, currency: 'USD' },
+        });
+
+        const notifService = notificationModule.createService(db, app.log as any);
+        const notifClient = notificationModule.createClient(notifService);
+        const serviceInstance1 = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+
+        await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
+        await serviceInstance1.checkProduct('prod-apple');
+        await notifClient.processPendingNotifications();
+
+        // Simulate app restart: instantiate brand new PriceAlertService instances against the shared DB
+        const restartedServiceA = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+        const restartedServiceB = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+
+        // Execute concurrent reconciliation passes
+        const [resA, resB] = await Promise.all([
+          restartedServiceA.reconcileDeliveredAlerts(),
+          restartedServiceB.reconcileDeliveredAlerts(),
+        ]);
+
+        // Exactly one concurrent worker updates the row; total reconciled is 1
+        expect(resA.reconciled + resB.reconciled).toBe(1);
+
+        const watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+          `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
+        );
+        expect(Number(watch.rows[0]!.last_alerted_price)).toBe(8000);
+        expect(Number(watch.rows[0]!.alert_count)).toBe(1);
+      });
+    });
   });
 });

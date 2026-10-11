@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { PackageSearch, Truck } from "lucide-react";
 import { catalogApi, type Category } from "../catalog/api/catalog";
@@ -22,6 +22,8 @@ export const Home = () => {
   const [products, setProducts] = useState<SearchProductResultDto[]>([]);
   const [recommendations, setRecommendations] = useState<RecommendationItemDto[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [categoryProducts, setCategoryProducts] = useState<SearchProductResultDto[] | null>(null);
+  const [isCategoryLoading, setIsCategoryLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +72,53 @@ export const Home = () => {
     fetchData();
   }, [isAuthenticated]);
 
+  const matchingCategoryIds = useMemo(() => {
+    if (!selectedCategory) return null;
+    const ids = new Set<string>([selectedCategory]);
+    const addDescendants = (parentId: string) => {
+      for (const cat of categories) {
+        if (cat.parentId === parentId && !ids.has(cat.id)) {
+          ids.add(cat.id);
+          addDescendants(cat.id);
+        }
+      }
+    };
+    addDescendants(selectedCategory);
+    return ids;
+  }, [selectedCategory, categories]);
+
+  useEffect(() => {
+    if (!selectedCategory) {
+      setCategoryProducts(null);
+      return;
+    }
+
+    let isMounted = true;
+    setIsCategoryLoading(true);
+
+    searchApi
+      .search({ categoryId: selectedCategory, pageSize: 24 })
+      .then((res) => {
+        if (isMounted) {
+          setCategoryProducts(res.items || []);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCategoryProducts(null);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsCategoryLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCategory]);
+
   const handleAddToCart = async (
     listingId: string,
     optimistic?: { skuId: string; merchantId: string; priceAmount: number; currency: string; title?: string | null | undefined; thumbnailUrl?: string | null | undefined },
@@ -117,9 +166,13 @@ export const Home = () => {
   };
 
   const rootCategories = categories.filter((c) => !c.parentId);
-  const displayedProducts = selectedCategory
-    ? products.filter((p) => p.categoryId === selectedCategory)
-    : products;
+  const displayedProducts = useMemo(() => {
+    if (!selectedCategory) return products;
+    if (categoryProducts !== null) return categoryProducts;
+    return matchingCategoryIds
+      ? products.filter((p) => p.categoryId && matchingCategoryIds.has(p.categoryId))
+      : products;
+  }, [selectedCategory, categoryProducts, products, matchingCategoryIds]);
 
   if (isLoading) {
     return (
@@ -190,12 +243,21 @@ export const Home = () => {
       <section aria-label="Products" className="mt-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Available now</h2>
-          <Link to="/search" className="text-[13px] font-medium text-primary hover:underline">
-            View all ({products.length})
+          <Link
+            to={selectedCategory ? `/search?categoryId=${selectedCategory}` : "/search"}
+            className="text-[13px] font-medium text-primary hover:underline"
+          >
+            View all ({displayedProducts.length})
           </Link>
         </div>
 
-        {displayedProducts.length === 0 ? (
+        {isCategoryLoading ? (
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-4" aria-label="Loading category products">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-56" />
+            ))}
+          </div>
+        ) : displayedProducts.length === 0 ? (
           <EmptyState
             icon={PackageSearch}
             title="No products in this category"

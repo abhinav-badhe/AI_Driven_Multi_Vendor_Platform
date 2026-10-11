@@ -48,6 +48,7 @@ export interface InventoryItemDto {
   onHandQuantity: number;
   reservedQuantity: number;
   nonSellableQuantity: number;
+  availableQuantity?: number;
   version: number;
   updatedAt: string;
 }
@@ -85,7 +86,7 @@ export const merchantApi = {
   },
 
   getMyInventory: async (): Promise<InventoryItemDto[]> => {
-    return apiClient<InventoryItemDto[]>('/inventory');
+    return apiClient<InventoryItemDto[]>('/inventory?limit=500');
   },
 
   adjustInventory: async (id: string, delta: number, reason: string): Promise<InventoryItemDto> => {

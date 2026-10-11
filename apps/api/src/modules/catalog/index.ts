@@ -11,8 +11,17 @@ import type {
   UpdateProductInput,
   CreateSkuInput,
   UpdateSkuInput,
-} from './internal/catalog-service.js';
-import type { ProductStatus, SkuStatus, ListProductsFilter } from './internal/catalog-repository.js';
+  ProductStatus,
+  SkuStatus,
+  ListProductsFilter,
+  ICatalogReader,
+  ICatalogService,
+} from './internal/catalog-models.js';
+import { InMemoryCatalogStore } from './internal/in-memory-catalog-store.js';
+import {
+  HttpCatalogClient,
+  type HttpCatalogClientOptions,
+} from './internal/http-catalog-client.js';
 
 export type {
   CategoryDto,
@@ -27,11 +36,16 @@ export type {
   ProductStatus,
   SkuStatus,
   ListProductsFilter,
+  ICatalogReader,
+  ICatalogService,
+  HttpCatalogClientOptions,
 };
 
 export interface CatalogModule {
   readonly contextName: 'catalog';
   createService(db: DatabaseConnection, logger: Logger): CatalogService;
+  createInMemoryStore(): InMemoryCatalogStore;
+  createHttpClient(serviceUrl: string, options?: HttpCatalogClientOptions): HttpCatalogClient;
 }
 
 export const catalogModule: CatalogModule = {
@@ -39,9 +53,15 @@ export const catalogModule: CatalogModule = {
   createService(db: DatabaseConnection, logger: Logger): CatalogService {
     return new CatalogService(db, logger);
   },
+  createInMemoryStore(): InMemoryCatalogStore {
+    return new InMemoryCatalogStore();
+  },
+  createHttpClient(serviceUrl: string, options?: HttpCatalogClientOptions): HttpCatalogClient {
+    return new HttpCatalogClient(serviceUrl, options);
+  },
 };
 
-export { CatalogService };
+export { CatalogService, InMemoryCatalogStore, HttpCatalogClient };
 
 export { ReviewService } from './internal/review-service.js';
 export { ReviewRepository } from './internal/review-repository.js';

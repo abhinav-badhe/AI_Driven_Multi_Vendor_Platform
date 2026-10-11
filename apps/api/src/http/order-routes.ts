@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
-import type { OrderService, SellerOrderStatus } from '../modules/orders/index.js';
+import type { OrderService, IOrderService, SellerOrderStatus } from '../modules/orders/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
 import {
   CachePresets,
@@ -12,7 +12,7 @@ import {
 export function registerOrderRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
-  orderService: OrderService,
+  orderService: IOrderService | OrderService,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
 
@@ -88,6 +88,27 @@ export function registerOrderRoutes(
       );
     },
   );
+
+  // GET /admin/orders: Platform orders for administrator
+  app.get(
+    '/admin/orders',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const actor = requireActor(request);
+      if (actor.role !== 'ADMINISTRATOR') {
+        return reply.status(403).send({
+          error: { code: 'FORBIDDEN', message: 'Administrator role required' },
+        });
+      }
+      const query = (request.query as { limit?: string; offset?: string } | undefined) ?? {};
+      const limit = query.limit ? parseInt(query.limit, 10) : undefined;
+      const offset = query.offset ? parseInt(query.offset, 10) : undefined;
+
+      const orders = await orderService.listCustomerOrders(actor, { limit, offset });
+      return reply.status(200).send({ orders });
+    },
+  );
+
 
   // GET /orders/:id: Retrieve Customer Order by ID
   app.get(

@@ -36,6 +36,8 @@ import { InMemoryAiStore } from './internal/in-memory-ai-store.js';
 import { InMemoryVectorStore } from './internal/in-memory-vector-store.js';
 import { MockLLMProvider } from './internal/mock-llm-provider.js';
 import { MockEmbeddingProvider } from './internal/mock-embedding-provider.js';
+import { type IAiService, LocalAiService } from './internal/ai-models.js';
+import { HttpAiClient, type HttpAiClientOptions } from './internal/http-ai-client.js';
 import type {
   AiAuditRecord,
   AiTool,
@@ -108,6 +110,8 @@ export type {
   IngestDocumentInput,
   RetrievalResult,
   InboundWebhookInput,
+  IAiService,
+  HttpAiClientOptions,
 };
 
 export {
@@ -121,6 +125,8 @@ export {
   InMemoryVectorStore,
   MockLLMProvider,
   MockEmbeddingProvider,
+  LocalAiService,
+  HttpAiClient,
 };
 
 export interface AiModule {
@@ -145,6 +151,15 @@ export interface AiModule {
     logger: Logger,
   ): WhatsAppAdapter;
   createToolRegistry(deps: ToolRegistryDependencies): ToolRegistry;
+  createHttpClient(
+    serviceUrl: string,
+    options?: HttpAiClientOptions,
+  ): HttpAiClient;
+  createLocalService(
+    orchestrator: AiOrchestrator,
+    ragService: RagService,
+    store: IAiStore,
+  ): LocalAiService;
 }
 
 export const aiModule: AiModule = {
@@ -160,5 +175,11 @@ export const aiModule: AiModule = {
   },
   createToolRegistry(deps) {
     return new ToolRegistry(deps);
+  },
+  createHttpClient(serviceUrl, options) {
+    return new HttpAiClient(serviceUrl, options);
+  },
+  createLocalService(orchestrator, ragService, store) {
+    return new LocalAiService(orchestrator, ragService, store);
   },
 };

@@ -61,7 +61,9 @@ export interface ProductSkuRow {
 
 export interface ListProductsFilter {
   categoryId?: string | undefined;
+  categoryIds?: string[] | undefined;
   status?: ProductStatus | undefined;
+  brand?: string | undefined;
   search?: string | undefined;
   limit?: number | undefined;
   offset?: number | undefined;
@@ -238,7 +240,11 @@ export class CatalogRepository {
     const params: unknown[] = [];
     let paramIndex = 1;
 
-    if (filter?.categoryId) {
+    if (filter?.categoryIds && filter.categoryIds.length > 0) {
+      const placeholders = filter.categoryIds.map(() => `$${paramIndex++}`).join(', ');
+      conditions.push(`category_id IN (${placeholders})`);
+      params.push(...filter.categoryIds);
+    } else if (filter?.categoryId) {
       conditions.push(`category_id = $${paramIndex++}`);
       params.push(filter.categoryId);
     }

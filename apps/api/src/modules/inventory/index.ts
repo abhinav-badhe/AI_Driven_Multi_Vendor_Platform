@@ -1,7 +1,12 @@
 import type { DatabaseConnection } from '../../infra/database/connection.js';
 import type { Logger } from '../../observability/logger.js';
-import type { ListingService } from '../marketplace/index.js';
+import type { ListingService, IMarketplaceReader } from '../marketplace/index.js';
 import { InventoryService } from './internal/inventory-service.js';
+import { InMemoryInventoryStore } from './internal/in-memory-inventory-store.js';
+import {
+  HttpInventoryClient,
+  type HttpInventoryClientOptions,
+} from './internal/http-inventory-client.js';
 import type {
   InventoryItemDto,
   InventoryAvailabilityDto,
@@ -9,11 +14,11 @@ import type {
   InventoryMovementDto,
   InitializeInventoryInput,
   CreateReservationInput,
-} from './internal/inventory-service.js';
-import type {
   ReservationStatus,
   MovementType,
-} from './internal/inventory-repository.js';
+  IInventoryReader,
+  IInventoryService,
+} from './internal/inventory-models.js';
 
 export type {
   InventoryItemDto,
@@ -24,6 +29,9 @@ export type {
   CreateReservationInput,
   ReservationStatus,
   MovementType,
+  IInventoryReader,
+  IInventoryService,
+  HttpInventoryClientOptions,
 };
 
 import type { OutboxService } from '../events/index.js';
@@ -36,10 +44,15 @@ export interface InventoryModule {
   createService(
     db: DatabaseConnection,
     logger: Logger,
-    marketplaceService: ListingService,
+    marketplaceService: IMarketplaceReader | ListingService,
     outboxService?: OutboxService,
     cacheInvalidator?: InventoryCacheInvalidator | undefined,
   ): InventoryService;
+  createInMemoryStore(): InMemoryInventoryStore;
+  createHttpClient(
+    serviceUrl: string,
+    options?: HttpInventoryClientOptions,
+  ): HttpInventoryClient;
 }
 
 export const inventoryModule: InventoryModule = {
@@ -47,12 +60,21 @@ export const inventoryModule: InventoryModule = {
   createService(
     db: DatabaseConnection,
     logger: Logger,
-    marketplaceService: ListingService,
+    marketplaceService: IMarketplaceReader | ListingService,
     outboxService?: OutboxService,
     cacheInvalidator?: InventoryCacheInvalidator | undefined,
   ): InventoryService {
     return new InventoryService(db, logger, marketplaceService, outboxService, cacheInvalidator);
   },
+  createInMemoryStore(): InMemoryInventoryStore {
+    return new InMemoryInventoryStore();
+  },
+  createHttpClient(
+    serviceUrl: string,
+    options?: HttpInventoryClientOptions,
+  ): HttpInventoryClient {
+    return new HttpInventoryClient(serviceUrl, options);
+  },
 };
 
-export { InventoryService };
+export { InventoryService, InMemoryInventoryStore, HttpInventoryClient };

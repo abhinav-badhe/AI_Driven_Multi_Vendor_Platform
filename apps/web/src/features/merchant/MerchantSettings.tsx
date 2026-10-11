@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { apiClient } from "../../api/client";
 import { Navigate } from "react-router-dom";
@@ -16,6 +16,16 @@ export const MerchantSettings = () => {
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    if (user?.role !== "MERCHANT") return;
+    apiClient<{ businessName?: string; contactEmail?: string }>("/merchants/me")
+      .then((res) => {
+        if (res.businessName) setDisplayName(res.businessName);
+        if (res.contactEmail) setSupportEmail(res.contactEmail);
+      })
+      .catch(() => {});
+  }, [user]);
+
   if (user?.role !== "MERCHANT") return <Navigate to="/account" replace />;
 
   const handleSave = async (e: React.FormEvent) => {
@@ -28,6 +38,8 @@ export const MerchantSettings = () => {
         body: JSON.stringify({
           displayName,
           supportEmail,
+          businessName: displayName,
+          contactEmail: supportEmail,
           notifications: { onOrder: notifyOnOrder, onReturn: notifyOnReturn },
         }),
       });
@@ -36,7 +48,12 @@ export const MerchantSettings = () => {
       try {
         await apiClient("/merchants/me", {
           method: "PATCH",
-          body: JSON.stringify({ displayName, supportEmail }),
+          body: JSON.stringify({
+            displayName,
+            supportEmail,
+            businessName: displayName,
+            contactEmail: supportEmail,
+          }),
         });
         setSavedMsg("Settings saved.");
       } catch {
@@ -47,6 +64,7 @@ export const MerchantSettings = () => {
       setTimeout(() => setSavedMsg(null), 3000);
     }
   };
+
 
   const prefs = [
     {

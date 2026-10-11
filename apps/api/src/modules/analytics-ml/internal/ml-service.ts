@@ -13,18 +13,26 @@ import type {
   TrainModelInputDto,
   TrainingJobRecord,
 } from './ml-models.js';
-import type { PythonRunner } from './python-runner.js';
+import type { IMlExecutionProvider } from './ml-execution-provider.js';
+import { LocalPythonMlExecutionProvider } from './ml-execution-provider.js';
+import { PythonRunner } from './python-runner.js';
 
 export class MlService implements IMlSignalReader {
   private retrainingTimer: NodeJS.Timeout | null = null;
   private isProcessingWorker = false;
+  private readonly executionProvider: IMlExecutionProvider;
 
   constructor(
     private readonly store: IMlStore,
     private readonly featureReader: IAnalyticsMlFeatureReader,
     private readonly logger: Logger,
-    private readonly pythonRunner: PythonRunner,
-  ) {}
+    executionProvider: IMlExecutionProvider | PythonRunner,
+  ) {
+    this.executionProvider =
+      executionProvider instanceof PythonRunner
+        ? new LocalPythonMlExecutionProvider(executionProvider)
+        : executionProvider;
+  }
 
   private assertTenantAccess(actor: AuthorizedActor, tenantId: string): void {
     if (actor.role === 'CUSTOMER') {
@@ -189,7 +197,7 @@ export class MlService implements IMlSignalReader {
         minAcceptableAccuracy: (config?.minAcceptableAccuracy as number | undefined) ?? 0.50,
       };
 
-      const trainResult = await this.pythonRunner.runTraining(trainConfig);
+      const trainResult = await this.executionProvider.runTraining(trainConfig);
 
       if (!trainResult.success || trainResult.status === 'FAILED') {
         this.logger.error('Model training execution failed', {
@@ -586,7 +594,7 @@ export class MlService implements IMlSignalReader {
 
       if (featureVectors.length === 0) return { count: 0 };
 
-      const predResult = await this.pythonRunner.runPrediction({
+      const predResult = await this.executionProvider.runPrediction({
         modelType,
         artifactPath: activeModel.artifactPath,
         features: featureVectors,

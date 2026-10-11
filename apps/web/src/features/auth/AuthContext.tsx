@@ -29,16 +29,18 @@ export interface RegisterResult {
 export const isEmailNotVerifiedError = (err: unknown): boolean =>
   err instanceof ApiError && err.code === 'EMAIL_NOT_VERIFIED';
 
+export type LoginResult = UserContext | { requires2FA: true; tempToken: string };
+
 interface AuthContextType {
   user: UserContext | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (credentials: LoginCredentials) => Promise<UserContext>;
+  login: (credentials: LoginCredentials) => Promise<LoginResult>;
+  verify2FALogin: (tempToken: string, code: string) => Promise<UserContext>;
   register: (data: RegisterData) => Promise<RegisterResult>;
   verifyEmail: (token: string) => Promise<void>;
   resendVerification: (email: string) => Promise<void>;
   logout: () => Promise<void>;
-
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -103,10 +105,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [clearAuth]);
 
 
-  const login = useCallback(async (credentials: LoginCredentials): Promise<UserContext> => {
-    const res = await apiClient<{ accessToken: string }>('/auth/login', {
+  const login = useCallback(async (credentials: LoginCredentials): Promise<LoginResult> => {
+    const res = await apiClient<{ accessToken?: string; requires2FA?: boolean; tempToken?: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
+    });
+
+    if (res.requires2FA && res.tempToken) {
+      return { requires2FA: true, tempToken: res.tempToken };
+    }
+
+    if (!res.accessToken) {
+      throw new Error('Login failed: invalid response from server');
+    }
+
+    setAuthData(res.accessToken, null);
+    const me = await apiClient<UserContext>('/auth/me');
+    setAuthData(res.accessToken, me.tenantId);
+    setUser(me);
+    return me;
+  }, [setUser]);
+
+  const verify2FALogin = useCallback(async (tempToken: string, code: string): Promise<UserContext> => {
+    const res = await apiClient<{ accessToken: string }>('/auth/2fa/verify-login', {
+      method: 'POST',
+      body: JSON.stringify({ tempToken, code: code.trim() }),
     });
     setAuthData(res.accessToken, null);
     const me = await apiClient<UserContext>('/auth/me');
@@ -149,7 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, register, verifyEmail, resendVerification, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, verify2FALogin, register, verifyEmail, resendVerification, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -162,8 +185,9 @@ export const useAuth = () => {
       user: null,
       isAuthenticated: false,
       isLoading: false,
-      login: async () => {},
-      register: async () => {},
+      login: async () => ({} as UserContext),
+      verify2FALogin: async () => ({} as UserContext),
+      register: async () => ({} as RegisterResult),
       verifyEmail: async () => {},
       resendVerification: async () => {},
       logout: async () => {},

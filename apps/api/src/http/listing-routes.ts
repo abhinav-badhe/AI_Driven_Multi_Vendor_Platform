@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
-import type { ListingService } from '../modules/marketplace/index.js';
+import type { ListingService, IMarketplaceService } from '../modules/marketplace/index.js';
 import type { PriceAlertService } from '../modules/price-alerts/index.js';
 import type { ListingStatus } from '../modules/marketplace/index.js';
 import { createAuthMiddleware, createOptionalAuthMiddleware, requireActor } from './auth-middleware.js';
@@ -16,7 +16,7 @@ import {
 export function registerListingRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
-  listingService: ListingService,
+  listingService: IMarketplaceService | ListingService,
   priceAlertService?: PriceAlertService,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
@@ -210,4 +210,25 @@ export function registerListingRoutes(
       );
     },
   );
+
+  // GET /admin/listings & GET /listings (Admin all platform listings)
+  const handleListAllListings = async (request: any, reply: any) => {
+    const actor = requireActor(request);
+    if (actor.role !== 'ADMINISTRATOR') {
+      return reply.status(403).send({
+        error: { code: 'FORBIDDEN', message: 'Administrator role required' },
+      });
+    }
+    const query = (request.query as { status?: ListingStatus; limit?: string; offset?: string } | undefined) ?? {};
+    const listings = await listingService.listAllListings(actor, {
+      status: query.status,
+      limit: query.limit ? parseInt(query.limit, 10) : undefined,
+      offset: query.offset ? parseInt(query.offset, 10) : undefined,
+    });
+    return reply.status(200).send({ listings });
+  };
+
+  app.get('/admin/listings', { preHandler: authenticate }, handleListAllListings);
+  app.get('/listings', { preHandler: authenticate }, handleListAllListings);
 }
+

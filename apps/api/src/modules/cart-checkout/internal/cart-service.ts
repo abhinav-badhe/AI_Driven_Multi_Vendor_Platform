@@ -2,7 +2,7 @@ import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
 import { RbacPolicy } from '../../identity/index.js';
-import type { ListingService } from '../../marketplace/index.js';
+import type { ListingService, IMarketplaceReader } from '../../marketplace/index.js';
 import { CartRepository } from './cart-repository.js';
 import {
   ValidationError,
@@ -49,13 +49,15 @@ export interface UpdateCartItemQuantityInput {
   quantity: number;
 }
 
-export class CartService {
+import type { ICartService } from './cart-checkout-models.js';
+
+export class CartService implements ICartService {
   private readonly repo: CartRepository;
 
   constructor(
     db: DatabaseConnection,
     _logger: Logger,
-    private readonly listingService: ListingService,
+    private readonly listingService: IMarketplaceReader | ListingService,
   ) {
     this.repo = new CartRepository(db);
   }

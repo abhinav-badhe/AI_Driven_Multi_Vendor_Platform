@@ -9,6 +9,7 @@ import type {
   RagService,
   WhatsAppAdapter,
   IAiStore,
+  IAiService,
   DocumentCategory,
 } from '../modules/ai/index.js';
 
@@ -17,6 +18,7 @@ export interface AiRoutesOptions {
   ragService: RagService;
   whatsAppAdapter: WhatsAppAdapter;
   store: IAiStore;
+  aiService?: IAiService | undefined;
   whatsAppWebhookSecret?: string | undefined;
   whatsAppVerifyToken?: string | undefined;
 }
@@ -88,6 +90,7 @@ export function registerAiRoutes(
     ragService,
     whatsAppAdapter,
     store,
+    aiService,
     whatsAppWebhookSecret,
     whatsAppVerifyToken,
   } = options;
@@ -102,7 +105,8 @@ export function registerAiRoutes(
 
       const body = chatBodySchema.parse(req.body);
 
-      const response = await orchestrator.processMessage({
+      const runner = aiService ?? orchestrator;
+      const response = await runner.processMessage({
         actor,
         tenantId: actor.tenantId,
         channel: body.channel,
@@ -125,6 +129,18 @@ export function registerAiRoutes(
       RbacPolicy.requirePermission(actor, 'ai:chat');
 
       const { id } = req.params as { id: string };
+
+      if (aiService) {
+        const result = await aiService.getConversation(actor, id);
+        if (!result) {
+          return reply.status(404).send({ error: 'Conversation not found' });
+        }
+        if (actor.role === 'CUSTOMER' && result.conversation.customerId && result.conversation.customerId !== actor.userId) {
+          throw new ForbiddenError('Cannot inspect another customer\'s conversation history');
+        }
+        return reply.status(200).send(result);
+      }
+
       const conv = await store.getConversationById(actor.tenantId, id);
       if (!conv) {
         return reply.status(404).send({ error: 'Conversation not found' });
@@ -154,7 +170,7 @@ export function registerAiRoutes(
 
       const body = ingestDocBodySchema.parse(req.body);
 
-      const result = await ragService.ingestDocument({
+      const input = {
         tenantId: actor.tenantId,
         documentId: body.documentId,
         title: body.title,
@@ -163,7 +179,11 @@ export function registerAiRoutes(
         sourceType: body.sourceType,
         sourceId: body.sourceId,
         metadata: body.metadata,
-      });
+      };
+
+      const result = aiService
+        ? await aiService.ingestDocument(actor, input)
+        : await ragService.ingestDocument(input);
 
       return reply.status(201).send({
         document: result.document,
@@ -182,7 +202,9 @@ export function registerAiRoutes(
       RbacPolicy.requirePermission(actor, 'ai:documents:read');
 
       const query = (req.query as { category?: DocumentCategory } | undefined) ?? {};
-      const docs = await store.listDocuments(actor.tenantId, query.category);
+      const docs = aiService
+        ? await aiService.listDocuments(actor, query.category)
+        : await store.listDocuments(actor.tenantId, query.category);
       return reply.status(200).send({ documents: docs });
     },
   );
@@ -196,7 +218,11 @@ export function registerAiRoutes(
       RbacPolicy.requirePermission(actor, 'ai:documents:manage');
 
       const { id } = req.params as { id: string };
-      await ragService.deleteDocument(actor.tenantId, id);
+      if (aiService) {
+        await aiService.deleteDocument(actor, id);
+      } else {
+        await ragService.deleteDocument(actor.tenantId, id);
+      }
       return reply.status(200).send({ message: 'Document archived and vectors deactivated' });
     },
   );
@@ -210,12 +236,14 @@ export function registerAiRoutes(
       RbacPolicy.requirePermission(actor, 'ai:diagnostics:read');
 
       const body = ragQueryBodySchema.parse(req.body);
-      const result = await ragService.retrieveKnowledge(
-        actor.tenantId,
-        body.query,
-        body.category,
-        body.topK,
-      );
+      const result = aiService
+        ? await aiService.queryRag(actor, body.query, body.category, body.topK)
+        : await ragService.retrieveKnowledge(
+            actor.tenantId,
+            body.query,
+            body.category,
+            body.topK,
+          );
 
       return reply.status(200).send(result);
     },
@@ -440,7 +468,7 @@ export function registerAiRoutes(
 
       const limit = Number((req.query as { limit?: string } | undefined)?.limit ?? 100);
       const logs = await store.listAuditLogs(actor.tenantId, limit);
-      return reply.status(200).send({ logs });
+      return reply.status(200).send({ logs, records: logs });
     },
   );
 }

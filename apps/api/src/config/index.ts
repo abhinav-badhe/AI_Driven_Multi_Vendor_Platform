@@ -57,6 +57,7 @@ export function parseConfig(envSource: Record<string, string | undefined>): AppC
       accessTokenSecret: raw.ACCESS_TOKEN_SECRET,
       accessTokenTtlSeconds: raw.ACCESS_TOKEN_TTL_SECONDS,
       refreshTokenTtlSeconds: raw.REFRESH_TOKEN_TTL_SECONDS,
+      verificationMode: raw.AUTH_VERIFICATION_MODE,
     },
     observability: {
       serviceName: raw.SERVICE_NAME,
@@ -65,6 +66,63 @@ export function parseConfig(envSource: Record<string, string | undefined>): AppC
     },
     search: {
       storeAdapter: raw.SEARCH_STORE_ADAPTER ?? 'postgres',
+      serviceUrl: raw.SEARCH_SERVICE_URL || undefined,
+      timeoutMs: raw.SEARCH_SERVICE_TIMEOUT_MS,
+    },
+    recommendations: {
+      storeAdapter: raw.RECOMMENDATION_STORE_ADAPTER ?? 'postgres',
+      serviceUrl: raw.RECOMMENDATION_SERVICE_URL || undefined,
+      timeoutMs: raw.RECOMMENDATION_SERVICE_TIMEOUT_MS,
+    },
+    analytics: {
+      mode: raw.ANALYTICS_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.ANALYTICS_SERVICE_URL || undefined,
+      timeoutMs: raw.ANALYTICS_SERVICE_TIMEOUT_MS,
+    },
+    customer: {
+      mode: raw.CUSTOMER_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.CUSTOMER_SERVICE_URL || undefined,
+      timeoutMs: raw.CUSTOMER_SERVICE_TIMEOUT_MS,
+    },
+    promotion: {
+      mode: raw.PROMOTION_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.PROMOTION_SERVICE_URL || undefined,
+      timeoutMs: raw.PROMOTION_SERVICE_TIMEOUT_MS,
+    },
+    merchant: {
+      mode: raw.MERCHANT_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.MERCHANT_SERVICE_URL || undefined,
+      timeoutMs: raw.MERCHANT_SERVICE_TIMEOUT_MS,
+    },
+    catalog: {
+      mode: raw.CATALOG_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.CATALOG_SERVICE_URL || undefined,
+      timeoutMs: raw.CATALOG_SERVICE_TIMEOUT_MS,
+    },
+    marketplace: {
+      mode: raw.MARKETPLACE_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.MARKETPLACE_SERVICE_URL || undefined,
+      timeoutMs: raw.MARKETPLACE_SERVICE_TIMEOUT_MS,
+    },
+    inventory: {
+      mode: raw.INVENTORY_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.INVENTORY_SERVICE_URL || undefined,
+      timeoutMs: raw.INVENTORY_SERVICE_TIMEOUT_MS,
+    },
+    cart: {
+      mode: raw.CART_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.CART_SERVICE_URL || undefined,
+      timeoutMs: raw.CART_SERVICE_TIMEOUT_MS,
+    },
+    checkout: {
+      mode: raw.CHECKOUT_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.CHECKOUT_SERVICE_URL || undefined,
+      timeoutMs: raw.CHECKOUT_SERVICE_TIMEOUT_MS,
+    },
+    orders: {
+      mode: raw.ORDER_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.ORDER_SERVICE_URL || undefined,
+      timeoutMs: raw.ORDER_SERVICE_TIMEOUT_MS,
     },
     notifications: {
       resendApiKey: raw.RESEND_API_KEY || undefined,
@@ -76,6 +134,15 @@ export function parseConfig(envSource: Record<string, string | undefined>): AppC
         .replace(/^[`'"]+|[`'"]+$/g, '')
         .trim(),
       frontendUrl: raw.FRONTEND_URL ?? 'http://localhost:3000',
+      clientMode: raw.NOTIFICATION_CLIENT_MODE,
+      serviceUrl: raw.NOTIFICATION_SERVICE_URL || undefined,
+      serviceKey: raw.NOTIFICATION_SERVICE_KEY || undefined,
+      timeoutMs: raw.NOTIFICATION_SERVICE_TIMEOUT_MS,
+    },
+    ml: {
+      executionMode: raw.ML_EXECUTION_MODE,
+      serviceUrl: raw.ML_SERVICE_URL || undefined,
+      timeoutMs: raw.ML_SERVICE_TIMEOUT_MS,
     },
     whatsapp: {
       provider:
@@ -90,14 +157,44 @@ export function parseConfig(envSource: Record<string, string | undefined>): AppC
       apiVersion: raw.WHATSAPP_API_VERSION ?? 'v20.0',
     },
     payment: {
+      mode: raw.PAYMENT_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.PAYMENT_SERVICE_URL || undefined,
+      timeoutMs: raw.PAYMENT_SERVICE_TIMEOUT_MS,
       provider:
         raw.PAYMENT_PROVIDER ??
-        (raw.STRIPE_SECRET_KEY && raw.STRIPE_SECRET_KEY.startsWith('sk_') ? 'stripe' : 'mock'),
+        (raw.RAZORPAY_KEY_ID
+          ? 'razorpay'
+          : raw.STRIPE_SECRET_KEY && raw.STRIPE_SECRET_KEY.startsWith('sk_')
+          ? 'stripe'
+          : 'mock'),
       secretKey: raw.STRIPE_SECRET_KEY || undefined,
-      webhookSecret: raw.STRIPE_WEBHOOK_SECRET || 'whsec_mock_default_secret_for_tests',
+      webhookSecret: raw.STRIPE_WEBHOOK_SECRET || raw.RAZORPAY_WEBHOOK_SECRET || 'whsec_mock_default_secret_for_tests',
       publishableKey: raw.STRIPE_PUBLISHABLE_KEY || undefined,
       apiVersion: raw.STRIPE_API_VERSION || undefined,
       webhookToleranceSeconds: raw.STRIPE_WEBHOOK_TOLERANCE_SECONDS ?? 300,
+      razorpayKeyId: raw.RAZORPAY_KEY_ID || undefined,
+      razorpayKeySecret: raw.RAZORPAY_KEY_SECRET || undefined,
+      razorpayWebhookSecret: raw.RAZORPAY_WEBHOOK_SECRET || undefined,
+    },
+    fulfillment: {
+      mode: raw.FULFILLMENT_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.FULFILLMENT_SERVICE_URL || undefined,
+      timeoutMs: raw.FULFILLMENT_SERVICE_TIMEOUT_MS,
+    },
+    settlement: {
+      mode: raw.SETTLEMENT_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.SETTLEMENT_SERVICE_URL || undefined,
+      timeoutMs: raw.SETTLEMENT_SERVICE_TIMEOUT_MS,
+    },
+    eventBroker: {
+      mode: raw.EVENT_BROKER_MODE ?? 'local',
+      serviceUrl: raw.EVENT_BROKER_URL || undefined,
+      timeoutMs: raw.EVENT_BROKER_TIMEOUT_MS,
+    },
+    ai: {
+      mode: raw.AI_SERVICE_MODE ?? 'local',
+      serviceUrl: raw.AI_SERVICE_URL || undefined,
+      timeoutMs: raw.AI_SERVICE_TIMEOUT_MS,
     },
     shipping: {
       provider:

@@ -1,7 +1,7 @@
 # ml/predict.py
 """
 Asynchronous Model Inference / Prediction Generation Entry Point.
-Loads serialized model artifact, executes inference, and returns structured predictions.
+Delegates inference logic to ml.inference.engine while preserving CLI arguments and JSON IPC.
 """
 import argparse
 import json
@@ -11,61 +11,7 @@ import sys
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import joblib
-import numpy as np
-
-
-def generate_predictions(payload: dict) -> dict:
-    artifact_path = payload["artifactPath"]
-    features_input = payload.get("features", [])
-    model_type = payload.get("modelType")
-
-    if not os.path.exists(artifact_path):
-        return {
-            "success": False,
-            "error": f"Artifact not found: {artifact_path}",
-        }
-
-    artifact = joblib.load(artifact_path)
-    model = artifact["model"]
-
-    if not features_input:
-        return {"success": True, "predictions": []}
-
-    results = []
-    vectors = [item["featureVector"] for item in features_input]
-    X = np.array(vectors)
-
-    if model_type == "DEMAND_FORECASTING":
-        preds = model.predict(X)
-        for i, item in enumerate(features_input):
-            val = float(preds[i])
-            results.append({
-                "entityId": item["entityId"],
-                "predictionValue": round(val, 2),
-                "probability": None,
-                "confidence": 0.85,
-            })
-    elif model_type in ["STOCKOUT_RISK", "PURCHASE_PROPENSITY", "ANOMALY_DETECTION"]:
-        probas = model.predict_proba(X)
-        for i, item in enumerate(features_input):
-            row = np.asarray(probas[i]).ravel()
-            # Binary classifiers emit [P(class 0), P(class 1)]; use the
-            # positive-class probability, falling back to a single score.
-            p = float(row[1]) if row.size > 1 else float(row[0])
-            results.append({
-                "entityId": item["entityId"],
-                "predictionValue": round(p, 4),
-                "probability": round(p, 4),
-                "confidence": round(abs(p - 0.5) * 2.0, 4),
-            })
-    else:
-        return {"success": False, "error": f"Unknown model type: {model_type}"}
-
-    return {
-        "success": True,
-        "predictions": results,
-    }
+from ml.inference.engine import generate_predictions
 
 
 def main():

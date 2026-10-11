@@ -126,7 +126,7 @@ def train_model(config: dict) -> dict:
     # 5. Model Serialization
     safe_tenant = tenant_id.replace("/", "_").replace("\\", "_")
     artifact_filename = f"{safe_tenant}_{model_type}_{version}.joblib"
-    artifact_path = os.path.join(artifact_dir, artifact_filename)
+    physical_path = os.path.join(artifact_dir, artifact_filename)
     joblib.dump({
         "model": model,
         "feature_names": feature_names,
@@ -134,7 +134,10 @@ def train_model(config: dict) -> dict:
         "version": version,
         "tenant_id": tenant_id,
         "seed": seed,
-    }, artifact_path)
+    }, physical_path)
+
+    # Persist environment-independent relative artifact key (normalized with forward slashes)
+    artifact_key = f".ml_artifacts/{artifact_filename}"
 
     model_id = f"mdl-{uuid.uuid4().hex[:12]}"
 
@@ -158,7 +161,7 @@ def train_model(config: dict) -> dict:
             "test": test_metrics,
         },
         "sampleCount": len(X),
-        "artifactPath": artifact_path,
+        "artifactPath": artifact_key,
         "evaluatedAt": now_iso,
         "approvedAt": now_iso if is_approved else None,
     }

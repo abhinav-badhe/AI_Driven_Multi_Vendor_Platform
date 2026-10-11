@@ -20,7 +20,9 @@ export interface PublishResult {
   deadLetteredCount: number;
 }
 
-export class OutboxService {
+import type { IOutboxService } from './event-models.js';
+
+export class OutboxService implements IOutboxService {
   constructor(
     private readonly db: DatabaseConnection,
     private readonly outboxRepo: OutboxRepository,

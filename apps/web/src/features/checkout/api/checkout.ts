@@ -190,4 +190,13 @@ export const checkoutApi = {
       method: 'DELETE',
     });
   },
+
+  getPaymentConfig: async (): Promise<{
+    provider: 'razorpay' | 'stripe' | 'mock';
+    razorpayKeyId?: string | null;
+    stripePublishableKey?: string | null;
+    currency: string;
+  }> => {
+    return apiClient('/payments/config');
+  },
 };

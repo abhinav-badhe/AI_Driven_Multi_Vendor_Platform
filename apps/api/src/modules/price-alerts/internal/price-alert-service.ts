@@ -2,7 +2,7 @@ import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
 import { ForbiddenError, NotFoundError } from '../../../errors/app-error.js';
-import type { NotificationService } from '../../notifications/index.js';
+import type { INotificationClient } from '../../notifications/index.js';
 import { PriceAlertRepository } from './price-alert-repository.js';
 
 export interface PriceWatchDto {
@@ -33,7 +33,7 @@ export class PriceAlertService {
 
   constructor(
     private readonly db: DatabaseConnection,
-    private readonly notifications: NotificationService,
+    private readonly notifications: INotificationClient,
     private readonly logger: Logger,
     private readonly frontendUrl: string,
   ) {
@@ -91,6 +91,59 @@ export class PriceAlertService {
   }
 
   /**
+   * Reconciles all delivered (SENT) notifications with product_price_watches.
+   * Completely independent of current floor prices or live catalog availability.
+   * Idempotent: will not double-increment alert_count or regress last_alerted_price.
+   */
+  async reconcileDeliveredAlerts(sinceDays = 90): Promise<{ reconciled: number }> {
+    const delivered = await this.repo.findDeliveredAlerts(sinceDays);
+    let reconciled = 0;
+    for (const item of delivered) {
+      try {
+        const updated = await this.repo.markAlerted(
+          item.customer_tenant_id,
+          item.product_id,
+          item.price_minor,
+        );
+        if (updated) {
+          reconciled += 1;
+        }
+      } catch (err: unknown) {
+        this.logger.warn('Failed to reconcile delivered price alert', {
+          customerTenantId: item.customer_tenant_id,
+          productId: item.product_id,
+          priceMinor: item.price_minor,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    return { reconciled };
+  }
+
+  async reconcileDeliveredAlertsForProduct(productId: string): Promise<number> {
+    const delivered = await this.repo.findDeliveredAlertsForProduct(productId);
+    let count = 0;
+    for (const item of delivered) {
+      try {
+        const updated = await this.repo.markAlerted(
+          item.customer_tenant_id,
+          item.product_id,
+          item.price_minor,
+        );
+        if (updated) {
+          count += 1;
+        }
+      } catch (err: unknown) {
+        this.logger.warn('Failed to reconcile delivered price alert for product', {
+          productId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    return count;
+  }
+
+  /**
    * Checks one product for a genuine drop and emails eligible watchers.
    * Called after listing price changes and by the admin sweep.
    */
@@ -122,7 +175,7 @@ export class PriceAlertService {
       ].filter((l): l is string => l !== null);
 
       try {
-        await this.notifications.requestNotification({
+        const notifResult = await this.notifications.requestNotification({
           tenantId: watch.customer_tenant_id,
           customerId: watch.user_id,
           eventId: `price-drop:${productId}:${floor.price}`,
@@ -139,8 +192,29 @@ export class PriceAlertService {
             currency: floor.currency,
           },
         });
-        await this.repo.markAlerted(watch.customer_tenant_id, productId, floor.price);
-        alertsSent += 1;
+
+        if (notifResult.skipped) {
+          this.logger.info('Price-drop alert skipped by customer notification preferences', {
+            productId,
+            email: watch.email,
+            reason: notifResult.reason,
+          });
+        } else if (notifResult.status === 'SENT') {
+          // Delivered to recipient: safely record that watcher was alerted at this price floor.
+          await this.repo.markAlerted(watch.customer_tenant_id, productId, floor.price);
+          alertsSent += 1;
+        } else if (notifResult.status === 'PENDING') {
+          // Accepted and queued for asynchronous delivery by the notification processor.
+          // Crucial: Do NOT mark alerted in repository until delivery is confirmed (SENT).
+          // Idempotency on (eventId:type:recipient:channel) prevents duplicate queued records.
+          alertsSent += 1;
+        } else if (notifResult.status === 'DEAD_LETTERED') {
+          this.logger.warn('Price-drop notification is dead-lettered; not marking alerted', {
+            productId,
+            email: watch.email,
+            notificationId: notifResult.notificationId,
+          });
+        }
       } catch (err: unknown) {
         this.logger.warn('Price-drop alert failed for watcher', {
           productId,
@@ -178,7 +252,11 @@ export class PriceAlertService {
   }
 
   /** Admin sweep across recently watched products. */
-  async sweepAll(sinceDays = 90): Promise<{ productsChecked: number; alertsSent: number }> {
+  async sweepAll(sinceDays = 90): Promise<{ productsChecked: number; alertsSent: number; reconciled: number }> {
+    // 1. Reconcile all delivered notifications across all products, regardless of current floor price or stock
+    const { reconciled } = await this.reconcileDeliveredAlerts(sinceDays);
+
+    // 2. Sweep watched products for newly eligible price drops
     const productIds = await this.repo.distinctWatchedProductIds(sinceDays);
     let alertsSent = 0;
     for (const productId of productIds) {
@@ -192,6 +270,6 @@ export class PriceAlertService {
         });
       }
     }
-    return { productsChecked: productIds.length, alertsSent };
+    return { productsChecked: productIds.length, alertsSent, reconciled };
   }
 }

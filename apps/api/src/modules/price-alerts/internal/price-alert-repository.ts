@@ -81,6 +81,7 @@ export class PriceAlertRepository {
    * alerted at an equal-or-lower price.
    */
   async findAlertCandidates(productId: string, currentMinMinor: number): Promise<WatchCandidateRow[]> {
+    const eventId = `price-drop:${productId}:${currentMinMinor}`;
     const res = await this.db.query<WatchCandidateRow>(
       `SELECT w.customer_tenant_id, w.product_id,
               w.last_seen_price, w.last_seen_currency, w.last_alerted_price,
@@ -90,12 +91,15 @@ export class PriceAlertRepository {
          ON tm.tenant_id = w.customer_tenant_id AND tm.status = 'ACTIVE'
        JOIN users u
          ON u.id = tm.user_id AND u.status = 'ACTIVE' AND u.email_verified_at IS NOT NULL
+       LEFT JOIN notifications n
+         ON n.tenant_id = w.customer_tenant_id AND n.event_id = $3
        WHERE w.product_id = $1
          AND w.unsubscribed = FALSE
          AND w.last_seen_price IS NOT NULL
          AND w.last_seen_price > $2 * 1.01
-         AND (w.last_alerted_price IS NULL OR w.last_alerted_price > $2)`,
-      [productId, currentMinMinor],
+         AND (w.last_alerted_price IS NULL OR w.last_alerted_price > $2)
+         AND n.id IS NULL`,
+      [productId, currentMinMinor, eventId],
     );
     return res.rows.map((r) => ({
       ...r,
@@ -104,15 +108,176 @@ export class PriceAlertRepository {
     }));
   }
 
-  async markAlerted(customerTenantId: string, productId: string, priceMinor: number): Promise<void> {
-    await this.db.query(
+  /**
+   * Idempotently marks a watch as alerted at a specific price floor.
+   * Guards against duplicate increments: only updates if last_alerted_price
+   * is null or higher than the alerted price.
+   */
+  async markAlerted(customerTenantId: string, productId: string, priceMinor: number): Promise<boolean> {
+    const res = await this.db.query(
       `UPDATE product_price_watches
        SET last_alerted_price = $3,
            alert_count = alert_count + 1,
            updated_at = CURRENT_TIMESTAMP
-       WHERE customer_tenant_id = $1 AND product_id = $2`,
+       WHERE customer_tenant_id = $1
+         AND product_id = $2
+         AND (last_alerted_price IS NULL OR last_alerted_price > $3)`,
       [customerTenantId, productId, priceMinor],
     );
+    return (res.rowCount ?? 0) > 0;
+  }
+
+  /**
+   * Finds all delivered (SENT) price drop notifications across all products within the horizon.
+   * Completely independent of current floor prices or live catalog availability.
+   */
+  async findDeliveredAlerts(sinceDays = 90): Promise<Array<{
+    notification_id: string;
+    customer_tenant_id: string;
+    product_id: string;
+    price_minor: number;
+  }>> {
+    const cutoff = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000).toISOString();
+    const res = await this.db.query<{
+      notification_id: string;
+      customer_tenant_id: string;
+      event_id: string;
+      payload: unknown;
+    }>(
+      `SELECT n.id AS notification_id,
+              n.tenant_id AS customer_tenant_id,
+              n.event_id,
+              n.payload
+       FROM notifications n
+       WHERE n.notification_type = 'PRICE_DROP_ALERT'
+         AND n.status = 'SENT'
+         AND n.updated_at > $1
+       ORDER BY n.updated_at ASC`,
+      [cutoff],
+    );
+
+    const results: Array<{
+      notification_id: string;
+      customer_tenant_id: string;
+      product_id: string;
+      price_minor: number;
+    }> = [];
+
+    for (const row of res.rows) {
+      let productId: string | undefined;
+      let priceMinor: number | undefined;
+
+      if (row.payload && typeof row.payload === 'object') {
+        const p = row.payload as Record<string, unknown>;
+        if (typeof p.productId === 'string') productId = p.productId;
+        if (typeof p.newPrice === 'number') priceMinor = p.newPrice;
+      } else if (typeof row.payload === 'string') {
+        try {
+          const p = JSON.parse(row.payload) as Record<string, unknown>;
+          if (typeof p.productId === 'string') productId = p.productId;
+          if (typeof p.newPrice === 'number') priceMinor = p.newPrice;
+        } catch {
+          // Fall back to event_id
+        }
+      }
+
+      if (!productId || priceMinor === undefined) {
+        if (row.event_id && typeof row.event_id === 'string') {
+          const parts = row.event_id.split(':');
+          if (parts.length >= 3 && parts[0] === 'price-drop') {
+            productId = productId ?? parts[1];
+            const parsed = Number(parts[2]);
+            if (!isNaN(parsed)) priceMinor = priceMinor ?? parsed;
+          }
+        }
+      }
+
+      if (productId && priceMinor !== undefined) {
+        results.push({
+          notification_id: row.notification_id,
+          customer_tenant_id: row.customer_tenant_id,
+          product_id: productId,
+          price_minor: priceMinor,
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Finds all delivered (SENT) price drop notifications for a specific product.
+   */
+  async findDeliveredAlertsForProduct(productId: string): Promise<Array<{
+    notification_id: string;
+    customer_tenant_id: string;
+    product_id: string;
+    price_minor: number;
+  }>> {
+    const res = await this.db.query<{
+      notification_id: string;
+      customer_tenant_id: string;
+      event_id: string;
+      payload: unknown;
+    }>(
+      `SELECT n.id AS notification_id,
+              n.tenant_id AS customer_tenant_id,
+              n.event_id,
+              n.payload
+       FROM notifications n
+       WHERE n.notification_type = 'PRICE_DROP_ALERT'
+         AND n.status = 'SENT'
+         AND n.event_id LIKE $1
+       ORDER BY n.updated_at ASC`,
+      [`price-drop:${productId}:%`],
+    );
+
+    const results: Array<{
+      notification_id: string;
+      customer_tenant_id: string;
+      product_id: string;
+      price_minor: number;
+    }> = [];
+
+    for (const row of res.rows) {
+      let prodId: string | undefined = productId;
+      let priceMinor: number | undefined;
+
+      if (row.payload && typeof row.payload === 'object') {
+        const p = row.payload as Record<string, unknown>;
+        if (typeof p.productId === 'string') prodId = p.productId;
+        if (typeof p.newPrice === 'number') priceMinor = p.newPrice;
+      } else if (typeof row.payload === 'string') {
+        try {
+          const p = JSON.parse(row.payload) as Record<string, unknown>;
+          if (typeof p.productId === 'string') prodId = p.productId;
+          if (typeof p.newPrice === 'number') priceMinor = p.newPrice;
+        } catch {
+          // Fall back to event_id
+        }
+      }
+
+      if (priceMinor === undefined) {
+        if (row.event_id && typeof row.event_id === 'string') {
+          const parts = row.event_id.split(':');
+          if (parts.length >= 3 && parts[0] === 'price-drop') {
+            const parsed = Number(parts[2]);
+            if (!isNaN(parsed)) priceMinor = parsed;
+          }
+        }
+      }
+
+      if (prodId && priceMinor !== undefined) {
+        results.push({
+          notification_id: row.notification_id,
+          customer_tenant_id: row.customer_tenant_id,
+          product_id: prodId,
+          price_minor: priceMinor,
+        });
+      }
+    }
+
+    return results;
   }
 
   async productExists(productId: string): Promise<boolean> {

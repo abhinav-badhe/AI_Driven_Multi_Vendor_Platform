@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ReceiptText } from "lucide-react";
+import { ReceiptText, Search } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { apiClient } from "../../api/client";
 import { Button } from "../../components/ui/button";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../..
 import { Badge } from "../../components/ui/badge";
 import { Alert } from "../../components/ui/alert";
 import { EmptyState, Skeleton } from "../../components/ui/empty";
+import { Input } from "../../components/ui/input";
 import { KpiCard } from "../../components/ui/kpi";
 import { Table, THead, TH, TD } from "../../components/ui/table";
 import { formatMoney } from "../../lib/format";
@@ -42,12 +43,23 @@ const typeVariant = (t: LedgerEntryDto["entryType"]) =>
   : t === "REFUND" ? ("destructive" as const)
   : ("outline" as const);
 
+const TYPE_FILTERS: Array<{ label: string; value: LedgerEntryDto["entryType"] | "ALL" }> = [
+  { label: "All", value: "ALL" },
+  { label: "Earnings", value: "EARNING" },
+  { label: "Commissions", value: "COMMISSION" },
+  { label: "Fees", value: "FEE" },
+  { label: "Refunds", value: "REFUND" },
+  { label: "Payouts", value: "PAYOUT" },
+];
+
 export const MerchantFinance = () => {
   const { user } = useAuth();
   const [summary, setSummary] = useState<MerchantFinancialSummaryDto | null>(null);
   const [entries, setEntries] = useState<LedgerEntryDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<LedgerEntryDto["entryType"] | "ALL">("ALL");
 
   const loadFinance = async () => {
     if (!user) return;
@@ -76,7 +88,7 @@ export const MerchantFinance = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-3 p-4" aria-label="Loading finance">
+      <div className="space-y-4 p-4" aria-label="Loading finance">
         <Skeleton className="h-6 w-48" />
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -89,11 +101,23 @@ export const MerchantFinance = () => {
 
   const currency = summary?.currency ?? "INR";
 
+  const filteredEntries = entries.filter((entry) => {
+    if (typeFilter !== "ALL" && entry.entryType !== typeFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const matchId = entry.id.toLowerCase().includes(q);
+      const matchSource = `${entry.sourceType} ${entry.sourceId}`.toLowerCase().includes(q);
+      const matchDesc = (entry.description || "").toLowerCase().includes(q);
+      if (!matchId && !matchSource && !matchDesc) return false;
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-4 p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Finance</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Finance & Settlement ({entries.length})</h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
             Earnings, commissions, payouts, and the settlement ledger.
           </p>
@@ -130,15 +154,45 @@ export const MerchantFinance = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Ledger</CardTitle>
+          <CardTitle>Ledger Records</CardTitle>
           <CardDescription>Every journal keeps debits equal to credits.</CardDescription>
         </CardHeader>
-        <CardContent>
-          {entries.length === 0 ? (
+        <CardContent className="space-y-4">
+          {/* Search and filter pills for ledger */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[200px] max-w-sm flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search ledger by source, ID, description…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {TYPE_FILTERS.map((t) => (
+                <Button
+                  key={t.value}
+                  variant={typeFilter === t.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTypeFilter(t.value)}
+                >
+                  {t.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {filteredEntries.length === 0 ? (
             <EmptyState
               icon={ReceiptText}
-              title="No ledger entries yet"
-              description="Confirmed orders will append journals here automatically."
+              title={entries.length === 0 ? "No ledger entries yet" : "No matching ledger entries"}
+              description={
+                entries.length === 0
+                  ? "Confirmed orders will append journals here automatically."
+                  : "Try adjusting your search query or type filter."
+              }
             />
           ) : (
             <Table>
@@ -152,7 +206,7 @@ export const MerchantFinance = () => {
                 </tr>
               </THead>
               <tbody>
-                {entries.map((entry) => (
+                {filteredEntries.map((entry) => (
                   <tr key={entry.id}>
                     <TD className="whitespace-nowrap text-muted-foreground">
                       {new Date(entry.createdAt).toLocaleString()}

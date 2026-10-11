@@ -10,9 +10,9 @@ import {
   InvalidStateTransitionError,
 } from '../../../errors/app-error.js';
 import { RbacPolicy, type AuthorizedActor } from '../../identity/rbac/policy.js';
-import type { OrderService, SellerOrderDto, OrderItemDto } from '../../orders/index.js';
-import type { PaymentService } from '../../payment/index.js';
-import type { InventoryService } from '../../inventory/index.js';
+import type { OrderService, IOrderService, SellerOrderDto, OrderItemDto } from '../../orders/index.js';
+import type { PaymentService, IPaymentService } from '../../payment/index.js';
+import type { InventoryService, IInventoryService } from '../../inventory/index.js';
 import type { OutboxService } from '../../events/index.js';
 import { EventTypes, createDomainEvent } from '../../events/index.js';
 import {
@@ -135,7 +135,9 @@ export interface ReturnDto {
   items?: ReturnItemDto[] | undefined;
 }
 
-export class FulfillmentService {
+import type { IFulfillmentService } from './fulfillment-models.js';
+
+export class FulfillmentService implements IFulfillmentService {
   private readonly repo: FulfillmentRepository;
   private readonly carrierProvider: CarrierProvider;
   private readonly callbackSecret: string;
@@ -145,9 +147,9 @@ export class FulfillmentService {
   constructor(
     private readonly db: DatabaseConnection,
     private readonly logger: Logger,
-    private readonly orderService: OrderService,
-    private readonly paymentService: PaymentService,
-    private readonly inventoryService: InventoryService,
+    private readonly orderService: IOrderService | OrderService,
+    private readonly paymentService: IPaymentService | PaymentService,
+    private readonly inventoryService: IInventoryService | InventoryService,
     carrierProvider?: CarrierProvider,
     callbackSecret = 'whsec_carrier_mock_secret',
     outboxService?: OutboxService | undefined,

@@ -772,4 +772,71 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
       expect(refreshCalls.length).toBe(1);
     });
   });
+
+  // ── Two-Factor Authentication (2FA) ──────────────────────────────────────────
+
+  describe('Two-Factor Authentication (2FA) Client Handling', () => {
+    it('27. login() returns requires2FA and tempToken when 2FA is active', async () => {
+      const fetchMock = vi.fn();
+      global.fetch = fetchMock;
+
+      // Session restore fails
+      fetchMock.mockResolvedValueOnce(failResponse(401));
+      // Login returns 2FA challenge
+      fetchMock.mockResolvedValueOnce(okJson({ requires2FA: true, tempToken: 'temp-2fa-token-xyz' }));
+
+      let capturedAuth: any;
+      const Probe = () => { capturedAuth = useAuth(); return null; };
+      await act(async () => {
+        render(<AuthProvider><Probe /></AuthProvider>);
+      });
+      await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
+
+      let outcome: any;
+      await act(async () => {
+        outcome = await capturedAuth.login({ email: 'user@example.com', password: 'password123' });
+      });
+
+      expect(outcome.requires2FA).toBe(true);
+      expect(outcome.tempToken).toBe('temp-2fa-token-xyz');
+      expect(capturedAuth.isAuthenticated).toBe(false);
+    });
+
+    it('28. verify2FALogin() completes session setup and authenticates user', async () => {
+      const fetchMock = vi.fn();
+      global.fetch = fetchMock;
+
+      // Session restore fails
+      fetchMock.mockResolvedValueOnce(failResponse(401));
+      // verify-login returns access token
+      fetchMock.mockResolvedValueOnce(okJson({ accessToken: ACCESS_TOKEN }));
+      // /auth/me returns user details
+      fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE));
+
+      let capturedAuth: any;
+      const Probe = () => { capturedAuth = useAuth(); return null; };
+      await act(async () => {
+        render(<AuthProvider><Probe /></AuthProvider>);
+      });
+      await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
+
+      let userResult: any;
+      await act(async () => {
+        userResult = await capturedAuth.verify2FALogin('temp-2fa-token-xyz', '123456');
+      });
+
+      expect(userResult.userId).toBe(ME_RESPONSE.userId);
+      expect(capturedAuth.isAuthenticated).toBe(true);
+      expect(capturedAuth.user.email).toBe(ME_RESPONSE.email);
+
+      // Verify POST call was made with code and tempToken
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/2fa/verify-login'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ tempToken: 'temp-2fa-token-xyz', code: '123456' }),
+        })
+      );
+    });
+  });
 });

@@ -34,6 +34,26 @@ import {
 import { NotificationRepository } from './internal/notification-repository.js';
 import { NotificationService } from './internal/notification-service.js';
 import { NotificationEventConsumer } from './internal/notification-consumer.js';
+import {
+  type INotificationClient,
+  LocalNotificationClient,
+} from './internal/notification-client.js';
+import {
+  HttpNotificationClient,
+  HttpNotificationClientError,
+  type HttpNotificationClientConfig,
+  type HttpNotificationClientOptions,
+} from './internal/http-notification-client.js';
+import {
+  HttpEventForwarder,
+  HttpEventForwarderError,
+  type HttpEventForwarderConfig,
+  NOTIFICATION_EVENT_TYPES,
+  type NotificationRelevantEventType,
+  CONSUMER_NAME,
+  DEFAULT_MAX_RESPONSE_BYTES,
+  readBoundedText,
+} from './internal/http-event-forwarder.js';
 
 export type {
   NotificationChannel,
@@ -46,6 +66,11 @@ export type {
   EmailChannelProvider,
   SmsChannelProvider,
   PushChannelProvider,
+  INotificationClient,
+  HttpNotificationClientConfig,
+  HttpNotificationClientOptions,
+  HttpEventForwarderConfig,
+  NotificationRelevantEventType,
 };
 
 export {
@@ -56,6 +81,15 @@ export {
   NotificationRepository,
   NotificationService,
   NotificationEventConsumer,
+  LocalNotificationClient,
+  HttpNotificationClient,
+  HttpNotificationClientError,
+  HttpEventForwarder,
+  HttpEventForwarderError,
+  NOTIFICATION_EVENT_TYPES,
+  CONSUMER_NAME,
+  DEFAULT_MAX_RESPONSE_BYTES,
+  readBoundedText,
 };
 
 export interface NotificationModule {
@@ -67,12 +101,19 @@ export interface NotificationModule {
     smsProvider?: SmsChannelProvider,
     pushProvider?: PushChannelProvider,
   ): NotificationService;
+  createClient(service: NotificationService): INotificationClient;
+  createHttpClient(config: HttpNotificationClientConfig): INotificationClient;
   createConsumer(
     db: DatabaseConnection,
     transport: EventTransport,
     logger: Logger,
-    notificationService: NotificationService,
+    clientOrService: INotificationClient | NotificationService,
   ): NotificationEventConsumer;
+  createEventForwarder(
+    transport: EventTransport,
+    logger: Logger,
+    config: HttpEventForwarderConfig,
+  ): HttpEventForwarder;
   createDefaultProviders(): {
     emailProvider: EmailChannelProvider;
     smsProvider: SmsChannelProvider;
@@ -100,16 +141,35 @@ export const notificationModule: NotificationModule = {
       logger,
     );
   },
+  createClient(service: NotificationService): INotificationClient {
+    return new LocalNotificationClient(service);
+  },
+  createHttpClient(config: HttpNotificationClientConfig): INotificationClient {
+    return new HttpNotificationClient(config);
+  },
   createConsumer(
     db: DatabaseConnection,
     transport: EventTransport,
     logger: Logger,
-    notificationService: NotificationService,
+    clientOrService: INotificationClient | NotificationService,
   ): NotificationEventConsumer {
     const outboxRepo = new OutboxRepository();
-    const consumer = new NotificationEventConsumer(db, outboxRepo, transport, logger, notificationService);
+    const client: INotificationClient =
+      clientOrService instanceof NotificationService
+        ? new LocalNotificationClient(clientOrService)
+        : clientOrService;
+    const consumer = new NotificationEventConsumer(db, outboxRepo, transport, logger, client);
     consumer.registerSubscriptions();
     return consumer;
+  },
+  createEventForwarder(
+    transport: EventTransport,
+    logger: Logger,
+    config: HttpEventForwarderConfig,
+  ): HttpEventForwarder {
+    const forwarder = new HttpEventForwarder(config, logger);
+    forwarder.registerSubscriptions(transport);
+    return forwarder;
   },
   createDefaultProviders() {
     return {
@@ -119,3 +179,4 @@ export const notificationModule: NotificationModule = {
     };
   },
 };
+

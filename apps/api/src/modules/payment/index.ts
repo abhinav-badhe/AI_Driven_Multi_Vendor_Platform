@@ -1,6 +1,6 @@
 import type { DatabaseConnection } from '../../infra/database/connection.js';
 import type { Logger } from '../../observability/logger.js';
-import type { CheckoutService } from '../cart-checkout/index.js';
+import type { CheckoutService, ICheckoutReader } from '../cart-checkout/index.js';
 import { PaymentService, normalizePaymentMethod, paymentMethodFromMetadata } from './internal/payment-service.js';
 import {
   type PaymentProvider,
@@ -19,6 +19,12 @@ import {
   toStripeAmount,
   fromStripeAmount,
 } from './internal/stripe-payment-provider.js';
+import {
+  RazorpayPaymentProvider,
+  type RazorpayPaymentConfig,
+  toRazorpayAmount,
+  fromRazorpayAmount,
+} from './internal/razorpay-payment-provider.js';
 import type {
   CreatePaymentIntentInput,
   CreatePaymentAttemptInput,
@@ -58,18 +64,38 @@ export type {
 };
 
 import type { OutboxService } from '../events/index.js';
+import type {
+  IPaymentReader,
+  IPaymentService,
+} from './internal/payment-models.js';
+import { InMemoryPaymentStore } from './internal/in-memory-payment-store.js';
+import {
+  HttpPaymentClient,
+  type HttpPaymentClientOptions,
+} from './internal/http-payment-client.js';
+
+export type {
+  IPaymentReader,
+  IPaymentService,
+  HttpPaymentClientOptions,
+};
 
 export interface PaymentModule {
   readonly contextName: 'payment';
   createService(
     db: DatabaseConnection,
     logger: Logger,
-    checkoutService: CheckoutService,
+    checkoutService: ICheckoutReader | CheckoutService,
     outboxService: OutboxService,
     provider?: PaymentProvider,
     webhookSecret?: string,
     webhookToleranceSeconds?: number,
   ): PaymentService;
+  createHttpClient(
+    serviceUrl: string,
+    options?: HttpPaymentClientOptions,
+  ): HttpPaymentClient;
+  createInMemoryStore(): InMemoryPaymentStore;
 }
 
 export const paymentModule: PaymentModule = {
@@ -77,7 +103,7 @@ export const paymentModule: PaymentModule = {
   createService(
     db: DatabaseConnection,
     logger: Logger,
-    checkoutService: CheckoutService,
+    checkoutService: ICheckoutReader | CheckoutService,
     outboxService: OutboxService,
     provider?: PaymentProvider,
     webhookSecret?: string,
@@ -93,15 +119,30 @@ export const paymentModule: PaymentModule = {
       webhookToleranceSeconds,
     );
   },
+  createHttpClient(
+    serviceUrl: string,
+    options?: HttpPaymentClientOptions,
+  ): HttpPaymentClient {
+    return new HttpPaymentClient(serviceUrl, options);
+  },
+  createInMemoryStore(): InMemoryPaymentStore {
+    return new InMemoryPaymentStore();
+  },
 };
 
 export {
   PaymentService,
+  InMemoryPaymentStore,
+  HttpPaymentClient,
   MockPaymentProvider,
   StripePaymentProvider,
   type StripePaymentConfig,
   toStripeAmount,
   fromStripeAmount,
+  RazorpayPaymentProvider,
+  type RazorpayPaymentConfig,
+  toRazorpayAmount,
+  fromRazorpayAmount,
   normalizePaymentMethod,
   paymentMethodFromMetadata,
 };

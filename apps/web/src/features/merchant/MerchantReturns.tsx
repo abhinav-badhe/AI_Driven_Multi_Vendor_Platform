@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
-import { Inbox } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Inbox, Search } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { apiClient } from "../../api/client";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Alert } from "../../components/ui/alert";
-import { EmptyState, TableSkeleton } from "../../components/ui/empty";
+import { EmptyState, Skeleton } from "../../components/ui/empty";
+import { Input } from "../../components/ui/input";
 
 export interface ReturnItemDto {
   orderItemId: string;
@@ -23,6 +24,8 @@ export interface ReturnRequestDto {
   createdAt: string;
 }
 
+type ReturnStatusFilter = "ALL" | ReturnRequestDto["status"];
+
 const statusVariant = (s: ReturnRequestDto["status"]) =>
   s === "COMPLETED" ? ("success" as const)
   : s === "REJECTED" ? ("destructive" as const)
@@ -36,6 +39,8 @@ export const MerchantReturns = () => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ReturnStatusFilter>("ALL");
 
   const loadReturns = async () => {
     setIsLoading(true);
@@ -53,6 +58,19 @@ export const MerchantReturns = () => {
   useEffect(() => {
     loadReturns();
   }, [user]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return returns.filter((r) => {
+      if (statusFilter !== "ALL" && r.status !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        r.id.toLowerCase().includes(q) ||
+        r.sellerOrderId.toLowerCase().includes(q) ||
+        r.reason.toLowerCase().includes(q)
+      );
+    });
+  }, [returns, query, statusFilter]);
 
   const handleUpdate = async (
     ret: ReturnRequestDto,
@@ -93,35 +111,83 @@ export const MerchantReturns = () => {
       {notice && <Alert tone="success">{notice}</Alert>}
       {error && <Alert tone="error">{error}</Alert>}
 
-      {isLoading ? (
-        <div aria-label="Loading returns">
-          <TableSkeleton rows={4} />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 max-w-xs flex-1">
+          <Search
+            className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by RMA, order, or reason"
+            aria-label="Search returns"
+            className="pl-8"
+          />
         </div>
-      ) : returns.length === 0 ? (
+        <div className="flex gap-1" role="group" aria-label="Filter by return status">
+          {(["ALL", "REQUESTED", "APPROVED", "RECEIVED", "COMPLETED", "REJECTED"] as ReturnStatusFilter[]).map((s) => (
+            <Button
+              key={s}
+              variant={statusFilter === s ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStatusFilter(s)}
+            >
+              {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Loading returns">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-48" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon={Inbox}
           title="No return requests"
-          description="Customer return requests for your store will appear here."
+          description={
+            returns.length === 0
+              ? "Customer return requests for your store will appear here."
+              : "No return requests match this search or status filter."
+          }
         />
       ) : (
-        <div className="flex flex-col gap-3">
-          {returns.map((ret) => {
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((ret) => {
             const busy = actingId === ret.id;
             return (
               <Card key={ret.id}>
-                <CardContent className="flex flex-wrap items-center gap-3 p-4">
-                  <div className="min-w-0 flex-1 basis-56">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-mono text-xs">RMA {ret.id.slice(0, 8)}</p>
-                      <Badge variant={statusVariant(ret.status)}>{ret.status}</Badge>
+                <CardContent className="flex flex-col gap-2 p-4">
+                  <div className="flex gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">RMA #{ret.id.slice(0, 8)}</p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                        <span>Order #{ret.sellerOrderId.slice(0, 8)}</span>
+                        <span>·</span>
+                        <span>{new Date(ret.createdAt).toLocaleDateString()}</span>
+                      </p>
+                      <p className="mt-0.5 font-mono text-xs text-muted-foreground">{ret.id}</p>
                     </div>
-                    <p className="mt-1 text-[13px]">“{ret.reason}”</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {ret.items?.length || 1} {(ret.items?.length || 1) === 1 ? "item" : "items"} ·
-                      requested {new Date(ret.createdAt).toLocaleDateString()}
+                    <Badge variant={statusVariant(ret.status)} className="ml-auto shrink-0 self-start">
+                      {ret.status}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-sm font-medium text-foreground">
+                      “{ret.reason}”
                     </p>
                   </div>
-                  <div className="ml-auto flex shrink-0 flex-wrap gap-1.5">
+
+                  <p className="text-xs text-muted-foreground">
+                    {ret.items?.length || 1} {(ret.items?.length || 1) === 1 ? "return item" : "return items"} requested
+                  </p>
+
+                  <div className="flex items-center gap-1.5 border-t border-border pt-2.5">
                     {ret.status === "REQUESTED" && (
                       <>
                         <Button size="sm" disabled={busy} onClick={() => handleUpdate(ret, "APPROVED")}>

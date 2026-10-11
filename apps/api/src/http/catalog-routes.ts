@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
-import type { CatalogService } from '../modules/catalog/index.js';
+import type { CatalogService, ICatalogService } from '../modules/catalog/index.js';
 import type { ProductStatus, SkuStatus } from '../modules/catalog/index.js';
 import { createAuthMiddleware, createOptionalAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ValidationError } from '../errors/app-error.js';
@@ -15,7 +15,7 @@ import {
 export function registerCatalogRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
-  catalogService: CatalogService,
+  catalogService: ICatalogService | CatalogService,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
   const optionalAuth = createOptionalAuthMiddleware(identityService);

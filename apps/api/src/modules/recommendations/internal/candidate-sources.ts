@@ -1,5 +1,5 @@
 import type { IAnalyticsRecommendationReader } from '../../analytics/index.js';
-import type { CatalogService } from '../../catalog/index.js';
+import type { CatalogService, ICatalogReader } from '../../catalog/index.js';
 import type {
   IRecommendationCandidateSource,
   RecommendationCandidate,
@@ -14,7 +14,7 @@ export class TrendingCandidateSource implements IRecommendationCandidateSource {
 
   constructor(
     private readonly analyticsReader: IAnalyticsRecommendationReader,
-    private readonly catalogService: CatalogService,
+    private readonly catalogService: ICatalogReader | CatalogService,
   ) {}
 
   async generateCandidates(context: RecommendationContext): Promise<RecommendationCandidate[]> {
@@ -60,7 +60,7 @@ export class TrendingCandidateSource implements IRecommendationCandidateSource {
 export class SimilarProductCandidateSource implements IRecommendationCandidateSource {
   readonly name = 'similar-product-candidate-source';
 
-  constructor(private readonly catalogService: CatalogService) {}
+  constructor(private readonly catalogService: ICatalogReader | CatalogService) {}
 
   async generateCandidates(context: RecommendationContext): Promise<RecommendationCandidate[]> {
     const { sourceProductId, limit = 20 } = context;
@@ -142,7 +142,7 @@ export class FrequentlyBoughtTogetherCandidateSource implements IRecommendationC
 
   constructor(
     private readonly analyticsReader: IAnalyticsRecommendationReader,
-    private readonly catalogService: CatalogService,
+    private readonly catalogService: ICatalogReader | CatalogService,
   ) {}
 
   async generateCandidates(context: RecommendationContext): Promise<RecommendationCandidate[]> {
@@ -193,7 +193,7 @@ export class PersonalizedCandidateSource implements IRecommendationCandidateSour
 
   constructor(
     private readonly analyticsReader: IAnalyticsRecommendationReader,
-    private readonly catalogService: CatalogService,
+    private readonly catalogService: ICatalogReader | CatalogService,
   ) {}
 
   async generateCandidates(context: RecommendationContext): Promise<RecommendationCandidate[]> {
@@ -275,7 +275,7 @@ export class PersonalizedCandidateSource implements IRecommendationCandidateSour
 export class ColdStartCandidateSource implements IRecommendationCandidateSource {
   readonly name = 'cold-start-candidate-source';
 
-  constructor(private readonly catalogService: CatalogService) {}
+  constructor(private readonly catalogService: ICatalogReader | CatalogService) {}
 
   async generateCandidates(context: RecommendationContext): Promise<RecommendationCandidate[]> {
     const { sourceProductId, limit = 20 } = context;

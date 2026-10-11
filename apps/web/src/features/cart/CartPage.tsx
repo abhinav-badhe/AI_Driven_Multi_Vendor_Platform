@@ -72,17 +72,16 @@ export const CartPage = () => {
             <CardTitle>Your Shopping Cart</CardTitle>
             <CardDescription>Please log in to view your saved cart items and complete checkout.</CardDescription>
           </CardHeader>
-          <CardContent className="flex gap-2">
-            <Link to="/account" className={cn(buttonVariants({ size: "sm" }))}>
-              Sign in
-            </Link>
+          <CardContent className="flex flex-wrap gap-2.5">
             <Button
-              variant="outline"
               size="sm"
               onClick={() => login({ email: "customer@example.com", password: "password123" })}
             >
-              Demo customer sign in
+              Sign in as Demo Customer
             </Button>
+            <Link to="/account" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              Sign in with Other Account
+            </Link>
           </CardContent>
         </Card>
       </div>

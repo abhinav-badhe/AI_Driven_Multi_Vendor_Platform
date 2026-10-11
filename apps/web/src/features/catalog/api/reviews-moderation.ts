@@ -3,10 +3,14 @@ import { apiClient } from '../../../api/client';
 export interface ModerationReviewDto {
   id: string;
   productId: string;
-  customerId: string;
+  customerId: string | null;
   rating: number;
-  headline: string | null;
-  content: string | null;
+  title?: string | null;
+  comment?: string | null;
+  headline?: string | null;
+  content?: string | null;
+  reviewerName?: string | null;
+  verifiedPurchase?: boolean;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   moderationNote: string | null;
   createdAt: string;

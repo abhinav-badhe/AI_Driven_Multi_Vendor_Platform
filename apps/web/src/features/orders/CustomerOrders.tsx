@@ -115,17 +115,18 @@ export const CustomerOrders = () => {
               Please log in to review your order history, delivery tracking, and seller fulfillments.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex gap-2">
-            <Link to="/account" className={cn(buttonVariants({ size: "sm" }))}>
-              Sign in
-            </Link>
+          <CardContent className="flex flex-wrap gap-2.5">
             <Button
-              variant="outline"
               size="sm"
-              onClick={() => login({ email: "customer@example.com", password: "password123" })}
+              onClick={async () => {
+                await login({ email: "customer@example.com", password: "password123" });
+              }}
             >
-              Demo customer sign in
+              Sign in as Demo Customer
             </Button>
+            <Link to="/account" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              Sign in with Other Account
+            </Link>
           </CardContent>
         </Card>
       </div>

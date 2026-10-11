@@ -54,6 +54,7 @@ export interface SearchProductDocument {
 export interface SearchQueryParams {
   q?: string | undefined;
   categoryId?: string | undefined;
+  categoryIds?: string[] | undefined;
   merchantId?: string | undefined;
   brand?: string | undefined;
   minPrice?: number | undefined;

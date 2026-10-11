@@ -1,9 +1,9 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
-import { RbacPolicy, SecurityAuditService } from '../../identity/index.js';
-import type { CatalogService } from '../../catalog/index.js';
-import type { MerchantService } from '../../merchant/index.js';
+import { RbacPolicy, SecurityAuditService, type ISecurityAuditService } from '../../identity/index.js';
+import type { CatalogService, ICatalogReader } from '../../catalog/index.js';
+import type { MerchantService, IMerchantProfileReader } from '../../merchant/index.js';
 import {
   ListingRepository,
   type ListingStatus,
@@ -68,20 +68,23 @@ export interface MerchantListingDetailDto extends MerchantListingDto {
   inventoryVersion: number | null;
 }
 
-export class ListingService {
+import type { IMarketplaceService } from './marketplace-models.js';
+
+export class ListingService implements IMarketplaceService {
   private readonly repo: ListingRepository;
-  private readonly audit: SecurityAuditService;
-  private readonly catalogService: CatalogService;
-  private readonly merchantService: MerchantService;
+  private readonly audit: ISecurityAuditService;
+  private readonly catalogService: ICatalogReader | CatalogService;
+  private readonly merchantService: IMerchantProfileReader | MerchantService;
 
   constructor(
     db: DatabaseConnection,
     logger: Logger,
-    catalogService: CatalogService,
-    merchantService: MerchantService,
+    catalogService: ICatalogReader | CatalogService,
+    merchantService: IMerchantProfileReader | MerchantService,
+    audit?: ISecurityAuditService,
   ) {
     this.repo = new ListingRepository(db);
-    this.audit = new SecurityAuditService(db, logger);
+    this.audit = audit ?? new SecurityAuditService(db, logger);
     this.catalogService = catalogService;
     this.merchantService = merchantService;
   }
@@ -349,7 +352,19 @@ export class ListingService {
       inventoryVersion: row.inventory_version != null ? Number(row.inventory_version) : null,
     };
   }
+
+  async listAllListings(
+    actor: AuthorizedActor,
+    filter?: ListListingsFilter,
+  ): Promise<MerchantListingDto[]> {
+    if (actor.role !== 'ADMINISTRATOR') {
+      RbacPolicy.requirePermission(actor, 'listing:read-any');
+    }
+    const rows = await this.repo.listAllListings(filter);
+    return rows.map((r) => this.toDto(r));
+  }
 }
+
 
 function safeParseStringArray(val: string): string[] {
   try {

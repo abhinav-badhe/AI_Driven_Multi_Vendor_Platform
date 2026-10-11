@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
-import { RbacPolicy, SecurityAuditService } from '../../identity/index.js';
+import { RbacPolicy, SecurityAuditService, type ISecurityAuditService } from '../../identity/index.js';
 import { OutboxService, EventTypes, createDomainEvent } from '../../events/index.js';
 import {
   ValidationError,
@@ -21,19 +21,25 @@ import type {
   CalculateDiscountItem,
   DiscountCalculationResult,
   AppliedPromotionSnapshot,
+  IPromotionPricingEngine,
+  ListPromotionsFilter,
+  PreviewDiscountsInput,
+  ApplyCouponResult,
+  RemoveCouponResult,
 } from './promotion-models.js';
 
-export class PromotionService {
+export class PromotionService implements IPromotionPricingEngine {
   private readonly repo: PromotionRepository;
-  private readonly audit: SecurityAuditService;
+  private readonly audit: ISecurityAuditService;
 
   constructor(
     private readonly db: DatabaseConnection,
     logger: Logger,
     private readonly outbox?: OutboxService | undefined,
+    audit?: ISecurityAuditService,
   ) {
     this.repo = new PromotionRepository(db);
-    this.audit = new SecurityAuditService(db, logger);
+    this.audit = audit ?? new SecurityAuditService(db, logger);
   }
 
   async createPromotion(actor: AuthorizedActor, input: CreatePromotionInput): Promise<PromotionDto> {
@@ -239,13 +245,7 @@ export class PromotionService {
 
   async listPromotions(
     actor: AuthorizedActor,
-    filters?: {
-      merchantTenantId?: string | null | undefined;
-      includePlatform?: boolean | undefined;
-      status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED' | undefined;
-      limit?: number | undefined;
-      offset?: number | undefined;
-    },
+    filters?: ListPromotionsFilter,
   ): Promise<PromotionDto[]> {
     let merchantTenantId = filters?.merchantTenantId;
     let includePlatform = filters?.includePlatform;
@@ -277,12 +277,7 @@ export class PromotionService {
    */
   async previewDiscounts(
     actor: AuthorizedActor,
-    input: {
-      items: CalculateDiscountItem[];
-      couponCode?: string | null | undefined;
-      currency: string;
-      now?: Date | undefined;
-    },
+    input: PreviewDiscountsInput,
   ): Promise<DiscountCalculationResult> {
     RbacPolicy.requirePermission(actor, 'promotion:validate');
 
@@ -335,12 +330,7 @@ export class PromotionService {
     actor: AuthorizedActor,
     checkoutSessionId: string,
     couponCode: string,
-  ): Promise<{
-    discountAmount: number;
-    totalAmount: number;
-    couponCode: string;
-    appliedPromotions: AppliedPromotionSnapshot[];
-  }> {
+  ): Promise<ApplyCouponResult> {
     RbacPolicy.requirePermission(actor, 'checkout:read-own');
 
     // 1. Load checkout session
@@ -503,12 +493,7 @@ export class PromotionService {
   async removeCouponFromCheckout(
     actor: AuthorizedActor,
     checkoutSessionId: string,
-  ): Promise<{
-    discountAmount: number;
-    totalAmount: number;
-    couponCode: null;
-    appliedPromotions: [];
-  }> {
+  ): Promise<RemoveCouponResult> {
     RbacPolicy.requirePermission(actor, 'checkout:read-own');
 
     const sessionRes = await this.db.query<{

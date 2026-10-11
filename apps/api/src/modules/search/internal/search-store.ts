@@ -195,7 +195,11 @@ export function filterAndRankDocuments(
     }
 
     // 2. Category Filter
-    if (params.categoryId && doc.categoryId !== params.categoryId) {
+    if (params.categoryIds && params.categoryIds.length > 0) {
+      if (!doc.categoryId || !params.categoryIds.includes(doc.categoryId)) {
+        continue;
+      }
+    } else if (params.categoryId && doc.categoryId !== params.categoryId) {
       continue;
     }
 

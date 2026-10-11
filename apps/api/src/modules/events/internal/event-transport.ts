@@ -56,14 +56,20 @@ export class InMemoryEventTransport implements EventTransport {
 
     this.publishedEvents.push(event);
 
+    const errors: unknown[] = [];
+
     const handlers = this.subscribers.get(event.eventType);
     if (handlers && handlers.size > 0) {
       for (const handler of handlers) {
-        await handler(event);
-
-        // If duplicate delivery simulation is enabled, dispatch the event a second time
-        if (this.simulateDuplicate) {
+        try {
           await handler(event);
+
+          // If duplicate delivery simulation is enabled, dispatch the event a second time
+          if (this.simulateDuplicate) {
+            await handler(event);
+          }
+        } catch (err) {
+          errors.push(err);
         }
       }
     }
@@ -72,11 +78,25 @@ export class InMemoryEventTransport implements EventTransport {
     const wildcardHandlers = this.subscribers.get('*');
     if (wildcardHandlers && wildcardHandlers.size > 0) {
       for (const handler of wildcardHandlers) {
-        await handler(event);
-        if (this.simulateDuplicate) {
+        try {
           await handler(event);
+          if (this.simulateDuplicate) {
+            await handler(event);
+          }
+        } catch (err) {
+          errors.push(err);
         }
       }
+    }
+
+    if (errors.length > 0) {
+      if (errors.length === 1) {
+        throw errors[0];
+      }
+      throw new AggregateError(
+        errors,
+        `Multiple event subscribers failed during dispatch of '${event.eventType}'`,
+      );
     }
   }
 }

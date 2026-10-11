@@ -17,6 +17,7 @@ export interface MerchantListingRow {
 
 export interface ListListingsFilter {
   status?: ListingStatus | undefined;
+  skuId?: string | undefined;
   limit?: number | undefined;
   offset?: number | undefined;
 }
@@ -185,4 +186,35 @@ export class ListingRepository {
     );
     return res.rows[0] ?? null;
   }
+
+  async listAllListings(filter?: ListListingsFilter): Promise<MerchantListingRow[]> {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    if (filter?.status) {
+      conditions.push(`status = $${paramIndex++}`);
+      params.push(filter.status);
+    }
+
+    const limit = filter?.limit ?? 50;
+    const offset = filter?.offset ?? 0;
+
+    params.push(limit);
+    const limitParam = `$${paramIndex++}`;
+    params.push(offset);
+    const offsetParam = `$${paramIndex++}`;
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const res = await this.db.query<MerchantListingRow>(
+      `SELECT id, tenant_id, sku_id, price_amount, currency, compare_at_price, status, created_at, updated_at
+       FROM merchant_listings
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT ${limitParam} OFFSET ${offsetParam}`,
+      params,
+    );
+    return res.rows;
+  }
 }
+

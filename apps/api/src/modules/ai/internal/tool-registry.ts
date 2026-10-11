@@ -7,29 +7,34 @@ import type {
   ToolDefinition,
   ToolExecutionContext,
 } from './ai-types.js';
-import type { OrderService } from '../../orders/index.js';
-import type { CatalogService } from '../../catalog/index.js';
-import type { ListingService } from '../../marketplace/index.js';
-import type { InventoryService } from '../../inventory/index.js';
+import type { OrderService, IOrderService } from '../../orders/index.js';
+import type { CatalogService, ICatalogReader } from '../../catalog/index.js';
+import type { ListingService, IMarketplaceReader } from '../../marketplace/index.js';
+import type { InventoryService, IInventoryReader } from '../../inventory/index.js';
 import type { RecommendationService, RecommendationItemDto } from '../../recommendations/index.js';
 import type { IMlSignalReader } from '../../analytics-ml/index.js';
-import type { FulfillmentService } from '../../fulfillment/index.js';
-import type { PaymentService } from '../../payment/index.js';
+import type { FulfillmentService, IFulfillmentService } from '../../fulfillment/index.js';
+import type { PaymentService, IPaymentService } from '../../payment/index.js';
 import type { SearchService } from '../../search/index.js';
-import type { CartService, CheckoutService } from '../../cart-checkout/index.js';
+import type {
+  CartService,
+  ICartService,
+  CheckoutService,
+  ICheckoutService,
+} from '../../cart-checkout/index.js';
 
 export interface ToolRegistryDependencies {
-  orderService?: OrderService | undefined;
-  catalogService?: CatalogService | undefined;
-  listingService?: ListingService | undefined;
-  inventoryService?: InventoryService | undefined;
+  orderService?: IOrderService | OrderService | undefined;
+  catalogService?: ICatalogReader | CatalogService | undefined;
+  listingService?: IMarketplaceReader | ListingService | undefined;
+  inventoryService?: IInventoryReader | InventoryService | undefined;
   recommendationsService?: RecommendationService | undefined;
   mlSignalReader?: IMlSignalReader | undefined;
-  fulfillmentService?: FulfillmentService | undefined;
-  paymentService?: PaymentService | undefined;
+  fulfillmentService?: IFulfillmentService | FulfillmentService | undefined;
+  paymentService?: IPaymentService | PaymentService | undefined;
   searchService?: SearchService | undefined;
-  cartService?: CartService | undefined;
-  checkoutService?: CheckoutService | undefined;
+  cartService?: ICartService | CartService | undefined;
+  checkoutService?: ICheckoutService | CheckoutService | undefined;
 }
 
 export class ToolRegistry {
@@ -136,7 +141,14 @@ export class ToolRegistry {
     const recordInput = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
     if (tool.name === 'get_customer_orders' || tool.name === 'get_customer_profile') {
       const targetCustomerId = recordInput['customerId'] as string | undefined;
-      if (actor.role === 'CUSTOMER' && targetCustomerId && targetCustomerId !== actor.userId) {
+      if (
+        actor.role === 'CUSTOMER' &&
+        targetCustomerId &&
+        targetCustomerId !== actor.userId &&
+        targetCustomerId !== 'current-customer' &&
+        targetCustomerId !== 'me' &&
+        targetCustomerId !== 'self'
+      ) {
         throw new ForbiddenError(
           `Cross-customer violation: Customer '${actor.userId}' cannot access records of customer '${targetCustomerId}'`,
         );

@@ -6,7 +6,7 @@ import { RbacPolicy } from '../../identity/rbac/policy.js';
 import { NotFoundError, ValidationError } from '../../../errors/app-error.js';
 import type { OutboxService } from '../../events/index.js';
 import { createDomainEvent, EventTypes } from '../../events/index.js';
-import type { NotificationService } from '../../notifications/index.js';
+import type { INotificationClient } from '../../notifications/index.js';
 import { BackInStockRepository } from './back-in-stock-repository.js';
 import type {
   BackInStockCheckResultDto,
@@ -20,7 +20,7 @@ export class BackInStockService {
   constructor(
     private readonly db: DatabaseConnection,
     private readonly logger: Logger,
-    private readonly notificationService?: NotificationService | undefined,
+    private readonly notificationService?: INotificationClient | undefined,
     private readonly outboxService?: OutboxService | undefined,
     private readonly frontendUrl: string = 'http://localhost:3000',
   ) {

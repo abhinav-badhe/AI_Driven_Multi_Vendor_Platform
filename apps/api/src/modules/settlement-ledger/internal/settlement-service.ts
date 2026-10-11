@@ -3,8 +3,8 @@ import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
 import { RbacPolicy } from '../../identity/index.js';
-import type { OrderService } from '../../orders/index.js';
-import type { PaymentService } from '../../payment/index.js';
+import type { OrderService, IOrderReader } from '../../orders/index.js';
+import type { PaymentService, IPaymentService } from '../../payment/index.js';
 import {
   NotFoundError,
   ValidationError,
@@ -36,6 +36,8 @@ import type {
   SettlementStatus,
 } from './types.js';
 
+import type { ISettlementService } from './settlement-models.js';
+
 function round2(val: number): number {
   return Math.round((val + Number.EPSILON) * 100) / 100;
 }
@@ -50,7 +52,7 @@ const VALID_SETTLEMENT_TRANSITIONS: Record<SettlementStatus, SettlementStatus[]>
   REJECTED: [],
 };
 
-export class SettlementService {
+export class SettlementService implements ISettlementService {
   private readonly repo: SettlementRepository;
   private readonly db: DatabaseConnection;
   private readonly activeLocks = new Map<string, Promise<void>>();
@@ -58,15 +60,15 @@ export class SettlementService {
   constructor(
     db: DatabaseConnection,
     private readonly logger: Logger,
-    private readonly orderService: OrderService,
-    private readonly paymentService: PaymentService,
+    private readonly orderService: IOrderReader | OrderService,
+    private readonly paymentService: IPaymentService | PaymentService,
   ) {
     this.repo = new SettlementRepository(db);
     this.db = db;
     this.logger.debug('SettlementService initialized');
   }
 
-  getPaymentService(): PaymentService {
+  getPaymentService(): IPaymentService | PaymentService {
     return this.paymentService;
   }
 

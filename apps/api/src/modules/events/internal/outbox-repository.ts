@@ -357,7 +357,7 @@ export class OutboxRepository {
     db: DatabaseConnection,
     consumerName: string,
     eventId: string,
-    status: 'COMPLETED' | 'SKIPPED' | 'FAILED' | 'QUARANTINED',
+    status: 'PROCESSING' | 'COMPLETED' | 'SKIPPED' | 'FAILED' | 'QUARANTINED',
     errorMetadata?: Record<string, unknown>,
   ): Promise<void> {
     await db.query(

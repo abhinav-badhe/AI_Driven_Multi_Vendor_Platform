@@ -5,31 +5,32 @@ import type { Logger } from '../../observability/logger.js';
 export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Promise<void> {
   const hasher = new ScryptPasswordHasher();
   const defaultPasswordHash = await hasher.hash('password123');
+  const adminPasswordHash = await hasher.hash('Password@2163');
 
-  logger?.info('Seeding initial marketplace catalog and demo users...');
+  logger?.info('Seeding initial marketplace catalog and users...');
 
   // 1. Tenants
   await db.query(`
     INSERT INTO tenants (id, type, name, status) VALUES
       ('tenant-platform', 'PLATFORM', 'Platform Admin', 'ACTIVE'),
       ('tenant-merchant-1', 'MERCHANT', 'Apex Electronics', 'ACTIVE'),
-      ('tenant-customer-1', 'CUSTOMER', 'Demo Customer', 'ACTIVE')
+      ('tenant-customer-1', 'CUSTOMER', 'Customer', 'ACTIVE')
     ON CONFLICT (id) DO NOTHING;
   `);
 
-  // 2. Users (demo accounts are pre-verified)
+  // 2. Users (accounts are pre-verified)
   await db.query(`
     INSERT INTO users (id, email, password_hash, status, email_verified_at) VALUES
-      ('user-admin-1', 'admin@example.com', $1, 'ACTIVE', CURRENT_TIMESTAMP),
-      ('user-merchant-1', 'merchant@example.com', $1, 'ACTIVE', CURRENT_TIMESTAMP),
-      ('user-customer-1', 'customer@example.com', $1, 'ACTIVE', CURRENT_TIMESTAMP)
-    ON CONFLICT (email) DO NOTHING;
-  `, [defaultPasswordHash]);
+      ('user-admin-leon', 'leonsintegration@gmail.com', $1, 'ACTIVE', CURRENT_TIMESTAMP),
+      ('user-merchant-1', 'merchant@example.com', $2, 'ACTIVE', CURRENT_TIMESTAMP),
+      ('user-customer-1', 'customer@example.com', $2, 'ACTIVE', CURRENT_TIMESTAMP)
+    ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
+  `, [adminPasswordHash, defaultPasswordHash]);
 
   // 3. Tenant Memberships
   await db.query(`
     INSERT INTO tenant_memberships (id, tenant_id, user_id, role, status) VALUES
-      ('mem-admin-1', 'tenant-platform', 'user-admin-1', 'ADMINISTRATOR', 'ACTIVE'),
+      ('mem-admin-leon', 'tenant-platform', 'user-admin-leon', 'ADMINISTRATOR', 'ACTIVE'),
       ('mem-merchant-1', 'tenant-merchant-1', 'user-merchant-1', 'MERCHANT', 'ACTIVE'),
       ('mem-customer-1', 'tenant-customer-1', 'user-customer-1', 'CUSTOMER', 'ACTIVE')
     ON CONFLICT (tenant_id, user_id) DO NOTHING;

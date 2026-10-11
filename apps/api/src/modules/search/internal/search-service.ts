@@ -1,10 +1,10 @@
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
 import { RbacPolicy } from '../../identity/index.js';
-import type { CatalogService } from '../../catalog/index.js';
-import type { ListingService } from '../../marketplace/index.js';
-import type { InventoryService } from '../../inventory/index.js';
-import type { MerchantService } from '../../merchant/index.js';
+import type { CatalogService, ICatalogReader } from '../../catalog/index.js';
+import type { ListingService, IMarketplaceReader } from '../../marketplace/index.js';
+import type { InventoryService, IInventoryReader } from '../../inventory/index.js';
+import type { MerchantService, IMerchantProfileReader } from '../../merchant/index.js';
 import {
   ValidationError,
   ForbiddenError,
@@ -37,10 +37,10 @@ export class SearchService {
   constructor(
     private readonly store: ISearchStore,
     private readonly logger: Logger,
-    private readonly catalogService?: CatalogService,
-    private readonly marketplaceService?: ListingService,
-    private readonly inventoryService?: InventoryService,
-    private readonly merchantService?: MerchantService,
+    private readonly catalogService?: ICatalogReader | CatalogService,
+    private readonly marketplaceService?: IMarketplaceReader | ListingService,
+    private readonly inventoryService?: IInventoryReader | InventoryService,
+    private readonly merchantService?: IMerchantProfileReader | MerchantService,
   ) {}
 
   // --- Search Store Accessor (for health checks / metrics) ---
@@ -139,9 +139,35 @@ export class SearchService {
       }
     }
 
+    let categoryIds: string[] | undefined = params.categoryIds;
+    if (params.categoryId && !categoryIds) {
+      if (this.catalogService) {
+        try {
+          const allCategories = await this.catalogService.listCategories();
+          const targetId = params.categoryId;
+          const matched = new Set<string>([targetId]);
+          const addDescendants = (parentId: string) => {
+            for (const cat of allCategories) {
+              if (cat.parentId === parentId && !matched.has(cat.id)) {
+                matched.add(cat.id);
+                addDescendants(cat.id);
+              }
+            }
+          };
+          addDescendants(targetId);
+          categoryIds = Array.from(matched);
+        } catch {
+          categoryIds = [params.categoryId];
+        }
+      } else {
+        categoryIds = [params.categoryId];
+      }
+    }
+
     const queryParams: SearchQueryParams = {
       ...params,
       q: sanitizedQ || undefined,
+      categoryIds,
       page,
       pageSize,
       includeInactive,

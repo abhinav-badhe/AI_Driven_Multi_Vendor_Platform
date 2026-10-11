@@ -2,7 +2,7 @@ import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
 import { RbacPolicy } from '../../identity/index.js';
-import type { ListingService } from '../../marketplace/index.js';
+import type { ListingService, IMarketplaceReader } from '../../marketplace/index.js';
 import {
   InventoryRepository,
   type InventoryItemRow,
@@ -18,6 +18,7 @@ import {
   InvalidStateTransitionError,
   InsufficientInventoryError,
 } from '../../../errors/app-error.js';
+import type { IInventoryService } from './inventory-models.js';
 import { OutboxService, EventTypes, createDomainEvent } from '../../events/index.js';
 import {
   inventoryItemTag,
@@ -101,7 +102,7 @@ export interface CreateReservationInput {
   expiresAt?: string | null | undefined;
 }
 
-export class InventoryService {
+export class InventoryService implements IInventoryService {
   private readonly repo: InventoryRepository;
   private workerTimer: ReturnType<typeof setInterval> | null = null;
   private isWorkerRunning = false;
@@ -109,7 +110,7 @@ export class InventoryService {
   constructor(
     private readonly db: DatabaseConnection,
     private readonly logger: Logger,
-    private readonly marketplaceService: ListingService,
+    private readonly marketplaceService: IMarketplaceReader | ListingService,
     private readonly outboxService?: OutboxService,
     private readonly cacheInvalidator?: InventoryCacheInvalidator | undefined,
   ) {
@@ -354,6 +355,15 @@ export class InventoryService {
   ): Promise<InventoryItemDto[]> {
     RbacPolicy.requirePermission(actor, 'inventory:read-own');
     const rows = await this.repo.listInventoryByTenant(this.db, actor.tenantId, filter);
+    return rows.map((r) => this.toItemDto(r));
+  }
+
+  async listAllInventory(
+    actor: AuthorizedActor,
+    filter?: { limit?: number | undefined; offset?: number | undefined } | undefined,
+  ): Promise<InventoryItemDto[]> {
+    RbacPolicy.requirePermission(actor, 'inventory:manage-any');
+    const rows = await this.repo.listAllInventory(this.db, filter);
     return rows.map((r) => this.toItemDto(r));
   }
 

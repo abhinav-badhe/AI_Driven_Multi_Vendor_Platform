@@ -280,4 +280,184 @@ export class IdentityRepository {
       currentRole: row.active_role,
     };
   }
+
+  async listAllUsers(limit = 100): Promise<Array<{
+    id: string;
+    email: string;
+    role: string;
+    tenantId: string;
+    createdAt: string;
+    isActive: boolean;
+  }>> {
+    const res = await this.db.query<{
+      id: string;
+      email: string;
+      role: string | null;
+      tenant_id: string | null;
+      status: string;
+      created_at: Date | string;
+    }>(
+      `SELECT u.id, u.email, tm.role, tm.tenant_id, u.status, u.created_at
+       FROM users u
+       LEFT JOIN tenant_memberships tm ON tm.user_id = u.id
+       ORDER BY u.created_at DESC
+       LIMIT $1`,
+      [limit],
+    );
+    return res.rows.map((r) => ({
+      id: r.id,
+      email: r.email,
+      role: r.role ?? 'CUSTOMER',
+      tenantId: r.tenant_id ?? '',
+      createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+      isActive: r.status === 'ACTIVE',
+    }));
+  }
+
+  async getAuditRecords(limit = 50): Promise<Array<{
+    id: string;
+    event: string;
+    userId?: string;
+    ip?: string;
+    timestamp: string;
+    severity: string;
+  }>> {
+    const res = await this.db.query<{
+      id: string;
+      user_id: string;
+      is_revoked: boolean;
+      is_rotated: boolean;
+      created_at: Date | string;
+    }>(
+      `SELECT id, user_id, is_revoked, is_rotated, created_at
+       FROM refresh_tokens
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit],
+    );
+    return res.rows.map((r) => ({
+      id: r.id,
+      event: r.is_revoked ? 'TOKEN_REVOKED' : r.is_rotated ? 'TOKEN_ROTATED' : 'TOKEN_ISSUED',
+      userId: r.user_id,
+      ip: '127.0.0.1',
+      timestamp: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+      severity: r.is_revoked ? 'WARN' : 'INFO',
+    }));
+  }
+
+  async find2FASettingsByUserId(userId: string): Promise<UserTwoFactorAuthRow | null> {
+    const res = await this.db.query<{
+      id: string;
+      user_id: string;
+      secret: string;
+      is_enabled: boolean;
+      recovery_codes: unknown;
+      created_at: Date | string;
+      updated_at: Date | string;
+    }>(
+      `SELECT id, user_id, secret, is_enabled, recovery_codes, created_at, updated_at
+       FROM user_two_factor_auth
+       WHERE user_id = $1`,
+      [userId],
+    );
+    const row = res.rows[0];
+    if (!row) return null;
+    let recoveryCodes: string[] = [];
+    if (Array.isArray(row.recovery_codes)) {
+      recoveryCodes = row.recovery_codes as string[];
+    } else if (typeof row.recovery_codes === 'string') {
+      try {
+        recoveryCodes = JSON.parse(row.recovery_codes);
+      } catch {
+        recoveryCodes = [];
+      }
+    }
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      secret: row.secret,
+      is_enabled: Boolean(row.is_enabled),
+      recovery_codes: recoveryCodes,
+      created_at: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+      updated_at: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
+    };
+  }
+
+  async save2FASetup(params: {
+    userId: string;
+    secret: string;
+    recoveryCodes: string[];
+  }): Promise<UserTwoFactorAuthRow> {
+    const id = randomUUID();
+    const codesJson = JSON.stringify(params.recoveryCodes);
+    const existing = await this.find2FASettingsByUserId(params.userId);
+
+    if (existing) {
+      await this.db.query(
+        `UPDATE user_two_factor_auth
+         SET secret = $1, recovery_codes = $2::jsonb, is_enabled = FALSE, updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = $3`,
+        [params.secret, codesJson, params.userId],
+      );
+    } else {
+      await this.db.query(
+        `INSERT INTO user_two_factor_auth (id, user_id, secret, is_enabled, recovery_codes)
+         VALUES ($1, $2, $3, FALSE, $4::jsonb)`,
+        [id, params.userId, params.secret, codesJson],
+      );
+    }
+
+    const updated = await this.find2FASettingsByUserId(params.userId);
+    if (!updated) throw new Error('Failed to save 2FA setup');
+    return updated;
+  }
+
+  async enable2FA(userId: string): Promise<boolean> {
+    const res = await this.db.query(
+      `UPDATE user_two_factor_auth
+       SET is_enabled = TRUE, updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $1`,
+      [userId],
+    );
+    return (res.rowCount ?? 0) > 0;
+  }
+
+  async disable2FA(userId: string): Promise<boolean> {
+    const res = await this.db.query(
+      `DELETE FROM user_two_factor_auth WHERE user_id = $1`,
+      [userId],
+    );
+    return (res.rowCount ?? 0) > 0;
+  }
+
+  async consumeRecoveryCode(userId: string, codeHash: string): Promise<boolean> {
+    const settings = await this.find2FASettingsByUserId(userId);
+    if (!settings || !settings.is_enabled) return false;
+
+    const codeIdx = settings.recovery_codes.indexOf(codeHash);
+    if (codeIdx === -1) return false;
+
+    const remainingCodes = [...settings.recovery_codes];
+    remainingCodes.splice(codeIdx, 1);
+
+    await this.db.query(
+      `UPDATE user_two_factor_auth
+       SET recovery_codes = $1::jsonb, updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $2`,
+      [JSON.stringify(remainingCodes), userId],
+    );
+
+    return true;
+  }
 }
+
+export interface UserTwoFactorAuthRow {
+  id: string;
+  user_id: string;
+  secret: string;
+  is_enabled: boolean;
+  recovery_codes: string[];
+  created_at: string;
+  updated_at: string;
+}
+

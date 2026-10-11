@@ -7,10 +7,10 @@ import {
   InvalidStateTransitionError,
 } from '../../../errors/app-error.js';
 import { RbacPolicy, type AuthorizedActor } from '../../identity/rbac/policy.js';
-import type { CheckoutService } from '../../cart-checkout/index.js';
-import type { CatalogService } from '../../catalog/index.js';
-import type { InventoryService } from '../../inventory/index.js';
-import type { PaymentService } from '../../payment/index.js';
+import type { CheckoutService, ICheckoutReader } from '../../cart-checkout/index.js';
+import type { CatalogService, ICatalogReader } from '../../catalog/index.js';
+import type { InventoryService, IInventoryService } from '../../inventory/index.js';
+import type { PaymentService, IPaymentReader } from '../../payment/index.js';
 import { paymentMethodFromMetadata } from '../../payment/index.js';
 import type { OutboxService } from '../../events/index.js';
 import { EventTypes, createDomainEvent } from '../../events/index.js';
@@ -63,6 +63,7 @@ export interface SellerOrderDto {
   shippingAmount: number;
   taxAmount: number;
   totalAmount: number;
+  shippingAddress?: AddressSnapshot | null | undefined;
   createdAt: string;
   updatedAt: string;
   items?: OrderItemDto[] | undefined;
@@ -91,17 +92,19 @@ export interface CustomerOrderDto {
   items?: OrderItemDto[] | undefined;
 }
 
-export class OrderService {
+import type { IOrderService } from './order-models.js';
+
+export class OrderService implements IOrderService {
   private readonly repo: OrderRepository;
   private readonly db: DatabaseConnection;
 
   constructor(
     db: DatabaseConnection,
     private readonly logger: Logger,
-    private readonly checkoutService: CheckoutService,
-    private readonly catalogService: CatalogService,
-    private readonly inventoryService: InventoryService,
-    private readonly paymentService: PaymentService,
+    private readonly checkoutService: ICheckoutReader | CheckoutService,
+    private readonly catalogService: ICatalogReader | CatalogService,
+    private readonly inventoryService: IInventoryService | InventoryService,
+    private readonly paymentService: IPaymentReader | PaymentService,
     private readonly outboxService?: OutboxService | undefined,
     private readonly promotionService?: PromotionService | undefined,
   ) {
@@ -490,9 +493,16 @@ export class OrderService {
     actor: AuthorizedActor,
     filter?: { limit?: number | undefined; offset?: number | undefined } | undefined,
   ): Promise<CustomerOrderDto[]> {
-    RbacPolicy.requirePermission(actor, 'order:read-own');
+    if (actor.role === 'ADMINISTRATOR') {
+      RbacPolicy.requirePermission(actor, 'order:read-any');
+    } else {
+      RbacPolicy.requirePermission(actor, 'order:read-own');
+    }
 
-    const rows = await this.repo.listCustomerOrdersByCustomer(actor.tenantId, filter);
+    const rows =
+      actor.role === 'ADMINISTRATOR'
+        ? await this.repo.listAllCustomerOrders(filter)
+        : await this.repo.listCustomerOrdersByCustomer(actor.tenantId, filter);
     const methods = await this.paymentMethodsForOrders(rows);
     const result: CustomerOrderDto[] = [];
     for (const r of rows) {
@@ -532,7 +542,13 @@ export class OrderService {
     }
 
     const items = await this.repo.findOrderItemsBySellerOrder(sellerOrder.id);
-    return this.toSellerOrderDto(sellerOrder, items);
+    const custOrder = await this.repo.findCustomerOrderById(sellerOrder.customer_order_id);
+    const shippingAddress = custOrder?.shipping_address
+      ? typeof custOrder.shipping_address === 'string'
+        ? JSON.parse(custOrder.shipping_address)
+        : (custOrder.shipping_address as AddressSnapshot)
+      : null;
+    return this.toSellerOrderDto(sellerOrder, items, undefined, shippingAddress);
   }
 
   async listSellerOrders(
@@ -545,7 +561,13 @@ export class OrderService {
     const result: SellerOrderDto[] = [];
     for (const r of rows) {
       const items = await this.repo.findOrderItemsBySellerOrder(r.id);
-      result.push(this.toSellerOrderDto(r, items));
+      const custOrder = await this.repo.findCustomerOrderById(r.customer_order_id);
+      const shippingAddress = custOrder?.shipping_address
+        ? typeof custOrder.shipping_address === 'string'
+          ? JSON.parse(custOrder.shipping_address)
+          : (custOrder.shipping_address as AddressSnapshot)
+        : null;
+      result.push(this.toSellerOrderDto(r, items, undefined, shippingAddress));
     }
     return result;
   }
@@ -701,6 +723,7 @@ export class OrderService {
     row: SellerOrderRow,
     items: OrderItemRow[] = [],
     thumbnails?: Map<string, string> | undefined,
+    shippingAddress?: AddressSnapshot | null | undefined,
   ): SellerOrderDto {
     return {
       id: row.id,
@@ -713,6 +736,7 @@ export class OrderService {
       shippingAmount: row.shipping_amount,
       taxAmount: row.tax_amount,
       totalAmount: row.total_amount,
+      shippingAddress: shippingAddress ?? null,
       createdAt: row.created_at.toISOString(),
       updatedAt: row.updated_at.toISOString(),
       items: items.map((it) => this.toItemDto(it, thumbnails?.get(it.product_id) ?? null)),

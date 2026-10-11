@@ -8,9 +8,22 @@ import type { OutboxService } from '../events/index.js';
 import { PromotionRepository } from './internal/promotion-repository.js';
 import { PromotionService } from './internal/promotion-service.js';
 import { DiscountCalculator } from './internal/discount-calculator.js';
+import { InMemoryPromotionStore } from './internal/in-memory-promotion-store.js';
+import {
+  HttpPromotionPricingClient,
+  type HttpPromotionPricingClientOptions,
+} from './internal/http-promotion-client.js';
 
 export * from './internal/promotion-models.js';
-export { PromotionRepository, PromotionService, DiscountCalculator };
+export {
+  PromotionRepository,
+  PromotionService,
+  DiscountCalculator,
+  InMemoryPromotionStore,
+  HttpPromotionPricingClient,
+};
+
+import type { ISecurityAuditService } from '../identity/index.js';
 
 export interface PromotionPricingModule {
   readonly contextName: 'promotion-pricing';
@@ -18,7 +31,10 @@ export interface PromotionPricingModule {
     db: DatabaseConnection,
     logger: Logger,
     outbox?: OutboxService,
+    audit?: ISecurityAuditService,
   ): PromotionService;
+  createInMemoryStore(): InMemoryPromotionStore;
+  createHttpClient(options: HttpPromotionPricingClientOptions): HttpPromotionPricingClient;
 }
 
 export const promotionPricingModule: PromotionPricingModule = {
@@ -27,7 +43,15 @@ export const promotionPricingModule: PromotionPricingModule = {
     db: DatabaseConnection,
     logger: Logger,
     outbox?: OutboxService,
+    audit?: ISecurityAuditService,
   ): PromotionService {
-    return new PromotionService(db, logger, outbox);
+    return new PromotionService(db, logger, outbox, audit);
+  },
+  createInMemoryStore(): InMemoryPromotionStore {
+    return new InMemoryPromotionStore();
+  },
+  createHttpClient(options: HttpPromotionPricingClientOptions): HttpPromotionPricingClient {
+    return new HttpPromotionPricingClient(options);
   },
 };
+

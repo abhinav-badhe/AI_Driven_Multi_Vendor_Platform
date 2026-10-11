@@ -74,7 +74,21 @@ export type {
   IAnalyticsMlFeatureReader,
 };
 
-export { AnalyticsRepository, AnalyticsService, AnalyticsEventConsumer, formatMoney };
+import { InMemoryAnalyticsReader } from './internal/in-memory-analytics-reader.js';
+import {
+  HttpAnalyticsClient,
+  type HttpAnalyticsClientOptions,
+} from './internal/http-analytics-client.js';
+
+export {
+  AnalyticsRepository,
+  AnalyticsService,
+  AnalyticsEventConsumer,
+  InMemoryAnalyticsReader,
+  HttpAnalyticsClient,
+  type HttpAnalyticsClientOptions,
+  formatMoney,
+};
 
 export interface AnalyticsModule {
   readonly contextName: 'analytics';
@@ -89,6 +103,11 @@ export interface AnalyticsModule {
     logger: Logger,
     service: AnalyticsService,
   ): AnalyticsEventConsumer;
+  createInMemoryReader(): InMemoryAnalyticsReader;
+  createHttpClient(
+    serviceUrl: string,
+    options?: HttpAnalyticsClientOptions,
+  ): HttpAnalyticsClient;
 }
 
 export const analyticsModule: AnalyticsModule = {
@@ -115,5 +134,14 @@ export const analyticsModule: AnalyticsModule = {
     );
     consumer.registerSubscriptions();
     return consumer;
+  },
+  createInMemoryReader(): InMemoryAnalyticsReader {
+    return new InMemoryAnalyticsReader();
+  },
+  createHttpClient(
+    serviceUrl: string,
+    options?: HttpAnalyticsClientOptions,
+  ): HttpAnalyticsClient {
+    return new HttpAnalyticsClient(serviceUrl, options);
   },
 };

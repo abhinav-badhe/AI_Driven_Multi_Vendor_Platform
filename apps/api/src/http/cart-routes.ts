@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
-import type { CartService } from '../modules/cart-checkout/index.js';
+import type { CartService, ICartService } from '../modules/cart-checkout/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ValidationError } from '../errors/app-error.js';
 
 export function registerCartRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
-  cartService: CartService,
+  cartService: ICartService | CartService,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
 

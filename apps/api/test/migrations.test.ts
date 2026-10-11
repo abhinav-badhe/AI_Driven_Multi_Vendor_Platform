@@ -20,7 +20,7 @@ describe('Database Migrations (PostgreSQL Engine)', () => {
   it('applies migrations forward in deterministic order on a clean database', async () => {
     const initialStatus = await runner.getStatus(db);
     expect(initialStatus.applied.length).toBe(0);
-    expect(initialStatus.pending.length).toBe(25);
+    expect(initialStatus.pending.length).toBe(26);
     expect(initialStatus.pending[0]).toContain('0001_identity_schema.sql');
     expect(initialStatus.pending[1]).toContain('0002_merchant_schema.sql');
     expect(initialStatus.pending[2]).toContain('0003_catalog_and_listings_schema.sql');
@@ -46,12 +46,13 @@ describe('Database Migrations (PostgreSQL Engine)', () => {
     expect(initialStatus.pending[22]).toContain('0023_product_reviews_and_moderation.sql');
     expect(initialStatus.pending[23]).toContain('0024_customer_wishlist.sql');
     expect(initialStatus.pending[24]).toContain('0025_back_in_stock_subscriptions.sql');
+    expect(initialStatus.pending[25]).toContain('0026_two_factor_auth_schema.sql');
 
     const applied = await runner.up(db);
-    expect(applied.length).toBe(25);
+    expect(applied.length).toBe(26);
 
     const afterStatus = await runner.getStatus(db);
-    expect(afterStatus.applied.length).toBe(25);
+    expect(afterStatus.applied.length).toBe(26);
     expect(afterStatus.pending.length).toBe(0);
   });
 

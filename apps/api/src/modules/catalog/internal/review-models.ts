@@ -31,6 +31,8 @@ export interface ProductReviewDto {
   rating: number;
   title: string | null;
   comment: string | null;
+  headline?: string | null;
+  content?: string | null;
   reviewerName: string | null;
   status: ReviewStatus;
   verifiedPurchase: boolean;

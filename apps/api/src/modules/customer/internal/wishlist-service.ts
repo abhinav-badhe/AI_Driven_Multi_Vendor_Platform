@@ -5,7 +5,7 @@ import {
   NotFoundError,
 } from '../../../errors/app-error.js';
 import { RbacPolicy, type AuthorizedActor } from '../../identity/rbac/policy.js';
-import type { CartService, CartDto } from '../../cart-checkout/index.js';
+import type { CartService, ICartService, CartDto } from '../../cart-checkout/index.js';
 import type { OutboxService } from '../../events/index.js';
 import { EventTypes, createDomainEvent } from '../../events/index.js';
 import { WishlistRepository } from './wishlist-repository.js';
@@ -23,7 +23,7 @@ export class WishlistService {
   constructor(
     private readonly db: DatabaseConnection,
     private readonly logger: Logger,
-    private readonly cartService: CartService,
+    private readonly cartService: ICartService | CartService,
     private readonly outboxService?: OutboxService | undefined,
   ) {
     this.repo = new WishlistRepository(db);

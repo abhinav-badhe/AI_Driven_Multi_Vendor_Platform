@@ -5,7 +5,7 @@
 
 import type { DatabaseConnection } from '../../infra/database/connection.js';
 import type { Logger } from '../../observability/logger.js';
-import type { CartService } from '../cart-checkout/index.js';
+import type { CartService, ICartService } from '../cart-checkout/index.js';
 import type { OutboxService } from '../events/index.js';
 import { CustomerAddressService } from './internal/customer-address-service.js';
 import { CustomerAddressRepository } from './internal/customer-address-repository.js';
@@ -18,6 +18,7 @@ import type {
   CreateAddressInput,
   UpdateAddressInput,
   AddressSnapshot,
+  ICustomerAddressReader,
 } from './internal/customer-address-models.js';
 import type {
   WishlistItemRow,
@@ -44,7 +45,7 @@ import type {
 } from './internal/back-in-stock-models.js';
 import type { EventTransport } from '../events/index.js';
 import { OutboxRepository } from '../events/index.js';
-import type { NotificationService } from '../notifications/index.js';
+import type { INotificationClient } from '../notifications/index.js';
 
 export type {
   AddressLabel,
@@ -68,7 +69,14 @@ export type {
   BackInStockSubscriptionDto,
   CreateBackInStockInput,
   BackInStockCheckResultDto,
+  ICustomerAddressReader,
 };
+
+import { InMemoryCustomerAddressStore } from './internal/in-memory-customer-address-store.js';
+import {
+  HttpCustomerAddressClient,
+  type HttpCustomerAddressClientOptions,
+} from './internal/http-customer-address-client.js';
 
 export {
   CustomerAddressService,
@@ -78,21 +86,29 @@ export {
   BackInStockService,
   BackInStockRepository,
   BackInStockEventConsumer,
+  InMemoryCustomerAddressStore,
+  HttpCustomerAddressClient,
+  type HttpCustomerAddressClientOptions,
 };
 
 export interface CustomerModule {
   readonly contextName: 'customer';
   createAddressService(db: DatabaseConnection, logger: Logger): CustomerAddressService;
+  createInMemoryAddressStore(): InMemoryCustomerAddressStore;
+  createHttpAddressClient(
+    serviceUrl: string,
+    options?: HttpCustomerAddressClientOptions,
+  ): HttpCustomerAddressClient;
   createWishlistService(
     db: DatabaseConnection,
     logger: Logger,
-    cartService: CartService,
+    cartService: ICartService | CartService,
     outboxService?: OutboxService | undefined,
   ): WishlistService;
   createBackInStockService(
     db: DatabaseConnection,
     logger: Logger,
-    notificationService?: NotificationService | undefined,
+    notificationService?: INotificationClient | undefined,
     outboxService?: OutboxService | undefined,
     frontendUrl?: string | undefined,
   ): BackInStockService;
@@ -109,10 +125,19 @@ export const customerModule: CustomerModule = {
   createAddressService(db: DatabaseConnection, logger: Logger): CustomerAddressService {
     return new CustomerAddressService(db, logger);
   },
+  createInMemoryAddressStore(): InMemoryCustomerAddressStore {
+    return new InMemoryCustomerAddressStore();
+  },
+  createHttpAddressClient(
+    serviceUrl: string,
+    options?: HttpCustomerAddressClientOptions,
+  ): HttpCustomerAddressClient {
+    return new HttpCustomerAddressClient(serviceUrl, options);
+  },
   createWishlistService(
     db: DatabaseConnection,
     logger: Logger,
-    cartService: CartService,
+    cartService: ICartService | CartService,
     outboxService?: OutboxService | undefined,
   ): WishlistService {
     return new WishlistService(db, logger, cartService, outboxService);
@@ -120,7 +145,7 @@ export const customerModule: CustomerModule = {
   createBackInStockService(
     db: DatabaseConnection,
     logger: Logger,
-    notificationService?: NotificationService | undefined,
+    notificationService?: INotificationClient | undefined,
     outboxService?: OutboxService | undefined,
     frontendUrl?: string | undefined,
   ): BackInStockService {

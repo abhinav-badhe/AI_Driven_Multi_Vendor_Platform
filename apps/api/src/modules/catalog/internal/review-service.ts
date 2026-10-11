@@ -529,6 +529,8 @@ export class ReviewService {
       rating: row.rating,
       title: row.title,
       comment: row.comment,
+      headline: row.title,
+      content: row.comment,
       reviewerName: row.reviewer_name,
       status: row.status,
       verifiedPurchase: Boolean(row.verified_purchase),

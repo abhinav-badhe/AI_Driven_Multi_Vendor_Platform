@@ -1,24 +1,26 @@
 import type { DatabaseConnection } from '../../infra/database/connection.js';
 import type { Logger } from '../../observability/logger.js';
-import type { ListingService } from '../marketplace/index.js';
-import type { CatalogService } from '../catalog/index.js';
-import type { InventoryService } from '../inventory/index.js';
+import type { ListingService, IMarketplaceReader } from '../marketplace/index.js';
+import type { CatalogService, ICatalogReader } from '../catalog/index.js';
+import type { InventoryService, IInventoryService } from '../inventory/index.js';
+import type { CustomerAddressService, ICustomerAddressReader } from '../customer/index.js';
 import { CartService } from './internal/cart-service.js';
 import { CheckoutService } from './internal/checkout-service.js';
+import {
+  InMemoryCartStore,
+  InMemoryCheckoutStore,
+} from './internal/in-memory-cart-checkout-store.js';
+import {
+  HttpCartClient,
+  HttpCheckoutClient,
+  type HttpCartClientOptions,
+  type HttpCheckoutClientOptions,
+} from './internal/http-cart-checkout-client.js';
 import type {
-  CartDto,
-  CartItemDto,
-  AddCartItemInput,
-  UpdateCartItemQuantityInput,
-} from './internal/cart-service.js';
-import type {
-  CheckoutSessionDto,
-  CheckoutItemDto,
-  CreateCheckoutSessionInput,
-} from './internal/checkout-service.js';
-import type { CheckoutStatus } from './internal/checkout-repository.js';
-
-export type {
+  ICartReader,
+  ICartService,
+  ICheckoutReader,
+  ICheckoutService,
   CartDto,
   CartItemDto,
   AddCartItemInput,
@@ -27,25 +29,55 @@ export type {
   CheckoutItemDto,
   CreateCheckoutSessionInput,
   CheckoutStatus,
+  AddressSnapshot,
+} from './internal/cart-checkout-models.js';
+
+export type {
+  ICartReader,
+  ICartService,
+  ICheckoutReader,
+  ICheckoutService,
+  CartDto,
+  CartItemDto,
+  AddCartItemInput,
+  UpdateCartItemQuantityInput,
+  CheckoutSessionDto,
+  CheckoutItemDto,
+  CreateCheckoutSessionInput,
+  CheckoutStatus,
+  AddressSnapshot,
+  HttpCartClientOptions,
+  HttpCheckoutClientOptions,
 };
 
-import type { CustomerAddressService } from '../customer/index.js';
+export {
+  CartService,
+  CheckoutService,
+  InMemoryCartStore,
+  InMemoryCheckoutStore,
+  HttpCartClient,
+  HttpCheckoutClient,
+};
 
 export interface CartCheckoutModule {
   readonly contextName: 'cart-checkout';
   createCartService(
     db: DatabaseConnection,
     logger: Logger,
-    listingService: ListingService,
+    listingService: IMarketplaceReader | ListingService,
   ): CartService;
   createCheckoutService(
     db: DatabaseConnection,
     logger: Logger,
-    listingService: ListingService,
-    catalogService: CatalogService,
-    inventoryService: InventoryService,
-    addressService?: CustomerAddressService,
+    listingService: IMarketplaceReader | ListingService,
+    catalogService: ICatalogReader | CatalogService,
+    inventoryService: IInventoryService | InventoryService,
+    addressService?: ICustomerAddressReader | CustomerAddressService,
   ): CheckoutService;
+  createInMemoryCartStore(): InMemoryCartStore;
+  createInMemoryCheckoutStore(cartStore?: InMemoryCartStore): InMemoryCheckoutStore;
+  createHttpCartClient(serviceUrl: string, options?: HttpCartClientOptions): HttpCartClient;
+  createHttpCheckoutClient(serviceUrl: string, options?: HttpCheckoutClientOptions): HttpCheckoutClient;
 }
 
 export const cartCheckoutModule: CartCheckoutModule = {
@@ -53,17 +85,17 @@ export const cartCheckoutModule: CartCheckoutModule = {
   createCartService(
     db: DatabaseConnection,
     logger: Logger,
-    listingService: ListingService,
+    listingService: IMarketplaceReader | ListingService,
   ): CartService {
     return new CartService(db, logger, listingService);
   },
   createCheckoutService(
     db: DatabaseConnection,
     logger: Logger,
-    listingService: ListingService,
-    catalogService: CatalogService,
-    inventoryService: InventoryService,
-    addressService?: CustomerAddressService,
+    listingService: IMarketplaceReader | ListingService,
+    catalogService: ICatalogReader | CatalogService,
+    inventoryService: IInventoryService | InventoryService,
+    addressService?: ICustomerAddressReader | CustomerAddressService,
   ): CheckoutService {
     return new CheckoutService(
       db,
@@ -74,6 +106,17 @@ export const cartCheckoutModule: CartCheckoutModule = {
       addressService,
     );
   },
+  createInMemoryCartStore(): InMemoryCartStore {
+    return new InMemoryCartStore();
+  },
+  createInMemoryCheckoutStore(cartStore?: InMemoryCartStore): InMemoryCheckoutStore {
+    return new InMemoryCheckoutStore(cartStore);
+  },
+  createHttpCartClient(serviceUrl: string, options?: HttpCartClientOptions): HttpCartClient {
+    return new HttpCartClient(serviceUrl, options);
+  },
+  createHttpCheckoutClient(serviceUrl: string, options?: HttpCheckoutClientOptions): HttpCheckoutClient {
+    return new HttpCheckoutClient(serviceUrl, options);
+  },
 };
 
-export { CartService, CheckoutService };

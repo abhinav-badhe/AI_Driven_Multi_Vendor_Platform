@@ -1,15 +1,17 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
-import type { OutboxService } from '../modules/events/index.js';
-import type { NotificationService } from '../modules/notifications/index.js';
+import type { OutboxService, IOutboxService } from '../modules/events/index.js';
+import type { NotificationService, INotificationClient } from '../modules/notifications/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
-import { ForbiddenError, ValidationError } from '../errors/app-error.js';
+import { ForbiddenError, ValidationError, NotificationsExternallyManagedError } from '../errors/app-error.js';
 
 export function registerEventAndNotificationRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
-  outboxService: OutboxService,
-  notificationService: NotificationService,
+  outboxService: IOutboxService | OutboxService,
+  notificationService?: NotificationService | null,
+  notificationClient?: INotificationClient | null,
+  clientMode: 'local' | 'http' = 'local',
 ): void {
   const authenticate = createAuthMiddleware(identityService);
 
@@ -99,6 +101,10 @@ export function registerEventAndNotificationRoutes(
         throw new ForbiddenError('Only platform administrators can list notifications');
       }
 
+      if (clientMode === 'http' || !notificationService) {
+        throw new NotificationsExternallyManagedError('GET /notifications');
+      }
+
       const query = request.query as Record<string, string | undefined>;
       const limit = query.limit ? Number(query.limit) : undefined;
       const offset = query.offset ? Number(query.offset) : undefined;
@@ -125,6 +131,10 @@ export function registerEventAndNotificationRoutes(
         throw new ForbiddenError('Only platform administrators can inspect notification records');
       }
 
+      if (clientMode === 'http' || !notificationService) {
+        throw new NotificationsExternallyManagedError('GET /notifications/:id');
+      }
+
       const { id } = request.params as { id: string };
       const n = await notificationService.getNotificationById(actor, id);
       return reply.status(200).send(n);
@@ -139,6 +149,10 @@ export function registerEventAndNotificationRoutes(
       const actor = requireActor(request);
       if (actor.role !== 'ADMINISTRATOR') {
         throw new ForbiddenError('Only platform administrators can retry notifications');
+      }
+
+      if (clientMode === 'http' || !notificationService) {
+        throw new NotificationsExternallyManagedError('POST /notifications/:id/retry');
       }
 
       const { id } = request.params as { id: string };
@@ -160,6 +174,18 @@ export function registerEventAndNotificationRoutes(
       const body = (request.body as Record<string, unknown>) || {};
       const batchSize = typeof body.batchSize === 'number' ? body.batchSize : 50;
 
+      if (clientMode === 'http') {
+        if (!notificationClient) {
+          throw new NotificationsExternallyManagedError('POST /notifications/process');
+        }
+        const result = await notificationClient.processPendingNotifications({ batchSize });
+        return reply.status(200).send(result);
+      }
+
+      if (!notificationService) {
+        throw new NotificationsExternallyManagedError('POST /notifications/process');
+      }
+
       const result = await notificationService.processPendingNotifications({ batchSize });
       return reply.status(200).send(result);
     },
@@ -173,6 +199,10 @@ export function registerEventAndNotificationRoutes(
       const actor = requireActor(request);
       const tenantId = actor.tenantId;
       const customerId = actor.userId;
+
+      if (clientMode === 'http' || !notificationService) {
+        throw new NotificationsExternallyManagedError('GET /customers/me/notification-preferences');
+      }
 
       const pref = await notificationService.getCustomerPreferences(tenantId, customerId);
       return reply.status(200).send(
@@ -198,8 +228,25 @@ export function registerEventAndNotificationRoutes(
       const customerId = actor.userId;
 
       const body = request.body as Record<string, unknown>;
-      if (!body || typeof body !== 'object') {
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
         throw new ValidationError('Request body must be a valid object');
+      }
+
+      if (body.disabledTypes !== undefined && !Array.isArray(body.disabledTypes)) {
+        throw new ValidationError('disabledTypes must be an array');
+      }
+      if (body.emailEnabled !== undefined && typeof body.emailEnabled !== 'boolean') {
+        throw new ValidationError('emailEnabled must be a boolean');
+      }
+      if (body.smsEnabled !== undefined && typeof body.smsEnabled !== 'boolean') {
+        throw new ValidationError('smsEnabled must be a boolean');
+      }
+      if (body.pushEnabled !== undefined && typeof body.pushEnabled !== 'boolean') {
+        throw new ValidationError('pushEnabled must be a boolean');
+      }
+
+      if (clientMode === 'http' || !notificationService) {
+        throw new NotificationsExternallyManagedError('PUT /customers/me/notification-preferences');
       }
 
       const updated = await notificationService.setCustomerPreferences(tenantId, customerId, {

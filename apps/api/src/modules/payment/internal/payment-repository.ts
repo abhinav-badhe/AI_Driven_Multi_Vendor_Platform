@@ -383,4 +383,17 @@ export class PaymentRepository {
     );
     return res.rows[0] ?? null;
   }
+
+  async findAllIntents(limit = 100): Promise<PaymentIntentRow[]> {
+    const res = await this.db.query<PaymentIntentRow>(
+      `SELECT id, customer_tenant_id, checkout_session_id, order_id, amount, currency,
+              status, provider, client_secret, idempotency_key, metadata, created_at, updated_at
+       FROM payment_intents
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit],
+    );
+    return res.rows;
+  }
 }
+

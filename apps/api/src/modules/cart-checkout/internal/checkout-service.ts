@@ -2,9 +2,9 @@ import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
 import { RbacPolicy } from '../../identity/index.js';
-import type { ListingService } from '../../marketplace/index.js';
-import type { CatalogService } from '../../catalog/index.js';
-import type { InventoryService } from '../../inventory/index.js';
+import type { ListingService, IMarketplaceReader } from '../../marketplace/index.js';
+import type { CatalogService, ICatalogReader } from '../../catalog/index.js';
+import type { InventoryService, IInventoryService } from '../../inventory/index.js';
 import { CartRepository } from './cart-repository.js';
 import {
   CheckoutRepository,
@@ -21,7 +21,11 @@ import {
 } from '../../../errors/app-error.js';
 import { randomUUID } from 'node:crypto';
 
-import type { CustomerAddressService, AddressSnapshot } from '../../customer/index.js';
+import type {
+  CustomerAddressService,
+  AddressSnapshot,
+  ICustomerAddressReader,
+} from '../../customer/index.js';
 
 export interface CheckoutItemDto {
   id: string;
@@ -73,17 +77,19 @@ export interface CreateCheckoutSessionInput {
   shippingAddress?: AddressSnapshot | Record<string, unknown> | null | undefined;
 }
 
-export class CheckoutService {
+import type { ICheckoutService } from './cart-checkout-models.js';
+
+export class CheckoutService implements ICheckoutService {
   private readonly cartRepo: CartRepository;
   private readonly checkoutRepo: CheckoutRepository;
 
   constructor(
     db: DatabaseConnection,
     private readonly logger: Logger,
-    private readonly listingService: ListingService,
-    private readonly catalogService: CatalogService,
-    private readonly inventoryService: InventoryService,
-    private readonly addressService?: CustomerAddressService | undefined,
+    private readonly listingService: IMarketplaceReader | ListingService,
+    private readonly catalogService: ICatalogReader | CatalogService,
+    private readonly inventoryService: IInventoryService | InventoryService,
+    private readonly addressService?: ICustomerAddressReader | CustomerAddressService | undefined,
   ) {
     this.cartRepo = new CartRepository(db);
     this.checkoutRepo = new CheckoutRepository(db);

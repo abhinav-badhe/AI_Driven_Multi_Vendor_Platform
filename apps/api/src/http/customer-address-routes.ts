@@ -14,7 +14,7 @@ export function registerCustomerAddressRoutes(
 ): void {
   const authenticate = createAuthMiddleware(identityService);
 
-  const routePrefixes = ['', '/api/v1'];
+  const routePrefixes = ['', '/v1', '/api/v1'];
 
   for (const prefix of routePrefixes) {
     // GET /customer/addresses: List all addresses for current authenticated customer
@@ -25,6 +25,17 @@ export function registerCustomerAddressRoutes(
         const actor = requireActor(request);
         const addresses = await addressService.listAddresses(actor);
         return reply.status(200).send(addresses);
+      },
+    );
+
+    // GET /customer/addresses/default: Get customer's default address
+    app.get(
+      `${prefix}/customer/addresses/default`,
+      { preHandler: authenticate },
+      async (request, reply) => {
+        const actor = requireActor(request);
+        const address = await addressService.getDefaultAddress(actor);
+        return reply.status(200).send({ address });
       },
     );
 
@@ -89,4 +100,26 @@ export function registerCustomerAddressRoutes(
       },
     );
   }
+
+  // Inter-service microservice aliases for HttpCustomerAddressClient (/v1/customers/addresses/*)
+  app.get(
+    '/v1/customers/addresses/default',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const actor = requireActor(request);
+      const address = await addressService.getDefaultAddress(actor);
+      return reply.status(200).send({ address });
+    },
+  );
+
+  app.get(
+    '/v1/customers/addresses/:id',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const actor = requireActor(request);
+      const { id } = request.params as { id: string };
+      const address = await addressService.getAddress(actor, id);
+      return reply.status(200).send({ address });
+    },
+  );
 }

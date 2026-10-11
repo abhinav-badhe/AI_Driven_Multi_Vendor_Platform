@@ -1,7 +1,7 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
-import { RbacPolicy, SecurityAuditService } from '../../identity/index.js';
+import { RbacPolicy, SecurityAuditService, type ISecurityAuditService } from '../../identity/index.js';
 import { MerchantRepository } from './merchant-repository.js';
 import type { MerchantVerificationStatus } from './merchant-repository.js';
 import {
@@ -20,41 +20,26 @@ const ALLOWED_TRANSITIONS: Record<MerchantVerificationStatus, MerchantVerificati
   SUSPENDED: ['VERIFIED'],
 };
 
-export interface MerchantProfileDto {
-  id: string;
-  tenantId: string;
-  businessName: string;
-  legalName: string;
-  contactEmail: string;
-  verificationStatus: MerchantVerificationStatus;
-  rejectionReason?: string;
-  verifiedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import type {
+  MerchantProfileDto,
+  OnboardMerchantInput,
+  UpdateMerchantProfileInput,
+  IMerchantService,
+} from './merchant-models.js';
 
-export interface OnboardMerchantInput {
-  businessName: string;
-  legalName: string;
-  contactEmail: string;
-}
+export type { MerchantProfileDto, OnboardMerchantInput, UpdateMerchantProfileInput };
 
-export interface UpdateMerchantProfileInput {
-  businessName?: string | undefined;
-  legalName?: string | undefined;
-  contactEmail?: string | undefined;
-}
-
-export class MerchantService {
+export class MerchantService implements IMerchantService {
   private readonly repo: MerchantRepository;
-  private readonly audit: SecurityAuditService;
+  private readonly audit: ISecurityAuditService;
 
   constructor(
     db: DatabaseConnection,
     logger: Logger,
+    audit?: ISecurityAuditService,
   ) {
     this.repo = new MerchantRepository(db);
-    this.audit = new SecurityAuditService(db, logger);
+    this.audit = audit ?? new SecurityAuditService(db, logger);
   }
 
   async onboard(actor: AuthorizedActor, input: OnboardMerchantInput): Promise<MerchantProfileDto> {
@@ -238,4 +223,13 @@ export class MerchantService {
       updatedAt: row.updated_at,
     };
   }
+
+  async listMerchants(actor: AuthorizedActor): Promise<MerchantProfileDto[]> {
+    if (actor.role !== 'ADMINISTRATOR') {
+      RbacPolicy.requirePermission(actor, 'merchant:verify');
+    }
+    const rows = await this.repo.findAll();
+    return rows.map((r) => this.toDto(r));
+  }
 }
+

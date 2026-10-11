@@ -4,6 +4,7 @@ import { CheckCircle2, Lock, ShieldCheck, MapPin, Plus, Edit2, Home, Briefcase, 
 import { checkoutApi, type CheckoutSessionDto, type OrderConfirmationDto } from "./api/checkout";
 import { addressesApi, type CustomerAddressDto } from "../customer/api/addresses";
 import { AddressFormModal } from "../customer/components/AddressFormModal";
+import { initiateRazorpayPayment } from "./api/razorpay";
 import { useCart } from "../cart/CartContext";
 import { Button, buttonVariants } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
@@ -218,7 +219,44 @@ export const CheckoutPage = () => {
       }
 
       const intent = await checkoutApi.createPaymentIntent(activeSession.id);
-      const attempt = await checkoutApi.submitPaymentAttempt(intent.id, paymentMethod);
+
+      let attemptPayload = paymentMethod;
+
+      if (paymentMethod === "razorpay" || paymentMethod === "pm_upi") {
+        const config = typeof checkoutApi.getPaymentConfig === "function"
+          ? await checkoutApi.getPaymentConfig().catch(() => ({
+              provider: "razorpay" as const,
+              razorpayKeyId: "rzp_test_mockKey123",
+              currency: "INR",
+            }))
+          : {
+              provider: "razorpay" as const,
+              razorpayKeyId: "rzp_test_mockKey123",
+              currency: "INR",
+            };
+
+        const rzpResult = await initiateRazorpayPayment({
+          key: config.razorpayKeyId || "rzp_test_mockKey123",
+          amount: typeof activeSession.totalAmount === 'number'
+            ? (Number.isInteger(activeSession.totalAmount)
+                ? activeSession.totalAmount
+                : Math.round(activeSession.totalAmount * 100))
+            : 0,
+          currency: activeSession.currency || "INR",
+          name: "Commerce Marketplace",
+          description: `Order Payment (${activeSession.items.length} item${activeSession.items.length === 1 ? '' : 's'})`,
+          order_id: intent.clientSecret || intent.id,
+          prefill: {
+            name: fullName,
+            contact: phone,
+          },
+          theme: { color: "#18181b" },
+        });
+
+        attemptPayload = JSON.stringify(rzpResult);
+      }
+
+      const attempt = await checkoutApi.submitPaymentAttempt(intent.id, attemptPayload);
 
       if (attempt.status === "REQUIRES_ACTION") {
         // Stripe 3D-Secure / Strong Customer Authentication challenge flow
@@ -533,8 +571,8 @@ export const CheckoutPage = () => {
               <div className="mt-2 flex flex-col gap-2">
                 {(
                   [
+                    { value: "razorpay", label: "Razorpay (UPI / Google Pay / PhonePe / Paytm / Netbanking / Cards)" },
                     { value: "pm_card_visa", label: "Credit / debit card (Visa / Mastercard)" },
-                    { value: "pm_upi", label: "UPI (Google Pay / PhonePe / Paytm)" },
                     { value: "cod", label: "Cash on delivery (pay when your order arrives)" },
                   ] as const
                 ).map((opt) => (

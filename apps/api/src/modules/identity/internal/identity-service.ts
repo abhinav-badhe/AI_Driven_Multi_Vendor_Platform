@@ -3,8 +3,8 @@ import type { Logger } from '../../../observability/logger.js';
 import { IdentityRepository, hashVerificationToken } from './identity-repository.js';
 import { ScryptPasswordHasher } from './password-hasher.js';
 import { HmacTokenService } from './token-service.js';
-import { SecurityAuditService } from './security-audit-service.js';
-import type { AuthorizedActor } from '../rbac/policy.js';
+import { SecurityAuditService, type ISecurityAuditService } from './security-audit-service.js';
+import { RbacPolicy, type AuthorizedActor } from '../rbac/policy.js';
 import {
   ValidationError,
   UnauthorizedError,
@@ -13,6 +13,14 @@ import {
   NotFoundError,
 } from '../../../errors/app-error.js';
 import { randomBytes } from 'node:crypto';
+import type { IIdentityActorResolver } from './stateless-token-actor-resolver.js';
+import {
+  generateTotpSecret,
+  verifyTotpCode,
+  buildOtpAuthUri,
+  generateRecoveryCodes,
+  hashRecoveryCode,
+} from './totp-service.js';
 
 export interface RegisterInput {
   email: string;
@@ -27,6 +35,13 @@ export interface AuthTokenPair {
   refreshToken: string;
   refreshTokenExpiresAt: Date;
 }
+
+export interface LoginResult extends AuthTokenPair {
+  requires2FA?: boolean;
+  tempToken?: string;
+}
+
+export type LoginRequires2FAResult = LoginResult & { requires2FA: true; tempToken: string };
 
 export interface LoginInput {
   email: string;
@@ -45,12 +60,12 @@ export interface AuthenticatedIdentity {
   role: string;
 }
 
-export class IdentityService {
+export class IdentityService implements IIdentityActorResolver {
   private readonly db: DatabaseConnection;
   private readonly repo: IdentityRepository;
   private readonly hasher: ScryptPasswordHasher;
   private readonly tokenService: HmacTokenService;
-  private readonly audit: SecurityAuditService;
+  private readonly audit: ISecurityAuditService;
 
   static readonly VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -58,12 +73,13 @@ export class IdentityService {
     db: DatabaseConnection,
     logger: Logger,
     tokenSecret: string,
+    audit?: ISecurityAuditService,
   ) {
     this.db = db;
     this.repo = new IdentityRepository(db);
     this.hasher = new ScryptPasswordHasher();
     this.tokenService = new HmacTokenService({ accessTokenSecret: tokenSecret });
-    this.audit = new SecurityAuditService(db, logger);
+    this.audit = audit ?? new SecurityAuditService(db, logger);
   }
 
   async register(input: RegisterInput): Promise<{ userId: string; email: string; tenantId: string; role: string }> {
@@ -168,7 +184,7 @@ export class IdentityService {
     return { rawToken, email: user.email };
   }
 
-  async login(input: LoginInput, context?: AuthRequestContext | undefined): Promise<AuthTokenPair> {
+  async login(input: LoginInput, context?: AuthRequestContext | undefined): Promise<LoginResult> {
     // Generic delay-compatible failure path to prevent timing oracle attacks
     const genericFailure = async () => {
       // always run hash to avoid timing leaks
@@ -212,6 +228,30 @@ export class IdentityService {
       throw new UnauthorizedError('Invalid credentials');
     }
 
+    const userTwoFactor = await this.repo.find2FASettingsByUserId(user.id);
+    if (userTwoFactor && userTwoFactor.is_enabled) {
+      const tempToken = this.tokenService.generate2FATempToken({
+        userId: user.id,
+        tenantId: membership.tenant_id,
+        role: membership.role,
+      });
+      await this.audit.record({
+        eventType: 'LOGIN_2FA_CHALLENGE',
+        actorId: user.id,
+        tenantId: membership.tenant_id,
+        ipAddress: context?.ip,
+        userAgent: context?.userAgent,
+      });
+      return {
+        requires2FA: true,
+        tempToken,
+        accessToken: '',
+        refreshToken: '',
+        accessTokenExpiresAt: new Date(0),
+        refreshTokenExpiresAt: new Date(0),
+      };
+    }
+
     const tokens = await this.issueTokenPair(user.id, membership.tenant_id, membership.role);
 
     await this.audit.record({
@@ -222,7 +262,161 @@ export class IdentityService {
       userAgent: context?.userAgent,
     });
 
+    return {
+      ...tokens,
+      requires2FA: false,
+    };
+  }
+
+  async verify2FALogin(
+    tempToken: string,
+    codeOrRecoveryCode: string,
+    context?: AuthRequestContext | undefined,
+  ): Promise<AuthTokenPair> {
+    const payload = this.tokenService.verify2FATempToken(tempToken);
+    if (!payload) {
+      throw new UnauthorizedError('Invalid or expired 2FA verification session. Please log in again.');
+    }
+
+    const user = await this.repo.findUserById(payload.userId);
+    if (!user || user.status !== 'ACTIVE') {
+      throw new UnauthorizedError('Invalid credentials');
+    }
+
+    const settings = await this.repo.find2FASettingsByUserId(payload.userId);
+    if (!settings || !settings.is_enabled) {
+      throw new UnauthorizedError('2FA is not enabled for this user');
+    }
+
+    const cleanInput = codeOrRecoveryCode.trim();
+    let verified = false;
+    let usedRecoveryCode = false;
+
+    // Check TOTP 6-digit code
+    if (/^\d{6}$/.test(cleanInput)) {
+      verified = verifyTotpCode(settings.secret, cleanInput);
+    }
+
+    // If not verified with TOTP, check backup recovery code
+    if (!verified) {
+      const codeHash = hashRecoveryCode(cleanInput);
+      const consumed = await this.repo.consumeRecoveryCode(payload.userId, codeHash);
+      if (consumed) {
+        verified = true;
+        usedRecoveryCode = true;
+      }
+    }
+
+    if (!verified) {
+      await this.audit.record({
+        eventType: 'LOGIN_2FA_FAILURE',
+        actorId: payload.userId,
+        tenantId: payload.tenantId,
+        ipAddress: context?.ip,
+        userAgent: context?.userAgent,
+        metadata: { reason: 'invalid_code' },
+      });
+      throw new UnauthorizedError('Invalid verification code');
+    }
+
+    const tokens = await this.issueTokenPair(payload.userId, payload.tenantId, payload.role);
+
+    await this.audit.record({
+      eventType: 'LOGIN_SUCCESS',
+      actorId: payload.userId,
+      tenantId: payload.tenantId,
+      ipAddress: context?.ip,
+      userAgent: context?.userAgent,
+      metadata: { method: usedRecoveryCode ? 'recovery_code' : 'totp' },
+    });
+
     return tokens;
+  }
+
+  async get2FAStatus(userId: string): Promise<{ isEnabled: boolean }> {
+    const settings = await this.repo.find2FASettingsByUserId(userId);
+    return { isEnabled: Boolean(settings?.is_enabled) };
+  }
+
+  async setup2FA(userId: string, issuer = 'Commerce Platform'): Promise<{
+    secret: string;
+    otpAuthUri: string;
+    recoveryCodes: string[];
+  }> {
+    const user = await this.repo.findUserById(userId);
+    if (!user || user.status !== 'ACTIVE') {
+      throw new NotFoundError('User not found');
+    }
+
+    const secret = generateTotpSecret();
+    const { plaintextCodes, hashedCodes } = generateRecoveryCodes(10);
+    const otpAuthUri = buildOtpAuthUri(secret, user.email, issuer);
+
+    await this.repo.save2FASetup({
+      userId,
+      secret,
+      recoveryCodes: hashedCodes,
+    });
+
+    return {
+      secret,
+      otpAuthUri,
+      recoveryCodes: plaintextCodes,
+    };
+  }
+
+  async enable2FA(userId: string, code: string): Promise<{ success: true }> {
+    const settings = await this.repo.find2FASettingsByUserId(userId);
+    if (!settings || !settings.secret) {
+      throw new ValidationError('2FA setup has not been initiated. Please start setup first.');
+    }
+
+    const isValid = verifyTotpCode(settings.secret, code.trim());
+    if (!isValid) {
+      throw new ValidationError('Invalid verification code. Please check your authenticator app and try again.');
+    }
+
+    await this.repo.enable2FA(userId);
+    await this.audit.record({
+      eventType: '2FA_ENABLED',
+      actorId: userId,
+      metadata: {},
+    });
+
+    return { success: true };
+  }
+
+  async disable2FA(userId: string, passwordConfirm: string, code?: string): Promise<{ success: true }> {
+    const user = await this.repo.findUserById(userId);
+    if (!user || user.status !== 'ACTIVE') {
+      throw new NotFoundError('User not found');
+    }
+
+    const passwordValid = await this.hasher.verify(passwordConfirm, user.password_hash);
+    if (!passwordValid) {
+      throw new UnauthorizedError('Incorrect password');
+    }
+
+    const settings = await this.repo.find2FASettingsByUserId(userId);
+    if (!settings || !settings.is_enabled) {
+      return { success: true };
+    }
+
+    if (code) {
+      const codeValid = verifyTotpCode(settings.secret, code.trim());
+      if (!codeValid) {
+        throw new ValidationError('Invalid verification code');
+      }
+    }
+
+    await this.repo.disable2FA(userId);
+    await this.audit.record({
+      eventType: '2FA_DISABLED',
+      actorId: userId,
+      metadata: {},
+    });
+
+    return { success: true };
   }
 
   async refresh(rawRefreshToken: string, context?: AuthRequestContext | undefined): Promise<AuthTokenPair> {
@@ -436,4 +630,33 @@ export class IdentityService {
       refreshTokenExpiresAt: refreshToken.expiresAt,
     };
   }
+
+  async listUsers(actor: AuthorizedActor): Promise<Array<{
+    id: string;
+    email: string;
+    role: string;
+    tenantId: string;
+    createdAt: string;
+    isActive: boolean;
+  }>> {
+    if (actor.role !== 'ADMINISTRATOR') {
+      RbacPolicy.requirePermission(actor, 'admin:manage-users');
+    }
+    return this.repo.listAllUsers();
+  }
+
+  async getAuditLog(actor: AuthorizedActor): Promise<Array<{
+    id: string;
+    event: string;
+    userId?: string;
+    ip?: string;
+    timestamp: string;
+    severity: string;
+  }>> {
+    if (actor.role !== 'ADMINISTRATOR') {
+      RbacPolicy.requirePermission(actor, 'admin:view-audit');
+    }
+    return this.repo.getAuditRecords();
+  }
 }
+

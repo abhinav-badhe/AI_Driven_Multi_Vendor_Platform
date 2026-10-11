@@ -10,8 +10,8 @@
 
 import type { DatabaseConnection } from '../../infra/database/connection.js';
 import type { Logger } from '../../observability/logger.js';
-import type { CatalogService } from '../catalog/index.js';
-import type { ListingService } from '../marketplace/index.js';
+import type { CatalogService, ICatalogReader } from '../catalog/index.js';
+import type { ListingService, IMarketplaceReader } from '../marketplace/index.js';
 import type { EventTransport } from '../events/index.js';
 import { OutboxRepository } from '../events/index.js';
 
@@ -82,15 +82,27 @@ export {
   RecommendationEventConsumer,
 };
 
+import { InMemoryRecommendationStore } from './internal/in-memory-recommendation-store.js';
+import {
+  HttpRecommendationStoreAdapter,
+  type HttpRecommendationStoreOptions,
+} from './internal/http-recommendation-store.js';
+
+export {
+  InMemoryRecommendationStore,
+  HttpRecommendationStoreAdapter,
+  type HttpRecommendationStoreOptions,
+};
+
 import type { IAnalyticsRecommendationReader } from '../analytics/index.js';
 
 export interface RecommendationsModule {
   readonly contextName: 'recommendations';
   createService(
-    db: DatabaseConnection,
+    db: DatabaseConnection | undefined,
     logger: Logger,
-    catalogService: CatalogService,
-    listingService: ListingService,
+    catalogService: ICatalogReader | CatalogService,
+    listingService: IMarketplaceReader | ListingService,
     analyticsReader: IAnalyticsRecommendationReader,
     store?: IRecommendationStore,
     ranker?: IRecommendationRanker,
@@ -101,15 +113,20 @@ export interface RecommendationsModule {
     logger: Logger,
     service: RecommendationService,
   ): RecommendationEventConsumer;
+  createInMemoryStore(): InMemoryRecommendationStore;
+  createHttpStore(
+    serviceUrl: string,
+    options?: HttpRecommendationStoreOptions,
+  ): HttpRecommendationStoreAdapter;
 }
 
 export const recommendationsModule: RecommendationsModule = {
   contextName: 'recommendations',
   createService(
-    db: DatabaseConnection,
+    db: DatabaseConnection | undefined,
     logger: Logger,
-    catalogService: CatalogService,
-    listingService: ListingService,
+    catalogService: ICatalogReader | CatalogService,
+    listingService: IMarketplaceReader | ListingService,
     analyticsReader: IAnalyticsRecommendationReader,
     store?: IRecommendationStore,
     ranker?: IRecommendationRanker,
@@ -119,7 +136,7 @@ export const recommendationsModule: RecommendationsModule = {
       catalogService,
       listingService,
       analyticsReader,
-      store: store ?? new SqlRecommendationStore(db),
+      store: store ?? (db ? new SqlRecommendationStore(db) : new InMemoryRecommendationStore()),
       ranker,
     });
   },
@@ -138,5 +155,14 @@ export const recommendationsModule: RecommendationsModule = {
     );
     consumer.registerSubscriptions();
     return consumer;
+  },
+  createInMemoryStore(): InMemoryRecommendationStore {
+    return new InMemoryRecommendationStore();
+  },
+  createHttpStore(
+    serviceUrl: string,
+    options?: HttpRecommendationStoreOptions,
+  ): HttpRecommendationStoreAdapter {
+    return new HttpRecommendationStoreAdapter(serviceUrl, options);
   },
 };

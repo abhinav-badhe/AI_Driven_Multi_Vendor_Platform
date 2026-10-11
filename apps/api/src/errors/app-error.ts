@@ -70,3 +70,19 @@ export class InternalError extends AppError {
   public readonly statusCode = 500;
   public readonly code = 'INTERNAL_ERROR';
 }
+
+export class NotificationsExternallyManagedError extends AppError {
+  public readonly statusCode = 501;
+  public readonly code = 'NOTIFICATIONS_MANAGED_EXTERNALLY';
+
+  constructor(operation: string) {
+    super(
+      `Notification operation '${operation}' is not available on the monolith when running in standalone HTTP mode. Inspect or manage notifications directly via the standalone Notifications service.`,
+    );
+  }
+}
+
+export class ExternalServiceError extends AppError {
+  public readonly statusCode = 502;
+  public readonly code = 'BAD_GATEWAY';
+}

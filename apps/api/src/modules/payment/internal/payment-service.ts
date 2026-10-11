@@ -8,7 +8,7 @@ import {
   InvalidStateTransitionError,
 } from '../../../errors/app-error.js';
 import { RbacPolicy, type AuthorizedActor } from '../../identity/rbac/policy.js';
-import type { CheckoutService } from '../../cart-checkout/index.js';
+import type { CheckoutService, ICheckoutReader } from '../../cart-checkout/index.js';
 import { OutboxService, EventTypes, createDomainEvent } from '../../events/index.js';
 import {
   PaymentRepository,
@@ -109,14 +109,10 @@ export interface PaymentRefundDto {
   updatedAt: string;
 }
 
-export interface WebhookProcessResultDto {
-  processed: boolean;
-  duplicate: boolean;
-  providerEventId: string;
-  eventType: string;
-}
+import type { IPaymentService, WebhookProcessResultDto } from './payment-models.js';
+export type { WebhookProcessResultDto };
 
-export class PaymentService {
+export class PaymentService implements IPaymentService {
   private readonly repo: PaymentRepository;
   private readonly provider: PaymentProvider;
   private readonly webhookSecret: string;
@@ -125,7 +121,7 @@ export class PaymentService {
   constructor(
     db: DatabaseConnection,
     private readonly logger: Logger,
-    private readonly checkoutService: CheckoutService,
+    private readonly checkoutService: ICheckoutReader | CheckoutService,
     private readonly outboxService: OutboxService,
     provider?: PaymentProvider,
     webhookSecret = 'whsec_mock_default_secret_for_tests',
@@ -729,4 +725,13 @@ export class PaymentService {
       updatedAt: row.updated_at.toISOString(),
     };
   }
+
+  async listAllPayments(actor: AuthorizedActor): Promise<PaymentIntentDto[]> {
+    if (actor.role !== 'ADMINISTRATOR') {
+      RbacPolicy.requirePermission(actor, 'payment:manage-any');
+    }
+    const rows = await this.repo.findAllIntents();
+    return rows.map((r: PaymentIntentRow) => this.toIntentDto(r));
+  }
 }
+

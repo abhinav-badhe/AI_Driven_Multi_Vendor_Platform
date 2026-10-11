@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
 import type {
   SettlementService,
+  ISettlementService,
   SettlementStatus,
   LedgerEntryType,
   FinancialAdjustmentType,
@@ -17,7 +18,7 @@ import {
 export function registerSettlementRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
-  settlementService: SettlementService,
+  settlementService: ISettlementService | SettlementService,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
 

@@ -15,9 +15,10 @@ import type {
   CustomerAddressRow,
   UpdateAddressInput,
   AddressSnapshot,
+  ICustomerAddressReader,
 } from './customer-address-models.js';
 
-export class CustomerAddressService {
+export class CustomerAddressService implements ICustomerAddressReader {
   private readonly repo: CustomerAddressRepository;
 
   constructor(

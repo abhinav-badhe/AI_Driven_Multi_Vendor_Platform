@@ -17,7 +17,9 @@ import type {
 } from './channel-providers.js';
 import { NotificationRepository } from './notification-repository.js';
 
-export class NotificationService {
+import type { INotificationClient } from './notification-client.js';
+
+export class NotificationService implements INotificationClient {
   constructor(
     private readonly db: DatabaseConnection,
     private readonly repo: NotificationRepository,

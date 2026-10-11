@@ -43,6 +43,7 @@ import { AdminEvents } from '../features/admin/AdminEvents';
 import { AdminSecurity } from '../features/admin/AdminSecurity';
 import { AdminReviews } from '../features/admin/AdminReviews';
 import { AdminNotifications } from '../features/admin/AdminNotifications';
+import { AdminWhatsApp } from '../features/admin/AdminWhatsApp';
 import { AnalyticsDashboard } from '../features/analytics/AnalyticsDashboard';
 import { ShipmentTracker } from '../features/fulfillment/ShipmentTracker';
 import { PromotionManagement } from '../features/promotions/PromotionManagement';
@@ -110,6 +111,7 @@ export const AppRoutes = () => {
               <Route path="security" element={<AdminSecurity />} />
               <Route path="reviews" element={<AdminReviews />} />
               <Route path="notifications" element={<AdminNotifications />} />
+              <Route path="whatsapp" element={<AdminWhatsApp />} />
               <Route path="analytics" element={<AnalyticsDashboard />} />
             </Route>
           </Routes>

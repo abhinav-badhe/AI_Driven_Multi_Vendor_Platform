@@ -151,3 +151,90 @@ export interface DiscountCalculationResult {
   merchantDiscounts: Record<string, number>;
   finalTotalAmount: number;
 }
+
+export interface ListPromotionsFilter {
+  merchantTenantId?: string | undefined;
+  includePlatform?: boolean | undefined;
+  status?: PromotionStatus | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+}
+
+export interface PreviewDiscountsInput {
+  items: CalculateDiscountItem[];
+  couponCode?: string | null | undefined;
+  currency: string;
+  now?: Date | undefined;
+  isFirstOrder?: boolean | undefined;
+}
+
+export interface ApplyCouponResult {
+  discountAmount: number;
+  totalAmount: number;
+  couponCode: string;
+  appliedPromotions: AppliedPromotionSnapshot[];
+}
+
+export interface RemoveCouponResult {
+  discountAmount: number;
+  totalAmount: number;
+  couponCode: null;
+  appliedPromotions: [];
+}
+
+export interface FinalizeRedemptionInput {
+  checkoutSessionId: string;
+  customerOrderId: string;
+  customerTenantId: string;
+  actor: import('../../identity/rbac/policy.js').AuthorizedActor;
+}
+
+export interface ReverseRedemptionInput {
+  checkoutSessionId: string;
+  customerOrderId?: string | null | undefined;
+  reason?: string | undefined;
+}
+
+/**
+ * IPromotionPricingEngine - Clean architectural seam for promotions & pricing.
+ * Allows synchronous database execution or remote microservice HTTP execution.
+ */
+export interface IPromotionPricingEngine {
+  createPromotion(
+    actor: import('../../identity/rbac/policy.js').AuthorizedActor,
+    input: CreatePromotionInput,
+  ): Promise<PromotionDto>;
+
+  getPromotion(
+    actor: import('../../identity/rbac/policy.js').AuthorizedActor,
+    id: string,
+  ): Promise<PromotionDto>;
+
+  listPromotions(
+    actor: import('../../identity/rbac/policy.js').AuthorizedActor,
+    filter?: ListPromotionsFilter,
+  ): Promise<PromotionDto[]>;
+
+  updatePromotion(
+    actor: import('../../identity/rbac/policy.js').AuthorizedActor,
+    id: string,
+    input: UpdatePromotionInput,
+  ): Promise<PromotionDto>;
+
+  previewDiscounts(
+    actor: import('../../identity/rbac/policy.js').AuthorizedActor,
+    input: PreviewDiscountsInput,
+  ): Promise<DiscountCalculationResult>;
+
+  applyCouponToCheckout(
+    actor: import('../../identity/rbac/policy.js').AuthorizedActor,
+    checkoutSessionId: string,
+    couponCode: string,
+  ): Promise<ApplyCouponResult>;
+
+  removeCouponFromCheckout(
+    actor: import('../../identity/rbac/policy.js').AuthorizedActor,
+    checkoutSessionId: string,
+  ): Promise<RemoveCouponResult>;
+}
+

@@ -1,14 +1,28 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
-import type { PaymentService } from '../modules/payment/index.js';
+import type { PaymentService, IPaymentService } from '../modules/payment/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
+
+import type { AppConfig } from '../config/schema.js';
 
 export function registerPaymentRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
-  paymentService: PaymentService,
+  paymentService: IPaymentService | PaymentService,
+  config?: AppConfig | undefined,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
+
+  // GET /payments/config: Public payment gateway client configuration
+  app.get('/payments/config', async (_request, reply) => {
+    const provider = config?.payment?.provider ?? 'razorpay';
+    return reply.status(200).send({
+      provider,
+      razorpayKeyId: config?.payment?.razorpayKeyId || (provider === 'razorpay' ? 'rzp_test_mockKey123' : null),
+      stripePublishableKey: config?.payment?.publishableKey || null,
+      currency: 'INR',
+    });
+  });
 
   // POST /payments/intents: Create payment intent for a READY checkout
   app.post(
@@ -132,4 +146,51 @@ export function registerPaymentRoutes(
       });
     },
   );
+
+  // PATCH /payments/intents/:id/order: Associate finalized order with payment intent
+  app.patch(
+    '/payments/intents/:id/order',
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const body = (request.body as { orderId?: unknown } | undefined) ?? {};
+
+      if (typeof body.orderId !== 'string') {
+        return reply.status(400).send({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'orderId is required',
+          },
+        });
+      }
+
+      await paymentService.linkOrderToIntent(id, body.orderId);
+      return reply.status(200).send({ linked: true });
+    },
+  );
+
+  // GET /admin/payments: List platform payment transactions for administrator
+  app.get(
+    '/admin/payments',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const actor = requireActor(request);
+      if (actor.role !== 'ADMINISTRATOR') {
+        return reply.status(403).send({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Administrator role required',
+          },
+        });
+      }
+
+      const list = await paymentService.listAllPayments(actor);
+      const payments = list.map((p) => ({
+        ...p,
+        method: p.paymentMethod ?? p.provider,
+      }));
+
+      return reply.status(200).send({ payments });
+    },
+  );
 }
+

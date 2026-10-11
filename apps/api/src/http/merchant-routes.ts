@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
-import type { MerchantService } from '../modules/merchant/index.js';
+import type { MerchantService, IMerchantService } from '../modules/merchant/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ValidationError } from '../errors/app-error.js';
 import {
@@ -13,7 +13,7 @@ import {
 export function registerMerchantRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
-  merchantService: MerchantService,
+  merchantService: IMerchantService | MerchantService,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
 
@@ -73,12 +73,26 @@ export function registerMerchantRoutes(
     { preHandler: authenticate },
     async (request, reply) => {
       const actor = requireActor(request);
-      const body = request.body as Record<string, unknown>;
+      const body = (request.body as Record<string, unknown>) ?? {};
+
+      const businessName =
+        typeof body.businessName === 'string'
+          ? body.businessName
+          : typeof body.displayName === 'string'
+            ? body.displayName
+            : undefined;
+      const contactEmail =
+        typeof body.contactEmail === 'string'
+          ? body.contactEmail
+          : typeof body.supportEmail === 'string'
+            ? body.supportEmail
+            : undefined;
+      const legalName = typeof body.legalName === 'string' ? body.legalName : undefined;
 
       const profile = await merchantService.updateProfile(actor, {
-        businessName: typeof body.businessName === 'string' ? body.businessName : undefined,
-        legalName: typeof body.legalName === 'string' ? body.legalName : undefined,
-        contactEmail: typeof body.contactEmail === 'string' ? body.contactEmail : undefined,
+        businessName,
+        legalName,
+        contactEmail,
       });
 
       await app.cache.invalidateTags(
@@ -88,6 +102,70 @@ export function registerMerchantRoutes(
       return reply.status(200).send(profile);
     },
   );
+
+  // PUT /merchants/me/settings (Console settings update alias)
+  app.put(
+    '/merchants/me/settings',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const actor = requireActor(request);
+      const body = (request.body as Record<string, unknown>) ?? {};
+
+      const businessName =
+        typeof body.businessName === 'string'
+          ? body.businessName
+          : typeof body.displayName === 'string'
+            ? body.displayName
+            : undefined;
+      const contactEmail =
+        typeof body.contactEmail === 'string'
+          ? body.contactEmail
+          : typeof body.supportEmail === 'string'
+            ? body.supportEmail
+            : undefined;
+
+      const profile = await merchantService.updateProfile(actor, {
+        businessName,
+        contactEmail,
+      });
+
+      await app.cache.invalidateTags(
+        CacheTags.merchant,
+        `${CacheTags.merchant}:tenant:${actor.tenantId}`,
+      );
+      return reply.status(200).send({ ...profile, settingsSaved: true });
+    },
+  );
+
+  // GET /merchants (Admin list all merchant profiles)
+  app.get(
+    '/merchants',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const actor = requireActor(request);
+      const merchants = await merchantService.listMerchants(actor);
+      return reply.status(200).send(merchants);
+    },
+  );
+
+  // GET /internal/merchants/tenants/:tenantId (Inter-service merchant profile resolution)
+  app.get(
+    '/internal/merchants/tenants/:tenantId',
+    async (request, reply) => {
+      const { tenantId } = request.params as { tenantId: string };
+      const profile = await merchantService.getProfileByTenantId(tenantId);
+      if (!profile) {
+        return reply.status(404).send({
+          error: {
+            code: 'NOT_FOUND',
+            message: `Merchant with tenant ID '${tenantId}' not found`,
+          },
+        });
+      }
+      return reply.status(200).send(profile);
+    },
+  );
+
 
   // POST /merchants/me/submit
   app.post(

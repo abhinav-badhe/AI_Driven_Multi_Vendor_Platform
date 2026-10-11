@@ -56,17 +56,28 @@ export const MerchantDashboard = () => {
       <div className="mx-auto w-full max-w-xl p-4">
         <Card>
           <CardHeader>
-            <CardTitle>Seller hub</CardTitle>
-            <CardDescription>Sign in with a merchant account to manage listings and orders.</CardDescription>
+            <CardTitle>Seller Hub</CardTitle>
+            <CardDescription>Sign in with a merchant or administrator account to manage listings and orders.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-wrap gap-2.5">
             <Button
               onClick={async () => {
                 await login({ email: "merchant@example.com", password: "password123" });
               }}
             >
-              Sign in as demo merchant
+              Sign in as Demo Merchant
             </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await login({ email: "leonsintegration@gmail.com", password: "Password@2163" });
+              }}
+            >
+              Sign in as Demo Admin
+            </Button>
+            <Link to="/account" className={cn(buttonVariants({ variant: "ghost", size: "default" }))}>
+              Sign in with Other Account
+            </Link>
           </CardContent>
         </Card>
       </div>

@@ -5,8 +5,10 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Alert } from "../../components/ui/alert";
-import { EmptyState, TableSkeleton } from "../../components/ui/empty";
+import { EmptyState, Skeleton } from "../../components/ui/empty";
 import { Input } from "../../components/ui/input";
+
+type StockFilter = "ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK";
 
 interface StockRow {
   detail: MerchantListingDetailDto;
@@ -21,6 +23,7 @@ export const MerchantInventory = () => {
   // owns its own value keyed by listing id.
   const [deltas, setDeltas] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StockFilter>("ALL");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -49,14 +52,23 @@ export const MerchantInventory = () => {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (r) =>
+    return rows.filter((r) => {
+      const available =
+        r.item != null
+          ? Math.max(0, r.item.onHandQuantity - r.item.reservedQuantity - r.item.nonSellableQuantity)
+          : r.detail.availableQuantity;
+      if (statusFilter === "IN_STOCK" && (available == null || available <= 5)) return false;
+      if (statusFilter === "LOW_STOCK" && (available == null || available <= 0 || available > 5)) return false;
+      if (statusFilter === "OUT_OF_STOCK" && available != null && available > 0) return false;
+
+      if (!q) return true;
+      return (
         r.detail.productTitle.toLowerCase().includes(q) ||
         (r.detail.brand ?? "").toLowerCase().includes(q) ||
         r.detail.skuCode.toLowerCase().includes(q)
-    );
-  }, [rows, query]);
+      );
+    });
+  }, [rows, query, statusFilter]);
 
   const deltaFor = (listingId: string): number => {
     const raw = parseInt(deltas[listingId] ?? "10", 10);
@@ -64,15 +76,32 @@ export const MerchantInventory = () => {
   };
 
   const handleAdjust = async (row: StockRow, sign: 1 | -1) => {
-    if (!row.item) {
-      setError(`“${row.detail.productTitle}” has no stock record yet. Add stock from the listing first.`);
-      return;
-    }
     const qty = deltaFor(row.detail.id);
     if (qty <= 0) {
       setError("Enter a quantity greater than 0.");
       return;
     }
+
+    if (!row.item) {
+      if (sign < 0) {
+        setError(`“${row.detail.productTitle}” has no stock record yet.`);
+        return;
+      }
+      setAdjustingId(row.detail.id);
+      setError(null);
+      try {
+        await merchantApi.initInventory({ listingId: row.detail.id, initialOnHandQuantity: qty });
+        setNotice(`Initialized ${qty} units for “${row.detail.productTitle}”.`);
+        setTimeout(() => setNotice(null), 4000);
+        await fetchInventory();
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to initialize stock.");
+      } finally {
+        setAdjustingId(null);
+      }
+      return;
+    }
+
     setAdjustingId(row.item.id);
     setError(null);
     try {
@@ -102,7 +131,13 @@ export const MerchantInventory = () => {
             On-hand, reserved, and available stock per product.
           </p>
         </div>
-        <div className="relative w-full max-w-xs">
+      </div>
+
+      {notice && <Alert tone="success">{notice}</Alert>}
+      {error && <Alert tone="error">{error}</Alert>}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 max-w-xs flex-1">
           <Search
             className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
@@ -110,19 +145,30 @@ export const MerchantInventory = () => {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products or SKUs"
+            placeholder="Search by product, brand, or SKU"
             aria-label="Search inventory"
             className="pl-8"
           />
         </div>
+        <div className="flex gap-1" role="group" aria-label="Filter by stock status">
+          {(["ALL", "IN_STOCK", "LOW_STOCK", "OUT_OF_STOCK"] as StockFilter[]).map((s) => (
+            <Button
+              key={s}
+              variant={statusFilter === s ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStatusFilter(s)}
+            >
+              {s === "ALL" ? "All" : s === "IN_STOCK" ? "In stock" : s === "LOW_STOCK" ? "Low stock" : "Out of stock"}
+            </Button>
+          ))}
+        </div>
       </div>
 
-      {notice && <Alert tone="success">{notice}</Alert>}
-      {error && <Alert tone="error">{error}</Alert>}
-
       {isLoading ? (
-        <div aria-label="Loading inventory">
-          <TableSkeleton rows={6} />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Loading inventory">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-64" />
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState
@@ -131,97 +177,106 @@ export const MerchantInventory = () => {
           description={
             rows.length === 0
               ? "Create a listing first — its stock record will appear here."
-              : "Try a different search."
+              : "Try a different search or status filter."
           }
         />
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <ul className="divide-y divide-border">
-              {filtered.map(({ detail, item }) => {
-                const available = detail.availableQuantity;
-                const busy = adjustingId === item?.id;
-                return (
-                  <li key={detail.id} className="flex flex-wrap items-center gap-3 p-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map(({ detail, item }) => {
+            const available = detail.availableQuantity;
+            const busy = adjustingId === item?.id;
+            return (
+              <Card key={detail.id}>
+                <CardContent className="flex flex-col gap-2 p-4">
+                  <div className="flex gap-3">
                     {detail.thumbnailUrl ? (
                       <img
                         src={detail.thumbnailUrl}
                         alt=""
                         loading="lazy"
-                        className="size-11 shrink-0 rounded-md border border-border object-cover"
+                        className="size-16 shrink-0 rounded-md border border-border object-cover"
                       />
                     ) : (
-                      <span className="flex size-11 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
-                        <Boxes className="size-4 text-muted-foreground" aria-hidden />
+                      <span className="flex size-16 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
+                        <Boxes className="size-5 text-muted-foreground" aria-hidden />
                       </span>
                     )}
-                    <div className="min-w-0 flex-1 basis-48">
-                      <p className="truncate text-sm font-medium">{detail.productTitle}</p>
-                      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{detail.productTitle}</p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                         {detail.brand && <span>{detail.brand}</span>}
-                        <span className="font-mono">{detail.skuCode}</span>
                       </p>
+                      <p className="mt-0.5 font-mono text-xs text-muted-foreground">{detail.skuCode}</p>
                     </div>
+                    {available == null ? (
+                      <Badge variant="outline" className="ml-auto shrink-0 self-start">
+                        No record
+                      </Badge>
+                    ) : available <= 0 ? (
+                      <Badge variant="destructive" className="ml-auto shrink-0 self-start">
+                        Out of stock
+                      </Badge>
+                    ) : available <= 5 ? (
+                      <Badge variant="warning" className="ml-auto shrink-0 self-start">
+                        Low · {available}
+                      </Badge>
+                    ) : (
+                      <Badge variant="success" className="ml-auto shrink-0 self-start">
+                        In stock
+                      </Badge>
+                    )}
+                  </div>
 
-                    <div className="tnum flex shrink-0 items-center gap-3 text-[13px]">
-                      <span title="On hand">
-                        <span className="font-semibold">{item?.onHandQuantity ?? "—"}</span>{" "}
-                        <span className="text-muted-foreground">on hand</span>
-                      </span>
-                      <span title="Reserved">
-                        <span className="font-semibold">{item?.reservedQuantity ?? "—"}</span>{" "}
-                        <span className="text-muted-foreground">reserved</span>
-                      </span>
-                      {available == null ? (
-                        <Badge variant="outline">No record</Badge>
-                      ) : available <= 0 ? (
-                        <Badge variant="destructive">Out of stock</Badge>
-                      ) : available <= 5 ? (
-                        <Badge variant="warning">Low · {available}</Badge>
-                      ) : (
-                        <Badge variant="success">{available} available</Badge>
-                      )}
-                    </div>
+                  <div className="flex items-baseline gap-2">
+                    <p className="tnum text-base font-semibold">
+                      {available == null ? "0" : available}{" "}
+                      <span className="text-xs font-normal text-muted-foreground">units available</span>
+                    </p>
+                  </div>
 
-                    <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                      <Input
-                        type="number"
-                        min="1"
-                        step="1"
-                        aria-label={`Quantity to adjust for ${detail.productTitle}`}
-                        value={deltas[detail.id] ?? "10"}
-                        onChange={(e) =>
-                          setDeltas((d) => ({ ...d, [detail.id]: e.target.value }))
-                        }
-                        className="tnum h-8 w-20"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={busy || !item}
-                        onClick={() => handleAdjust({ detail, item }, 1)}
-                        aria-label={`Add stock to ${detail.productTitle}`}
-                      >
-                        {busy ? "Saving…" : <Plus aria-hidden />}
-                        Add
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={busy || !item}
-                        onClick={() => handleAdjust({ detail, item }, -1)}
-                        aria-label={`Remove stock from ${detail.productTitle}`}
-                      >
-                        <Minus aria-hidden />
-                        Remove
-                      </Button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </CardContent>
-        </Card>
+                  <p className="tnum text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{item?.onHandQuantity ?? detail.onHandQuantity ?? 0}</span> on hand ·{" "}
+                    <span className="font-medium text-foreground">{item?.reservedQuantity ?? detail.reservedQuantity ?? 0}</span> reserved
+                  </p>
+
+                  <div className="flex items-center gap-1.5 border-t border-border pt-2.5">
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      aria-label={`Quantity to adjust for ${detail.productTitle}`}
+                      value={deltas[detail.id] ?? "10"}
+                      onChange={(e) =>
+                        setDeltas((d) => ({ ...d, [detail.id]: e.target.value }))
+                      }
+                      className="tnum h-8 w-20"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => handleAdjust({ detail, item }, 1)}
+                      aria-label={`Add stock to ${detail.productTitle}`}
+                    >
+                      {busy ? "Saving…" : <Plus aria-hidden />}
+                      Add
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy || !item}
+                      onClick={() => handleAdjust({ detail, item }, -1)}
+                      aria-label={`Remove stock from ${detail.productTitle}`}
+                    >
+                      <Minus aria-hidden />
+                      Remove
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );

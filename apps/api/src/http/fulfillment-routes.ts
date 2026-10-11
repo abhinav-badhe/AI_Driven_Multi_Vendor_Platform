@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
 import type {
   FulfillmentService,
+  IFulfillmentService,
   ShipmentStatus,
   ReturnStatus,
   CreateShipmentItemInput,
@@ -19,7 +20,7 @@ import {
 export function registerFulfillmentRoutes(
   app: FastifyInstance,
   identityService: IdentityService,
-  fulfillmentService: FulfillmentService,
+  fulfillmentService: IFulfillmentService | FulfillmentService,
 ): void {
   const authenticate = createAuthMiddleware(identityService);
 

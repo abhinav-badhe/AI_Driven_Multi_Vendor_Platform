@@ -3,8 +3,8 @@ import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
 import { RbacPolicy } from '../../identity/rbac/policy.js';
 import { NotFoundError, ValidationError } from '../../../errors/app-error.js';
-import type { CatalogService } from '../../catalog/index.js';
-import type { ListingService } from '../../marketplace/index.js';
+import type { CatalogService, ICatalogReader } from '../../catalog/index.js';
+import type { ListingService, IMarketplaceReader } from '../../marketplace/index.js';
 import type {
   DerivedRecommendationRecord,
   IRecommendationCandidateSource,
@@ -31,8 +31,8 @@ import {
 
 export interface RecommendationServiceDependencies {
   logger: Logger;
-  catalogService: CatalogService;
-  listingService: ListingService;
+  catalogService: ICatalogReader | CatalogService;
+  listingService: IMarketplaceReader | ListingService;
   analyticsReader: IAnalyticsRecommendationReader;
   store: IRecommendationStore;
   ranker?: IRecommendationRanker | undefined;
@@ -45,8 +45,8 @@ export interface RecommendationServiceDependencies {
 
 export class RecommendationService {
   private readonly logger: Logger;
-  private readonly catalogService: CatalogService;
-  private readonly listingService: ListingService;
+  private readonly catalogService: ICatalogReader | CatalogService;
+  private readonly listingService: IMarketplaceReader | ListingService;
   private readonly store: IRecommendationStore;
   private readonly ranker: IRecommendationRanker;
   private readonly trendingSource: IRecommendationCandidateSource;

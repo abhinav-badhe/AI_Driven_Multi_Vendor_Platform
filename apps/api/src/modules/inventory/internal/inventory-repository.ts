@@ -130,6 +130,22 @@ export class InventoryRepository {
     return res.rows;
   }
 
+  async listAllInventory(
+    db: DatabaseConnection,
+    filter?: { limit?: number | undefined; offset?: number | undefined } | undefined,
+  ): Promise<InventoryItemRow[]> {
+    const limit = filter?.limit ?? 50;
+    const offset = filter?.offset ?? 0;
+    const res = await db.query<InventoryItemRow>(
+      `SELECT id, tenant_id, listing_id, sku_id, on_hand_quantity, reserved_quantity, non_sellable_quantity, version, created_at, updated_at
+       FROM inventory_items
+       ORDER BY created_at DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    );
+    return res.rows;
+  }
+
   // --- Concurrency-Safe Atomic Operations ---
 
   async atomicReserve(

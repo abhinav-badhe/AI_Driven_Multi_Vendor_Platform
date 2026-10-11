@@ -1,6 +1,7 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { OrderService } from './order-service.js';
+import type { IOrderService } from './order-models.js';
 import type { DomainEvent, EventTransport } from '../../events/index.js';
 import { EventTypes, BaseEventConsumer, OutboxRepository } from '../../events/index.js';
 import type { AuthorizedActor } from '../../identity/rbac/policy.js';
@@ -11,7 +12,7 @@ export class OrderEventConsumer extends BaseEventConsumer {
     outboxRepo: OutboxRepository,
     transport: EventTransport,
     logger: Logger,
-    private readonly orderService: OrderService,
+    private readonly orderService: IOrderService | OrderService,
   ) {
     super('order-processor', db, outboxRepo, transport, logger);
   }

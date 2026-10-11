@@ -171,7 +171,7 @@ export class SqlAiStore implements IAiStore {
     channel?: ChannelType,
     limit = 50,
   ): Promise<ConversationRecord[]> {
-    let sql = 'SELECT * FROM ai_conversations WHERE tenant_id = $1';
+    let sql = "SELECT * FROM ai_conversations WHERE ($1 = 'tenant-platform' OR tenant_id = $1)";
     const params: unknown[] = [tenantId];
     if (channel) {
       sql += ' AND channel = $2';
@@ -482,7 +482,7 @@ export class SqlAiStore implements IAiStore {
   async listWebhooks(tenantId: string, limit = 50): Promise<WhatsAppWebhookRecord[]> {
     const sql = `
       SELECT * FROM ai_whatsapp_webhooks
-      WHERE tenant_id = $1
+      WHERE ($1 = 'tenant-platform' OR tenant_id = $1)
       ORDER BY processed_at DESC
       LIMIT $2
     `;
@@ -539,7 +539,7 @@ export class SqlAiStore implements IAiStore {
   async listAuditLogs(tenantId: string, limit = 100): Promise<AiAuditRecord[]> {
     const sql = `
       SELECT * FROM ai_audit_logs
-      WHERE tenant_id = $1
+      WHERE ($1 = 'tenant-platform' OR tenant_id = $1)
       ORDER BY created_at DESC
       LIMIT $2
     `;
