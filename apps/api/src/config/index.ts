@@ -16,7 +16,7 @@ export class ConfigurationError extends Error {
 export function parseConfig(envSource: Record<string, string | undefined>): AppConfig {
   const env: Record<string, string | undefined> = { ...envSource };
 
-  if (env.DATABASE_URL && (!env.DATABASE_HOST || !env.DATABASE_NAME)) {
+  if (env.DATABASE_URL) {
     try {
       const parsed = new URL(env.DATABASE_URL);
       env.DATABASE_HOST = parsed.hostname;
