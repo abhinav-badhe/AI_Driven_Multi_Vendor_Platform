@@ -16,6 +16,7 @@ export class PostgresPoolConnection implements DatabaseConnection {
   private readonly pool: pg.Pool;
 
   constructor(config: AppConfig['postgres']) {
+    const isCloudDb = config.host !== 'localhost' && config.host !== '127.0.0.1';
     this.pool = new pg.Pool({
       host: config.host,
       port: config.port,
@@ -24,6 +25,7 @@ export class PostgresPoolConnection implements DatabaseConnection {
       password: config.password,
       min: config.poolMin,
       max: config.poolMax,
+      ssl: isCloudDb ? { rejectUnauthorized: false } : undefined,
     });
   }
 

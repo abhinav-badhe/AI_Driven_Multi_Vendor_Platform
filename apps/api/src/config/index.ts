@@ -14,7 +14,35 @@ export class ConfigurationError extends Error {
 }
 
 export function parseConfig(envSource: Record<string, string | undefined>): AppConfig {
-  const result = RawEnvSchema.safeParse(envSource);
+  const env: Record<string, string | undefined> = { ...envSource };
+
+  if (env.DATABASE_URL && (!env.DATABASE_HOST || !env.DATABASE_NAME)) {
+    try {
+      const parsed = new URL(env.DATABASE_URL);
+      env.DATABASE_HOST = parsed.hostname;
+      env.DATABASE_PORT = parsed.port || '5432';
+      env.DATABASE_NAME = parsed.pathname.replace(/^\//, '');
+      env.DATABASE_USER = decodeURIComponent(parsed.username);
+      env.DATABASE_PASSWORD = decodeURIComponent(parsed.password);
+    } catch {
+      // fallback to schema validation errors
+    }
+  }
+
+  // Resilient defaults for containerized/cloud deployments
+  if (!env.DATABASE_POOL_MIN) env.DATABASE_POOL_MIN = '1';
+  if (!env.DATABASE_POOL_MAX) env.DATABASE_POOL_MAX = '10';
+  if (!env.REDIS_HOST) env.REDIS_HOST = '127.0.0.1';
+  if (!env.REDIS_PORT) env.REDIS_PORT = '6379';
+  if (!env.REDIS_TLS) env.REDIS_TLS = 'false';
+  if (!env.SERVICE_NAME) env.SERVICE_NAME = 'commerce-api';
+  if (!env.LOG_LEVEL) env.LOG_LEVEL = env.NODE_ENV === 'production' ? 'info' : 'debug';
+  if (!env.LOG_PRETTY) env.LOG_PRETTY = env.NODE_ENV === 'production' ? 'false' : 'true';
+  if (!env.REDACT_KEYS) env.REDACT_KEYS = 'password,token,secret,key,authorization';
+  if (!env.HOST) env.HOST = '0.0.0.0';
+  if (!env.PORT) env.PORT = env.PORT || '4000';
+
+  const result = RawEnvSchema.safeParse(env);
 
   if (!result.success) {
     const issues = result.error.issues.map((issue) => ({

@@ -98,6 +98,7 @@ import {
 } from './modules/ai/index.js';
 import { SqlAiStore } from './infra/ai/sql-ai-store.js';
 import { join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 import process from 'node:process';
 import { URL, fileURLToPath } from 'node:url';
 
@@ -219,7 +220,13 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
 
   // Run migrations unless explicitly skipped (e.g. test environment with pre-seeded DB)
   if (dbConn && !dependencies.skipMigrations) {
-    const migrationsDir = join(__dirname, 'infra', 'database', 'migrations');
+    let migrationsDir = join(__dirname, 'infra', 'database', 'migrations');
+    if (!existsSync(join(migrationsDir, '0001_identity_schema.sql'))) {
+      const srcDir = join(__dirname, '..', 'src', 'infra', 'database', 'migrations');
+      if (existsSync(join(srcDir, '0001_identity_schema.sql'))) {
+        migrationsDir = srcDir;
+      }
+    }
     const runner = new MigrationRunner(migrationsDir);
     await runner.up(dbConn);
     await seedDemoData(dbConn, rootLogger);
@@ -759,9 +766,25 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
   // Security & HTTP Middleware
   app.register(fastifyCookie);
   
-  // Configure CORS explicitly. In production, this should derive from config.
+  // Configure CORS explicitly. In production, this dynamically permits configured origins, Vercel frontends, and localhost.
   app.register(fastifyCors, {
-    origin: config.app.corsOrigins ?? ['http://localhost:3000'],
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      const configuredOrigins = config.app.corsOrigins;
+      if (
+        !configuredOrigins ||
+        configuredOrigins.length === 0 ||
+        configuredOrigins.includes('*') ||
+        configuredOrigins.includes(origin) ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin.endsWith('.vercel.app') ||
+        origin.endsWith('.onrender.com')
+      ) {
+        return cb(null, true);
+      }
+      cb(new Error('Not allowed by CORS'), false);
+    },
     credentials: true,
   });
 
