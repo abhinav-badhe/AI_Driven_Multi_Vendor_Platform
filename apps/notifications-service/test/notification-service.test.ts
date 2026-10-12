@@ -3,7 +3,11 @@ import { createTestDatabase } from './helpers/test-db.js';
 import { NotificationRepository } from '../src/repository/notification-repository.js';
 import { NotificationService } from '../src/domain/notification-service.js';
 import { DatabaseConnection } from '../src/infra/database/connection.js';
-import { InMemoryEmailProvider, InMemorySmsProvider, InMemoryPushProvider } from '../src/channels/in-memory-providers.js';
+import {
+  InMemoryEmailProvider,
+  InMemorySmsProvider,
+  InMemoryPushProvider,
+} from '../src/channels/in-memory-providers.js';
 
 describe('NotificationService Domain Logic', () => {
   let db: DatabaseConnection;
@@ -147,7 +151,9 @@ describe('NotificationService Domain Logic', () => {
     });
 
     expect(res1.notificationId).toBe(res2.notificationId);
-    expect(res1.idempotencyKey).toBe('evt-deterministic-99:ORDER_CONFIRMATION:user@example.com:EMAIL');
+    expect(res1.idempotencyKey).toBe(
+      'evt-deterministic-99:ORDER_CONFIRMATION:user@example.com:EMAIL',
+    );
     expect(res2.idempotencyKey).toBe(res1.idempotencyKey);
   });
 
@@ -296,12 +302,12 @@ describe('NotificationService Domain Logic', () => {
   });
 
   it('rejects invalid inputs on sendTransactionalEmail', async () => {
-    await expect(
-      service.sendTransactionalEmail('', 'Subject', 'Body'),
-    ).rejects.toThrow('Valid recipient email address is required');
+    await expect(service.sendTransactionalEmail('', 'Subject', 'Body')).rejects.toThrow(
+      'Valid recipient email address is required',
+    );
 
-    await expect(
-      service.sendTransactionalEmail('user@test.com', '', 'Body'),
-    ).rejects.toThrow('Email subject is required');
+    await expect(service.sendTransactionalEmail('user@test.com', '', 'Body')).rejects.toThrow(
+      'Email subject is required',
+    );
   });
 });

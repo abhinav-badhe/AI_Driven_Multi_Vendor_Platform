@@ -1,25 +1,33 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../auth/AuthContext";
-import { apiClient } from "../../api/client";
-import { merchantApi, type MerchantProfileDto } from "./api/merchant";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { Skeleton } from "../../components/ui/empty";
-import { Input, Label } from "../../components/ui/input";
+import { useState, useEffect } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import { apiClient } from '../../api/client';
+import { merchantApi, type MerchantProfileDto } from './api/merchant';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { Skeleton } from '../../components/ui/empty';
+import { Input, Label } from '../../components/ui/input';
 
-const statusVariant = (s: MerchantProfileDto["verificationStatus"]) =>
-  s === "VERIFIED" ? ("success" as const)
-  : s === "REJECTED" || s === "SUSPENDED" ? ("destructive" as const)
-  : ("warning" as const);
+const statusVariant = (s: MerchantProfileDto['verificationStatus']) =>
+  s === 'VERIFIED'
+    ? ('success' as const)
+    : s === 'REJECTED' || s === 'SUSPENDED'
+      ? ('destructive' as const)
+      : ('warning' as const);
 
 export const MerchantOnboarding = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<MerchantProfileDto | null>(null);
-  const [businessName, setBusinessName] = useState("");
-  const [legalName, setLegalName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
+  const [businessName, setBusinessName] = useState('');
+  const [legalName, setLegalName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -31,9 +39,9 @@ export const MerchantOnboarding = () => {
     try {
       const p = await merchantApi.getProfile();
       setProfile(p);
-      setBusinessName(p.businessName || "");
-      setLegalName(p.legalName || "");
-      setContactEmail(p.contactEmail || "");
+      setBusinessName(p.businessName || '');
+      setLegalName(p.legalName || '');
+      setContactEmail(p.contactEmail || '');
     } catch {
       setProfile(null);
     } finally {
@@ -52,22 +60,22 @@ export const MerchantOnboarding = () => {
     setMessage(null);
     try {
       if (!profile) {
-        const created = await apiClient<MerchantProfileDto>("/merchants/onboard", {
-          method: "POST",
+        const created = await apiClient<MerchantProfileDto>('/merchants/onboard', {
+          method: 'POST',
           body: JSON.stringify({ businessName, legalName, contactEmail }),
         });
         setProfile(created);
-        setMessage("Store profile created.");
+        setMessage('Store profile created.');
       } else {
-        const updated = await apiClient<MerchantProfileDto>("/merchants/me", {
-          method: "PATCH",
+        const updated = await apiClient<MerchantProfileDto>('/merchants/me', {
+          method: 'PATCH',
           body: JSON.stringify({ businessName, legalName, contactEmail }),
         });
         setProfile(updated);
-        setMessage("Store profile saved.");
+        setMessage('Store profile saved.');
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not save profile.");
+      setError(err instanceof Error ? err.message : 'Could not save profile.');
     } finally {
       setIsSubmitting(false);
     }
@@ -77,14 +85,14 @@ export const MerchantOnboarding = () => {
     setIsSubmitting(true);
     setError(null);
     try {
-      const updated = await apiClient<MerchantProfileDto>("/merchants/me/submit", {
-        method: "POST",
+      const updated = await apiClient<MerchantProfileDto>('/merchants/me/submit', {
+        method: 'POST',
         body: JSON.stringify({}),
       });
       setProfile(updated);
-      setMessage("Submitted for review.");
+      setMessage('Submitted for review.');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not submit for review.");
+      setError(err instanceof Error ? err.message : 'Could not submit for review.');
     } finally {
       setIsSubmitting(false);
     }
@@ -94,14 +102,17 @@ export const MerchantOnboarding = () => {
     if (!profile) return;
     setIsSubmitting(true);
     try {
-      const updated = await apiClient<MerchantProfileDto>(`/merchants/${profile.tenantId}/approve`, {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
+      const updated = await apiClient<MerchantProfileDto>(
+        `/merchants/${profile.tenantId}/approve`,
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        },
+      );
       setProfile(updated);
-      setMessage("Merchant approved.");
+      setMessage('Merchant approved.');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Approval failed.");
+      setError(err instanceof Error ? err.message : 'Approval failed.');
     } finally {
       setIsSubmitting(false);
     }
@@ -139,14 +150,14 @@ export const MerchantOnboarding = () => {
                 </Badge>
               </p>
             </div>
-            {profile.verificationStatus === "DRAFT" && (
+            {profile.verificationStatus === 'DRAFT' && (
               <Button size="sm" disabled={isSubmitting} onClick={handleSubmitForVerification}>
-                {isSubmitting ? "Submitting…" : "Submit for verification"}
+                {isSubmitting ? 'Submitting…' : 'Submit for verification'}
               </Button>
             )}
-            {user?.role === "ADMINISTRATOR" && profile.verificationStatus === "SUBMITTED" && (
+            {user?.role === 'ADMINISTRATOR' && profile.verificationStatus === 'SUBMITTED' && (
               <Button size="sm" disabled={isSubmitting} onClick={handleAdminApprove}>
-                {isSubmitting ? "Approving…" : "Approve merchant"}
+                {isSubmitting ? 'Approving…' : 'Approve merchant'}
               </Button>
             )}
           </CardContent>
@@ -192,7 +203,7 @@ export const MerchantOnboarding = () => {
               />
             </div>
             <Button type="submit" disabled={isSubmitting} className="self-start">
-              {isSubmitting ? "Saving…" : profile ? "Save changes" : "Create store profile"}
+              {isSubmitting ? 'Saving…' : profile ? 'Save changes' : 'Create store profile'}
             </Button>
           </form>
         </CardContent>

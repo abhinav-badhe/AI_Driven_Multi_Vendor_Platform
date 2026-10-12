@@ -1,6 +1,18 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Check, Heart, MessageSquareText, PackageSearch, Star, ShieldCheck, Edit3, Trash2, AlertCircle, X, Bell } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import {
+  Check,
+  Heart,
+  MessageSquareText,
+  PackageSearch,
+  Star,
+  ShieldCheck,
+  Edit3,
+  Trash2,
+  AlertCircle,
+  X,
+  Bell,
+} from 'lucide-react';
 import {
   catalogApi,
   type Product,
@@ -8,20 +20,29 @@ import {
   type ProductRatingSummary,
   type ReviewEligibility,
   type Sku,
-} from "./api/catalog";
-import { marketplaceApi, type Listing } from "../marketplace/api/marketplace";
-import { recommendationsApi, type RecommendationItemDto } from "../recommendations/api/recommendations";
-import { wishlistApi } from "../customer/api/wishlist";
-import { backInStockApi } from "../customer/api/back-in-stock";
-import { useCart } from "../cart/CartContext";
-import { useAuth } from "../auth/AuthContext";
-import { Button, buttonVariants } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { Rating } from "../../components/product/display";
-import { cn } from "../../lib/utils";
+} from './api/catalog';
+import { marketplaceApi, type Listing } from '../marketplace/api/marketplace';
+import {
+  recommendationsApi,
+  type RecommendationItemDto,
+} from '../recommendations/api/recommendations';
+import { wishlistApi } from '../customer/api/wishlist';
+import { backInStockApi } from '../customer/api/back-in-stock';
+import { useCart } from '../cart/CartContext';
+import { useAuth } from '../auth/AuthContext';
+import { Button, buttonVariants } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { Rating } from '../../components/product/display';
+import { cn } from '../../lib/utils';
 
 function SpecRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -73,7 +94,8 @@ export const ProductPage = () => {
       setReviews(Array.isArray(revs) ? revs : []);
       setRatingSummary(summary);
       if (isAuthenticated) {
-        catalogApi.getReviewEligibility(productId)
+        catalogApi
+          .getReviewEligibility(productId)
           .then((el) => setReviewEligibility(el))
           .catch(() => setReviewEligibility(null));
       } else {
@@ -101,7 +123,7 @@ export const ProductPage = () => {
   const handleToggleWishlist = async () => {
     if (!id) return;
     if (!isAuthenticated) {
-      await login({ email: "customer@example.com", password: "password123" });
+      await login({ email: 'customer@example.com', password: 'password123' });
       return;
     }
     setIsUpdatingWishlist(true);
@@ -114,7 +136,7 @@ export const ProductPage = () => {
         setIsWishlisted(true);
       }
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to update wishlist");
+      alert(err instanceof Error ? err.message : 'Failed to update wishlist');
     } finally {
       setIsUpdatingWishlist(false);
     }
@@ -151,7 +173,7 @@ export const ProductPage = () => {
   const handleSubscribeStock = async () => {
     if (!id) return;
     if (!isAuthenticated) {
-      await login({ email: "customer@example.com", password: "password123" });
+      await login({ email: 'customer@example.com', password: 'password123' });
       return;
     }
     setIsLoadingStockSub(true);
@@ -162,7 +184,9 @@ export const ProductPage = () => {
       setIsSubscribedStock(true);
       setStockSubFeedback("You'll be notified when this product is back in stock.");
     } catch (err: unknown) {
-      setStockSubError(err instanceof Error ? err.message : "Failed to subscribe for notifications");
+      setStockSubError(
+        err instanceof Error ? err.message : 'Failed to subscribe for notifications',
+      );
     } finally {
       setIsLoadingStockSub(false);
     }
@@ -177,7 +201,9 @@ export const ProductPage = () => {
       setIsSubscribedStock(false);
       setStockSubFeedback(null);
     } catch (err: unknown) {
-      setStockSubError(err instanceof Error ? err.message : "Failed to cancel notification subscription");
+      setStockSubError(
+        err instanceof Error ? err.message : 'Failed to cancel notification subscription',
+      );
     } finally {
       setIsLoadingStockSub(false);
     }
@@ -206,7 +232,7 @@ export const ProductPage = () => {
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load product");
+          setError(err instanceof Error ? err.message : 'Failed to load product');
         }
       } finally {
         if (!cancelled) {
@@ -270,7 +296,9 @@ export const ProductPage = () => {
           ...(titleClean ? { title: titleClean } : {}),
           comment: reviewComment.trim(),
         });
-        setReviewSuccess('Your review has been submitted for moderation! Thank you for your feedback.');
+        setReviewSuccess(
+          'Your review has been submitted for moderation! Thank you for your feedback.',
+        );
       }
       setIsWritingReview(false);
       setEditingReviewId(null);
@@ -318,7 +346,7 @@ export const ProductPage = () => {
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          setListingsError(err instanceof Error ? err.message : "Failed to load offers");
+          setListingsError(err instanceof Error ? err.message : 'Failed to load offers');
         }
       } finally {
         if (!cancelled) {
@@ -336,8 +364,11 @@ export const ProductPage = () => {
   // product (with the live floor price) so drops can trigger email alerts.
   const { user } = useAuth();
   useEffect(() => {
-    if (!id || !product || user?.role !== "CUSTOMER" || listings.length === 0) return;
-    const floor = listings.reduce((min, l) => Math.min(min, l.priceAmount), listings[0]!.priceAmount);
+    if (!id || !product || user?.role !== 'CUSTOMER' || listings.length === 0) return;
+    const floor = listings.reduce(
+      (min, l) => Math.min(min, l.priceAmount),
+      listings[0]!.priceAmount,
+    );
     catalogApi
       .recordView(id, {
         priceSeenMinor: floor,
@@ -379,17 +410,18 @@ export const ProductPage = () => {
     );
   }
 
-  const gallery = product.images && product.images.length > 0
-    ? product.images
-    : product.thumbnailUrl
-      ? [product.thumbnailUrl]
-      : [];
+  const gallery =
+    product.images && product.images.length > 0
+      ? product.images
+      : product.thumbnailUrl
+        ? [product.thumbnailUrl]
+        : [];
   const activeImage = gallery[Math.min(selectedImage, Math.max(0, gallery.length - 1))];
   const attrs = product.attributes ?? {};
-  const str = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
+  const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
   const dims = attrs.dimensions as { width?: number; height?: number; depth?: number } | undefined;
   const tags = Array.isArray(attrs.tags)
-    ? (attrs.tags as unknown[]).filter((t): t is string => typeof t === "string")
+    ? (attrs.tags as unknown[]).filter((t): t is string => typeof t === 'string')
     : [];
 
   return (
@@ -400,7 +432,7 @@ export const ProductPage = () => {
         </Link>
         {product.categoryId && (
           <>
-            {" / "}
+            {' / '}
             <Link to={`/category/${product.categoryId}`} className="hover:underline">
               Category
             </Link>
@@ -414,7 +446,11 @@ export const ProductPage = () => {
         <div className="lg:col-span-3">
           {activeImage && (
             <div className="overflow-hidden rounded-lg border border-border">
-              <img src={activeImage} alt={product.title} className="aspect-square w-full object-cover" />
+              <img
+                src={activeImage}
+                alt={product.title}
+                className="aspect-square w-full object-cover"
+              />
             </div>
           )}
           {gallery.length > 1 && (
@@ -427,8 +463,10 @@ export const ProductPage = () => {
                   aria-label={`Show image ${i + 1}`}
                   aria-pressed={i === selectedImage}
                   className={cn(
-                    "overflow-hidden rounded-md border",
-                    i === selectedImage ? "border-primary" : "border-border hover:border-muted-foreground"
+                    'overflow-hidden rounded-md border',
+                    i === selectedImage
+                      ? 'border-primary'
+                      : 'border-border hover:border-muted-foreground',
                   )}
                 >
                   <img src={src} alt="" loading="lazy" className="size-14 object-cover" />
@@ -440,7 +478,7 @@ export const ProductPage = () => {
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <h1 className="text-xl font-semibold tracking-tight">{product.title}</h1>
             <Button
-              variant={isWishlisted ? "secondary" : "outline"}
+              variant={isWishlisted ? 'secondary' : 'outline'}
               size="sm"
               onClick={handleToggleWishlist}
               disabled={isUpdatingWishlist}
@@ -448,10 +486,10 @@ export const ProductPage = () => {
               id="wishlist-toggle-button"
             >
               <Heart
-                className={cn("size-4", isWishlisted && "fill-rose-500 text-rose-500")}
+                className={cn('size-4', isWishlisted && 'fill-rose-500 text-rose-500')}
                 aria-hidden
               />
-              {isWishlisted ? "In Wishlist" : "Save to Wishlist"}
+              {isWishlisted ? 'In Wishlist' : 'Save to Wishlist'}
             </Button>
           </div>
           {product.brand && (
@@ -461,7 +499,7 @@ export const ProductPage = () => {
             <Rating rating={product.rating} reviewCount={product.reviewCount ?? reviews.length} />
           </div>
           <p className="mt-3 max-w-[80ch] text-sm leading-relaxed text-muted-foreground">
-            {product.description || "No description available."}
+            {product.description || 'No description available.'}
           </p>
 
           {tags.length > 0 && (
@@ -477,7 +515,11 @@ export const ProductPage = () => {
           {skus.length > 0 ? (
             <div className="mt-4">
               <h2 className="text-sm font-semibold">Variant</h2>
-              <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Choose a variant">
+              <div
+                className="mt-2 flex flex-wrap gap-1.5"
+                role="group"
+                aria-label="Choose a variant"
+              >
                 {skus.map((sku) => {
                   const active = selectedSku?.id === sku.id;
                   return (
@@ -487,10 +529,10 @@ export const ProductPage = () => {
                       onClick={() => setSelectedSku(sku)}
                       aria-pressed={active}
                       className={cn(
-                        "rounded-md border px-3 py-1.5 font-mono text-xs transition-colors duration-150",
+                        'rounded-md border px-3 py-1.5 font-mono text-xs transition-colors duration-150',
                         active
-                          ? "border-primary bg-secondary font-semibold"
-                          : "border-border hover:bg-muted"
+                          ? 'border-primary bg-secondary font-semibold'
+                          : 'border-border hover:bg-muted',
                       )}
                     >
                       {sku.skuCode}
@@ -532,7 +574,7 @@ export const ProductPage = () => {
                     value={<Badge variant="success">{str(attrs.availabilityStatus)}</Badge>}
                   />
                 )}
-                {typeof attrs.weight === "number" && (
+                {typeof attrs.weight === 'number' && (
                   <SpecRow label="Weight" value={<span className="tnum">{attrs.weight} kg</span>} />
                 )}
                 {dims && (
@@ -545,8 +587,11 @@ export const ProductPage = () => {
                     }
                   />
                 )}
-                {typeof attrs.minimumOrderQuantity === "number" && (
-                  <SpecRow label="Min. order" value={<span className="tnum">{attrs.minimumOrderQuantity}</span>} />
+                {typeof attrs.minimumOrderQuantity === 'number' && (
+                  <SpecRow
+                    label="Min. order"
+                    value={<span className="tnum">{attrs.minimumOrderQuantity}</span>}
+                  />
                 )}
               </dl>
             </CardContent>
@@ -557,14 +602,19 @@ export const ProductPage = () => {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-base font-semibold">
                 <MessageSquareText className="size-5 text-primary" aria-hidden />
-                Ratings & Reviews {ratingSummary ? `(${ratingSummary.totalReviews})` : reviews.length > 0 ? `(${reviews.length})` : ''}
+                Ratings & Reviews{' '}
+                {ratingSummary
+                  ? `(${ratingSummary.totalReviews})`
+                  : reviews.length > 0
+                    ? `(${reviews.length})`
+                    : ''}
               </h2>
               {!isAuthenticated ? (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={async () => {
-                    await login({ email: "customer@example.com", password: "password123" });
+                    await login({ email: 'customer@example.com', password: 'password123' });
                   }}
                 >
                   Sign in to review
@@ -583,7 +633,10 @@ export const ProductPage = () => {
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                     <div className="space-y-1">
                       <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-extrabold tracking-tight text-foreground" data-testid="average-rating">
+                        <span
+                          className="text-4xl font-extrabold tracking-tight text-foreground"
+                          data-testid="average-rating"
+                        >
                           {ratingSummary.averageRating.toFixed(1)}
                         </span>
                         <span className="text-sm font-medium text-muted-foreground">/ 5.0</span>
@@ -593,17 +646,21 @@ export const ProductPage = () => {
                           <Star
                             key={i}
                             className={cn(
-                              "size-4",
+                              'size-4',
                               i < Math.round(ratingSummary.averageRating)
-                                ? "fill-amber-400 text-amber-400"
-                                : "text-border"
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-border',
                             )}
                             aria-hidden
                           />
                         ))}
                       </div>
-                      <p className="text-xs text-muted-foreground" data-testid="total-reviews-count">
-                        Based on {ratingSummary.totalReviews} verified {ratingSummary.totalReviews === 1 ? 'review' : 'reviews'}
+                      <p
+                        className="text-xs text-muted-foreground"
+                        data-testid="total-reviews-count"
+                      >
+                        Based on {ratingSummary.totalReviews} verified{' '}
+                        {ratingSummary.totalReviews === 1 ? 'review' : 'reviews'}
                       </p>
                     </div>
 
@@ -611,10 +668,15 @@ export const ProductPage = () => {
                     <div className="w-full sm:w-64 space-y-1.5" data-testid="rating-distribution">
                       {([5, 4, 3, 2, 1] as const).map((star) => {
                         const count = ratingSummary.distribution[star] || 0;
-                        const pct = ratingSummary.totalReviews > 0 ? Math.round((count / ratingSummary.totalReviews) * 100) : 0;
+                        const pct =
+                          ratingSummary.totalReviews > 0
+                            ? Math.round((count / ratingSummary.totalReviews) * 100)
+                            : 0;
                         return (
                           <div key={star} className="flex items-center gap-2 text-xs">
-                            <span className="w-10 text-muted-foreground font-medium shrink-0">{star} star</span>
+                            <span className="w-10 text-muted-foreground font-medium shrink-0">
+                              {star} star
+                            </span>
                             <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden border border-border/40">
                               <div
                                 className="h-full bg-amber-400 rounded-full transition-all duration-300"
@@ -625,7 +687,9 @@ export const ProductPage = () => {
                                 aria-valuemax={100}
                               />
                             </div>
-                            <span className="w-6 text-right tnum text-muted-foreground shrink-0">{count}</span>
+                            <span className="w-6 text-right tnum text-muted-foreground shrink-0">
+                              {count}
+                            </span>
                           </div>
                         );
                       })}
@@ -641,11 +705,15 @@ export const ProductPage = () => {
                 className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-3.5 text-xs text-amber-900 dark:text-amber-200"
                 data-testid="verified-purchase-restriction"
               >
-                <ShieldCheck className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" aria-hidden />
+                <ShieldCheck
+                  className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5"
+                  aria-hidden
+                />
                 <div>
                   <p className="font-semibold">Verified purchase required</p>
                   <p className="mt-0.5 text-amber-800/90 dark:text-amber-300/80">
-                    You can only review products that you have purchased and received. Once your order is completed, you will be eligible to leave a review.
+                    You can only review products that you have purchased and received. Once your
+                    order is completed, you will be eligible to leave a review.
                   </p>
                 </div>
               </div>
@@ -656,7 +724,9 @@ export const ProductPage = () => {
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs">
                 <div className="flex items-center gap-2">
                   <Check className="size-4 text-emerald-600" aria-hidden />
-                  <span className="font-medium text-foreground">You have already submitted a review for this product.</span>
+                  <span className="font-medium text-foreground">
+                    You have already submitted a review for this product.
+                  </span>
                 </div>
                 {reviewEligibility.existingReviewId && (
                   <Button
@@ -683,7 +753,10 @@ export const ProductPage = () => {
                   <Check className="size-4 text-emerald-600" />
                   <span>{reviewSuccess}</span>
                 </div>
-                <button onClick={() => setReviewSuccess(null)} className="text-emerald-700 hover:text-emerald-900 p-1">
+                <button
+                  onClick={() => setReviewSuccess(null)}
+                  className="text-emerald-700 hover:text-emerald-900 p-1"
+                >
                   <X className="size-3.5" />
                 </button>
               </div>
@@ -702,7 +775,12 @@ export const ProductPage = () => {
                         Share your honest experience to help other customers.
                       </CardDescription>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={handleCancelReview}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={handleCancelReview}
+                    >
                       <X className="size-4" />
                     </Button>
                   </div>
@@ -714,39 +792,51 @@ export const ProductPage = () => {
                       <label className="block text-xs font-medium text-foreground mb-1.5">
                         Overall Rating <span className="text-destructive">*</span>
                       </label>
-                      <div className="flex items-center gap-1.5" role="radiogroup" aria-label="Rating">
+                      <div
+                        className="flex items-center gap-1.5"
+                        role="radiogroup"
+                        aria-label="Rating"
+                      >
                         {[1, 2, 3, 4, 5].map((star) => (
                           <button
                             type="button"
                             key={star}
                             onClick={() => setReviewRating(star)}
                             className={cn(
-                              "p-1.5 rounded hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
-                              reviewRating >= star ? "text-amber-400" : "text-border"
+                              'p-1.5 rounded hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary',
+                              reviewRating >= star ? 'text-amber-400' : 'text-border',
                             )}
                             aria-label={`${star} star${star > 1 ? 's' : ''}`}
                             data-testid={`rating-star-${star}`}
                           >
                             <Star
                               className={cn(
-                                "size-6",
-                                reviewRating >= star ? "fill-amber-400" : "fill-none"
+                                'size-6',
+                                reviewRating >= star ? 'fill-amber-400' : 'fill-none',
                               )}
                             />
                           </button>
                         ))}
                         <span className="ml-2 text-xs font-semibold text-foreground">
-                          {reviewRating === 5 ? '5 - Excellent' :
-                           reviewRating === 4 ? '4 - Good' :
-                           reviewRating === 3 ? '3 - Average' :
-                           reviewRating === 2 ? '2 - Poor' : '1 - Terrible'}
+                          {reviewRating === 5
+                            ? '5 - Excellent'
+                            : reviewRating === 4
+                              ? '4 - Good'
+                              : reviewRating === 3
+                                ? '3 - Average'
+                                : reviewRating === 2
+                                  ? '2 - Poor'
+                                  : '1 - Terrible'}
                         </span>
                       </div>
                     </div>
 
                     {/* Review Title */}
                     <div>
-                      <label htmlFor="review-title" className="block text-xs font-medium text-foreground mb-1">
+                      <label
+                        htmlFor="review-title"
+                        className="block text-xs font-medium text-foreground mb-1"
+                      >
                         Review Title (Optional)
                       </label>
                       <input
@@ -763,7 +853,10 @@ export const ProductPage = () => {
 
                     {/* Review Comment */}
                     <div>
-                      <label htmlFor="review-comment" className="block text-xs font-medium text-foreground mb-1">
+                      <label
+                        htmlFor="review-comment"
+                        className="block text-xs font-medium text-foreground mb-1"
+                      >
                         Review Details <span className="text-destructive">*</span>
                       </label>
                       <textarea
@@ -791,11 +884,25 @@ export const ProductPage = () => {
                     )}
 
                     <div className="flex items-center justify-end gap-2 pt-1">
-                      <Button type="button" variant="outline" size="sm" onClick={handleCancelReview}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelReview}
+                      >
                         Cancel
                       </Button>
-                      <Button type="submit" size="sm" disabled={isSubmittingReview} data-testid="submit-review-button">
-                        {isSubmittingReview ? "Submitting…" : editingReviewId ? "Save Changes" : "Submit Review"}
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={isSubmittingReview}
+                        data-testid="submit-review-button"
+                      >
+                        {isSubmittingReview
+                          ? 'Submitting…'
+                          : editingReviewId
+                            ? 'Save Changes'
+                            : 'Submit Review'}
                       </Button>
                     </div>
                   </form>
@@ -810,7 +917,10 @@ export const ProductPage = () => {
                 <Skeleton className="h-20" />
               </div>
             ) : reviews.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border p-6 text-center" data-testid="empty-reviews">
+              <div
+                className="rounded-lg border border-dashed border-border p-6 text-center"
+                data-testid="empty-reviews"
+              >
                 <MessageSquareText className="mx-auto size-8 text-muted-foreground/60 mb-2" />
                 <p className="text-sm font-medium text-foreground">No customer reviews yet</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -823,13 +933,16 @@ export const ProductPage = () => {
                   <li key={r.id} className="rounded-lg border border-border p-4 bg-card space-y-2">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="flex items-center gap-0.5 text-xs" aria-label={`${r.rating} out of 5 stars`}>
+                        <span
+                          className="flex items-center gap-0.5 text-xs"
+                          aria-label={`${r.rating} out of 5 stars`}
+                        >
                           {Array.from({ length: 5 }).map((_, i) => (
                             <Star
                               key={i}
                               className={cn(
-                                "size-3.5",
-                                i < r.rating ? "fill-amber-400 text-amber-400" : "text-border"
+                                'size-3.5',
+                                i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-border',
                               )}
                               aria-hidden
                             />
@@ -842,7 +955,10 @@ export const ProductPage = () => {
                           </span>
                         )}
                         {r.status && r.status !== 'APPROVED' && (
-                          <Badge variant={r.status === 'PENDING' ? 'outline' : 'destructive'} className="text-[10px]">
+                          <Badge
+                            variant={r.status === 'PENDING' ? 'outline' : 'destructive'}
+                            className="text-[10px]"
+                          >
                             {r.status === 'PENDING' ? 'Pending Moderation' : 'Rejected'}
                           </Badge>
                         )}
@@ -875,8 +991,14 @@ export const ProductPage = () => {
                         )}
                       </div>
                     </div>
-                    {r.title && <h3 className="text-sm font-semibold text-foreground">{r.title}</h3>}
-                    {r.comment && <p className="text-xs sm:text-[13px] text-foreground/90 leading-relaxed">{r.comment}</p>}
+                    {r.title && (
+                      <h3 className="text-sm font-semibold text-foreground">{r.title}</h3>
+                    )}
+                    {r.comment && (
+                      <p className="text-xs sm:text-[13px] text-foreground/90 leading-relaxed">
+                        {r.comment}
+                      </p>
+                    )}
                     {r.reviewerName && (
                       <p className="text-xs text-muted-foreground">— {r.reviewerName}</p>
                     )}
@@ -893,7 +1015,9 @@ export const ProductPage = () => {
               <div>
                 <CardTitle>Seller offers</CardTitle>
                 <CardDescription>
-                  {selectedSku ? "Prices for the selected variant" : "Choose a variant to see offers."}
+                  {selectedSku
+                    ? 'Prices for the selected variant'
+                    : 'Choose a variant to see offers.'}
                 </CardDescription>
               </div>
               {listings.length > 0 && <Badge variant="outline">{listings.length}</Badge>}
@@ -901,7 +1025,9 @@ export const ProductPage = () => {
           </CardHeader>
           <CardContent>
             {!selectedSku ? (
-              <p className="text-[13px] text-muted-foreground">Select a variant to see available offers.</p>
+              <p className="text-[13px] text-muted-foreground">
+                Select a variant to see available offers.
+              </p>
             ) : isLoadingListings ? (
               <div className="flex flex-col gap-2" aria-label="Loading offers">
                 <Skeleton className="h-16" />
@@ -941,7 +1067,7 @@ export const ProductPage = () => {
                           id="cancel-notification-button"
                           data-testid="cancel-notification-button"
                         >
-                          {isLoadingStockSub ? "Cancelling…" : "Cancel notification"}
+                          {isLoadingStockSub ? 'Cancelling…' : 'Cancel notification'}
                         </Button>
                       </div>
                     ) : (
@@ -956,13 +1082,16 @@ export const ProductPage = () => {
                           className="gap-1.5"
                         >
                           <Bell className="size-4" />
-                          {isLoadingStockSub ? "Subscribing…" : "Notify me when available"}
+                          {isLoadingStockSub ? 'Subscribing…' : 'Notify me when available'}
                         </Button>
                       </div>
                     )}
 
                     {stockSubError && (
-                      <div className="mt-2 flex items-center gap-1.5 text-xs text-destructive" data-testid="stock-sub-error">
+                      <div
+                        className="mt-2 flex items-center gap-1.5 text-xs text-destructive"
+                        data-testid="stock-sub-error"
+                      >
                         <AlertCircle className="size-3.5 shrink-0" />
                         <span>{stockSubError}</span>
                       </div>
@@ -1020,7 +1149,7 @@ export const ProductPage = () => {
                       </p>
                     </div>
                     {addedListingId === listing.id ? (
-                      <Link to="/cart" className={cn(buttonVariants({ size: "sm" }))}>
+                      <Link to="/cart" className={cn(buttonVariants({ size: 'sm' }))}>
                         <Check aria-hidden />
                         In cart
                       </Link>
@@ -1032,7 +1161,10 @@ export const ProductPage = () => {
                           setAddingListingId(listing.id);
                           try {
                             if (!isAuthenticated) {
-                              await login({ email: "customer@example.com", password: "password123" });
+                              await login({
+                                email: 'customer@example.com',
+                                password: 'password123',
+                              });
                             }
                             await addItem(listing.id, 1, {
                               skuId: listing.skuId,
@@ -1044,13 +1176,15 @@ export const ProductPage = () => {
                             });
                             setAddedListingId(listing.id);
                           } catch (err: unknown) {
-                            alert(err instanceof Error ? err.message : "Failed to add item to cart");
+                            alert(
+                              err instanceof Error ? err.message : 'Failed to add item to cart',
+                            );
                           } finally {
                             setAddingListingId(null);
                           }
                         }}
                       >
-                        {addingListingId === listing.id ? "Adding…" : "Add to cart"}
+                        {addingListingId === listing.id ? 'Adding…' : 'Add to cart'}
                       </Button>
                     )}
                   </li>

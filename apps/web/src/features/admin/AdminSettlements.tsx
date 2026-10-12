@@ -1,15 +1,21 @@
-import { useState } from "react";
-import { ArrowLeftRight, RefreshCw } from "lucide-react";
-import { apiClient } from "../../api/client";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState } from "../../components/ui/empty";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { Input } from "../../components/ui/input";
-import { formatMoney } from "../../lib/format";
+import { useState } from 'react';
+import { ArrowLeftRight, RefreshCw } from 'lucide-react';
+import { apiClient } from '../../api/client';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState } from '../../components/ui/empty';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { Input } from '../../components/ui/input';
+import { formatMoney } from '../../lib/format';
 
 export interface SettlementRecordDto {
   id: string;
@@ -18,24 +24,24 @@ export interface SettlementRecordDto {
   periodStart: string;
   periodEnd: string;
   netPayoutAmountMinor: number;
-  status: "DRAFT" | "CALCULATED" | "APPROVED" | "SETTLED" | "REJECTED";
+  status: 'DRAFT' | 'CALCULATED' | 'APPROVED' | 'SETTLED' | 'REJECTED';
   createdAt: string;
 }
 
 export const AdminSettlements = () => {
   const [settlements, setSettlements] = useState<SettlementRecordDto[]>([
     {
-      id: "set-apex-001",
-      merchantId: "tenant-merchant-1",
-      currency: "INR",
+      id: 'set-apex-001',
+      merchantId: 'tenant-merchant-1',
+      currency: 'INR',
       periodStart: new Date(Date.now() - 7 * 86400000).toISOString(),
       periodEnd: new Date().toISOString(),
       netPayoutAmountMinor: 18450000,
-      status: "CALCULATED",
+      status: 'CALCULATED',
       createdAt: new Date().toISOString(),
     },
   ]);
-  const [calcMerchantId, setCalcMerchantId] = useState("tenant-merchant-1");
+  const [calcMerchantId, setCalcMerchantId] = useState('tenant-merchant-1');
   const [isCalculating, setIsCalculating] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -45,52 +51,62 @@ export const AdminSettlements = () => {
     setIsCalculating(true);
     setFeedback(null);
     try {
-      const res = await apiClient<SettlementRecordDto>("/settlement/settlements/calculate", {
-        method: "POST",
+      const res = await apiClient<SettlementRecordDto>('/settlement/settlements/calculate', {
+        method: 'POST',
         body: JSON.stringify({
           merchantId: calcMerchantId.trim(),
           periodStart: new Date(Date.now() - 14 * 86400000).toISOString(),
           periodEnd: new Date().toISOString(),
-          currency: "INR",
+          currency: 'INR',
         }),
       });
       setSettlements((prev) => [res, ...prev.filter((s) => s.id !== res.id)]);
-      setFeedback(`Settlement calculated for ${calcMerchantId}: Net payout ${formatMoney(res.netPayoutAmountMinor / 100, res.currency)}`);
+      setFeedback(
+        `Settlement calculated for ${calcMerchantId}: Net payout ${formatMoney(res.netPayoutAmountMinor / 100, res.currency)}`,
+      );
     } catch (err: unknown) {
-      alert(`Calculation error: ${err instanceof Error ? err.message : "Error"}`);
+      alert(`Calculation error: ${err instanceof Error ? err.message : 'Error'}`);
     } finally {
       setIsCalculating(false);
     }
   };
 
-  const handleTransition = async (settlementId: string, targetStatus: SettlementRecordDto["status"]) => {
+  const handleTransition = async (
+    settlementId: string,
+    targetStatus: SettlementRecordDto['status'],
+  ) => {
     try {
-      const res = await apiClient<SettlementRecordDto>(`/settlement/settlements/${settlementId}/transition`, {
-        method: "POST",
-        body: JSON.stringify({ targetStatus }),
-      });
+      const res = await apiClient<SettlementRecordDto>(
+        `/settlement/settlements/${settlementId}/transition`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ targetStatus }),
+        },
+      );
       setSettlements((prev) => prev.map((s) => (s.id === settlementId ? res : s)));
       setFeedback(`Settlement ${settlementId} status transitioned to ${targetStatus}`);
     } catch (err: unknown) {
-      alert(`Transition error: ${err instanceof Error ? err.message : "Error"}`);
+      alert(`Transition error: ${err instanceof Error ? err.message : 'Error'}`);
     }
   };
 
   const totalPayout = settlements.reduce((sum, s) => sum + s.netPayoutAmountMinor, 0) / 100;
-  const approvedCount = settlements.filter((s) => s.status === "APPROVED" || s.status === "SETTLED").length;
+  const approvedCount = settlements.filter(
+    (s) => s.status === 'APPROVED' || s.status === 'SETTLED',
+  ).length;
 
-  const statusVariant = (s: SettlementRecordDto["status"]) => {
+  const statusVariant = (s: SettlementRecordDto['status']) => {
     switch (s) {
-      case "SETTLED":
-      case "APPROVED":
-        return "success" as const;
-      case "CALCULATED":
-      case "DRAFT":
-        return "warning" as const;
-      case "REJECTED":
-        return "destructive" as const;
+      case 'SETTLED':
+      case 'APPROVED':
+        return 'success' as const;
+      case 'CALCULATED':
+      case 'DRAFT':
+        return 'warning' as const;
+      case 'REJECTED':
+        return 'destructive' as const;
       default:
-        return "outline" as const;
+        return 'outline' as const;
     }
   };
 
@@ -99,9 +115,12 @@ export const AdminSettlements = () => {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Platform settlements &amp; ledger governance</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Platform settlements &amp; ledger governance
+          </h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
-            Execute period seller disbursements, verify mathematical balance invariants, and approve payouts.
+            Execute period seller disbursements, verify mathematical balance invariants, and approve
+            payouts.
           </p>
         </div>
       </div>
@@ -118,13 +137,19 @@ export const AdminSettlements = () => {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total calculated payouts</p>
             <p className="tnum mt-1 text-2xl font-semibold tracking-tight">
-              {formatMoney(totalPayout, "INR")}
+              {formatMoney(totalPayout, 'INR')}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">Net seller funds across all settlement cycles</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Net seller funds across all settlement cycles
+            </p>
           </CardContent>
         </Card>
         <div className="grid gap-3 sm:grid-cols-3 lg:col-span-2">
-          <KpiCard label="Settlement runs" value={String(settlements.length)} hint="generated batches" />
+          <KpiCard
+            label="Settlement runs"
+            value={String(settlements.length)}
+            hint="generated batches"
+          />
           <KpiCard label="Disbursements" value={String(approvedCount)} hint="approved / paid" />
           <KpiCard label="Ledger status" value="Balanced" hint="Σ Debits = Σ Credits" />
         </div>
@@ -136,7 +161,9 @@ export const AdminSettlements = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Calculate periodic payout</CardTitle>
-              <CardDescription>Aggregate order line items and deductions for a vendor</CardDescription>
+              <CardDescription>
+                Aggregate order line items and deductions for a vendor
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -150,9 +177,14 @@ export const AdminSettlements = () => {
                 className="h-8 text-xs"
               />
             </div>
-            <Button type="submit" size="sm" className="h-8 text-xs" disabled={isCalculating || !calcMerchantId.trim()}>
+            <Button
+              type="submit"
+              size="sm"
+              className="h-8 text-xs"
+              disabled={isCalculating || !calcMerchantId.trim()}
+            >
               <RefreshCw className="mr-1.5 h-3 w-3" />
-              {isCalculating ? "Calculating…" : "Calculate settlement"}
+              {isCalculating ? 'Calculating…' : 'Calculate settlement'}
             </Button>
           </form>
         </CardContent>
@@ -164,7 +196,9 @@ export const AdminSettlements = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Settlement runs</CardTitle>
-              <CardDescription>Periodic accounting batches and disbursement workflow</CardDescription>
+              <CardDescription>
+                Periodic accounting batches and disbursement workflow
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -193,7 +227,8 @@ export const AdminSettlements = () => {
                     <TD className="font-mono text-xs font-medium">#{s.id.slice(0, 12)}</TD>
                     <TD className="font-mono text-xs text-muted-foreground">{s.merchantId}</TD>
                     <TD className="text-xs text-muted-foreground">
-                      {new Date(s.periodStart).toLocaleDateString()} – {new Date(s.periodEnd).toLocaleDateString()}
+                      {new Date(s.periodStart).toLocaleDateString()} –{' '}
+                      {new Date(s.periodEnd).toLocaleDateString()}
                     </TD>
                     <TD className="tnum text-right font-medium text-xs">
                       {formatMoney(s.netPayoutAmountMinor / 100, s.currency)}
@@ -203,26 +238,28 @@ export const AdminSettlements = () => {
                     </TD>
                     <TD className="text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {s.status === "CALCULATED" && (
+                        {s.status === 'CALCULATED' && (
                           <Button
                             size="sm"
                             className="h-7 px-2 text-xs"
-                            onClick={() => handleTransition(s.id, "APPROVED")}
+                            onClick={() => handleTransition(s.id, 'APPROVED')}
                           >
                             Approve
                           </Button>
                         )}
-                        {s.status === "APPROVED" && (
+                        {s.status === 'APPROVED' && (
                           <Button
                             size="sm"
                             className="h-7 px-2 text-xs"
-                            onClick={() => handleTransition(s.id, "SETTLED")}
+                            onClick={() => handleTransition(s.id, 'SETTLED')}
                           >
                             Mark settled
                           </Button>
                         )}
-                        {s.status === "SETTLED" && (
-                          <span className="text-[11px] font-medium text-emerald-600">Disbursed</span>
+                        {s.status === 'SETTLED' && (
+                          <span className="text-[11px] font-medium text-emerald-600">
+                            Disbursed
+                          </span>
                         )}
                       </div>
                     </TD>

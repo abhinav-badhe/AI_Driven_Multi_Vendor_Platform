@@ -2,11 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 
 export type MerchantVerificationStatus =
-  | 'DRAFT'
-  | 'SUBMITTED'
-  | 'VERIFIED'
-  | 'REJECTED'
-  | 'SUSPENDED';
+  'DRAFT' | 'SUBMITTED' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
 
 export interface MerchantProfileRow {
   id: string;
@@ -105,4 +101,3 @@ export class MerchantRepository {
     return result.rows;
   }
 }
-

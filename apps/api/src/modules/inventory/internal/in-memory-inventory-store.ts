@@ -348,8 +348,7 @@ export class InMemoryInventoryStore implements IInventoryService {
 
     const now = new Date().toISOString();
     const delta = newNonSellableQuantity - current.nonSellableQuantity;
-    const newAvailable =
-      current.onHandQuantity - current.reservedQuantity - newNonSellableQuantity;
+    const newAvailable = current.onHandQuantity - current.reservedQuantity - newNonSellableQuantity;
 
     const updated: InventoryItemDto = {
       ...current,
@@ -494,10 +493,7 @@ export class InMemoryInventoryStore implements IInventoryService {
     return reservation;
   }
 
-  async getReservationById(
-    actor: AuthorizedActor,
-    id: string,
-  ): Promise<InventoryReservationDto> {
+  async getReservationById(actor: AuthorizedActor, id: string): Promise<InventoryReservationDto> {
     const res = this.reservations.get(id);
     if (!res) throw new NotFoundError(`Reservation '${id}' not found`);
 
@@ -559,8 +555,7 @@ export class InMemoryInventoryStore implements IInventoryService {
     this.reservations.set(id, updatedRes);
 
     const newReserved = Math.max(0, currentItem.reservedQuantity - res.quantity);
-    const newAvailable =
-      currentItem.onHandQuantity - newReserved - currentItem.nonSellableQuantity;
+    const newAvailable = currentItem.onHandQuantity - newReserved - currentItem.nonSellableQuantity;
     const updatedItem: InventoryItemDto = {
       ...currentItem,
       reservedQuantity: newReserved,
@@ -692,8 +687,7 @@ export class InMemoryInventoryStore implements IInventoryService {
     this.reservations.set(id, updatedRes);
 
     const newReserved = Math.max(0, currentItem.reservedQuantity - res.quantity);
-    const newAvailable =
-      currentItem.onHandQuantity - newReserved - currentItem.nonSellableQuantity;
+    const newAvailable = currentItem.onHandQuantity - newReserved - currentItem.nonSellableQuantity;
     const updatedItem: InventoryItemDto = {
       ...currentItem,
       reservedQuantity: newReserved,
@@ -745,10 +739,7 @@ export class InMemoryInventoryStore implements IInventoryService {
     return expiredToProcess.length;
   }
 
-  async getMovements(
-    actor: AuthorizedActor,
-    inventoryId: string,
-  ): Promise<InventoryMovementDto[]> {
+  async getMovements(actor: AuthorizedActor, inventoryId: string): Promise<InventoryMovementDto[]> {
     RbacPolicy.requirePermission(actor, 'inventory:read-own');
 
     const item = this.items.get(inventoryId);

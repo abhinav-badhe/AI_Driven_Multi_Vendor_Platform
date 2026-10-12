@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -95,7 +99,11 @@ describe('Customer Address Book & Order Snapshots', () => {
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${merchantToken}` },
-      payload: { businessName: 'Seller LLC', legalName: 'Seller Legal', contactEmail: 'seller@biz.com' },
+      payload: {
+        businessName: 'Seller LLC',
+        legalName: 'Seller Legal',
+        contactEmail: 'seller@biz.com',
+      },
     });
     await app.inject({
       method: 'POST',
@@ -709,19 +717,40 @@ describe('Customer Address Book & Order Snapshots', () => {
         method: 'POST',
         url: '/api/v1/customer/addresses',
         headers: { authorization: `Bearer ${token}` },
-        payload: { recipientName: 'Addr 1', phone: '111', addressLine1: 'Street 1', city: 'City', state: 'ST', postalCode: '11111' },
+        payload: {
+          recipientName: 'Addr 1',
+          phone: '111',
+          addressLine1: 'Street 1',
+          city: 'City',
+          state: 'ST',
+          postalCode: '11111',
+        },
       }),
       app.inject({
         method: 'POST',
         url: '/api/v1/customer/addresses',
         headers: { authorization: `Bearer ${token}` },
-        payload: { recipientName: 'Addr 2', phone: '222', addressLine1: 'Street 2', city: 'City', state: 'ST', postalCode: '22222' },
+        payload: {
+          recipientName: 'Addr 2',
+          phone: '222',
+          addressLine1: 'Street 2',
+          city: 'City',
+          state: 'ST',
+          postalCode: '22222',
+        },
       }),
       app.inject({
         method: 'POST',
         url: '/api/v1/customer/addresses',
         headers: { authorization: `Bearer ${token}` },
-        payload: { recipientName: 'Addr 3', phone: '333', addressLine1: 'Street 3', city: 'City', state: 'ST', postalCode: '33333' },
+        payload: {
+          recipientName: 'Addr 3',
+          phone: '333',
+          addressLine1: 'Street 3',
+          city: 'City',
+          state: 'ST',
+          postalCode: '33333',
+        },
       }),
     ]);
 
@@ -731,9 +760,21 @@ describe('Customer Address Book & Order Snapshots', () => {
 
     // Concurrently trigger setDefault for addr1, addr2, and addr3
     await Promise.all([
-      app.inject({ method: 'POST', url: `/api/v1/customer/addresses/${id1}/default`, headers: { authorization: `Bearer ${token}` } }),
-      app.inject({ method: 'POST', url: `/api/v1/customer/addresses/${id2}/default`, headers: { authorization: `Bearer ${token}` } }),
-      app.inject({ method: 'POST', url: `/api/v1/customer/addresses/${id3}/default`, headers: { authorization: `Bearer ${token}` } }),
+      app.inject({
+        method: 'POST',
+        url: `/api/v1/customer/addresses/${id1}/default`,
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      app.inject({
+        method: 'POST',
+        url: `/api/v1/customer/addresses/${id2}/default`,
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      app.inject({
+        method: 'POST',
+        url: `/api/v1/customer/addresses/${id3}/default`,
+        headers: { authorization: `Bearer ${token}` },
+      }),
     ]);
 
     // Verify exactly ONE address is marked default

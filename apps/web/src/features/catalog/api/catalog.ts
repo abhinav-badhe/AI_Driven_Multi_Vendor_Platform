@@ -87,7 +87,13 @@ export const catalogApi = {
   getCategory: async (id: string): Promise<Category> => {
     return apiClient<Category>(`/categories/${id}`);
   },
-  getProducts: async (params?: { categoryId?: string; status?: ProductStatus; search?: string; limit?: number; offset?: number }): Promise<Product[]> => {
+  getProducts: async (params?: {
+    categoryId?: string;
+    status?: ProductStatus;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<Product[]> => {
     const query = new URLSearchParams();
     if (params?.categoryId) query.append('categoryId', params.categoryId);
     if (params?.status) query.append('status', params.status);
@@ -149,5 +155,5 @@ export const catalogApi = {
   },
   getSku: async (id: string): Promise<Sku> => {
     return apiClient<Sku>(`/skus/${id}`);
-  }
+  },
 };

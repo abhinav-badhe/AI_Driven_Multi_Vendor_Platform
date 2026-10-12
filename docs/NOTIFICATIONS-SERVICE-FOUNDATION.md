@@ -5,6 +5,7 @@
 As the first business domain microservice to be extracted from the modular monolith, the **Notifications Service** has been established as an independent, standalone TypeScript/Fastify service under `apps/notifications-service/`.
 
 Following the approved strangler migration strategy:
+
 - The standalone service structure and isolated persistence layer have been created.
 - The service defines its own domain entities, repository, channel providers, event consumer boundaries, configuration, and HTTP APIs.
 - **Zero Monolith Runtime Changes:** The monolith continues to run against `LocalNotificationClient` within its modular boundary. No HTTP calls or gateway routes link the monolith to `apps/notifications-service` during this initial phase.
@@ -62,6 +63,7 @@ Following the approved strangler migration strategy:
 ## 2. Service Responsibility Boundary
 
 ### What the Notifications Service Owns:
+
 - Notification request acceptance, idempotency validation, and persistence.
 - Complete lifecycle management: `PENDING` -> `PROCESSING` -> `SENT` | `RETRY_SCHEDULED` | `DEAD_LETTERED` | `SKIPPED`.
 - Exponential backoff calculation and delivery retry scheduling.
@@ -72,7 +74,8 @@ Following the approved strangler migration strategy:
 - High-priority transactional email delivery.
 
 ### What the Notifications Service Does NOT Own:
-- **Price Alerts Business Logic:** Remains strictly inside the monolith (`apps/api/src/modules/price-alerts`). Price alerts determine *when* an alert condition is triggered and *delegates* the sending through `INotificationClient`.
+
+- **Price Alerts Business Logic:** Remains strictly inside the monolith (`apps/api/src/modules/price-alerts`). Price alerts determine _when_ an alert condition is triggered and _delegates_ the sending through `INotificationClient`.
 - **Identity & User Truth:** Does not manage user credentials, passwords, or tenant memberships.
 - **Commerce Entities:** Has zero ownership or knowledge of catalog products, skus, inventory reservations, orders, checkout carts, payments, or shipments.
 - **ML & Analytics:** Has zero ML models, embeddings, or inference pipelines.
@@ -84,6 +87,7 @@ Following the approved strangler migration strategy:
 The service defines its own DDL migration under `apps/notifications-service/src/infra/database/migrations/0001_notifications_service_schema.sql`.
 
 ### Owned Tables:
+
 1. **`notifications`**:
    - `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`
    - `tenant_id VARCHAR(64) NOT NULL` (identifier only; no foreign key)
@@ -126,6 +130,7 @@ The service defines its own DDL migration under `apps/notifications-service/src/
    - `CONSTRAINT uq_notif_consumer_receipt UNIQUE(consumer_name, event_id)`
 
 ### Strict Isolation Invariant:
+
 The standalone repository queries **only** these three tables. It contains zero joins or foreign keys to `users`, `products`, `orders`, `inventory_items`, or `payments`. Integration tests (`test/notification-repository.test.ts`) assert that querying any foreign table results in database errors while service-owned operations run with 100% independence.
 
 ---
@@ -133,10 +138,12 @@ The standalone repository queries **only** these three tables. It contains zero 
 ## 4. HTTP APIs
 
 ### Public & Health Endpoints
+
 - `GET /health` -> `{ status: 'ok', service: 'notifications-service', timestamp: string }`
 - `GET /ready` -> `{ status: 'ready', service: 'notifications-service', database: 'connected', timestamp: string }`
 
 ### Internal Inter-Service Endpoints (Future `HttpNotificationClient` Target)
+
 - `POST /v1/internal/notifications/request`
   - Body: `{ tenantId, customerId?, eventId?, notificationType, channel, recipient, templateId?, payload, idempotencyKey? }`
   - Returns: `NotificationResultDto`
@@ -145,6 +152,7 @@ The standalone repository queries **only** these three tables. It contains zero 
   - Returns: `NotificationResultDto`
 
 ### Administration APIs (Role: `ADMINISTRATOR`)
+
 - `GET /notifications?tenantId=&status=&channel=&limit=&offset=`
   - Returns paginated list of notification records.
 - `GET /notifications/:id`
@@ -155,6 +163,7 @@ The standalone repository queries **only** these three tables. It contains zero 
   - Triggers background batch dispatch of `PENDING` notifications.
 
 ### Customer Preference APIs (Role: `CUSTOMER` / Authenticated Actor)
+
 - `GET /customers/me/notification-preferences`
   - Returns customer channel preferences.
 - `PUT /customers/me/notification-preferences`
@@ -180,6 +189,7 @@ The standalone repository queries **only** these three tables. It contains zero 
 ## 6. Channel Provider Boundary
 
 Channel delivery logic is isolated behind strict provider interfaces in `apps/notifications-service/src/channels/channel-provider.ts`:
+
 - `EmailChannelProvider`:
   - `ResendEmailProvider`: Direct integration with Resend API (`https://api.resend.com/emails`) using native `fetch`.
   - `InMemoryEmailProvider`: For tests and local execution without credentials.
@@ -194,6 +204,7 @@ All provider specific logic is quarantined behind these interfaces; business log
 
 The event consumption boundary is established in `apps/notifications-service/src/events/notification-event-consumer.ts`.
 Supported domain events:
+
 1. `order.created.v1` -> Generates `ORDER_CONFIRMATION` notification.
 2. `payment.succeeded.v1` -> Generates `PAYMENT_RECEIPT` notification.
 3. `payment.failed.v1` -> Generates `PAYMENT_FAILURE_ALERT` notification.

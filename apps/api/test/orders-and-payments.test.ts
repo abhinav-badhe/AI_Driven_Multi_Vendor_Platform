@@ -3,7 +3,11 @@ import { createHmac } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -89,7 +93,11 @@ describe('Phase 6: Orders & Payments', () => {
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${alphaToken}` },
-      payload: { businessName: 'Alpha LLC', legalName: 'Alpha Legal', contactEmail: 'alpha@biz.com' },
+      payload: {
+        businessName: 'Alpha LLC',
+        legalName: 'Alpha Legal',
+        contactEmail: 'alpha@biz.com',
+      },
     });
     await app.inject({
       method: 'POST',
@@ -156,7 +164,12 @@ describe('Phase 6: Orders & Payments', () => {
         method: 'POST',
         url: '/products',
         headers: { authorization: `Bearer ${adminToken}` },
-        payload: { title: 'Alpha Phone Pro', slug: 'alpha-phone-pro', brand: 'BrandAlpha', categoryId: cat.id },
+        payload: {
+          title: 'Alpha Phone Pro',
+          slug: 'alpha-phone-pro',
+          brand: 'BrandAlpha',
+          categoryId: cat.id,
+        },
       })
     ).json();
     await app.inject({
@@ -186,7 +199,12 @@ describe('Phase 6: Orders & Payments', () => {
         method: 'POST',
         url: '/products',
         headers: { authorization: `Bearer ${adminToken}` },
-        payload: { title: 'Beta Phone Ultra', slug: 'beta-phone-ultra', brand: 'BrandBeta', categoryId: cat.id },
+        payload: {
+          title: 'Beta Phone Ultra',
+          slug: 'beta-phone-ultra',
+          brand: 'BrandBeta',
+          categoryId: cat.id,
+        },
       })
     ).json();
     await app.inject({
@@ -220,7 +238,12 @@ describe('Phase 6: Orders & Payments', () => {
         payload: { skuId: skuA.id, priceAmount: 1000, currency: 'INR' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/listings/${listA.id}/status`, headers: { authorization: `Bearer ${alphaToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/listings/${listA.id}/status`,
+      headers: { authorization: `Bearer ${alphaToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     const listB = (
       await app.inject({
@@ -230,7 +253,12 @@ describe('Phase 6: Orders & Payments', () => {
         payload: { skuId: skuB.id, priceAmount: 2000, currency: 'INR' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/listings/${listB.id}/status`, headers: { authorization: `Bearer ${betaToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/listings/${listB.id}/status`,
+      headers: { authorization: `Bearer ${betaToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     // 6. Inventory: Alpha has 10 units, Beta has 5 units
     const invA = (
@@ -355,7 +383,7 @@ describe('Phase 6: Orders & Payments', () => {
       });
 
       expect(intentRes.statusCode).toBe(409);
-      expect(intentRes.json().error.message).toContain('Expected \'READY\'');
+      expect(intentRes.json().error.message).toContain("Expected 'READY'");
     });
 
     it('processes successful payment attempt and transitions intent to SUCCEEDED', async () => {
@@ -542,7 +570,9 @@ describe('Phase 6: Orders & Payments', () => {
       });
 
       expect(conflictRes.statusCode).toBe(400);
-      expect(conflictRes.json().error.message).toContain('idempotency key reuse with different amount');
+      expect(conflictRes.json().error.message).toContain(
+        'idempotency key reuse with different amount',
+      );
     });
   });
 
@@ -1015,8 +1045,12 @@ describe('Phase 6: Orders & Payments', () => {
       // Exactly 2 distinct Seller Orders created
       expect(order.sellerOrders.length).toBe(2);
 
-      const sellerAlpha = order.sellerOrders.find((s: { sellerTenantId: string }) => s.sellerTenantId === eco.profA.tenantId);
-      const sellerBeta = order.sellerOrders.find((s: { sellerTenantId: string }) => s.sellerTenantId === eco.profB.tenantId);
+      const sellerAlpha = order.sellerOrders.find(
+        (s: { sellerTenantId: string }) => s.sellerTenantId === eco.profA.tenantId,
+      );
+      const sellerBeta = order.sellerOrders.find(
+        (s: { sellerTenantId: string }) => s.sellerTenantId === eco.profB.tenantId,
+      );
 
       expect(sellerAlpha).toBeDefined();
       expect(sellerAlpha.totalAmount).toBe(2000);
@@ -1263,7 +1297,11 @@ describe('Phase 6: Orders & Payments', () => {
           method: 'POST',
           url: '/orders',
           headers: { authorization: `Bearer ${eco.cust1Token}` },
-          payload: { checkoutSessionId: session.id, paymentIntentId: intent.id, idempotencyKey: 'ord-retry-key' },
+          payload: {
+            checkoutSessionId: session.id,
+            paymentIntentId: intent.id,
+            idempotencyKey: 'ord-retry-key',
+          },
         })
       ).json();
 
@@ -1273,7 +1311,11 @@ describe('Phase 6: Orders & Payments', () => {
           method: 'POST',
           url: '/orders',
           headers: { authorization: `Bearer ${eco.cust1Token}` },
-          payload: { checkoutSessionId: session.id, paymentIntentId: intent.id, idempotencyKey: 'ord-retry-key' },
+          payload: {
+            checkoutSessionId: session.id,
+            paymentIntentId: intent.id,
+            idempotencyKey: 'ord-retry-key',
+          },
         })
       ).json();
 
@@ -1448,7 +1490,9 @@ describe('Phase 6: Orders & Payments', () => {
         })
       ).json();
 
-      const sellerBeta = order.sellerOrders.find((s: { sellerTenantId: string }) => s.sellerTenantId === eco.profB.tenantId);
+      const sellerBeta = order.sellerOrders.find(
+        (s: { sellerTenantId: string }) => s.sellerTenantId === eco.profB.tenantId,
+      );
 
       // Merchant Alpha attempts to view Merchant Beta's seller order
       const readRes = await app.inject({
@@ -2129,7 +2173,9 @@ describe('Phase 6: Orders & Payments', () => {
       });
 
       expect(orderRes.statusCode).toBe(400);
-      expect(orderRes.json().error.message).toMatch(/Payment amount\/currency .* does not match checkout/);
+      expect(orderRes.json().error.message).toMatch(
+        /Payment amount\/currency .* does not match checkout/,
+      );
     });
   });
 
@@ -2261,14 +2307,14 @@ describe('Phase 6: Orders & Payments', () => {
       });
 
       const [clientOrderRes, eventRes] = await Promise.all([clientOrderPromise, eventPromise]);
-      
+
       expect(clientOrderRes.statusCode).toBe(201);
       expect(eventRes.statusCode).toBe(200);
 
       // Verify exactly 1 order exists for this checkout
       const dbCount = await db.query<{ count: string }>(
         `SELECT COUNT(*) as count FROM customer_orders WHERE checkout_session_id = $1`,
-        [session.id]
+        [session.id],
       );
       expect(parseInt(dbCount.rows[0]!.count, 10)).toBe(1);
     });

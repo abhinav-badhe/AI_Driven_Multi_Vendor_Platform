@@ -12,7 +12,6 @@ import {
 } from '../src/errors/app-error.js';
 
 describe('HttpMarketplaceClient', () => {
-
   const merchantActor: AuthorizedActor = {
     userId: 'merchant-1',
     role: 'MERCHANT',
@@ -238,9 +237,9 @@ describe('HttpMarketplaceClient', () => {
       status: 422,
       json: async () => ({ message: 'Invalid status transition' }),
     });
-    await expect(client.setListingStatus(merchantActor, 'lst-123', 'SUSPENDED')).rejects.toThrowError(
-      InvalidStateTransitionError,
-    );
+    await expect(
+      client.setListingStatus(merchantActor, 'lst-123', 'SUSPENDED'),
+    ).rejects.toThrowError(InvalidStateTransitionError);
   });
 
   it('falls back to local InMemoryMarketplaceStore on 500 server error', async () => {

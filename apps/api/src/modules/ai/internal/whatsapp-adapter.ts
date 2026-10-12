@@ -74,13 +74,20 @@ export class WhatsAppAdapter {
     query: SubscriptionVerificationQuery,
     expectedVerifyToken: string,
   ): { valid: boolean; challenge?: string } {
-    if (query.mode === 'subscribe' && query.verifyToken && query.verifyToken === expectedVerifyToken) {
+    if (
+      query.mode === 'subscribe' &&
+      query.verifyToken &&
+      query.verifyToken === expectedVerifyToken
+    ) {
       this.logger.info('Meta WhatsApp webhook subscription verified successfully');
       return { valid: true, ...(query.challenge ? { challenge: query.challenge } : {}) };
     }
-    this.logger.warn('Rejected WhatsApp webhook subscription: verify token mismatch or invalid mode', {
-      mode: query.mode,
-    });
+    this.logger.warn(
+      'Rejected WhatsApp webhook subscription: verify token mismatch or invalid mode',
+      {
+        mode: query.mode,
+      },
+    );
     return { valid: false };
   }
 
@@ -346,7 +353,9 @@ export class WhatsAppAdapter {
     customerId: string,
     phoneNumber: string,
   ): Promise<{ verificationCode: string; expiresAt: string }> {
-    const cleanPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber.replace(/[^0-9]/g, '')}`;
+    const cleanPhone = phoneNumber.startsWith('+')
+      ? phoneNumber
+      : `+${phoneNumber.replace(/[^0-9]/g, '')}`;
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
@@ -387,7 +396,9 @@ export class WhatsAppAdapter {
     phoneNumber: string,
     code: string,
   ): Promise<boolean> {
-    const cleanPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber.replace(/[^0-9]/g, '')}`;
+    const cleanPhone = phoneNumber.startsWith('+')
+      ? phoneNumber
+      : `+${phoneNumber.replace(/[^0-9]/g, '')}`;
     const mapping = await this.store.getWhatsAppMappingByPhone(cleanPhone);
     if (!mapping || mapping.tenantId !== tenantId || mapping.customerId !== customerId) {
       throw new NotFoundError('Pending phone link request not found for this account');
@@ -431,7 +442,9 @@ export class WhatsAppAdapter {
     phoneNumber: string,
     isVerified = true,
   ): Promise<WhatsAppMappingRecord> {
-    const cleanPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber.replace(/[^0-9]/g, '')}`;
+    const cleanPhone = phoneNumber.startsWith('+')
+      ? phoneNumber
+      : `+${phoneNumber.replace(/[^0-9]/g, '')}`;
     const record: WhatsAppMappingRecord = {
       id: `wam-${cleanPhone.replace(/[^0-9]/g, '')}`,
       phoneNumber: cleanPhone,

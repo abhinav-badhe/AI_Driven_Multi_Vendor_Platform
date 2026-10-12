@@ -222,7 +222,9 @@ export class HttpRecommendationStoreAdapter implements IRecommendationStore {
           `Recommendations service request timed out after ${this.timeoutMs}ms: ${path}`,
         );
       }
-      throw new ExternalServiceError(`Failed to communicate with recommendations service: ${message}`);
+      throw new ExternalServiceError(
+        `Failed to communicate with recommendations service: ${message}`,
+      );
     } finally {
       clearTimeout(timeout);
     }

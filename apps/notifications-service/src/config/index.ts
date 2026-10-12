@@ -81,4 +81,3 @@ export function parseConfig(env: Record<string, unknown> = process.env): Notific
 export function loadConfig(env?: Record<string, unknown>): NotificationsConfig {
   return parseConfig(env);
 }
-

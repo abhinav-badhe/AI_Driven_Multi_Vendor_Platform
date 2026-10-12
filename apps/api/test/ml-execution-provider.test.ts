@@ -27,7 +27,10 @@ class MockFeatureReader implements IAnalyticsMlFeatureReader {
   public customerSignals: CustomerActivitySignal[] = [];
   public orderAnomalySignals: OrderAnomalySignal[] = [];
 
-  async getProductDailyDemandHistory(tenantId: string, _lookbackDays = 60): Promise<ProductDailyDemandRecord[]> {
+  async getProductDailyDemandHistory(
+    tenantId: string,
+    _lookbackDays = 60,
+  ): Promise<ProductDailyDemandRecord[]> {
     return this.demandRecords.filter((r) => r.tenantId === tenantId);
   }
 
@@ -107,10 +110,15 @@ describe('ML Execution Provider Boundary', () => {
         success: true,
         predictions: [{ entityId: 'e-1', predictionValue: 99.5 }],
       };
-      const runPredictionSpy = vi.spyOn(runner, 'runPrediction').mockResolvedValueOnce(expectedResult);
+      const runPredictionSpy = vi
+        .spyOn(runner, 'runPrediction')
+        .mockResolvedValueOnce(expectedResult);
 
       const provider = new LocalPythonMlExecutionProvider(runner);
-      const payload = { modelType: 'DEMAND_FORECASTING', features: [{ entityId: 'e-1', featureVector: [1, 2, 3] }] };
+      const payload = {
+        modelType: 'DEMAND_FORECASTING',
+        features: [{ entityId: 'e-1', featureVector: [1, 2, 3] }],
+      };
 
       const result = await provider.runPrediction(payload);
 
@@ -143,7 +151,10 @@ describe('ML Execution Provider Boundary', () => {
       vi.spyOn(runner, 'runTraining').mockResolvedValueOnce(errorResult);
 
       const provider = new LocalPythonMlExecutionProvider(runner);
-      const result = await provider.runTraining({ tenantId: 'tenant-test', modelType: 'DEMAND_FORECASTING' });
+      const result = await provider.runTraining({
+        tenantId: 'tenant-test',
+        modelType: 'DEMAND_FORECASTING',
+      });
 
       expect(result.success).toBe(false);
       expect(result.status).toBe('FAILED');

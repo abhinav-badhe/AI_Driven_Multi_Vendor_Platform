@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { JsonLogger } from '../src/observability/logger.js';
 import {
@@ -120,7 +124,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       tenantName,
       role: 'MERCHANT',
     });
-    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = $1`, [email]);
+    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = $1`, [
+      email,
+    ]);
     const memberRes = await db.query<{ tenant_id: string }>(
       `SELECT tenant_id FROM tenant_memberships WHERE user_id = $1`,
       [userRes.rows[0]!.id],
@@ -135,7 +141,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       tenantName: 'Customer Tenant',
       role: 'CUSTOMER',
     });
-    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = $1`, [email]);
+    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = $1`, [
+      email,
+    ]);
     const memberRes = await db.query<{ tenant_id: string }>(
       `SELECT tenant_id FROM tenant_memberships WHERE user_id = $1`,
       [userRes.rows[0]!.id],
@@ -252,10 +260,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       expect(receipts.rows.length).toBe(1);
 
       // Verify facts table has exactly 1 row
-      const facts = await db.query(
-        `SELECT * FROM analytics_order_facts WHERE event_id = $1`,
-        [event.eventId],
-      );
+      const facts = await db.query(`SELECT * FROM analytics_order_facts WHERE event_id = $1`, [
+        event.eventId,
+      ]);
       expect(facts.rows.length).toBe(1);
 
       // Verify metric is not double-counted (gross_sales should be 2000, not 4000)
@@ -293,10 +300,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       const duplicates = results.filter((r) => r.duplicate);
       expect(duplicates.length).toBe(1);
 
-      const facts = await db.query(
-        `SELECT * FROM analytics_payment_facts WHERE event_id = $1`,
-        [event.eventId],
-      );
+      const facts = await db.query(`SELECT * FROM analytics_payment_facts WHERE event_id = $1`, [
+        event.eventId,
+      ]);
       expect(facts.rows.length).toBe(1);
     });
 
@@ -373,7 +379,11 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       await transport.publish(lateEvent);
 
       // Verify historical date aggregate was created and matches the late event's date
-      const metric = await db.query<{ metric_date: string; gross_sales: string; total_orders: number }>(
+      const metric = await db.query<{
+        metric_date: string;
+        gross_sales: string;
+        total_orders: number;
+      }>(
         `SELECT metric_date, gross_sales, total_orders FROM analytics_daily_metrics WHERE tenant_id = $1 AND metric_date = $2 AND merchant_id = 'ALL'`,
         [tenantId, historicalDate],
       );
@@ -422,14 +432,12 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       await transport.publish(ordEvent);
 
       // Verify both facts exist
-      const payFact = await db.query(
-        `SELECT * FROM analytics_payment_facts WHERE event_id = $1`,
-        [payEvent.eventId],
-      );
-      const ordFact = await db.query(
-        `SELECT * FROM analytics_order_facts WHERE event_id = $1`,
-        [ordEvent.eventId],
-      );
+      const payFact = await db.query(`SELECT * FROM analytics_payment_facts WHERE event_id = $1`, [
+        payEvent.eventId,
+      ]);
+      const ordFact = await db.query(`SELECT * FROM analytics_order_facts WHERE event_id = $1`, [
+        ordEvent.eventId,
+      ]);
 
       expect(payFact.rows.length).toBe(1);
       expect(ordFact.rows.length).toBe(1);
@@ -471,10 +479,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       expect(quarantine.rows[0]?.violation_reason).toBe('MISSING_OR_EMPTY_TENANT_ID');
 
       // Verify no fact created
-      const facts = await db.query(
-        `SELECT * FROM analytics_order_facts WHERE event_id = $1`,
-        [invalidEvent.eventId],
-      );
+      const facts = await db.query(`SELECT * FROM analytics_order_facts WHERE event_id = $1`, [
+        invalidEvent.eventId,
+      ]);
       expect(facts.rows.length).toBe(0);
     });
 
@@ -502,10 +509,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       expect(quarantine.rows[0]?.violation_reason).toBe('NEGATIVE_QUANTITY');
 
       // Verify gross sales is 0
-      const metric = await db.query(
-        `SELECT * FROM analytics_daily_metrics WHERE tenant_id = $1`,
-        [tenantId],
-      );
+      const metric = await db.query(`SELECT * FROM analytics_daily_metrics WHERE tenant_id = $1`, [
+        tenantId,
+      ]);
       expect(metric.rows.length).toBe(0);
     });
   });
@@ -538,7 +544,12 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
         aggregateId: 'pay-reb-1',
         tenantId,
         occurredAt: '2026-09-30T10:05:00.000Z',
-        payload: { paymentIntentId: 'pay-reb-1', orderId: 'ord-reb-1', amount: 1000, currency: 'INR' },
+        payload: {
+          paymentIntentId: 'pay-reb-1',
+          orderId: 'ord-reb-1',
+          amount: 1000,
+          currency: 'INR',
+        },
       });
       const event3 = createDomainEvent({
         eventType: EventTypes.PAYMENT_REFUND_CREATED,
@@ -637,7 +648,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       });
 
       expect(forbiddenRes.statusCode).toBe(403);
-      expect(forbiddenRes.json().error.message).toContain('Merchants may only access their own analytics data');
+      expect(forbiddenRes.json().error.message).toContain(
+        'Merchants may only access their own analytics data',
+      );
     });
 
     it('Scenario M: Multi-currency separation keeps INR and USD in separate distinct aggregates', async () => {
@@ -790,7 +803,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
           orderId: 'ord-surg-1',
           currency: 'INR',
           totalAmount: 1500,
-          items: [{ productId: 'prod-surg-1', merchantId: 'm-surg-1', quantity: 2, unitPrice: 750 }],
+          items: [
+            { productId: 'prod-surg-1', merchantId: 'm-surg-1', quantity: 2, unitPrice: 750 },
+          ],
         },
       });
 
@@ -829,10 +844,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       expect(rebuildBody.factsRebuilt).toBe(1);
 
       // Verify facts are fully reconstructed and not duplicated
-      const factAfter = await db.query(
-        `SELECT * FROM analytics_order_facts WHERE tenant_id = $1`,
-        [tenantId],
-      );
+      const factAfter = await db.query(`SELECT * FROM analytics_order_facts WHERE tenant_id = $1`, [
+        tenantId,
+      ]);
       expect(factAfter.rows.length).toBe(1);
       expect((factAfter.rows[0] as { order_id?: string } | undefined)?.order_id).toBe('ord-surg-1');
 
@@ -847,7 +861,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
           orderId: 'ord-surg-2',
           currency: 'INR',
           totalAmount: 500,
-          items: [{ productId: 'prod-surg-2', merchantId: 'm-surg-1', quantity: 1, unitPrice: 500 }],
+          items: [
+            { productId: 'prod-surg-2', merchantId: 'm-surg-1', quantity: 1, unitPrice: 500 },
+          ],
         },
       });
 
@@ -955,10 +971,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
         payload: {},
       });
       expect(again.statusCode).toBe(200);
-      const facts = await db.query(
-        `SELECT * FROM analytics_order_facts WHERE tenant_id = $1`,
-        [tenantId],
-      );
+      const facts = await db.query(`SELECT * FROM analytics_order_facts WHERE tenant_id = $1`, [
+        tenantId,
+      ]);
       expect(facts.rows.length).toBe(1);
     });
 
@@ -979,7 +994,7 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
           items: [
             { productId: 'p-1', quantity: 2, unitPrice: 100 }, // 200
             { productId: 'p-2', quantity: 1, unitPrice: 350 }, // 350
-            { productId: 'p-3', quantity: 3, unitPrice: 50 },  // 150
+            { productId: 'p-3', quantity: 3, unitPrice: 50 }, // 150
           ],
         },
       });
@@ -1136,9 +1151,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       expect(beforeFacts.rows.length).toBe(1);
 
       // 2. Mock a failure during fact recording on replay
-      const spy = vi.spyOn(AnalyticsRepository.prototype, 'recordOrderFact').mockRejectedValueOnce(
-        new Error('Simulated database write failure during event replay'),
-      );
+      const spy = vi
+        .spyOn(AnalyticsRepository.prototype, 'recordOrderFact')
+        .mockRejectedValueOnce(new Error('Simulated database write failure during event replay'));
 
       // 3. Trigger rebuild - must NOT report success! Must return HTTP 500
       const rebuildRes = await app.inject({
@@ -1151,7 +1166,9 @@ describe('Phase 11: Analytics Bounded Context & Event Ingestion Pipeline', () =>
       expect(rebuildRes.statusCode).toBe(500);
       const errBody = rebuildRes.json();
       expect(errBody.error.code).toBe('INTERNAL_ERROR');
-      expect(errBody.error.message).toContain('Simulated database write failure during event replay');
+      expect(errBody.error.message).toContain(
+        'Simulated database write failure during event replay',
+      );
 
       // 4. Verify audit record is logged with status FAILED
       const audits = await db.query<{ status: string }>(

@@ -1,22 +1,27 @@
 # ADR 0012: Separation of Canonical Catalog and Multi-Vendor Marketplace Listings
 
 ## Status
+
 Accepted
 
 ## Context
+
 In a multi-vendor predictive commerce platform, multiple merchants sell the same physical or digital items. A naïve e-commerce data model often conflates products, variants, prices, and seller ownership into a single monolithic entity (e.g., each merchant creating their own duplicate "Nike Air Max 90" product with seller-specific pricing).
 
 This conflation causes:
+
 1. Catalog fragmentation and duplicate products across the marketplace.
 2. Inability to provide unified search, aggregated reviews, or side-by-side merchant price comparison for the same canonical item.
 3. Leaking merchant ownership and pricing invariants into the core catalog domain.
 4. Premature coupling of commercial offers and future inventory management with master product data.
 
 ## Decision
+
 We strictly enforce a three-tier canonical domain model:
 **Canonical Product → Variant/SKU → Merchant Listing**
 
 ### 1. Bounded Context Separation
+
 - **Catalog Context (`modules/catalog`)**:
   - Owns: `categories`, `products`, `product_skus`.
   - Invariants: Canonical items are seller-independent. Products and SKUs contain **zero** merchant pricing, zero merchant ownership, and zero inventory counts.
@@ -36,5 +41,6 @@ We strictly enforce a three-tier canonical domain model:
   - Phase 3 strictly prohibits stock quantity, available/reserved quantity, warehouses, and deduction/movement logic. Inventory concerns belong exclusively to Phase 4.
 
 ## Consequences
+
 - **Positive**: Clean multi-vendor capabilities, canonical product deduplication, robust tenant isolation, modular boundaries, and clean separation between catalog information and commercial offers.
 - **Negative**: Creating an active listing requires multi-step validation (canonical SKU must exist and be active; merchant must be verified).

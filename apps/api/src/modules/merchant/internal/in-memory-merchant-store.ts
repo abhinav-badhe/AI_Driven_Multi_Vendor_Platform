@@ -42,7 +42,8 @@ export class InMemoryMerchantStore implements IMerchantService {
 
     if (!input.businessName?.trim()) throw new ValidationError('Business name is required');
     if (!input.legalName?.trim()) throw new ValidationError('Legal name is required');
-    if (!input.contactEmail?.includes('@')) throw new ValidationError('Valid contact email is required');
+    if (!input.contactEmail?.includes('@'))
+      throw new ValidationError('Valid contact email is required');
 
     if (this.profilesByTenant.has(actor.tenantId)) {
       throw new ConflictError('Merchant profile already exists for this tenant');

@@ -33,9 +33,13 @@ describe('Catalog & Marketplace Frontend Tests', () => {
     it('shows loading state initially', async () => {
       // Return a never-resolving promise to keep it in loading state
       fetchMock.mockImplementationOnce(() => new Promise(() => {}));
-      
+
       await act(async () => {
-        render(<MemoryRouter><Home /></MemoryRouter>);
+        render(
+          <MemoryRouter>
+            <Home />
+          </MemoryRouter>,
+        );
       });
       // Skeleton placeholder shaped like the product list (STYLE.md §6)
       expect(screen.getByLabelText(/Loading products/i)).toBeDefined();
@@ -44,7 +48,7 @@ describe('Catalog & Marketplace Frontend Tests', () => {
     it('renders categories from real API contract', async () => {
       const mockCategories = [
         { id: 'cat1', name: 'Electronics', parentId: null },
-        { id: 'cat2', name: 'Books', parentId: null }
+        { id: 'cat2', name: 'Books', parentId: null },
       ];
       fetchMock.mockImplementation((url: string) => {
         if (url.includes('/categories')) return createFetchResponse(mockCategories);
@@ -54,21 +58,32 @@ describe('Catalog & Marketplace Frontend Tests', () => {
       });
 
       await act(async () => {
-        render(<MemoryRouter><Home /></MemoryRouter>);
+        render(
+          <MemoryRouter>
+            <Home />
+          </MemoryRouter>,
+        );
       });
 
       await waitFor(() => {
         expect(screen.getAllByText('Electronics').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Books').length).toBeGreaterThan(0);
       });
-      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/categories'), expect.any(Object));
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/categories'),
+        expect.any(Object),
+      );
     });
 
     it('handles backend failure gracefully', async () => {
       fetchMock.mockRejectedValueOnce(new Error('Network Error'));
 
       await act(async () => {
-        render(<MemoryRouter><Home /></MemoryRouter>);
+        render(
+          <MemoryRouter>
+            <Home />
+          </MemoryRouter>,
+        );
       });
 
       await waitFor(() => {
@@ -81,7 +96,11 @@ describe('Catalog & Marketplace Frontend Tests', () => {
       fetchMock.mockResolvedValueOnce(createFetchResponse([]));
 
       await act(async () => {
-        render(<MemoryRouter><Home /></MemoryRouter>);
+        render(
+          <MemoryRouter>
+            <Home />
+          </MemoryRouter>,
+        );
       });
 
       await waitFor(() => {
@@ -95,9 +114,9 @@ describe('Catalog & Marketplace Frontend Tests', () => {
       const mockCategory = { id: 'cat1', name: 'Electronics' };
       const mockProducts = [
         { id: 'p1', title: 'Laptop', description: 'A nice laptop', brand: 'TechBrand' },
-        { id: 'p2', title: 'Phone', description: 'A nice phone', brand: 'PhoneBrand' }
+        { id: 'p2', title: 'Phone', description: 'A nice phone', brand: 'PhoneBrand' },
       ];
-      
+
       // First call is getCategory, second is getProducts
       fetchMock.mockImplementation((url: string) => {
         if (url.includes('/categories/cat1')) return createFetchResponse(mockCategory);
@@ -111,7 +130,7 @@ describe('Catalog & Marketplace Frontend Tests', () => {
             <Routes>
               <Route path="/category/:id" element={<CategoryPage />} />
             </Routes>
-          </MemoryRouter>
+          </MemoryRouter>,
         );
       });
 
@@ -125,7 +144,7 @@ describe('Catalog & Marketplace Frontend Tests', () => {
 
     it('shows empty state when category has no active products', async () => {
       const mockCategory = { id: 'cat1', name: 'Electronics' };
-      
+
       fetchMock.mockImplementation((url: string) => {
         if (url.includes('/categories/cat1')) return createFetchResponse(mockCategory);
         if (url.includes('/products?')) return createFetchResponse([]); // No products
@@ -138,7 +157,7 @@ describe('Catalog & Marketplace Frontend Tests', () => {
             <Routes>
               <Route path="/category/:id" element={<CategoryPage />} />
             </Routes>
-          </MemoryRouter>
+          </MemoryRouter>,
         );
       });
 
@@ -150,14 +169,25 @@ describe('Catalog & Marketplace Frontend Tests', () => {
 
   describe('Product Page (Details & Listings)', () => {
     it('renders actual product data, variants, and multiple merchant listings', async () => {
-      const mockProduct = { id: 'p1', title: 'Laptop', description: 'A nice laptop', brand: 'TechBrand' };
+      const mockProduct = {
+        id: 'p1',
+        title: 'Laptop',
+        description: 'A nice laptop',
+        brand: 'TechBrand',
+      };
       const mockSkus = [
         { id: 'sku1', skuCode: 'LAPTOP-RED', status: 'ACTIVE' },
-        { id: 'sku2', skuCode: 'LAPTOP-BLUE', status: 'ACTIVE' }
+        { id: 'sku2', skuCode: 'LAPTOP-BLUE', status: 'ACTIVE' },
       ];
       const mockListings = [
-        { id: 'list1', tenantId: 'm1', priceAmount: 99999, currency: 'USD', compareAtPrice: 120000 },
-        { id: 'list2', tenantId: 'm2', priceAmount: 95000, currency: 'USD', compareAtPrice: null }
+        {
+          id: 'list1',
+          tenantId: 'm1',
+          priceAmount: 99999,
+          currency: 'USD',
+          compareAtPrice: 120000,
+        },
+        { id: 'list2', tenantId: 'm2', priceAmount: 95000, currency: 'USD', compareAtPrice: null },
       ];
 
       fetchMock.mockImplementation((url: string) => {
@@ -173,7 +203,7 @@ describe('Catalog & Marketplace Frontend Tests', () => {
             <Routes>
               <Route path="/product/:id" element={<ProductPage />} />
             </Routes>
-          </MemoryRouter>
+          </MemoryRouter>,
         );
       });
 
@@ -193,15 +223,18 @@ describe('Catalog & Marketplace Frontend Tests', () => {
         expect(screen.getByText(/1200\.00 USD/)).toBeDefined(); // compareAtPrice
         expect(screen.getByText(/950\.00 USD/)).toBeDefined();
       });
-      
+
       // Fetch was called with correct SKU ID
-      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/skus/sku1/listings'), expect.any(Object));
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/skus/sku1/listings'),
+        expect.any(Object),
+      );
     });
 
     it('shows listing unavailable empty state when no active listings exist', async () => {
       const mockProduct = { id: 'p1', title: 'Laptop' };
       const mockSkus = [{ id: 'sku1', skuCode: 'LAPTOP-RED', status: 'ACTIVE' }];
-      
+
       fetchMock.mockImplementation((url: string) => {
         if (url.endsWith('/products/p1')) return createFetchResponse(mockProduct);
         if (url.endsWith('/products/p1/skus')) return createFetchResponse(mockSkus);
@@ -215,7 +248,7 @@ describe('Catalog & Marketplace Frontend Tests', () => {
             <Routes>
               <Route path="/product/:id" element={<ProductPage />} />
             </Routes>
-          </MemoryRouter>
+          </MemoryRouter>,
         );
       });
 
@@ -226,7 +259,8 @@ describe('Catalog & Marketplace Frontend Tests', () => {
 
     it('shows 404/not-found state when product fetch fails (404)', async () => {
       fetchMock.mockImplementation((url: string) => {
-        if (url.endsWith('/products/p1')) return createFetchResponse({ message: 'Not found' }, 404, false);
+        if (url.endsWith('/products/p1'))
+          return createFetchResponse({ message: 'Not found' }, 404, false);
         return createFetchResponse({});
       });
 
@@ -236,7 +270,7 @@ describe('Catalog & Marketplace Frontend Tests', () => {
             <Routes>
               <Route path="/product/:id" element={<ProductPage />} />
             </Routes>
-          </MemoryRouter>
+          </MemoryRouter>,
         );
       });
 

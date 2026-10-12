@@ -2,14 +2,26 @@ import type { DatabaseConnection } from '../../infra/database/connection.js';
 import type { Logger } from '../../observability/logger.js';
 import { IdentityService } from './internal/identity-service.js';
 import type { AuthorizedActor } from './rbac/policy.js';
-import type { AuthTokenPair, AuthenticatedIdentity, LoginResult, LoginRequires2FAResult } from './internal/identity-service.js';
+import type {
+  AuthTokenPair,
+  AuthenticatedIdentity,
+  LoginResult,
+  LoginRequires2FAResult,
+} from './internal/identity-service.js';
 import {
   type IIdentityActorResolver,
   StatelessTokenActorResolver,
   GatewayHeaderActorResolver,
 } from './internal/stateless-token-actor-resolver.js';
 
-export type { AuthorizedActor, AuthTokenPair, AuthenticatedIdentity, IIdentityActorResolver, LoginResult, LoginRequires2FAResult };
+export type {
+  AuthorizedActor,
+  AuthTokenPair,
+  AuthenticatedIdentity,
+  IIdentityActorResolver,
+  LoginResult,
+  LoginRequires2FAResult,
+};
 export { RbacPolicy } from './rbac/policy.js';
 export type { Role, Permission } from './rbac/policy.js';
 export { StatelessTokenActorResolver, GatewayHeaderActorResolver };
@@ -83,4 +95,3 @@ export {
   ScryptPasswordHasher,
   HmacTokenService,
 };
-

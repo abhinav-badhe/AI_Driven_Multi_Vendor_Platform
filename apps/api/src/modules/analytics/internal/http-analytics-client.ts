@@ -36,7 +36,8 @@ export class HttpAnalyticsClient
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly fetchFn: typeof fetch;
-  private readonly fallbackReader?: (IAnalyticsRecommendationReader & IAnalyticsMlFeatureReader) | undefined;
+  private readonly fallbackReader?:
+    (IAnalyticsRecommendationReader & IAnalyticsMlFeatureReader) | undefined;
   private readonly logger?: Logger | undefined;
 
   constructor(serviceUrl: string, options: HttpAnalyticsClientOptions = {}) {
@@ -146,10 +147,13 @@ export class HttpAnalyticsClient
       return res.items ?? [];
     } catch (err) {
       if (this.fallbackReader) {
-        this.logger?.warn('HttpAnalyticsClient: getProductDailyDemandHistory failed, falling back', {
-          error: err instanceof Error ? err.message : 'unknown',
-          tenantId,
-        });
+        this.logger?.warn(
+          'HttpAnalyticsClient: getProductDailyDemandHistory failed, falling back',
+          {
+            error: err instanceof Error ? err.message : 'unknown',
+            tenantId,
+          },
+        );
         return this.fallbackReader.getProductDailyDemandHistory(tenantId, lookbackDays);
       }
       throw err;
@@ -212,7 +216,7 @@ export class HttpAnalyticsClient
       const response = await this.fetchFn(`${this.baseUrl}${path}`, {
         method: 'GET',
         headers: {
-          'accept': 'application/json',
+          accept: 'application/json',
         },
         signal: controller.signal,
       });

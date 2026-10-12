@@ -17,10 +17,7 @@ import {
   type SendMessageInput,
   type OrchestratorResponse,
 } from './internal/ai-orchestrator.js';
-import {
-  ToolRegistry,
-  type ToolRegistryDependencies,
-} from './internal/tool-registry.js';
+import { ToolRegistry, type ToolRegistryDependencies } from './internal/tool-registry.js';
 import {
   RagService,
   type IngestDocumentInput,
@@ -151,10 +148,7 @@ export interface AiModule {
     logger: Logger,
   ): WhatsAppAdapter;
   createToolRegistry(deps: ToolRegistryDependencies): ToolRegistry;
-  createHttpClient(
-    serviceUrl: string,
-    options?: HttpAiClientOptions,
-  ): HttpAiClient;
+  createHttpClient(serviceUrl: string, options?: HttpAiClientOptions): HttpAiClient;
   createLocalService(
     orchestrator: AiOrchestrator,
     ragService: RagService,

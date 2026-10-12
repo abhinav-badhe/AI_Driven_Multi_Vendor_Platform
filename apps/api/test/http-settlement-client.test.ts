@@ -112,7 +112,9 @@ describe('HttpSettlementClient', () => {
     expect(fetchFn).toHaveBeenCalledTimes(1);
 
     const [url, init] = fetchFn.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('http://settlement-service:4150/settlement/merchants/tenant-merchant-1/summary?currency=INR');
+    expect(url).toBe(
+      'http://settlement-service:4150/settlement/merchants/tenant-merchant-1/summary?currency=INR',
+    );
     expect(init.method).toBe('GET');
     expect(init.headers).toEqual(
       expect.objectContaining({
@@ -152,7 +154,12 @@ describe('HttpSettlementClient', () => {
   it('delegates ingestOrderFinancials and ingestRefundFinancials over HTTP', async () => {
     const orderResult = {
       earningEntry: mockLedgerEntry,
-      commissionEntry: { ...mockLedgerEntry, id: 'led-124', entryType: 'COMMISSION' as const, amount: 100 },
+      commissionEntry: {
+        ...mockLedgerEntry,
+        id: 'led-124',
+        entryType: 'COMMISSION' as const,
+        amount: 100,
+      },
     };
 
     const refundResult = {
@@ -260,14 +267,16 @@ describe('HttpSettlementClient', () => {
   });
 
   it('maps error codes correctly from HTTP response', async () => {
-    const validationFetch = vi.fn().mockImplementation(() =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Invalid journal' } }),
-          { status: 400, headers: { 'content-type': 'application/json' } },
+    const validationFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Invalid journal' } }),
+            { status: 400, headers: { 'content-type': 'application/json' } },
+          ),
         ),
-      ),
-    );
+      );
     const client = new HttpSettlementClient('http://settlement-service:4150', {
       fetchFn: validationFetch,
     });
@@ -275,14 +284,16 @@ describe('HttpSettlementClient', () => {
       client.ingestOrderFinancials(mockAdminActor, { sellerOrderId: '' }),
     ).rejects.toThrowError(ValidationError);
 
-    const notFoundFetch = vi.fn().mockImplementation(() =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Settlement not found' } }),
-          { status: 404, headers: { 'content-type': 'application/json' } },
+    const notFoundFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Settlement not found' } }),
+            { status: 404, headers: { 'content-type': 'application/json' } },
+          ),
         ),
-      ),
-    );
+      );
     const notFoundClient = new HttpSettlementClient('http://settlement-service:4150', {
       fetchFn: notFoundFetch,
     });
@@ -318,9 +329,11 @@ describe('HttpSettlementClient', () => {
     memoryStore.seedLedgerEntry(mockLedgerEntry);
     memoryStore.seedSettlement(mockSettlement);
 
-    const failingFetch = vi.fn().mockImplementation(() =>
-      Promise.reject(new Error('ECONNREFUSED connect to settlement-service:4150')),
-    );
+    const failingFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.reject(new Error('ECONNREFUSED connect to settlement-service:4150')),
+      );
 
     const client = new HttpSettlementClient('http://settlement-service:4150', {
       fetchFn: failingFetch,

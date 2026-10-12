@@ -5,11 +5,7 @@ import type { CatalogService, ICatalogReader } from '../../catalog/index.js';
 import type { ListingService, IMarketplaceReader } from '../../marketplace/index.js';
 import type { InventoryService, IInventoryReader } from '../../inventory/index.js';
 import type { MerchantService, IMerchantProfileReader } from '../../merchant/index.js';
-import {
-  ValidationError,
-  ForbiddenError,
-  NotFoundError,
-} from '../../../errors/app-error.js';
+import { ValidationError, ForbiddenError, NotFoundError } from '../../../errors/app-error.js';
 import type { ISearchStore } from './search-store.js';
 import type {
   SearchProductDocument,
@@ -126,7 +122,10 @@ export class SearchService {
     let sanitizedQ = params.q?.trim();
     if (sanitizedQ) {
       // Strip control / DSL syntax characters: {}[]()*+?~\"\\/^
-      sanitizedQ = sanitizedQ.replace(/[{}[\]()*+?~"\\/^]/g, ' ').replace(/\s+/g, ' ').trim();
+      sanitizedQ = sanitizedQ
+        .replace(/[{}[\]()*+?~"\\/^]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
     }
 
     // 5. Enforce Visibility & Tenant Isolation
@@ -135,7 +134,9 @@ export class SearchService {
       if (actor && actor.role === 'ADMINISTRATOR') {
         includeInactive = true;
       } else {
-        throw new ForbiddenError('Only platform administrators can inspect inactive search documents');
+        throw new ForbiddenError(
+          'Only platform administrators can inspect inactive search documents',
+        );
       }
     }
 
@@ -245,9 +246,7 @@ export class SearchService {
       throw new NotFoundError(`Product document '${productId}' not found in search index`);
     }
 
-    const visibleOffers = isAdmin
-      ? doc.offers
-      : doc.offers.filter((o) => o.status === 'ACTIVE');
+    const visibleOffers = isAdmin ? doc.offers : doc.offers.filter((o) => o.status === 'ACTIVE');
 
     let bestOffer: SearchSellerOffer | null = null;
     if (visibleOffers.length > 0) {
@@ -314,8 +313,7 @@ export class SearchService {
           slug: input.slug,
           description: input.description !== undefined ? input.description : existing.description,
           brand: input.brand !== undefined ? input.brand : existing.brand,
-          categoryId:
-            input.categoryId !== undefined ? input.categoryId : existing.categoryId,
+          categoryId: input.categoryId !== undefined ? input.categoryId : existing.categoryId,
           categoryName:
             input.categoryName !== undefined ? input.categoryName : existing.categoryName,
           status: input.status,
@@ -480,9 +478,12 @@ export class SearchService {
     }
 
     if (!productId) {
-      this.logger.warn('Cannot update inventory availability: listing not found in search projection', {
-        listingId: input.listingId,
-      });
+      this.logger.warn(
+        'Cannot update inventory availability: listing not found in search projection',
+        {
+          listingId: input.listingId,
+        },
+      );
       return { updated: false, reason: 'LISTING_NOT_FOUND' };
     }
 
@@ -521,9 +522,13 @@ export class SearchService {
 
       const activeOffers = updatedOffers.filter((o) => o.status === 'ACTIVE');
       const minPrice =
-        activeOffers.length > 0 ? Math.min(...activeOffers.map((o) => o.priceAmount)) : doc.minPrice;
+        activeOffers.length > 0
+          ? Math.min(...activeOffers.map((o) => o.priceAmount))
+          : doc.minPrice;
       const maxPrice =
-        activeOffers.length > 0 ? Math.max(...activeOffers.map((o) => o.priceAmount)) : doc.maxPrice;
+        activeOffers.length > 0
+          ? Math.max(...activeOffers.map((o) => o.priceAmount))
+          : doc.maxPrice;
       const hasInStockOffer = activeOffers.some((o) => o.inStock && o.availableQuantity > 0);
 
       const updatedDoc: SearchProductDocument = {
@@ -548,10 +553,7 @@ export class SearchService {
     });
   }
 
-  async removeListingProjection(
-    productId: string,
-    listingId: string,
-  ): Promise<boolean> {
+  async removeListingProjection(productId: string, listingId: string): Promise<boolean> {
     return this.withProductLock(productId, async () => {
       const doc = await this.store.getDocument(productId);
       if (!doc) return false;
@@ -671,7 +673,7 @@ export class SearchService {
         description: product.description ?? null,
         brand: product.brand ?? null,
         categoryId: product.categoryId ?? null,
-        categoryName: product.categoryId ? categoryMap.get(product.categoryId) ?? null : null,
+        categoryName: product.categoryId ? (categoryMap.get(product.categoryId) ?? null) : null,
         status: product.status,
         minPrice,
         maxPrice,

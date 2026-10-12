@@ -17,7 +17,10 @@ export async function createTestDatabase(): Promise<DatabaseConnection> {
   const pool = new adapter.Pool();
 
   const connection: DatabaseConnection = {
-    async query<T = any>(sql: string, params: unknown[] = []): Promise<{ rows: T[]; rowCount: number }> {
+    async query<T = any>(
+      sql: string,
+      params: unknown[] = [],
+    ): Promise<{ rows: T[]; rowCount: number }> {
       const res = await pool.query(sql, params);
       return {
         rows: res.rows,
@@ -29,7 +32,10 @@ export async function createTestDatabase(): Promise<DatabaseConnection> {
       try {
         await client.query('BEGIN');
         const txConn: DatabaseConnection = {
-          async query<R = any>(sql: string, params: unknown[] = []): Promise<{ rows: R[]; rowCount: number }> {
+          async query<R = any>(
+            sql: string,
+            params: unknown[] = [],
+          ): Promise<{ rows: R[]; rowCount: number }> {
             const res = await client.query(sql, params);
             return {
               rows: res.rows,

@@ -38,7 +38,15 @@ export interface CustomerOrderDto {
   id: string;
   orderNumber: string;
   customerTenantId: string;
-  status: 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'PARTIALLY_SHIPPED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+  status:
+    | 'PENDING'
+    | 'CONFIRMED'
+    | 'PROCESSING'
+    | 'PARTIALLY_SHIPPED'
+    | 'SHIPPED'
+    | 'DELIVERED'
+    | 'CANCELLED'
+    | 'REFUNDED';
   paymentMethod?: 'COD' | 'UPI' | 'CARD' | null;
   currency: string;
   subtotalAmount: number;

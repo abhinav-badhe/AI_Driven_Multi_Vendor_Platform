@@ -1,11 +1,14 @@
 # ADR 0014: Checkout Multi-Item Inventory Reservation and Compensation Strategy
 
 ## Status
+
 Accepted
 
 ## Context
+
 In a multi-vendor e-commerce marketplace, a customer's shopping cart frequently contains multiple items across distinct merchants.
 For example:
+
 - Merchant Alpha: SKU X $\times$ 2
 - Merchant Beta: SKU Y $\times$ 1
 - Merchant Gamma: SKU Z $\times$ 3
@@ -13,11 +16,13 @@ For example:
 When the customer proceeds to checkout, the system must coordinate inventory reservations across all of these distinct items. Under high concurrency and finite physical stock, one or more reservations may fail due to concurrent allocations or stock depletion.
 
 A common distributed failure mode is the **partial reservation leak**:
+
 1. Reserve SKU X $\rightarrow$ SUCCESS (2 units held on Merchant Alpha).
 2. Reserve SKU Y $\rightarrow$ SUCCESS (1 unit held on Merchant Beta).
 3. Reserve SKU Z $\rightarrow$ FAILURE (0 units available on Merchant Gamma).
 
 If the checkout process simply throws an error without compensation:
+
 - Merchant Alpha's 2 units remain locked indefinitely.
 - Merchant Beta's 1 unit remains locked indefinitely.
 - The customer cannot complete checkout, yet the merchants lose sellable availability for other buyers until a manual timeout occurs.
@@ -29,12 +34,16 @@ Furthermore, Cart items must **never** hold or reserve inventory before checkout
 We establish a **Synchronous Compensating Checkout Orchestration Pattern** coupled with **Immutable Pricing Snapshots** and **Explicit Checkout Lifecycle States**.
 
 ### 1. Invariant: Cart Additions Do NOT Reserve Stock
+
 Adding, updating, or viewing items in the shopping cart never interacts with inventory quantities:
+
 - `on_hand_quantity`, `reserved_quantity`, and `non_sellable_quantity` remain untouched.
 - Cart display pricing is dynamically derived from authoritative marketplace listings (`ListingService`) and does not represent a locked financial commitment.
 
 ### 2. Immutable Checkout Session Snapshot
+
 When a customer initiates checkout (`POST /checkout/sessions`), the server creates an immutable session with server-calculated integer minor units:
+
 - Revalidates that all referenced listings and canonical SKUs exist and are `ACTIVE`.
 - Revalidates that all line items share uniform currency (e.g. `INR`).
 - Re-reads authoritative prices directly from the marketplace domain (client cannot submit or override prices).
@@ -42,13 +51,15 @@ When a customer initiates checkout (`POST /checkout/sessions`), the server creat
 - Creates immutable rows in `checkout_items` and sets expiration (default 15 minutes).
 
 ### 3. Multi-Item Reservation Orchestration with Automatic Compensation
+
 When inventory reservation is triggered (`POST /checkout/sessions/:id/reserve`):
+
 1. State Transition: `OPEN` $\rightarrow$ `VALIDATING`.
 2. Sequential Allocation:
    - For each line item in `checkout_items`, call the public `InventoryService.createReservation` method with an idempotency key (`chk-${sessionId}-${itemId}`).
    - On success: Record the acquired `reservation_id` in an ephemeral array and persist it on the checkout line item.
 3. **Compensation on Failure**:
-   - If *any* line item reservation fails (e.g., `InsufficientInventoryError`):
+   - If _any_ line item reservation fails (e.g., `InsufficientInventoryError`):
      - The orchestration immediately iterates through all already acquired reservations.
      - Calls `InventoryService.releaseReservation(actor, res.reservationId, 'Checkout reservation failure compensation')` for every acquired hold.
      - Clears the reservation reference on the checkout line item.
@@ -60,6 +71,7 @@ When inventory reservation is triggered (`POST /checkout/sessions/:id/reserve`):
    - Records `reserved_at` timestamp.
 
 ### 4. Idempotency & Expiration
+
 - Sessions support client idempotency via `UNIQUE (customer_tenant_id, idempotency_key)`.
 - If a session is already `READY` or `RESERVED`, subsequent calls to `/reserve` return the session without re-attempting reservations.
 - Expiration (`POST /checkout/sessions/:id/expire`) or cancellation (`POST /checkout/sessions/:id/cancel`):

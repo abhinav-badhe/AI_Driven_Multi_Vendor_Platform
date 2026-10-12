@@ -62,6 +62,7 @@ The current implementation bridges a TypeScript Fastify monolith to Python scrip
 ```
 
 ### Architectural Deficiencies Identified
+
 1. **Per-Invocation Process Spawning:** Every prediction batch or training execution spawns an entirely new OS Python process. Python must start up, import large libraries (`pandas`, `scikit-learn`, `numpy`), deserialize models from disk, and terminate.
 2. **Duplicated Feature Logic:** Feature preparation logic is partially duplicated:
    - Python implements feature extraction in [`ml/data/features.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py).
@@ -72,20 +73,20 @@ The current implementation bridges a TypeScript Fastify monolith to Python scrip
 
 ## 3. ML Entry Points
 
-| Capability | File | Function / Class | Purpose | Caller | Input | Output |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Training Pipeline** | [`ml/train.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/train.py#L37) | `train_model(config: dict)` | Orchestrates cold-start check, feature extraction, model fit, train/val/test evaluation, serialization, and approval threshold decision | CLI entry `main()` or subprocess | Configuration JSON (tenantId, modelType, records, hyperparameters, thresholds) | Structured result JSON (success, metrics, modelId, artifactPath, status) |
-| **Inference Pipeline** | [`ml/predict.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/predict.py#L18) | `generate_predictions(payload: dict)` | Loads `.joblib` model artifact, casts feature vectors to `np.array`, generates point predictions or probability estimates | CLI entry `main()` or subprocess | Payload JSON (artifactPath, modelType, features: `[{entityId, featureVector}]`) | Predictions JSON (`[{entityId, predictionValue, probability, confidence}]`) |
-| **Model Deserialization** | [`ml/predict.py#L29`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/predict.py#L29) | `joblib.load(artifact_path)` | Unpickles serialized model object and feature dictionary into Python heap memory | `generate_predictions()` | Local file path string | Dictionary containing `model`, `feature_names`, `model_type`, `version` |
-| **Model Serialization** | [`ml/train.py#L130`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/train.py#L130) | `joblib.dump(..., artifact_path)` | Persists trained model instance and feature schema to disk | `train_model()` | Dictionary of model state, target disk path | Byte stream written to `.joblib` binary file |
-| **Feature Extraction (Demand)** | [`ml/data/features.py#L12`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L12) | `prepare_demand_features()` | Constructs lags (lag-1, lag-7), rolling means (7d, 14d), rolling std, price, day-of-week, and weekend indicators | `train_model()` | List of raw daily product demand dictionaries | `(X: ndarray, y: ndarray, feature_names, metadata)` |
-| **Feature Extraction (Stockout)** | [`ml/data/features.py#L92`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L92) | `prepare_stockout_features()` | Calculates available stock, daily runout rate, days of supply, velocities | `train_model()` | List of inventory velocity records | `(X: ndarray, y: ndarray, feature_names, metadata)` |
-| **Feature Extraction (Propensity)** | [`ml/data/features.py#L214`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L214) | `prepare_propensity_features()` | Computes recency, frequency (30d, 90d), total spend, and average order value (AOV) | `train_model()` | List of customer activity signal dictionaries | `(X: ndarray, y: ndarray, feature_names, metadata)` |
-| **Feature Extraction (Anomaly)** | [`ml/data/features.py#L152`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L152) | `prepare_anomaly_features()` | Log-transforms order amounts, computes unit price ratios, flags off-hour placement | `train_model()` | List of order records | `(X: ndarray, y: ndarray, feature_names, metadata)` |
-| **Cold-Start Generators** | [`ml/data/bootstrap.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/bootstrap.py) | `generate_bootstrap_*()` | Generates deterministic synthetic records when real historical samples fall below required training thresholds | `train_model()` | `(tenant_id, days/count, seed)` | Array of synthetic records flagged with `dataSourceType: "BOOTSTRAP"` |
-| **Node Child Process Runner** | [`python-runner.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/python-runner.ts) | `PythonRunner.runTraining()`, `runPrediction()` | Writes temporary JSON files to `tmpdir()`, executes `python` with `execFileAsync`, parses stdout/JSON results, cleans up temp files | `MlService` | TypeScript configuration / feature objects | `Promise<PythonTrainResult>`, `Promise<PythonPredictResult>` |
-| **Async Training Orchestrator** | [`ml-service.ts#L41`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L41) | `MlService.enqueueTrainingJob()` | Creates durable `PENDING` job in `ml_training_jobs`, triggers asynchronous background worker, returns immediately | HTTP POST `/ml/train` | `TrainModelInputDto` | `TrainingJobRecord` |
-| **Prediction Generator** | [`ml-service.ts#L500`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L500) | `MlService.generatePredictions()` | Gathers active entity vectors from `featureReader`, invokes `pythonRunner.runPrediction()`, persists scores to `ml_predictions` | Post-training trigger or admin call | `(tenantId, modelType)` | `{ count: number }` |
+| Capability                          | File                                                                                                                                                                              | Function / Class                                | Purpose                                                                                                                                 | Caller                              | Input                                                                           | Output                                                                      |
+| :---------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------- | :------------------------------------------------------------------------------ | :-------------------------------------------------------------------------- |
+| **Training Pipeline**               | [`ml/train.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/train.py#L37)                                                      | `train_model(config: dict)`                     | Orchestrates cold-start check, feature extraction, model fit, train/val/test evaluation, serialization, and approval threshold decision | CLI entry `main()` or subprocess    | Configuration JSON (tenantId, modelType, records, hyperparameters, thresholds)  | Structured result JSON (success, metrics, modelId, artifactPath, status)    |
+| **Inference Pipeline**              | [`ml/predict.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/predict.py#L18)                                                  | `generate_predictions(payload: dict)`           | Loads `.joblib` model artifact, casts feature vectors to `np.array`, generates point predictions or probability estimates               | CLI entry `main()` or subprocess    | Payload JSON (artifactPath, modelType, features: `[{entityId, featureVector}]`) | Predictions JSON (`[{entityId, predictionValue, probability, confidence}]`) |
+| **Model Deserialization**           | [`ml/predict.py#L29`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/predict.py#L29)                                              | `joblib.load(artifact_path)`                    | Unpickles serialized model object and feature dictionary into Python heap memory                                                        | `generate_predictions()`            | Local file path string                                                          | Dictionary containing `model`, `feature_names`, `model_type`, `version`     |
+| **Model Serialization**             | [`ml/train.py#L130`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/train.py#L130)                                                | `joblib.dump(..., artifact_path)`               | Persists trained model instance and feature schema to disk                                                                              | `train_model()`                     | Dictionary of model state, target disk path                                     | Byte stream written to `.joblib` binary file                                |
+| **Feature Extraction (Demand)**     | [`ml/data/features.py#L12`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L12)                                  | `prepare_demand_features()`                     | Constructs lags (lag-1, lag-7), rolling means (7d, 14d), rolling std, price, day-of-week, and weekend indicators                        | `train_model()`                     | List of raw daily product demand dictionaries                                   | `(X: ndarray, y: ndarray, feature_names, metadata)`                         |
+| **Feature Extraction (Stockout)**   | [`ml/data/features.py#L92`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L92)                                  | `prepare_stockout_features()`                   | Calculates available stock, daily runout rate, days of supply, velocities                                                               | `train_model()`                     | List of inventory velocity records                                              | `(X: ndarray, y: ndarray, feature_names, metadata)`                         |
+| **Feature Extraction (Propensity)** | [`ml/data/features.py#L214`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L214)                                | `prepare_propensity_features()`                 | Computes recency, frequency (30d, 90d), total spend, and average order value (AOV)                                                      | `train_model()`                     | List of customer activity signal dictionaries                                   | `(X: ndarray, y: ndarray, feature_names, metadata)`                         |
+| **Feature Extraction (Anomaly)**    | [`ml/data/features.py#L152`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L152)                                | `prepare_anomaly_features()`                    | Log-transforms order amounts, computes unit price ratios, flags off-hour placement                                                      | `train_model()`                     | List of order records                                                           | `(X: ndarray, y: ndarray, feature_names, metadata)`                         |
+| **Cold-Start Generators**           | [`ml/data/bootstrap.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/bootstrap.py)                                        | `generate_bootstrap_*()`                        | Generates deterministic synthetic records when real historical samples fall below required training thresholds                          | `train_model()`                     | `(tenant_id, days/count, seed)`                                                 | Array of synthetic records flagged with `dataSourceType: "BOOTSTRAP"`       |
+| **Node Child Process Runner**       | [`python-runner.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/python-runner.ts)     | `PythonRunner.runTraining()`, `runPrediction()` | Writes temporary JSON files to `tmpdir()`, executes `python` with `execFileAsync`, parses stdout/JSON results, cleans up temp files     | `MlService`                         | TypeScript configuration / feature objects                                      | `Promise<PythonTrainResult>`, `Promise<PythonPredictResult>`                |
+| **Async Training Orchestrator**     | [`ml-service.ts#L41`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L41)   | `MlService.enqueueTrainingJob()`                | Creates durable `PENDING` job in `ml_training_jobs`, triggers asynchronous background worker, returns immediately                       | HTTP POST `/ml/train`               | `TrainModelInputDto`                                                            | `TrainingJobRecord`                                                         |
+| **Prediction Generator**            | [`ml-service.ts#L500`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L500) | `MlService.generatePredictions()`               | Gathers active entity vectors from `featureReader`, invokes `pythonRunner.runPrediction()`, persists scores to `ml_predictions`         | Post-training trigger or admin call | `(tenantId, modelType)`                                                         | `{ count: number }`                                                         |
 
 ---
 
@@ -94,6 +95,7 @@ The current implementation bridges a TypeScript Fastify monolith to Python scrip
 The codebase contains exactly **4** verified ML models. No other models exist in Python.
 
 ### Model 1: Demand Forecaster
+
 - **Model Type:** `DEMAND_FORECASTING`
 - **Python Source:** [`ml/models/demand_forecaster.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/demand_forecaster.py)
 - **Algorithm:** `RandomForestRegressor` (default: 50 estimators, max depth 8) or `Ridge` regression (alpha 1.0)
@@ -115,6 +117,7 @@ The codebase contains exactly **4** verified ML models. No other models exist in
 - **Current API Consumer:** `GET /ml/predictions/demand/:productId`, `AnalyticsDashboard.tsx`, AI tool `get_demand_forecast`.
 
 ### Model 2: Stockout Risk Predictor
+
 - **Model Type:** `STOCKOUT_RISK`
 - **Python Source:** [`ml/models/stockout_predictor.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/stockout_predictor.py)
 - **Algorithm:** `RandomForestClassifier` (default: 50 estimators, max depth 6) or `LogisticRegression`
@@ -135,6 +138,7 @@ The codebase contains exactly **4** verified ML models. No other models exist in
 - **Current API Consumer:** `GET /ml/predictions/stockout/:sku`, `AnalyticsDashboard.tsx`, AI tool `get_stockout_risk`.
 
 ### Model 3: Customer Purchase Propensity
+
 - **Model Type:** `PURCHASE_PROPENSITY`
 - **Python Source:** [`ml/models/propensity_predictor.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/propensity_predictor.py)
 - **Algorithm:** `RandomForestClassifier` (default: 50 estimators, max depth 6) or `LogisticRegression`
@@ -154,6 +158,7 @@ The codebase contains exactly **4** verified ML models. No other models exist in
 - **Current API Consumer:** `GET /ml/predictions/propensity/:customerId`, `AnalyticsDashboard.tsx`.
 
 ### Model 4: Order Anomaly Detector
+
 - **Model Type:** `ANOMALY_DETECTION`
 - **Python Source:** [`ml/models/anomaly_detector.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/anomaly_detector.py)
 - **Algorithm:** `RandomForestClassifier` (default: 50 estimators, max depth 6) or `LogisticRegression`
@@ -176,23 +181,24 @@ The codebase contains exactly **4** verified ML models. No other models exist in
 
 ## 5. Actual ML Use Cases
 
-| Capability / Use Case | Implemented in Python ML? | If YES: Code Location & Details | If NO: How is it Implemented? |
-| :--- | :--- | :--- | :--- |
-| **Demand Forecasting** | **YES** | [`ml/models/demand_forecaster.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/demand_forecaster.py). Trained on historical daily order facts. Outputs predicted 7-day cumulative unit demand. | N/A |
-| **Stockout Risk** | **YES** | [`ml/models/stockout_predictor.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/stockout_predictor.py). Evaluates inventory on-hand, velocity, and runout rate. Outputs stockout probability. | N/A |
-| **Purchase Propensity** | **YES** | [`ml/models/propensity_predictor.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/propensity_predictor.py). Evaluates RFM features. Outputs repeat transaction likelihood. | N/A |
-| **Anomaly Detection** | **YES** | [`ml/models/anomaly_detector.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/anomaly_detector.py). Evaluates gross value, line count, and order timing. Flags fraudulent or abnormal orders. | N/A |
-| **Product Recommendations** | **NO** | Not in Python. Zero recommendation code in `/ml`. | Implemented purely in TypeScript in [`apps/api/src/modules/recommendations`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/recommendations/index.ts). Uses [`DeterministicRuleBasedRanker`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/recommendations/internal/recommendation-ranker.ts) with rule weights (co-purchase, popularity, category match). |
-| **Price Prediction** | **NO** | Not implemented. | Does not exist anywhere in the repository. |
-| **Price Elasticity** | **NO** | Not implemented. | Does not exist anywhere in the repository. |
-| **Customer Churn** | **NO** | Not implemented. | Does not exist anywhere in the repository (the word "churn" in the repository only refers to high-write frequency database tables). |
-| **Price Alerts** | **NO** | Not an ML model. | Implemented as a database watch table (`product_price_watches`) triggered by catalog price change events. |
+| Capability / Use Case       | Implemented in Python ML? | If YES: Code Location & Details                                                                                                                                                                                                                          | If NO: How is it Implemented?                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| :-------------------------- | :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Demand Forecasting**      | **YES**                   | [`ml/models/demand_forecaster.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/demand_forecaster.py). Trained on historical daily order facts. Outputs predicted 7-day cumulative unit demand. | N/A                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Stockout Risk**           | **YES**                   | [`ml/models/stockout_predictor.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/stockout_predictor.py). Evaluates inventory on-hand, velocity, and runout rate. Outputs stockout probability.  | N/A                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Purchase Propensity**     | **YES**                   | [`ml/models/propensity_predictor.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/propensity_predictor.py). Evaluates RFM features. Outputs repeat transaction likelihood.                     | N/A                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Anomaly Detection**       | **YES**                   | [`ml/models/anomaly_detector.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/anomaly_detector.py). Evaluates gross value, line count, and order timing. Flags fraudulent or abnormal orders.  | N/A                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Product Recommendations** | **NO**                    | Not in Python. Zero recommendation code in `/ml`.                                                                                                                                                                                                        | Implemented purely in TypeScript in [`apps/api/src/modules/recommendations`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/recommendations/index.ts). Uses [`DeterministicRuleBasedRanker`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/recommendations/internal/recommendation-ranker.ts) with rule weights (co-purchase, popularity, category match). |
+| **Price Prediction**        | **NO**                    | Not implemented.                                                                                                                                                                                                                                         | Does not exist anywhere in the repository.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **Price Elasticity**        | **NO**                    | Not implemented.                                                                                                                                                                                                                                         | Does not exist anywhere in the repository.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **Customer Churn**          | **NO**                    | Not implemented.                                                                                                                                                                                                                                         | Does not exist anywhere in the repository (the word "churn" in the repository only refers to high-write frequency database tables).                                                                                                                                                                                                                                                                                                                                                             |
+| **Price Alerts**            | **NO**                    | Not an ML model.                                                                                                                                                                                                                                         | Implemented as a database watch table (`product_price_watches`) triggered by catalog price change events.                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ---
 
 ## 6. Node ↔ Python Contract
 
 ### Communication Protocol
+
 The communication mechanism is strictly local filesystem IPC via child processes:
 
 ```text
@@ -208,7 +214,9 @@ Python Process
 ### Request & Response Schemas
 
 #### 1. Training Contract (`ml/train.py`)
+
 - **Input JSON Payload Schema:**
+
 ```json
 {
   "tenantId": "string (required)",
@@ -229,12 +237,13 @@ Python Process
   "hyperparameters": {},
   "algorithm": "string (optional)",
   "maxAcceptableRmse": 100.0,
-  "minAcceptableAccuracy": 0.50,
+  "minAcceptableAccuracy": 0.5,
   "artifactDir": "string (optional, defaults to os.path.join(cwd, '.ml_artifacts'))"
 }
 ```
 
 - **Output JSON Payload Schema:**
+
 ```json
 {
   "success": true,
@@ -253,7 +262,7 @@ Python Process
   "metrics": {
     "train": { "mae": 1.2, "rmse": 1.8, "r2": 0.85 },
     "validation": { "mae": 1.4, "rmse": 2.1, "r2": 0.81 },
-    "test": { "mae": 1.5, "rmse": 2.2, "r2": 0.80 }
+    "test": { "mae": 1.5, "rmse": 2.2, "r2": 0.8 }
   },
   "sampleCount": 45,
   "artifactPath": "C:\\...\\.ml_artifacts\\tenant-alpha_DEMAND_FORECASTING_v1.0.0.joblib",
@@ -263,7 +272,9 @@ Python Process
 ```
 
 #### 2. Inference Contract (`ml/predict.py`)
+
 - **Input JSON Payload Schema:**
+
 ```json
 {
   "modelType": "DEMAND_FORECASTING",
@@ -278,6 +289,7 @@ Python Process
 ```
 
 - **Output JSON Payload Schema:**
+
 ```json
 {
   "success": true,
@@ -293,6 +305,7 @@ Python Process
 ```
 
 ### Operational Characteristics
+
 - **Timeout Limits:**
   - Training: 45,000ms ([`python-runner.ts#L108`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/python-runner.ts#L108))
   - Prediction: 30,000ms ([`python-runner.ts#L153`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/python-runner.ts#L153))
@@ -307,6 +320,7 @@ Python Process
 The ML subsystem utilizes **4** dedicated PostgreSQL tables created in migrations [`0012_predictive_ml_schema.sql`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/infra/database/migrations/0012_predictive_ml_schema.sql) and [`0019_anomaly_prediction_entity_schema.sql`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/infra/database/migrations/0019_anomaly_prediction_entity_schema.sql):
 
 ### 1. `ml_models` (Model Registry)
+
 - **Role:** Master catalog of trained models, validation metrics, approval states, and artifact locations.
 - **Writers:** Written by `MlService.executeJob()` via `SqlMlStore.saveModel()`. Status updated by `SqlMlStore.setActiveModel()`.
 - **Readers:** `MlService.getActiveModel()`, `MlService.listModels()`, `MlService.getModelById()`.
@@ -319,6 +333,7 @@ The ML subsystem utilizes **4** dedicated PostgreSQL tables created in migration
   - **Training:** Writes a new record upon job completion.
 
 ### 2. `ml_training_jobs` (Durable Job Log)
+
 - **Role:** Asynchronous job execution tracking and deduplication log.
 - **Writers:** Created by `MlService.enqueueTrainingJob()`. Updated (`RUNNING`, `COMPLETED`, `FAILED`) by `MlService.executeJob()`.
 - **Readers:** `MlService.getTrainingJobById()`, `MlService.listTrainingJobs()`, background workers checking pending jobs.
@@ -328,6 +343,7 @@ The ML subsystem utilizes **4** dedicated PostgreSQL tables created in migration
 - **Runtime Dependency:** Required only for training orchestration; never queried during real-time customer transactions.
 
 ### 3. `ml_predictions` (Derived Prediction Cache)
+
 - **Role:** Persisted store of precomputed inference scores.
 - **Writers:** Written by `MlService.generatePredictions()` via `SqlMlStore.savePredictions()`.
 - **Readers:** `MlService.getDemandPrediction()`, `getStockoutPrediction()`, `getPropensityPrediction()`, `getAnomalyPrediction()`, `listPredictions()`.
@@ -339,6 +355,7 @@ The ML subsystem utilizes **4** dedicated PostgreSQL tables created in migration
 - **Runtime Dependency:** Read by HTTP endpoints and AI tools. Completely decoupled from transactional order checkout.
 
 ### 4. `ml_retraining_policies` (Automated Lifecycle Policies)
+
 - **Role:** Configuration of automated retraining trigger thresholds per tenant and model type.
 - **Writers:** `MlService.saveRetrainingPolicy()`, `updateRetrainingPolicyStats()`.
 - **Readers:** `MlService.getRetrainingPolicy()`, `evaluateAllRetrainingPolicies()`.
@@ -368,6 +385,7 @@ Python scripts **never** query PostgreSQL directly. Node.js queries the database
 ```
 
 ### Architectural Findings
+
 1. **Fact Table Alignment:** Three out of four models (`DEMAND_FORECASTING`, `STOCKOUT_RISK`, `PURCHASE_PROPENSITY`) query `analytics_order_facts`. This adheres to clean architectural boundaries because ML reads read-model facts rather than transactional tables.
 2. **Transactional Boundary Violation:** `getOrderAnomalySignals()` queries `seller_orders` and `order_items` directly via SQL join ([`analytics-repository.ts#L973-L986`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics/internal/analytics-repository.ts#L973-L986)). In a distributed microservices architecture where `orders` is an independent service with its own database, `AnalyticsRepository` cannot run joins across `seller_orders` and `order_items`. Anomaly signals must instead be built from ingested `order.placed` domain events.
 
@@ -401,6 +419,7 @@ An inspection of the local directory [`/.ml_artifacts/`](file:///c:/Users/Abhina
 ## 10. Python Dependencies
 
 ### Dependency Inventory ([`ml/requirements.txt`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/requirements.txt))
+
 ```text
 joblib>=1.3
 numpy>=1.26
@@ -411,11 +430,13 @@ scikit-learn>=1.3
 ### Analysis of Dependency Sets
 
 #### Inference Minimum Set
+
 - **Packages:** `joblib`, `numpy`, `scikit-learn`.
 - **Rationale:** `ml/predict.py` unpickles the Scikit-learn estimator via `joblib.load()` and converts the input vectors using `np.array()`. It **does not import Pandas**.
 - **Target Container Footprint:** A lightweight Python container (~150MB) with FastAPI, Uvicorn, NumPy, Scikit-learn, and Joblib.
 
 #### Training Minimum Set
+
 - **Packages:** `joblib`, `numpy`, `pandas`, `scikit-learn`.
 - **Rationale:** `ml/train.py` relies on `pandas` for time-series feature engineering (rolling means, standard deviations, shift operations, and product groupings in `features.py`).
 - **Target Job Footprint:** Standard Python batch image containing Pandas and Scikit-learn.
@@ -427,6 +448,7 @@ scikit-learn>=1.3
 To transition `/ml` into [`apps/ml-service`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/TARGET-ARCHITECTURE-AND-DEPLOYMENT-DESIGN.md#L41) and [`jobs/ml-training`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/TARGET-ARCHITECTURE-AND-DEPLOYMENT-DESIGN.md#L48), the codebase is categorized as follows:
 
 ### 1. Files That Can Move Directly (Low Refactoring)
+
 - [`ml/models/demand_forecaster.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/demand_forecaster.py) $\rightarrow$ Clean Scikit-learn class. Can move directly into shared Python package or training/inference code.
 - [`ml/models/stockout_predictor.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/stockout_predictor.py) $\rightarrow$ Pure model class. Can move directly.
 - [`ml/models/propensity_predictor.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/models/propensity_predictor.py) $\rightarrow$ Pure model class. Can move directly.
@@ -434,6 +456,7 @@ To transition `/ml` into [`apps/ml-service`](file:///c:/Users/Abhinav/Documents/
 - [`ml/data/bootstrap.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/bootstrap.py) $\rightarrow$ Pure data generator. Belongs exclusively to training (`jobs/ml-training`).
 
 ### 2. Files Requiring Refactoring
+
 - [`ml/predict.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/predict.py) $\rightarrow$ Currently a CLI script reading `sys.stdin` or `--input-file`. Must be refactored into a persistent FastAPI application exposing `POST /v1/predict` with in-memory model caching.
 - [`ml/train.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/train.py) $\rightarrow$ Hardcodes local path `os.path.join(os.getcwd(), ".ml_artifacts")`. Must be refactored to stream serialized model artifacts to S3 Object Storage (`boto3`) and publish model metadata.
 - [`ml/data/features.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py) $\rightarrow$ Feature logic is isolated for training, but inference feature extraction is currently hardcoded inside TypeScript (`ml-service.ts#L510`). Inference feature preparation must be consolidated.
@@ -445,22 +468,22 @@ To transition `/ml` into [`apps/ml-service`](file:///c:/Users/Abhinav/Documents/
 
 The existing external and internal HTTP APIs must retain 100% contract compatibility during and after migration:
 
-| Route | HTTP Method | Owning Module | Current Implementation | Frontend Consumer | Target Microservice Destination |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `/ml/train` | `POST` | `analytics-ml` | `MlService.enqueueTrainingJob()` enqueues durable job | `AnalyticsDashboard.tsx` (`trainModel`) | `apps/gateway` $\rightarrow$ `apps/analytics-service` / Job Dispatcher |
-| `/ml/retrain` | `POST` | `analytics-ml` | `MlService.retrainIfEligible()` | `AnalyticsDashboard.tsx` (`retrainModel`) | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
-| `/ml/retrain/evaluate-all`| `POST` | `analytics-ml` | `MlService.evaluateAllRetrainingPolicies()` | Admin trigger | Scheduled Cron / Worker |
-| `/ml/models/:modelId/rollback`| `POST`| `analytics-ml`| `MlService.rollbackModel()` updates active pointer | `AnalyticsDashboard.tsx` (`rollbackModel`) | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
-| `/ml/models` | `GET` | `analytics-ml` | `MlService.listModels()` | `AnalyticsDashboard.tsx` (`getMlModels`) | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
-| `/ml/models/:modelId` | `GET` | `analytics-ml` | `MlService.getModelById()` | Admin model detail | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
-| `/ml/jobs` | `GET` | `analytics-ml` | `MlService.listTrainingJobs()` | `AnalyticsDashboard.tsx` (`listTrainingJobs`) | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
-| `/ml/jobs/:jobId` | `GET` | `analytics-ml` | `MlService.getTrainingJobById()` | `AnalyticsDashboard.tsx` (`getTrainingJob`) | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
-| `/ml/predictions/demand/:id`| `GET`| `analytics-ml` | `MlService.getDemandPrediction()` reads cache | `AnalyticsDashboard.tsx`, AI tools | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
-| `/ml/predictions/stockout/:sku`| `GET`| `analytics-ml` | `MlService.getStockoutPrediction()` reads cache | `AnalyticsDashboard.tsx`, AI tools | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
-| `/ml/predictions/propensity/:id`| `GET`| `analytics-ml` | `MlService.getPropensityPrediction()` reads cache | `AnalyticsDashboard.tsx` | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
-| `/ml/predictions/anomaly/:id`| `GET`| `analytics-ml` | `MlService.getAnomalyPrediction()` reads cache | `AnalyticsDashboard.tsx` | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
-| `/ml/predictions` | `GET` | `analytics-ml` | `MlService.listPredictions()` | `AnalyticsDashboard.tsx` (`listPredictions`) | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
-| `/ml/policies/:modelType` | `GET`/`PUT` | `analytics-ml` | `MlService.get/saveRetrainingPolicy()` | `AnalyticsDashboard.tsx` (`get/saveRetrainingPolicy`) | `apps/gateway` $\rightarrow$ `apps/analytics-service` |
+| Route                            | HTTP Method | Owning Module  | Current Implementation                                | Frontend Consumer                                     | Target Microservice Destination                                        |
+| :------------------------------- | :---------- | :------------- | :---------------------------------------------------- | :---------------------------------------------------- | :--------------------------------------------------------------------- |
+| `/ml/train`                      | `POST`      | `analytics-ml` | `MlService.enqueueTrainingJob()` enqueues durable job | `AnalyticsDashboard.tsx` (`trainModel`)               | `apps/gateway` $\rightarrow$ `apps/analytics-service` / Job Dispatcher |
+| `/ml/retrain`                    | `POST`      | `analytics-ml` | `MlService.retrainIfEligible()`                       | `AnalyticsDashboard.tsx` (`retrainModel`)             | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
+| `/ml/retrain/evaluate-all`       | `POST`      | `analytics-ml` | `MlService.evaluateAllRetrainingPolicies()`           | Admin trigger                                         | Scheduled Cron / Worker                                                |
+| `/ml/models/:modelId/rollback`   | `POST`      | `analytics-ml` | `MlService.rollbackModel()` updates active pointer    | `AnalyticsDashboard.tsx` (`rollbackModel`)            | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
+| `/ml/models`                     | `GET`       | `analytics-ml` | `MlService.listModels()`                              | `AnalyticsDashboard.tsx` (`getMlModels`)              | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
+| `/ml/models/:modelId`            | `GET`       | `analytics-ml` | `MlService.getModelById()`                            | Admin model detail                                    | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
+| `/ml/jobs`                       | `GET`       | `analytics-ml` | `MlService.listTrainingJobs()`                        | `AnalyticsDashboard.tsx` (`listTrainingJobs`)         | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
+| `/ml/jobs/:jobId`                | `GET`       | `analytics-ml` | `MlService.getTrainingJobById()`                      | `AnalyticsDashboard.tsx` (`getTrainingJob`)           | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
+| `/ml/predictions/demand/:id`     | `GET`       | `analytics-ml` | `MlService.getDemandPrediction()` reads cache         | `AnalyticsDashboard.tsx`, AI tools                    | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
+| `/ml/predictions/stockout/:sku`  | `GET`       | `analytics-ml` | `MlService.getStockoutPrediction()` reads cache       | `AnalyticsDashboard.tsx`, AI tools                    | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
+| `/ml/predictions/propensity/:id` | `GET`       | `analytics-ml` | `MlService.getPropensityPrediction()` reads cache     | `AnalyticsDashboard.tsx`                              | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
+| `/ml/predictions/anomaly/:id`    | `GET`       | `analytics-ml` | `MlService.getAnomalyPrediction()` reads cache        | `AnalyticsDashboard.tsx`                              | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
+| `/ml/predictions`                | `GET`       | `analytics-ml` | `MlService.listPredictions()`                         | `AnalyticsDashboard.tsx` (`listPredictions`)          | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
+| `/ml/policies/:modelType`        | `GET`/`PUT` | `analytics-ml` | `MlService.get/saveRetrainingPolicy()`                | `AnalyticsDashboard.tsx` (`get/saveRetrainingPolicy`) | `apps/gateway` $\rightarrow$ `apps/analytics-service`                  |
 
 ---
 
@@ -483,18 +506,18 @@ Based on current source code inspections, the following concrete risks have been
 
 ## 14. Current → Target File Mapping
 
-| Current File Path | Target File Path | Migration Action | Detailed Rationale |
-| :--- | :--- | :--- | :--- |
-| `ml/train.py` | `jobs/ml-training/src/trainer.py` | **REFACTOR** | Replace local disk outputs with S3 upload and publish `model.trained.v1` event. |
-| `ml/predict.py` | `apps/ml-service/src/main.py` | **REFACTOR** | Convert CLI script into FastAPI web application with resident in-memory model cache. |
-| `ml/models/*.py` | `packages/ml-core/ml_core/models/*.py` | **MOVE** | Pure Python model definitions shared across training and inference. |
-| `ml/data/bootstrap.py` | `jobs/ml-training/src/data/bootstrap.py` | **MOVE** | Cold-start generation is only required during training. |
-| `ml/data/features.py` | `packages/ml-core/ml_core/data/features.py`| **MOVE** | Canonical feature transformation logic shared between training and inference. |
-| `ml/requirements.txt` | Split: `apps/ml-service/requirements.txt` and `jobs/ml-training/requirements.txt` | **SPLIT** | Separate lightweight inference requirements from full training stack (Pandas). |
-| `/.ml_artifacts/*.joblib` | `s3://commerce-ml-registry/models/` | **REPLACE** | Replace 231 local files with centralized S3 object store. Local files to be deleted after backfill. |
-| `apps/api/src/modules/analytics-ml/internal/python-runner.ts` | `apps/api/src/modules/analytics-ml/internal/ml-client.ts` | **REPLACE** | Replace `execFileAsync` child process spawner with HTTP/gRPC client targeting `apps/ml-service`. |
-| `apps/api/src/modules/analytics-ml/*` | `apps/analytics-service/src/*` | **MOVE** | Analytics read-model and ML registry orchestration will become the autonomous analytics service. |
-| `apps/api/src/infra/ml/sql-ml-store.ts` | `apps/analytics-service/src/infra/sql-ml-store.ts` | **MOVE** | Repository for `ml_models`, `ml_jobs`, `ml_predictions` moves with Analytics. |
+| Current File Path                                             | Target File Path                                                                  | Migration Action | Detailed Rationale                                                                                  |
+| :------------------------------------------------------------ | :-------------------------------------------------------------------------------- | :--------------- | :-------------------------------------------------------------------------------------------------- |
+| `ml/train.py`                                                 | `jobs/ml-training/src/trainer.py`                                                 | **REFACTOR**     | Replace local disk outputs with S3 upload and publish `model.trained.v1` event.                     |
+| `ml/predict.py`                                               | `apps/ml-service/src/main.py`                                                     | **REFACTOR**     | Convert CLI script into FastAPI web application with resident in-memory model cache.                |
+| `ml/models/*.py`                                              | `packages/ml-core/ml_core/models/*.py`                                            | **MOVE**         | Pure Python model definitions shared across training and inference.                                 |
+| `ml/data/bootstrap.py`                                        | `jobs/ml-training/src/data/bootstrap.py`                                          | **MOVE**         | Cold-start generation is only required during training.                                             |
+| `ml/data/features.py`                                         | `packages/ml-core/ml_core/data/features.py`                                       | **MOVE**         | Canonical feature transformation logic shared between training and inference.                       |
+| `ml/requirements.txt`                                         | Split: `apps/ml-service/requirements.txt` and `jobs/ml-training/requirements.txt` | **SPLIT**        | Separate lightweight inference requirements from full training stack (Pandas).                      |
+| `/.ml_artifacts/*.joblib`                                     | `s3://commerce-ml-registry/models/`                                               | **REPLACE**      | Replace 231 local files with centralized S3 object store. Local files to be deleted after backfill. |
+| `apps/api/src/modules/analytics-ml/internal/python-runner.ts` | `apps/api/src/modules/analytics-ml/internal/ml-client.ts`                         | **REPLACE**      | Replace `execFileAsync` child process spawner with HTTP/gRPC client targeting `apps/ml-service`.    |
+| `apps/api/src/modules/analytics-ml/*`                         | `apps/analytics-service/src/*`                                                    | **MOVE**         | Analytics read-model and ML registry orchestration will become the autonomous analytics service.    |
+| `apps/api/src/infra/ml/sql-ml-store.ts`                       | `apps/analytics-service/src/infra/sql-ml-store.ts`                                | **MOVE**         | Repository for `ml_models`, `ml_jobs`, `ml_predictions` moves with Analytics.                       |
 
 ---
 
@@ -503,6 +526,7 @@ Based on current source code inspections, the following concrete risks have been
 The safest, non-breaking, completely reversible first step is:
 
 ### Step: Create an Abstraction Interface over `PythonRunner`
+
 1. Introduce an `IMlExecutionProvider` interface in [`apps/api/src/modules/analytics-ml`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/index.ts).
 2. Refactor `PythonRunner` to implement `IMlExecutionProvider` (maintaining existing local process behavior by default).
 3. Implement a secondary `HttpMlExecutionProvider` that sends requests to an external URL if `ML_SERVICE_URL` is set in `.env`.
@@ -518,7 +542,7 @@ The safest, non-breaking, completely reversible first step is:
 ## 16. Questions / Unknowns
 
 1. **Object Storage Selection:** Will production use AWS S3, Google Cloud Storage, Azure Blob Storage, or self-hosted MinIO for model artifacts?
-2. **Inference Network Protocol:** Should `apps/ml-service` expose REST (FastAPI) or gRPC (Protobuf)? *Recommendation: REST with HTTP/2 internally for simpler debugging, transitioning to gRPC if P99 latency SLA requires it.*
+2. **Inference Network Protocol:** Should `apps/ml-service` expose REST (FastAPI) or gRPC (Protobuf)? _Recommendation: REST with HTTP/2 internally for simpler debugging, transitioning to gRPC if P99 latency SLA requires it._
 3. **Training Execution Platform:** Will training jobs run as Kubernetes `CronJobs`, AWS ECS tasks, or Temporal workflows?
 4. **Model Artifact Backfill:** Should the existing 231 `.joblib` files in `/.ml_artifacts/` be uploaded to object storage during migration, or should the active models be retrained cleanly from scratch?
 

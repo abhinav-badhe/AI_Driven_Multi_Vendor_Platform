@@ -17,7 +17,12 @@ export class InMemoryEmailProvider implements EmailChannelProvider {
     this.simulateFailure = fail;
   }
 
-  getSentEmails(): Array<{ to: string; subject: string; body: string; metadata?: Record<string, unknown> }> {
+  getSentEmails(): Array<{
+    to: string;
+    subject: string;
+    body: string;
+    metadata?: Record<string, unknown>;
+  }> {
     return [...this.sentEmails];
   }
 
@@ -35,7 +40,9 @@ export class InMemoryEmailProvider implements EmailChannelProvider {
       throw new Error('SMTP connection timed out (simulated provider failure)');
     }
     this.sentEmails.push({ to, subject, body, ...(metadata !== undefined ? { metadata } : {}) });
-    return { providerMessageId: `email-${Date.now()}-${Math.random().toString(36).substring(2, 7)}` };
+    return {
+      providerMessageId: `email-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    };
   }
 }
 
@@ -85,11 +92,21 @@ export class InMemoryPushProvider implements PushChannelProvider {
     this.simulateFailure = fail;
   }
 
-  getSentPushes(): Array<{ deviceToken: string; title: string; body: string; metadata?: Record<string, unknown> }> {
+  getSentPushes(): Array<{
+    deviceToken: string;
+    title: string;
+    body: string;
+    metadata?: Record<string, unknown>;
+  }> {
     return [...this.sentPushes];
   }
 
-  getSentPush(): Array<{ deviceToken: string; title: string; body: string; metadata?: Record<string, unknown> }> {
+  getSentPush(): Array<{
+    deviceToken: string;
+    title: string;
+    body: string;
+    metadata?: Record<string, unknown>;
+  }> {
     return this.getSentPushes();
   }
 
@@ -106,7 +123,14 @@ export class InMemoryPushProvider implements PushChannelProvider {
     if (this.simulateFailure) {
       throw new Error('Push delivery failed (simulated provider failure)');
     }
-    this.sentPushes.push({ deviceToken, title, body, ...(metadata !== undefined ? { metadata } : {}) });
-    return { providerMessageId: `push-${Date.now()}-${Math.random().toString(36).substring(2, 7)}` };
+    this.sentPushes.push({
+      deviceToken,
+      title,
+      body,
+      ...(metadata !== undefined ? { metadata } : {}),
+    });
+    return {
+      providerMessageId: `push-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    };
   }
 }

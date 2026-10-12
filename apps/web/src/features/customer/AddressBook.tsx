@@ -16,11 +16,7 @@ import { Card, CardContent } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Alert } from '../../components/ui/alert';
 import { Skeleton, EmptyState } from '../../components/ui/empty';
-import {
-  addressesApi,
-  type CustomerAddressDto,
-  type AddressLabel,
-} from './api/addresses';
+import { addressesApi, type CustomerAddressDto, type AddressLabel } from './api/addresses';
 import { AddressFormModal } from './components/AddressFormModal';
 
 export const AddressBook: React.FC<{
@@ -168,7 +164,10 @@ export const AddressBook: React.FC<{
                         </Badge>
                       )}
                       {isSelected && (
-                        <Badge variant="default" className="text-[10px] font-semibold bg-primary text-primary-foreground">
+                        <Badge
+                          variant="default"
+                          className="text-[10px] font-semibold bg-primary text-primary-foreground"
+                        >
                           Selected
                         </Badge>
                       )}
@@ -177,9 +176,7 @@ export const AddressBook: React.FC<{
 
                   {/* Recipient & Full Address */}
                   <div className="space-y-1 text-xs">
-                    <p className="font-semibold text-sm text-foreground">
-                      {addr.recipientName}
-                    </p>
+                    <p className="font-semibold text-sm text-foreground">{addr.recipientName}</p>
                     <p className="text-muted-foreground">{addr.phone}</p>
                     <p className="text-muted-foreground leading-relaxed pt-1">
                       {addr.addressLine1}

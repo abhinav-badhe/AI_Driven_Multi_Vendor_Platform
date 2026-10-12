@@ -1,13 +1,7 @@
 export type NotificationChannel = 'EMAIL' | 'SMS' | 'PUSH';
 
 export type NotificationStatus =
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'SENT'
-  | 'FAILED'
-  | 'RETRY_SCHEDULED'
-  | 'DEAD_LETTERED'
-  | 'SKIPPED';
+  'PENDING' | 'PROCESSING' | 'SENT' | 'FAILED' | 'RETRY_SCHEDULED' | 'DEAD_LETTERED' | 'SKIPPED';
 
 export type NotificationType =
   | 'ORDER_CONFIRMATION'

@@ -201,7 +201,8 @@ export class CatalogRepository {
 
     const title = updates.title !== undefined ? updates.title : current.title;
     const slug = updates.slug !== undefined ? updates.slug : current.slug;
-    const description = updates.description !== undefined ? updates.description : current.description;
+    const description =
+      updates.description !== undefined ? updates.description : current.description;
     const brand = updates.brand !== undefined ? updates.brand : current.brand;
     const categoryId = updates.categoryId !== undefined ? updates.categoryId : current.category_id;
     const status = updates.status !== undefined ? updates.status : current.status;
@@ -230,7 +231,20 @@ export class CatalogRepository {
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $12
        RETURNING ${PRODUCT_COLUMNS}`,
-      [title, slug, description, brand, categoryId, status, thumbnailUrl, images, rating, reviewCount, attributes, id],
+      [
+        title,
+        slug,
+        description,
+        brand,
+        categoryId,
+        status,
+        thumbnailUrl,
+        images,
+        rating,
+        reviewCount,
+        attributes,
+        id,
+      ],
     );
     return res.rows[0] ?? null;
   }
@@ -321,10 +335,9 @@ export class CatalogRepository {
   }
 
   async deleteReviewsByProductId(productId: string): Promise<number> {
-    const res = await this.db.query(
-      `DELETE FROM product_reviews WHERE product_id = $1`,
-      [productId],
-    );
+    const res = await this.db.query(`DELETE FROM product_reviews WHERE product_id = $1`, [
+      productId,
+    ]);
     return res.rowCount ?? 0;
   }
 
@@ -345,14 +358,7 @@ export class CatalogRepository {
       `INSERT INTO product_skus (id, product_id, sku_code, barcode, attributes, status)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, product_id, sku_code, barcode, attributes, status, created_at, updated_at`,
-      [
-        id,
-        data.productId,
-        data.skuCode,
-        data.barcode ?? null,
-        JSON.stringify(attributes),
-        status,
-      ],
+      [id, data.productId, data.skuCode, data.barcode ?? null, JSON.stringify(attributes), status],
     );
     return res.rows[0]!;
   }

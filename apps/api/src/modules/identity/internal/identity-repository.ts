@@ -55,10 +55,7 @@ export interface RefreshTokenRow {
 export class IdentityRepository {
   constructor(private readonly db: DatabaseConnection) {}
 
-  async createUser(params: {
-    email: string;
-    passwordHash: string;
-  }): Promise<UserRow> {
+  async createUser(params: { email: string; passwordHash: string }): Promise<UserRow> {
     const id = randomUUID();
     const result = await this.db.query<UserRow>(
       `INSERT INTO users (id, email, password_hash, status)
@@ -72,10 +69,9 @@ export class IdentityRepository {
   }
 
   async findUserByEmail(email: string): Promise<UserRow | null> {
-    const result = await this.db.query<UserRow>(
-      `SELECT * FROM users WHERE email = $1`,
-      [email.toLowerCase()],
-    );
+    const result = await this.db.query<UserRow>(`SELECT * FROM users WHERE email = $1`, [
+      email.toLowerCase(),
+    ]);
     return result.rows[0] ?? null;
   }
 
@@ -208,7 +204,11 @@ export class IdentityRepository {
     await this.db.query(`DELETE FROM email_verification_tokens WHERE user_id = $1`, [userId]);
   }
 
-  async createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
+  async createPasswordResetToken(
+    userId: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<void> {
     await this.db.query(
       `INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at)
        VALUES ($1, $2, $3, $4)`,
@@ -259,10 +259,7 @@ export class IdentityRepository {
   }
 
   async revokeAllUserTokens(userId: string): Promise<void> {
-    await this.db.query(
-      `UPDATE refresh_tokens SET is_revoked = TRUE WHERE user_id = $1`,
-      [userId],
-    );
+    await this.db.query(`UPDATE refresh_tokens SET is_revoked = TRUE WHERE user_id = $1`, [userId]);
   }
 
   async rotateRefreshToken(id: string): Promise<void> {
@@ -284,10 +281,9 @@ export class IdentityRepository {
   }
 
   async revokeTokenFamily(familyId: string): Promise<void> {
-    await this.db.query(
-      `UPDATE refresh_tokens SET is_revoked = TRUE WHERE family_id = $1`,
-      [familyId],
-    );
+    await this.db.query(`UPDATE refresh_tokens SET is_revoked = TRUE WHERE family_id = $1`, [
+      familyId,
+    ]);
   }
 
   async revokeAllUserTokensInTenant(userId: string, tenantId: string): Promise<void> {
@@ -338,14 +334,16 @@ export class IdentityRepository {
     };
   }
 
-  async listAllUsers(limit = 100): Promise<Array<{
-    id: string;
-    email: string;
-    role: string;
-    tenantId: string;
-    createdAt: string;
-    isActive: boolean;
-  }>> {
+  async listAllUsers(limit = 100): Promise<
+    Array<{
+      id: string;
+      email: string;
+      role: string;
+      tenantId: string;
+      createdAt: string;
+      isActive: boolean;
+    }>
+  > {
     const res = await this.db.query<{
       id: string;
       email: string;
@@ -371,14 +369,16 @@ export class IdentityRepository {
     }));
   }
 
-  async getAuditRecords(limit = 50): Promise<Array<{
-    id: string;
-    event: string;
-    userId?: string;
-    ip?: string;
-    timestamp: string;
-    severity: string;
-  }>> {
+  async getAuditRecords(limit = 50): Promise<
+    Array<{
+      id: string;
+      event: string;
+      userId?: string;
+      ip?: string;
+      timestamp: string;
+      severity: string;
+    }>
+  > {
     const res = await this.db.query<{
       id: string;
       user_id: string;
@@ -435,8 +435,10 @@ export class IdentityRepository {
       secret: row.secret,
       is_enabled: Boolean(row.is_enabled),
       recovery_codes: recoveryCodes,
-      created_at: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
-      updated_at: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
+      created_at:
+        row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+      updated_at:
+        row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
     };
   }
 
@@ -480,10 +482,9 @@ export class IdentityRepository {
   }
 
   async disable2FA(userId: string): Promise<boolean> {
-    const res = await this.db.query(
-      `DELETE FROM user_two_factor_auth WHERE user_id = $1`,
-      [userId],
-    );
+    const res = await this.db.query(`DELETE FROM user_two_factor_auth WHERE user_id = $1`, [
+      userId,
+    ]);
     return (res.rowCount ?? 0) > 0;
   }
 
@@ -517,4 +518,3 @@ export interface UserTwoFactorAuthRow {
   created_at: string;
   updated_at: string;
 }
-

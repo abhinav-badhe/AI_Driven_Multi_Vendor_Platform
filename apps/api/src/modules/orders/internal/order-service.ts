@@ -292,16 +292,24 @@ export class OrderService implements IOrderService {
           // Attribute discount from applied promotions
           let merchantDiscount = 0;
           if (Array.isArray(checkout.appliedPromotions)) {
-            for (const ap of checkout.appliedPromotions as Array<{ merchantTenantId?: string | null; discountAmount?: number }>) {
+            for (const ap of checkout.appliedPromotions as Array<{
+              merchantTenantId?: string | null;
+              discountAmount?: number;
+            }>) {
               if (ap.merchantTenantId === merchantTenantId) {
                 merchantDiscount += ap.discountAmount ?? 0;
               } else if (!ap.merchantTenantId && checkout.subtotalAmount > 0) {
-                merchantDiscount += Math.round(((ap.discountAmount ?? 0) * sellerSubtotal) / checkout.subtotalAmount);
+                merchantDiscount += Math.round(
+                  ((ap.discountAmount ?? 0) * sellerSubtotal) / checkout.subtotalAmount,
+                );
               }
             }
           }
           merchantDiscount = Math.min(merchantDiscount, sellerSubtotal);
-          const sellerTotal = Math.max(0, sellerSubtotal + sellerShipping + sellerTax - merchantDiscount);
+          const sellerTotal = Math.max(
+            0,
+            sellerSubtotal + sellerShipping + sellerTax - merchantDiscount,
+          );
 
           const sellerOrder = await txRepo.createSellerOrder({
             id: sellerOrderId,
@@ -521,7 +529,14 @@ export class OrderService implements IOrderService {
     const methods = await this.paymentMethodsForOrders(rows);
     const result: CustomerOrderDto[] = [];
     for (const r of rows) {
-      result.push(await this.assembleFullOrderDto(r, undefined, undefined, methods.get(r.payment_intent_id ?? '') ?? null));
+      result.push(
+        await this.assembleFullOrderDto(
+          r,
+          undefined,
+          undefined,
+          methods.get(r.payment_intent_id ?? '') ?? null,
+        ),
+      );
     }
     return result;
   }
@@ -621,7 +636,9 @@ export class OrderService implements IOrderService {
 
     const updated = await this.repo.updateCustomerOrderStatus(orderId, current.status, nextStatus);
     if (!updated) {
-      throw new InvalidStateTransitionError('Concurrent modification conflict on order status update');
+      throw new InvalidStateTransitionError(
+        'Concurrent modification conflict on order status update',
+      );
     }
 
     return this.assembleFullOrderDto(updated);
@@ -654,9 +671,15 @@ export class OrderService implements IOrderService {
       );
     }
 
-    const updated = await this.repo.updateSellerOrderStatus(sellerOrderId, current.status, nextStatus);
+    const updated = await this.repo.updateSellerOrderStatus(
+      sellerOrderId,
+      current.status,
+      nextStatus,
+    );
     if (!updated) {
-      throw new InvalidStateTransitionError('Concurrent modification conflict on seller order status update');
+      throw new InvalidStateTransitionError(
+        'Concurrent modification conflict on seller order status update',
+      );
     }
 
     const items = await this.repo.findOrderItemsBySellerOrder(sellerOrderId);

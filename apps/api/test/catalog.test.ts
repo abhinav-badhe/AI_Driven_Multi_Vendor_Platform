@@ -367,7 +367,10 @@ describe('Phase 3: Catalog Domain (Category, Product, SKU)', () => {
         reviewerName: 'Asha Rao',
       });
 
-      const missingRes = await app.inject({ method: 'GET', url: '/products/no-such-product/reviews' });
+      const missingRes = await app.inject({
+        method: 'GET',
+        url: '/products/no-such-product/reviews',
+      });
       expect(missingRes.statusCode).toBe(404);
     });
   });
@@ -535,7 +538,7 @@ describe('Phase 3: Catalog Domain (Category, Product, SKU)', () => {
       const publicSkus = JSON.parse(publicRes.body);
       expect(publicSkus.length).toBe(1);
       expect(publicSkus[0].skuCode).toBe('VIS-A');
-      
+
       // 4. Test all INACTIVE/DRAFT SKUs -> empty result for public
       await app.inject({
         method: 'POST',
@@ -552,7 +555,7 @@ describe('Phase 3: Catalog Domain (Category, Product, SKU)', () => {
 
     it('rejects unauthenticated and unauthorized requests for SKU creation (401, 403)', async () => {
       const tokens = await getTokens();
-      
+
       // 401 Unauthorized
       const res401 = await app.inject({
         method: 'POST',
@@ -569,7 +572,7 @@ describe('Phase 3: Catalog Domain (Category, Product, SKU)', () => {
         payload: { skuCode: 'TEST-1' },
       });
       expect(res403Merchant.statusCode).toBe(403);
-      
+
       // 403 Forbidden (Customer)
       const res403Customer = await app.inject({
         method: 'POST',
@@ -583,17 +586,26 @@ describe('Phase 3: Catalog Domain (Category, Product, SKU)', () => {
 
   describe('Failure Edge-cases (404s)', () => {
     it('returns 404 for non-existent category', async () => {
-      const res = await app.inject({ method: 'GET', url: '/categories/99999999-9999-9999-9999-999999999999' });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/categories/99999999-9999-9999-9999-999999999999',
+      });
       expect(res.statusCode).toBe(404);
     });
 
     it('returns 404 for non-existent product', async () => {
-      const res = await app.inject({ method: 'GET', url: '/products/99999999-9999-9999-9999-999999999999' });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/products/99999999-9999-9999-9999-999999999999',
+      });
       expect(res.statusCode).toBe(404);
     });
 
     it('returns 404 for non-existent SKU', async () => {
-      const res = await app.inject({ method: 'GET', url: '/skus/99999999-9999-9999-9999-999999999999' });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/skus/99999999-9999-9999-9999-999999999999',
+      });
       expect(res.statusCode).toBe(404);
     });
   });

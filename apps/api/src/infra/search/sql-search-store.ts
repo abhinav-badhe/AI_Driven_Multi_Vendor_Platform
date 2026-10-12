@@ -192,10 +192,10 @@ export class SqlSearchStore implements ISearchStore {
     }
 
     // Refresh seller offers for this product in the active generation
-    await tx.query(
-      `DELETE FROM search_seller_offers WHERE product_id = $1 AND generation = $2`,
-      [doc.id, gen],
-    );
+    await tx.query(`DELETE FROM search_seller_offers WHERE product_id = $1 AND generation = $2`, [
+      doc.id,
+      gen,
+    ]);
 
     for (const offer of doc.offers) {
       await tx.query(
@@ -274,7 +274,9 @@ export class SqlSearchStore implements ISearchStore {
           // Reconcile offers: compare sourceVersion per offer
           const mergedOffers = [...doc.offers];
           for (const existingOffer of existingOffers) {
-            const incomingIdx = mergedOffers.findIndex((o) => o.listingId === existingOffer.listingId);
+            const incomingIdx = mergedOffers.findIndex(
+              (o) => o.listingId === existingOffer.listingId,
+            );
             if (incomingIdx >= 0) {
               if (existingOffer.sourceVersion > mergedOffers[incomingIdx]!.sourceVersion) {
                 mergedOffers[incomingIdx] = existingOffer;
@@ -286,9 +288,13 @@ export class SqlSearchStore implements ISearchStore {
 
           const activeOffers = mergedOffers.filter((o) => o.status === 'ACTIVE');
           const minPrice =
-            activeOffers.length > 0 ? Math.min(...activeOffers.map((o) => o.priceAmount)) : baseDoc.minPrice;
+            activeOffers.length > 0
+              ? Math.min(...activeOffers.map((o) => o.priceAmount))
+              : baseDoc.minPrice;
           const maxPrice =
-            activeOffers.length > 0 ? Math.max(...activeOffers.map((o) => o.priceAmount)) : baseDoc.maxPrice;
+            activeOffers.length > 0
+              ? Math.max(...activeOffers.map((o) => o.priceAmount))
+              : baseDoc.maxPrice;
           const hasInStockOffer = activeOffers.some((o) => o.inStock && o.availableQuantity > 0);
 
           finalDoc = {
@@ -299,7 +305,8 @@ export class SqlSearchStore implements ISearchStore {
             hasInStockOffer,
             totalOffersCount: activeOffers.length,
             sourceVersion: Math.max(doc.sourceVersion, existingProdVersion),
-            projectionVersion: Math.max(doc.projectionVersion, Number(existingProd.projection_version)) + 1,
+            projectionVersion:
+              Math.max(doc.projectionVersion, Number(existingProd.projection_version)) + 1,
             updatedAt: new Date().toISOString(),
           };
         }
@@ -367,10 +374,10 @@ export class SqlSearchStore implements ISearchStore {
   async deleteDocument(id: string): Promise<boolean> {
     return this.db.withTransaction(async (tx) => {
       const gen = await this.getActiveGeneration(tx);
-      await tx.query(
-        `DELETE FROM search_seller_offers WHERE product_id = $1 AND generation = $2`,
-        [id, gen],
-      );
+      await tx.query(`DELETE FROM search_seller_offers WHERE product_id = $1 AND generation = $2`, [
+        id,
+        gen,
+      ]);
       const res = await tx.query(
         `DELETE FROM search_product_projections WHERE id = $1 AND generation = $2`,
         [id, gen],

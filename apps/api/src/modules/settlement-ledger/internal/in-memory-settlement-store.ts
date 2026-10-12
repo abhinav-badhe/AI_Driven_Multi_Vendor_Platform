@@ -68,7 +68,7 @@ export class InMemorySettlementStore implements ISettlementService {
     );
 
     let currentBalance = 0;
-    let pendingBalance = 0;
+    const pendingBalance = 0;
     let settledBalance = 0;
     let totalEarnings = 0;
     let totalCommissions = 0;
@@ -134,9 +134,7 @@ export class InMemorySettlementStore implements ISettlementService {
       RbacPolicy.requireTenantMatch(actor, merchantId);
     }
 
-    let entries = Array.from(this.ledgerEntries.values()).filter(
-      (e) => e.tenantId === merchantId,
-    );
+    let entries = Array.from(this.ledgerEntries.values()).filter((e) => e.tenantId === merchantId);
 
     if (filter?.entryType) {
       entries = entries.filter((e) => e.entryType === filter.entryType);
@@ -220,7 +218,7 @@ export class InMemorySettlementStore implements ISettlementService {
 
     const merchantId = actor.tenantId;
     const grossAmount = 1000;
-    const commissionRate = input.commissionRate ?? 0.10;
+    const commissionRate = input.commissionRate ?? 0.1;
     const commissionAmount = round2(grossAmount * commissionRate);
     const feeAmount = round2(input.feeAmount ?? 0);
     const now = new Date().toISOString();

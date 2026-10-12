@@ -43,13 +43,7 @@ class IoredisCacheAdapter implements CacheClient {
   }
 
   async setNxEx(key: string, value: string, ttlSeconds: number): Promise<boolean> {
-    const res = await this.redis.set(
-      key,
-      value,
-      'EX',
-      Math.max(1, Math.floor(ttlSeconds)),
-      'NX',
-    );
+    const res = await this.redis.set(key, value, 'EX', Math.max(1, Math.floor(ttlSeconds)), 'NX');
     return res === 'OK';
   }
 

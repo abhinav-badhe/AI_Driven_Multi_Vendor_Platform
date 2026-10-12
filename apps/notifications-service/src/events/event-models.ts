@@ -35,10 +35,14 @@ export const NotificationEventTypes = {
   SETTLEMENT_STATUS_CHANGED: 'settlement.status_changed.v1',
 } as const;
 
-export type NotificationEventType = (typeof NotificationEventTypes)[keyof typeof NotificationEventTypes];
+export type NotificationEventType =
+  (typeof NotificationEventTypes)[keyof typeof NotificationEventTypes];
 
 export interface IEventSubscriptionTransport {
-  subscribe(eventType: string, handler: (event: DomainEvent) => Promise<void>): void | Promise<void>;
+  subscribe(
+    eventType: string,
+    handler: (event: DomainEvent) => Promise<void>,
+  ): void | Promise<void>;
 }
 
 // Canonical supported event versions registry

@@ -71,7 +71,8 @@ export class RecommendationService {
     this.personalizedSource =
       deps.personalizedSource ??
       new PersonalizedCandidateSource(deps.analyticsReader, deps.catalogService);
-    this.coldStartSource = deps.coldStartSource ?? new ColdStartCandidateSource(deps.catalogService);
+    this.coldStartSource =
+      deps.coldStartSource ?? new ColdStartCandidateSource(deps.catalogService);
   }
 
   /**
@@ -112,13 +113,7 @@ export class RecommendationService {
     const items = await this.decorateAndFilterEligible(ranked);
 
     // Save derived recommendations for fast subsequent reads
-    await this.persistDerivedRecommendations(
-      tenantId,
-      'PERSONALIZED',
-      customerId,
-      null,
-      items,
-    );
+    await this.persistDerivedRecommendations(tenantId, 'PERSONALIZED', customerId, null, items);
 
     return {
       recommendationType: 'PERSONALIZED',
@@ -177,13 +172,7 @@ export class RecommendationService {
     const ranked = await this.ranker.rank(candidates, context);
     const items = await this.decorateAndFilterEligible(ranked);
 
-    await this.persistDerivedRecommendations(
-      tenantId,
-      'SIMILAR',
-      null,
-      productId,
-      items,
-    );
+    await this.persistDerivedRecommendations(tenantId, 'SIMILAR', null, productId, items);
 
     return {
       recommendationType: 'SIMILAR',
@@ -229,13 +218,7 @@ export class RecommendationService {
     const ranked = await this.ranker.rank(candidates, context);
     const items = await this.decorateAndFilterEligible(ranked);
 
-    await this.persistDerivedRecommendations(
-      tenantId,
-      'TRENDING',
-      null,
-      null,
-      items,
-    );
+    await this.persistDerivedRecommendations(tenantId, 'TRENDING', null, null, items);
 
     return {
       recommendationType: 'TRENDING',

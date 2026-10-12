@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -85,11 +89,29 @@ describe('Phase 5: Cart Domain & Multi-Vendor Shopping Cart', () => {
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${alphaToken}` },
-      payload: { businessName: 'Alpha LLC', legalName: 'Alpha Legal', contactEmail: 'alpha@biz.com' },
+      payload: {
+        businessName: 'Alpha LLC',
+        legalName: 'Alpha Legal',
+        contactEmail: 'alpha@biz.com',
+      },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${alphaToken}` } });
-    const profA = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${alphaToken}` } })).json();
-    await app.inject({ method: 'POST', url: `/merchants/${profA.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${alphaToken}` },
+    });
+    const profA = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${alphaToken}` },
+      })
+    ).json();
+    await app.inject({
+      method: 'POST',
+      url: `/merchants/${profA.tenantId}/approve`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
 
     // 3. Merchant Beta
     const betaToken = await registerVerifiedUser(app, db, {
@@ -105,9 +127,23 @@ describe('Phase 5: Cart Domain & Multi-Vendor Shopping Cart', () => {
       headers: { authorization: `Bearer ${betaToken}` },
       payload: { businessName: 'Beta LLC', legalName: 'Beta Legal', contactEmail: 'beta@biz.com' },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${betaToken}` } });
-    const profB = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${betaToken}` } })).json();
-    await app.inject({ method: 'POST', url: `/merchants/${profB.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${betaToken}` },
+    });
+    const profB = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${betaToken}` },
+      })
+    ).json();
+    await app.inject({
+      method: 'POST',
+      url: `/merchants/${profB.tenantId}/approve`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
 
     // 4. Customers
     const customer1Token = await registerVerifiedUser(app, db, {
@@ -411,7 +447,9 @@ describe('Phase 5: Cart Domain & Multi-Vendor Shopping Cart', () => {
         headers: { authorization: `Bearer ${customer1Token}` },
         payload: { listingId: listingBeta.id, quantity: 1 },
       });
-      const itemIdA = resB.json().items.find((i: { listingId: string }) => i.listingId === listingAlpha.id).id;
+      const itemIdA = resB
+        .json()
+        .items.find((i: { listingId: string }) => i.listingId === listingAlpha.id).id;
 
       // Delete item A
       const delItemRes = await app.inject({

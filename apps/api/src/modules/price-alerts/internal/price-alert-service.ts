@@ -57,7 +57,8 @@ export class PriceAlertService {
       typeof priceSeenMinor === 'number' && Number.isFinite(priceSeenMinor) && priceSeenMinor >= 0
         ? Math.round(priceSeenMinor)
         : null;
-    const cur = typeof currency === 'string' && currency.length === 3 ? currency.toUpperCase() : null;
+    const cur =
+      typeof currency === 'string' && currency.length === 3 ? currency.toUpperCase() : null;
     await this.repo.recordView(actor.tenantId, productId, price, cur);
     return { tracked: true };
   }
@@ -252,7 +253,9 @@ export class PriceAlertService {
   }
 
   /** Admin sweep across recently watched products. */
-  async sweepAll(sinceDays = 90): Promise<{ productsChecked: number; alertsSent: number; reconciled: number }> {
+  async sweepAll(
+    sinceDays = 90,
+  ): Promise<{ productsChecked: number; alertsSent: number; reconciled: number }> {
     // 1. Reconcile all delivered notifications across all products, regardless of current floor price or stock
     const { reconciled } = await this.reconcileDeliveredAlerts(sinceDays);
 

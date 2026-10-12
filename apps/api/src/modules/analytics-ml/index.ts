@@ -30,7 +30,11 @@ import type {
   TriggerType,
 } from './internal/ml-models.js';
 import { MlService } from './internal/ml-service.js';
-import { PythonRunner, type PythonTrainResult, type PythonPredictResult } from './internal/python-runner.js';
+import {
+  PythonRunner,
+  type PythonTrainResult,
+  type PythonPredictResult,
+} from './internal/python-runner.js';
 import type {
   IMlExecutionProvider,
   IMlInferenceProvider,
@@ -38,7 +42,10 @@ import type {
   MlPredictResult,
   MlTrainResult,
 } from './internal/ml-execution-provider.js';
-import { LocalPythonMlExecutionProvider, CompositeMlExecutionProvider } from './internal/ml-execution-provider.js';
+import {
+  LocalPythonMlExecutionProvider,
+  CompositeMlExecutionProvider,
+} from './internal/ml-execution-provider.js';
 import {
   HttpMlExecutionProvider,
   HttpMlProviderError,
@@ -92,7 +99,9 @@ export interface AnalyticsMlModule {
   ): MlService;
   createDefaultStore(): IMlStore;
   createPythonRunner(logger: Logger, pythonBin?: string, projectRoot?: string): PythonRunner;
-  createLocalExecutionProvider(runnerOrLogger: PythonRunner | Logger): LocalPythonMlExecutionProvider;
+  createLocalExecutionProvider(
+    runnerOrLogger: PythonRunner | Logger,
+  ): LocalPythonMlExecutionProvider;
   createCompositeExecutionProvider(
     inferenceProvider: IMlInferenceProvider,
     trainingProvider: IMlTrainingProvider,
@@ -124,7 +133,9 @@ export const analyticsMlModule: AnalyticsMlModule = {
   createPythonRunner(logger: Logger, pythonBin?: string, projectRoot?: string): PythonRunner {
     return new PythonRunner(logger, pythonBin, projectRoot);
   },
-  createLocalExecutionProvider(runnerOrLogger: PythonRunner | Logger): LocalPythonMlExecutionProvider {
+  createLocalExecutionProvider(
+    runnerOrLogger: PythonRunner | Logger,
+  ): LocalPythonMlExecutionProvider {
     return new LocalPythonMlExecutionProvider(runnerOrLogger);
   },
   createCompositeExecutionProvider(

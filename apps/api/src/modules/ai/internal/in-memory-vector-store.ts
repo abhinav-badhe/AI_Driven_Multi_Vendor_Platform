@@ -41,9 +41,7 @@ export class InMemoryVectorStore implements IVectorStore {
       results.push({ chunk: { ...chunk }, score });
     }
 
-    return results
-      .sort((a, b) => b.score - a.score)
-      .slice(0, topK);
+    return results.sort((a, b) => b.score - a.score).slice(0, topK);
   }
 
   async deactivateDocumentChunks(documentId: string): Promise<void> {

@@ -176,7 +176,10 @@ export class PaymentService implements IPaymentService {
 
     // Idempotency verification:
     if (input.idempotencyKey) {
-      const existing = await this.repo.findIntentByIdempotency(actor.tenantId, input.idempotencyKey);
+      const existing = await this.repo.findIntentByIdempotency(
+        actor.tenantId,
+        input.idempotencyKey,
+      );
       if (existing) {
         if (
           existing.amount !== amount ||
@@ -234,11 +237,14 @@ export class PaymentService implements IPaymentService {
       // Idempotency race conflict recovery
       if (
         input.idempotencyKey &&
-        (err instanceof Error &&
-          (err.message.includes('uq_payment_intent_idempotency') ||
-            (err as { code?: string }).code === '23505'))
+        err instanceof Error &&
+        (err.message.includes('uq_payment_intent_idempotency') ||
+          (err as { code?: string }).code === '23505')
       ) {
-        const existing = await this.repo.findIntentByIdempotency(actor.tenantId, input.idempotencyKey);
+        const existing = await this.repo.findIntentByIdempotency(
+          actor.tenantId,
+          input.idempotencyKey,
+        );
         if (existing) {
           if (
             existing.amount !== amount ||
@@ -320,7 +326,11 @@ export class PaymentService implements IPaymentService {
     }
 
     // Transition intent to PROCESSING
-    await this.repo.updateIntentStatus(intent.id, ['CREATED', 'PROCESSING', 'REQUIRES_PAYMENT_METHOD'], 'PROCESSING');
+    await this.repo.updateIntentStatus(
+      intent.id,
+      ['CREATED', 'PROCESSING', 'REQUIRES_PAYMENT_METHOD'],
+      'PROCESSING',
+    );
 
     // Call Provider
     const providerTxnId =
@@ -350,23 +360,27 @@ export class PaymentService implements IPaymentService {
         amount: intent.amount,
         currency: intent.currency,
         status: dbAttemptStatus,
-        failureCode: providerResult.status === 'REQUIRES_ACTION' ? 'requires_action' : providerResult.failureCode,
+        failureCode:
+          providerResult.status === 'REQUIRES_ACTION'
+            ? 'requires_action'
+            : providerResult.failureCode,
         failureMessage:
           providerResult.status === 'REQUIRES_ACTION'
             ? 'Cardholder action required (3DS / SCA)'
             : providerResult.failureMessage,
         providerResponse: {
           ...(providerResult.rawResponse ?? {}),
-          status: providerResult.status === 'REQUIRES_ACTION' ? 'requires_action' : providerResult.status,
+          status:
+            providerResult.status === 'REQUIRES_ACTION' ? 'requires_action' : providerResult.status,
         },
         idempotencyKey: input.idempotencyKey ?? null,
       });
     } catch (err: unknown) {
       if (
         input.idempotencyKey &&
-        (err instanceof Error &&
-          (err.message.includes('uq_payment_attempt_idempotency') ||
-            (err as { code?: string }).code === '23505'))
+        err instanceof Error &&
+        (err.message.includes('uq_payment_attempt_idempotency') ||
+          (err as { code?: string }).code === '23505')
       ) {
         const existing = await this.repo.findAttemptByIdempotency(intent.id, input.idempotencyKey);
         if (existing) {
@@ -484,11 +498,13 @@ export class PaymentService implements IPaymentService {
       }
 
       if (intent) {
-          if (event.eventType === 'payment_intent.succeeded' || event.status === 'SUCCEEDED') {
-            if (intent.status !== 'SUCCEEDED') {
-              await txRepo.updateIntentStatus(intent.id, ['CREATED', 'PROCESSING'], 'SUCCEEDED');
-              
-              await this.outboxService.recordEvent(tx, createDomainEvent({
+        if (event.eventType === 'payment_intent.succeeded' || event.status === 'SUCCEEDED') {
+          if (intent.status !== 'SUCCEEDED') {
+            await txRepo.updateIntentStatus(intent.id, ['CREATED', 'PROCESSING'], 'SUCCEEDED');
+
+            await this.outboxService.recordEvent(
+              tx,
+              createDomainEvent({
                 eventType: EventTypes.PAYMENT_SUCCEEDED,
                 aggregateType: 'PaymentIntent',
                 aggregateId: intent.id,
@@ -498,15 +514,21 @@ export class PaymentService implements IPaymentService {
                   amount: intent.amount,
                   currency: intent.currency,
                 },
-              }));
-            }
-          } else if (event.eventType === 'payment_intent.payment_failed' || event.status === 'FAILED') {
-            if (intent.status !== 'SUCCEEDED') {
-              await txRepo.updateIntentStatus(intent.id, ['CREATED', 'PROCESSING'], 'FAILED', {
-                metadata: { failureReason: event.failureReason ?? 'Webhook reported payment failure' },
-              });
-            }
+              }),
+            );
           }
+        } else if (
+          event.eventType === 'payment_intent.payment_failed' ||
+          event.status === 'FAILED'
+        ) {
+          if (intent.status !== 'SUCCEEDED') {
+            await txRepo.updateIntentStatus(intent.id, ['CREATED', 'PROCESSING'], 'FAILED', {
+              metadata: {
+                failureReason: event.failureReason ?? 'Webhook reported payment failure',
+              },
+            });
+          }
+        }
       }
 
       const webhookRowId = randomUUID();
@@ -626,9 +648,8 @@ export class PaymentService implements IPaymentService {
     } catch (err: unknown) {
       if (
         input.idempotencyKey &&
-        (err instanceof Error &&
-          (err.message.includes('uq_refund') ||
-            (err as { code?: string }).code === '23505'))
+        err instanceof Error &&
+        (err.message.includes('uq_refund') || (err as { code?: string }).code === '23505')
       ) {
         const existing = await this.repo.findRefundByIdempotencyKey(input.idempotencyKey);
         if (existing) {
@@ -734,4 +755,3 @@ export class PaymentService implements IPaymentService {
     return rows.map((r: PaymentIntentRow) => this.toIntentDto(r));
   }
 }
-

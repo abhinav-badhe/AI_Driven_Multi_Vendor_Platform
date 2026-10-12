@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { useState } from 'react';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -26,9 +26,9 @@ import {
   Bell,
   Image,
   type LucideIcon,
-} from "lucide-react";
-import { cn } from "../../lib/utils";
-import { Button } from "../ui/button";
+} from 'lucide-react';
+import { cn } from '../../lib/utils';
+import { Button } from '../ui/button';
 
 export interface NavItem {
   to: string;
@@ -38,38 +38,38 @@ export interface NavItem {
 }
 
 export const merchantNav: NavItem[] = [
-  { to: "/merchant", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/merchant/listings", label: "Listings", icon: Package },
-  { to: "/merchant/inventory", label: "Inventory", icon: Boxes },
-  { to: "/merchant/orders", label: "Orders", icon: ShoppingCart },
-  { to: "/merchant/promotions", label: "Promotions", icon: Tag },
-  { to: "/merchant/reviews", label: "Reviews", icon: Star },
-  { to: "/merchant/fulfillment", label: "Fulfillment", icon: Truck },
-  { to: "/merchant/returns", label: "Returns", icon: RotateCcw },
-  { to: "/merchant/finance", label: "Finance", icon: Wallet },
-  { to: "/merchant/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/merchant/onboarding", label: "Store setup", icon: Store },
-  { to: "/merchant/settings", label: "Settings", icon: Settings },
+  { to: '/merchant', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/merchant/listings', label: 'Listings', icon: Package },
+  { to: '/merchant/inventory', label: 'Inventory', icon: Boxes },
+  { to: '/merchant/orders', label: 'Orders', icon: ShoppingCart },
+  { to: '/merchant/promotions', label: 'Promotions', icon: Tag },
+  { to: '/merchant/reviews', label: 'Reviews', icon: Star },
+  { to: '/merchant/fulfillment', label: 'Fulfillment', icon: Truck },
+  { to: '/merchant/returns', label: 'Returns', icon: RotateCcw },
+  { to: '/merchant/finance', label: 'Finance', icon: Wallet },
+  { to: '/merchant/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/merchant/onboarding', label: 'Store setup', icon: Store },
+  { to: '/merchant/settings', label: 'Settings', icon: Settings },
 ];
 
 export const adminNav: NavItem[] = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/admin/whatsapp", label: "WhatsApp AI", icon: MessageSquare },
-  { to: "/admin/users", label: "Users", icon: Users },
-  { to: "/admin/merchants", label: "Merchants", icon: Store },
-  { to: "/admin/catalog", label: "Catalog", icon: BookOpen },
-  { to: "/admin/listings", label: "Listings", icon: Layers },
-  { to: "/admin/inventory", label: "Inventory", icon: Boxes },
-  { to: "/admin/orders", label: "Orders", icon: ShoppingCart },
-  { to: "/admin/payments", label: "Payments", icon: CreditCard },
-  { to: "/admin/promotions", label: "Promotions", icon: Tag },
-  { to: "/admin/banners", label: "Hero Posters", icon: Image },
-  { to: "/admin/reviews", label: "Reviews", icon: Star },
-  { to: "/admin/notifications", label: "Notifications", icon: Bell },
-  { to: "/admin/settlements", label: "Settlements", icon: ArrowLeftRight },
-  { to: "/admin/events", label: "Events", icon: Activity },
-  { to: "/admin/security", label: "Security", icon: ShieldCheck },
-  { to: "/admin/analytics", label: "Telemetry", icon: BarChart3 },
+  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/admin/whatsapp', label: 'WhatsApp AI', icon: MessageSquare },
+  { to: '/admin/users', label: 'Users', icon: Users },
+  { to: '/admin/merchants', label: 'Merchants', icon: Store },
+  { to: '/admin/catalog', label: 'Catalog', icon: BookOpen },
+  { to: '/admin/listings', label: 'Listings', icon: Layers },
+  { to: '/admin/inventory', label: 'Inventory', icon: Boxes },
+  { to: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+  { to: '/admin/payments', label: 'Payments', icon: CreditCard },
+  { to: '/admin/promotions', label: 'Promotions', icon: Tag },
+  { to: '/admin/banners', label: 'Hero Posters', icon: Image },
+  { to: '/admin/reviews', label: 'Reviews', icon: Star },
+  { to: '/admin/notifications', label: 'Notifications', icon: Bell },
+  { to: '/admin/settlements', label: 'Settlements', icon: ArrowLeftRight },
+  { to: '/admin/events', label: 'Events', icon: Activity },
+  { to: '/admin/security', label: 'Security', icon: ShieldCheck },
+  { to: '/admin/analytics', label: 'Telemetry', icon: BarChart3 },
 ];
 
 // Compact fixed sidebar (icon + label), drawer on mobile (STYLE.md §6).
@@ -96,10 +96,10 @@ export function SidebarShell({
           onClick={() => setOpen(false)}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] font-medium",
+              'flex items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] font-medium',
               isActive
-                ? "bg-secondary text-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? 'bg-secondary text-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )
           }
         >
@@ -133,7 +133,12 @@ export function SidebarShell({
           <aside className="absolute left-0 top-0 flex h-full w-60 flex-col bg-background shadow-md">
             <div className="flex h-12 items-center justify-between border-b border-border px-3">
               <span className="text-sm font-semibold">{title}</span>
-              <Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="Close menu">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setOpen(false)}
+                aria-label="Close menu"
+              >
                 <X />
               </Button>
             </div>

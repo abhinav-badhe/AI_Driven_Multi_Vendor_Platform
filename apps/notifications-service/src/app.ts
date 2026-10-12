@@ -92,14 +92,9 @@ export function buildApp(dependencies: NotificationsAppDependencies): FastifyIns
   // Event Consumer
   const eventConsumer =
     dependencies.eventConsumer ??
-    new NotificationEventConsumer(
-      notificationService,
-      repository,
-      undefined,
-      {
-        staleTimeoutMs: config.processing.consumerReceiptStaleTimeoutMs,
-      },
-    );
+    new NotificationEventConsumer(notificationService, repository, undefined, {
+      staleTimeoutMs: config.processing.consumerReceiptStaleTimeoutMs,
+    });
 
   // Register Routes
   registerHealthRoutes(app, db);

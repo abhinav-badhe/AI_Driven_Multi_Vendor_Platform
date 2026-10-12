@@ -77,7 +77,10 @@ export interface CartCheckoutModule {
   createInMemoryCartStore(): InMemoryCartStore;
   createInMemoryCheckoutStore(cartStore?: InMemoryCartStore): InMemoryCheckoutStore;
   createHttpCartClient(serviceUrl: string, options?: HttpCartClientOptions): HttpCartClient;
-  createHttpCheckoutClient(serviceUrl: string, options?: HttpCheckoutClientOptions): HttpCheckoutClient;
+  createHttpCheckoutClient(
+    serviceUrl: string,
+    options?: HttpCheckoutClientOptions,
+  ): HttpCheckoutClient;
 }
 
 export const cartCheckoutModule: CartCheckoutModule = {
@@ -115,8 +118,10 @@ export const cartCheckoutModule: CartCheckoutModule = {
   createHttpCartClient(serviceUrl: string, options?: HttpCartClientOptions): HttpCartClient {
     return new HttpCartClient(serviceUrl, options);
   },
-  createHttpCheckoutClient(serviceUrl: string, options?: HttpCheckoutClientOptions): HttpCheckoutClient {
+  createHttpCheckoutClient(
+    serviceUrl: string,
+    options?: HttpCheckoutClientOptions,
+  ): HttpCheckoutClient {
     return new HttpCheckoutClient(serviceUrl, options);
   },
 };
-

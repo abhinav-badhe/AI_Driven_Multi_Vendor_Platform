@@ -33,7 +33,9 @@ export function verifyInternalServiceKey(
  */
 export function createInternalAuthMiddleware(expectedKey: string) {
   if (!expectedKey || expectedKey.length < 16) {
-    throw new Error('Internal authentication requires a key with a minimum length of 16 characters');
+    throw new Error(
+      'Internal authentication requires a key with a minimum length of 16 characters',
+    );
   }
 
   return async function authenticateInternalService(

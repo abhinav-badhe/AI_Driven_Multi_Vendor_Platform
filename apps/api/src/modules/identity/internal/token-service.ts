@@ -126,7 +126,9 @@ export class HmacTokenService implements TokenService {
 
   generate2FATempToken(payload: Temp2FATokenPayload): string {
     const expiresAtSec = Math.floor(Date.now() / 1000) + 300; // 5 minutes
-    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: '2FA_TEMP' })).toString('base64url');
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: '2FA_TEMP' })).toString(
+      'base64url',
+    );
     const claims = Buffer.from(
       JSON.stringify({
         sub: payload.userId,

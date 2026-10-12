@@ -1,7 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
 import type { InventoryService, IInventoryService } from '../modules/inventory/index.js';
-import { createAuthMiddleware, createOptionalAuthMiddleware, requireActor } from './auth-middleware.js';
+import {
+  createAuthMiddleware,
+  createOptionalAuthMiddleware,
+  requireActor,
+} from './auth-middleware.js';
 import { ValidationError, ForbiddenError } from '../errors/app-error.js';
 import {
   CachePresets,
@@ -24,78 +28,70 @@ export function registerInventoryRoutes(
   // --- Inventory Item Endpoints ---
 
   // POST /inventory (Initialize inventory for a merchant listing)
-  app.post(
-    '/inventory',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const body = request.body as {
-        listingId?: unknown;
-        initialOnHandQuantity?: unknown;
-        initialNonSellableQuantity?: unknown;
-      };
+  app.post('/inventory', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const body = request.body as {
+      listingId?: unknown;
+      initialOnHandQuantity?: unknown;
+      initialNonSellableQuantity?: unknown;
+    };
 
-      if (typeof body.listingId !== 'string') throw new ValidationError('listingId is required');
+    if (typeof body.listingId !== 'string') throw new ValidationError('listingId is required');
 
-      const item = await inventoryService.initializeInventory(actor, {
-        listingId: body.listingId,
-        initialOnHandQuantity:
-          typeof body.initialOnHandQuantity === 'number'
-            ? body.initialOnHandQuantity
-            : undefined,
-        initialNonSellableQuantity:
-          typeof body.initialNonSellableQuantity === 'number'
-            ? body.initialNonSellableQuantity
-            : undefined,
-      });
+    const item = await inventoryService.initializeInventory(actor, {
+      listingId: body.listingId,
+      initialOnHandQuantity:
+        typeof body.initialOnHandQuantity === 'number' ? body.initialOnHandQuantity : undefined,
+      initialNonSellableQuantity:
+        typeof body.initialNonSellableQuantity === 'number'
+          ? body.initialNonSellableQuantity
+          : undefined,
+    });
 
-      return reply.status(201).send(item);
-    },
-  );
+    return reply.status(201).send(item);
+  });
 
   // GET /inventory (List inventory items for authenticated merchant)
-  app.get(
-    '/inventory',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const query = request.query as { limit?: string; offset?: string };
-      return sendCached(
-        app,
-        request,
-        reply,
-        {
-          key: cacheKey('inventory', 'merchant', actor.tenantId, query.limit ?? '', query.offset ?? ''),
-          tags: [CacheTags.inventory, inventoryMerchantTag(actor.tenantId)],
-          preset: CachePresets.merchantScoped,
-        },
-        () =>
-          inventoryService.listInventory(actor, {
-            limit: query.limit ? parseInt(query.limit, 10) : undefined,
-            offset: query.offset ? parseInt(query.offset, 10) : undefined,
-          }),
-      );
-    },
-  );
+  app.get('/inventory', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const query = request.query as { limit?: string; offset?: string };
+    return sendCached(
+      app,
+      request,
+      reply,
+      {
+        key: cacheKey(
+          'inventory',
+          'merchant',
+          actor.tenantId,
+          query.limit ?? '',
+          query.offset ?? '',
+        ),
+        tags: [CacheTags.inventory, inventoryMerchantTag(actor.tenantId)],
+        preset: CachePresets.merchantScoped,
+      },
+      () =>
+        inventoryService.listInventory(actor, {
+          limit: query.limit ? parseInt(query.limit, 10) : undefined,
+          offset: query.offset ? parseInt(query.offset, 10) : undefined,
+        }),
+    );
+  });
 
   // GET /admin/inventory (Platform administrator view of all inventory across all merchants)
-  app.get(
-    '/admin/inventory',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      if (actor.role !== 'ADMINISTRATOR') {
-        throw new ForbiddenError('Only platform administrators can inspect all inventory records');
-      }
-      const query = request.query as { limit?: string; offset?: string };
-      const limit = query.limit ? parseInt(query.limit, 10) : 50;
-      const offset = query.offset ? parseInt(query.offset, 10) : 0;
-      const items = inventoryService.listAllInventory
-        ? await inventoryService.listAllInventory(actor, { limit, offset })
-        : await inventoryService.listInventory(actor, { limit, offset });
-      return reply.status(200).send(items);
-    },
-  );
+  app.get('/admin/inventory', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    if (actor.role !== 'ADMINISTRATOR') {
+      throw new ForbiddenError('Only platform administrators can inspect all inventory records');
+    }
+    const query = request.query as { limit?: string; offset?: string };
+    const limit = query.limit ? parseInt(query.limit, 10) : 50;
+    const offset = query.offset ? parseInt(query.offset, 10) : 0;
+    const items = inventoryService.listAllInventory
+      ? await inventoryService.listAllInventory(actor, { limit, offset })
+      : await inventoryService.listInventory(actor, { limit, offset });
+    return reply.status(200).send(items);
+  });
 
   // GET /inventory/availability/:listingId (Public availability view - sanitized DTO)
   // Advisory only: short TTL + SWR. Checkout revalidates against the ledger
@@ -142,25 +138,21 @@ export function registerInventoryRoutes(
   );
 
   // GET /inventory/:id (Internal item view)
-  app.get(
-    '/inventory/:id',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const { id } = request.params as { id: string };
-      return sendCached(
-        app,
-        request,
-        reply,
-        {
-          key: cacheKey('inventory', 'item', id, actor.tenantId),
-          tags: [CacheTags.inventory, inventoryItemTag(id)],
-          preset: CachePresets.merchantScoped,
-        },
-        () => inventoryService.getInventoryById(actor, id),
-      );
-    },
-  );
+  app.get('/inventory/:id', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const { id } = request.params as { id: string };
+    return sendCached(
+      app,
+      request,
+      reply,
+      {
+        key: cacheKey('inventory', 'item', id, actor.tenantId),
+        tags: [CacheTags.inventory, inventoryItemTag(id)],
+        preset: CachePresets.merchantScoped,
+      },
+      () => inventoryService.getInventoryById(actor, id),
+    );
+  });
 
   // POST /inventory/:id/increase-stock (with aliases for microservice clients)
   const increaseStockHandler = async (
@@ -245,67 +237,55 @@ export function registerInventoryRoutes(
   // GET /inventory/:id/movements
   // Append-only ledger: invalidated by every mutation of this item via the
   // service-level hook, so a short TTL is safe.
-  app.get(
-    '/inventory/:id/movements',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const { id } = request.params as { id: string };
-      return sendCached(
-        app,
-        request,
-        reply,
-        {
-          key: cacheKey('inventory', 'item', id, 'movements', actor.tenantId),
-          tags: [CacheTags.inventory, inventoryItemTag(id)],
-          preset: CachePresets.merchantScoped,
-        },
-        () => inventoryService.getMovements(actor, id),
-      );
-    },
-  );
+  app.get('/inventory/:id/movements', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const { id } = request.params as { id: string };
+    return sendCached(
+      app,
+      request,
+      reply,
+      {
+        key: cacheKey('inventory', 'item', id, 'movements', actor.tenantId),
+        tags: [CacheTags.inventory, inventoryItemTag(id)],
+        preset: CachePresets.merchantScoped,
+      },
+      () => inventoryService.getMovements(actor, id),
+    );
+  });
 
   // --- Reservation Endpoints ---
 
   // POST /inventory/reservations (Create concurrency-safe reservation)
-  app.post(
-    '/inventory/reservations',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const body = request.body as {
-        inventoryId?: unknown;
-        listingId?: unknown;
-        quantity?: unknown;
-        idempotencyKey?: unknown;
-        expiresAt?: unknown;
-      };
+  app.post('/inventory/reservations', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const body = request.body as {
+      inventoryId?: unknown;
+      listingId?: unknown;
+      quantity?: unknown;
+      idempotencyKey?: unknown;
+      expiresAt?: unknown;
+    };
 
-      if (typeof body.quantity !== 'number') throw new ValidationError('quantity is required');
+    if (typeof body.quantity !== 'number') throw new ValidationError('quantity is required');
 
-      const reservation = await inventoryService.createReservation(actor, {
-        inventoryId: typeof body.inventoryId === 'string' ? body.inventoryId : undefined,
-        listingId: typeof body.listingId === 'string' ? body.listingId : undefined,
-        quantity: body.quantity,
-        idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
-        expiresAt: typeof body.expiresAt === 'string' ? body.expiresAt : undefined,
-      });
+    const reservation = await inventoryService.createReservation(actor, {
+      inventoryId: typeof body.inventoryId === 'string' ? body.inventoryId : undefined,
+      listingId: typeof body.listingId === 'string' ? body.listingId : undefined,
+      quantity: body.quantity,
+      idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
+      expiresAt: typeof body.expiresAt === 'string' ? body.expiresAt : undefined,
+    });
 
-      return reply.status(201).send(reservation);
-    },
-  );
+    return reply.status(201).send(reservation);
+  });
 
   // GET /inventory/reservations/:id
-  app.get(
-    '/inventory/reservations/:id',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const { id } = request.params as { id: string };
-      const reservation = await inventoryService.getReservationById(actor, id);
-      return reply.status(200).send(reservation);
-    },
-  );
+  app.get('/inventory/reservations/:id', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const { id } = request.params as { id: string };
+    const reservation = await inventoryService.getReservationById(actor, id);
+    return reply.status(200).send(reservation);
+  });
 
   // POST /inventory/reservations/:id/release
   app.post(
@@ -363,7 +343,9 @@ export function registerInventoryRoutes(
     async (request, reply) => {
       const actor = requireActor(request);
       if (actor.role !== 'ADMINISTRATOR') {
-        throw new ValidationError('Only platform administrators can trigger inventory expiration processing');
+        throw new ValidationError(
+          'Only platform administrators can trigger inventory expiration processing',
+        );
       }
 
       const body = (request.body as { batchSize?: unknown } | undefined) ?? {};

@@ -1,21 +1,21 @@
-import { useState } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { CheckCircle2, KeyRound, AlertCircle, ArrowLeft, Lock } from "lucide-react";
-import { useAuth } from "./AuthContext";
-import { Button, buttonVariants } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
-import { Alert } from "../../components/ui/alert";
-import { Input, Label } from "../../components/ui/input";
-import { cn } from "../../lib/utils";
+import { useState } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { CheckCircle2, KeyRound, AlertCircle, ArrowLeft, Lock } from 'lucide-react';
+import { useAuth } from './AuthContext';
+import { Button, buttonVariants } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Alert } from '../../components/ui/alert';
+import { Input, Label } from '../../components/ui/input';
+import { cn } from '../../lib/utils';
 
 export const ResetPasswordPage = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { resetPassword } = useAuth();
-  const token = params.get("token") ?? "";
+  const token = params.get('token') ?? '';
 
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -25,12 +25,12 @@ export const ResetPasswordPage = () => {
     setError(null);
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters long.");
+      setError('Password must be at least 8 characters long.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match. Please verify and try again.");
+      setError('Passwords do not match. Please verify and try again.');
       return;
     }
 
@@ -39,7 +39,9 @@ export const ResetPasswordPage = () => {
       await resetPassword(token, password);
       setIsSuccess(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to reset password. The link may have expired.");
+      setError(
+        err instanceof Error ? err.message : 'Failed to reset password. The link may have expired.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -58,7 +60,10 @@ export const ResetPasswordPage = () => {
               This password reset link is missing a valid reset token or is incomplete.
             </p>
             <div className="pt-2">
-              <Link to="/account" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}>
+              <Link
+                to="/account"
+                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'w-full')}
+              >
                 <ArrowLeft className="mr-1.5 size-4" />
                 Back to Sign in
               </Link>
@@ -80,14 +85,12 @@ export const ResetPasswordPage = () => {
             <div>
               <h1 className="text-xl font-semibold tracking-tight">Password Reset Complete</h1>
               <p className="mt-1 text-[13px] text-muted-foreground">
-                Your password has been securely updated. You can now sign in with your new credentials.
+                Your password has been securely updated. You can now sign in with your new
+                credentials.
               </p>
             </div>
             <div className="pt-2">
-              <Button
-                className="w-full"
-                onClick={() => navigate("/login")}
-              >
+              <Button className="w-full" onClick={() => navigate('/login')}>
                 Sign in to your account
               </Button>
             </div>
@@ -111,11 +114,7 @@ export const ResetPasswordPage = () => {
             </p>
           </div>
 
-          {error && (
-            <Alert tone="error">
-              {error}
-            </Alert>
-          )}
+          {error && <Alert tone="error">{error}</Alert>}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
             <div className="flex flex-col gap-1">
@@ -151,7 +150,7 @@ export const ResetPasswordPage = () => {
               className="mt-1 w-full"
             >
               {isSubmitting ? (
-                "Updating password…"
+                'Updating password…'
               ) : (
                 <>
                   <Lock className="mr-1.5 size-4" />

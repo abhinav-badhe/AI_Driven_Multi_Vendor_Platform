@@ -72,9 +72,9 @@ describe('Notification Channel Providers', () => {
       globalThis.fetch = mockFetch as unknown as typeof fetch;
 
       const resend = new ResendEmailProvider('invalid_key', 'noreply@ecommerce.example.com');
-      await expect(
-        resend.sendEmail('buyer@example.com', 'Order', 'Body'),
-      ).rejects.toThrow('Resend rejected email to buyer@example.com: HTTP 401 Invalid API Key');
+      await expect(resend.sendEmail('buyer@example.com', 'Order', 'Body')).rejects.toThrow(
+        'Resend rejected email to buyer@example.com: HTTP 401 Invalid API Key',
+      );
     });
   });
 });

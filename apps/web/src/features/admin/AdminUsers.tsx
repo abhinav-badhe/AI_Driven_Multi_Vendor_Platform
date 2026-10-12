@@ -1,17 +1,23 @@
-import { useState, useEffect, useMemo } from "react";
-import { Navigate } from "react-router-dom";
-import { Users, RefreshCw, Search } from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { apiClient } from "../../api/client";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { Input } from "../../components/ui/input";
-import { cn } from "../../lib/utils";
+import { useState, useEffect, useMemo } from 'react';
+import { Navigate } from 'react-router-dom';
+import { Users, RefreshCw, Search } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { apiClient } from '../../api/client';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { Input } from '../../components/ui/input';
+import { cn } from '../../lib/utils';
 
 interface UserRecord {
   id: string;
@@ -26,37 +32,38 @@ export const AdminUsers = () => {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('ALL');
 
   const loadUsers = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await apiClient<unknown>("/admin/users")
-        .catch(() => apiClient<unknown>("/users"));
+      const res = await apiClient<unknown>('/admin/users').catch(() =>
+        apiClient<unknown>('/users'),
+      );
       const list = Array.isArray(res)
         ? (res as UserRecord[])
         : ((res as { users?: UserRecord[] }).users ?? []);
       setUsers(list);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load users");
+      setError(e instanceof Error ? e.message : 'Failed to load users');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user?.role !== "ADMINISTRATOR") return;
+    if (user?.role !== 'ADMINISTRATOR') return;
     loadUsers();
   }, [user]);
 
-  if (user?.role !== "ADMINISTRATOR") return <Navigate to="/account" replace />;
+  if (user?.role !== 'ADMINISTRATOR') return <Navigate to="/account" replace />;
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return users.filter((u) => {
-      if (roleFilter !== "ALL" && u.role !== roleFilter) return false;
+      if (roleFilter !== 'ALL' && u.role !== roleFilter) return false;
       if (!q) return true;
       return (
         u.email.toLowerCase().includes(q) ||
@@ -66,18 +73,18 @@ export const AdminUsers = () => {
     });
   }, [users, searchQuery, roleFilter]);
 
-  const customerCount = users.filter((u) => u.role === "CUSTOMER").length;
-  const merchantCount = users.filter((u) => u.role === "MERCHANT").length;
-  const adminCount = users.filter((u) => u.role === "ADMINISTRATOR").length;
+  const customerCount = users.filter((u) => u.role === 'CUSTOMER').length;
+  const merchantCount = users.filter((u) => u.role === 'MERCHANT').length;
+  const adminCount = users.filter((u) => u.role === 'ADMINISTRATOR').length;
 
   const roleVariant = (role: string) => {
     switch (role) {
-      case "ADMINISTRATOR":
-        return "destructive" as const;
-      case "MERCHANT":
-        return "warning" as const;
+      case 'ADMINISTRATOR':
+        return 'destructive' as const;
+      case 'MERCHANT':
+        return 'warning' as const;
       default:
-        return "outline" as const;
+        return 'outline' as const;
     }
   };
 
@@ -92,7 +99,7 @@ export const AdminUsers = () => {
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={loadUsers} disabled={isLoading}>
-          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isLoading && "animate-spin")} />
+          <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isLoading && 'animate-spin')} />
           Refresh
         </Button>
       </div>
@@ -111,7 +118,9 @@ export const AdminUsers = () => {
             <p className="tnum mt-1 text-2xl font-semibold tracking-tight">
               {users.length} accounts
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">Unified identity credentials across all tenant boundaries</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Unified identity credentials across all tenant boundaries
+            </p>
           </CardContent>
         </Card>
         <div className="grid gap-3 sm:grid-cols-3 lg:col-span-2">
@@ -144,9 +153,9 @@ export const AdminUsers = () => {
                 onChange={(e) => setRoleFilter(e.target.value)}
                 className="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground outline-none focus-visible:border-ring"
               >
-                {["ALL", "CUSTOMER", "MERCHANT", "ADMINISTRATOR"].map((r) => (
+                {['ALL', 'CUSTOMER', 'MERCHANT', 'ADMINISTRATOR'].map((r) => (
                   <option key={r} value={r}>
-                    {r === "ALL" ? "All roles" : r}
+                    {r === 'ALL' ? 'All roles' : r}
                   </option>
                 ))}
               </select>
@@ -165,10 +174,10 @@ export const AdminUsers = () => {
               icon={Users}
               title="No users found"
               description="No user accounts match the specified search or filter criteria."
-              actionLabel={roleFilter !== "ALL" || searchQuery ? "Clear filters" : undefined}
+              actionLabel={roleFilter !== 'ALL' || searchQuery ? 'Clear filters' : undefined}
               onAction={() => {
-                setRoleFilter("ALL");
-                setSearchQuery("");
+                setRoleFilter('ALL');
+                setSearchQuery('');
               }}
             />
           ) : (
@@ -192,7 +201,7 @@ export const AdminUsers = () => {
                       <Badge variant={roleVariant(u.role)}>{u.role}</Badge>
                     </TD>
                     <TD className="text-right text-xs text-muted-foreground">
-                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
+                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
                     </TD>
                   </tr>
                 ))}

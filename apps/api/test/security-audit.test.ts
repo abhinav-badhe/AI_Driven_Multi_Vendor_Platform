@@ -150,12 +150,7 @@ describe('Domain 2: Security & Audit Decoupling (ISecurityAuditService)', () => 
 
     it('PromotionService accepts injected InMemorySecurityAuditService', async () => {
       const inMemoryAudit = new InMemorySecurityAuditService();
-      const promotionService = new PromotionService(
-        db,
-        logger,
-        undefined,
-        inMemoryAudit,
-      );
+      const promotionService = new PromotionService(db, logger, undefined, inMemoryAudit);
       expect(promotionService).toBeDefined();
 
       await inMemoryAudit.record({

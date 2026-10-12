@@ -186,7 +186,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
     payload: Record<string, unknown>,
     customerId?: string,
   ): Promise<string | undefined> {
-    const direct = (payload.customerEmail ?? payload.recipientEmail ?? payload.email) as string | undefined;
+    const direct = (payload.customerEmail ?? payload.recipientEmail ?? payload.email) as
+      string | undefined;
     if (typeof direct === 'string' && direct.includes('@')) {
       return direct;
     }
@@ -202,7 +203,10 @@ export class NotificationEventConsumer extends BaseEventConsumer {
         );
         if (res.rows[0]?.email) return res.rows[0].email;
       } catch (err) {
-        this.logger.warn('Failed to resolve customer email by customerId', { customerId, error: String(err) });
+        this.logger.warn('Failed to resolve customer email by customerId', {
+          customerId,
+          error: String(err),
+        });
       }
     }
 
@@ -219,7 +223,10 @@ export class NotificationEventConsumer extends BaseEventConsumer {
         );
         if (res.rows[0]?.email) return res.rows[0].email;
       } catch (err) {
-        this.logger.warn('Failed to resolve customer email by orderId', { orderId, error: String(err) });
+        this.logger.warn('Failed to resolve customer email by orderId', {
+          orderId,
+          error: String(err),
+        });
       }
     }
 
@@ -246,7 +253,10 @@ export class NotificationEventConsumer extends BaseEventConsumer {
         );
         if (res.rows[0]?.email) return res.rows[0].email;
       } catch (err) {
-        this.logger.warn('Failed to resolve merchant email', { merchantTenantId, error: String(err) });
+        this.logger.warn('Failed to resolve merchant email', {
+          merchantTenantId,
+          error: String(err),
+        });
       }
     }
 

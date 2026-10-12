@@ -53,6 +53,7 @@ export interface INotificationClient {
 ```
 
 ### Methods Excluded from `INotificationClient`:
+
 - `listNotifications`: internal administrative monitoring.
 - `getNotificationById`: internal administrative inspection.
 - `retryNotification`: internal administrative recovery.
@@ -86,6 +87,7 @@ export class LocalNotificationClient implements INotificationClient {
 ```
 
 Factory method provided on `notificationModule`:
+
 ```typescript
 notificationModule.createClient(service: NotificationService): INotificationClient {
   return new LocalNotificationClient(service);
@@ -96,20 +98,21 @@ notificationModule.createClient(service: NotificationService): INotificationClie
 
 ## 4. Migrated Callers Audit
 
-| Caller Domain | Migrated File | Prior Dependency | New Dependency | Methods Invoked |
-| :--- | :--- | :--- | :--- | :--- |
-| **Price Alerts** | [`apps/api/src/modules/price-alerts/internal/price-alert-service.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/price-alerts/internal/price-alert-service.ts) | `NotificationService` | `INotificationClient` | `requestNotification(...)` |
-| **Price Alerts Module** | [`apps/api/src/modules/price-alerts/index.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/price-alerts/index.ts) | `NotificationService` | `INotificationClient` | Factory typing |
-| **Customer / BackInStock** | [`apps/api/src/modules/customer/internal/back-in-stock-service.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/customer/internal/back-in-stock-service.ts) | `NotificationService` | `INotificationClient` | `requestNotification(...)`, `processPendingNotifications(...)` |
-| **Customer Module** | [`apps/api/src/modules/customer/index.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/customer/index.ts) | `NotificationService` | `INotificationClient` | Factory typing |
-| **Identity Service** | [`apps/api/src/app.ts#L492-L498`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/app.ts#L492-L498) | `notificationService.sendTransactionalEmail` | `notificationClient.sendTransactionalEmail` | Verification email dispatch |
-| **Background Dispatcher** | [`apps/api/src/app.ts#L598-L605`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/app.ts#L598-L605) | `notificationService.processPendingNotifications` | `notificationClient.processPendingNotifications` | 30s batch polling |
+| Caller Domain              | Migrated File                                                                                                                                                                                                                        | Prior Dependency                                  | New Dependency                                   | Methods Invoked                                                |
+| :------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------ | :----------------------------------------------- | :------------------------------------------------------------- |
+| **Price Alerts**           | [`apps/api/src/modules/price-alerts/internal/price-alert-service.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/price-alerts/internal/price-alert-service.ts) | `NotificationService`                             | `INotificationClient`                            | `requestNotification(...)`                                     |
+| **Price Alerts Module**    | [`apps/api/src/modules/price-alerts/index.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/price-alerts/index.ts)                                               | `NotificationService`                             | `INotificationClient`                            | Factory typing                                                 |
+| **Customer / BackInStock** | [`apps/api/src/modules/customer/internal/back-in-stock-service.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/customer/internal/back-in-stock-service.ts)     | `NotificationService`                             | `INotificationClient`                            | `requestNotification(...)`, `processPendingNotifications(...)` |
+| **Customer Module**        | [`apps/api/src/modules/customer/index.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/customer/index.ts)                                                       | `NotificationService`                             | `INotificationClient`                            | Factory typing                                                 |
+| **Identity Service**       | [`apps/api/src/app.ts#L492-L498`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/app.ts#L492-L498)                                                                         | `notificationService.sendTransactionalEmail`      | `notificationClient.sendTransactionalEmail`      | Verification email dispatch                                    |
+| **Background Dispatcher**  | [`apps/api/src/app.ts#L598-L605`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/app.ts#L598-L605)                                                                         | `notificationService.processPendingNotifications` | `notificationClient.processPendingNotifications` | 30s batch polling                                              |
 
 ---
 
 ## 5. What Remains Intentionally Inside the Monolith
 
 The following components remain part of the monolith during this transitional phase:
+
 1. **`NotificationService` & `NotificationRepository`**: Continue operating against `commerce_db` tables (`notifications`, `customer_notification_preferences`) for the in-process deployment.
 2. **`NotificationEventConsumer`**: Consumes in-process `DomainEvent` objects from the transactional outbox relay via `InMemoryEventTransport`.
 3. **`event-routes.ts`**: Fastify controllers for `/notifications*` admin routes and `/customers/me/notification-preferences*` customer routes remain mounted on the Fastify instance.
@@ -120,6 +123,7 @@ The following components remain part of the monolith during this transitional ph
 ## 6. Future `HttpNotificationClient` Replacement Point
 
 When the standalone `apps/notifications-service` is ready:
+
 1. We implement `HttpNotificationClient implements INotificationClient` in `apps/api`.
 2. It sends HTTP requests:
    - `POST /v1/internal/notifications/request`

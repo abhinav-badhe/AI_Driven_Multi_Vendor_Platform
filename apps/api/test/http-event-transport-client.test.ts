@@ -10,11 +10,7 @@ import {
   type OutboxEventRecord,
 } from '../src/modules/events/index.js';
 import type { AuthorizedActor } from '../src/modules/identity/rbac/policy.js';
-import {
-  NotFoundError,
-  ForbiddenError,
-  ExternalServiceError,
-} from '../src/errors/app-error.js';
+import { NotFoundError, ForbiddenError, ExternalServiceError } from '../src/errors/app-error.js';
 
 const mockAdminActor: AuthorizedActor = {
   userId: 'usr-admin-1',
@@ -167,7 +163,9 @@ describe('HttpOutboxClient', () => {
       offset: 0,
     });
 
-    expect(capturedUrl).toContain('/events/outbox?status=PENDING&tenantId=tenant-1&limit=10&offset=0');
+    expect(capturedUrl).toContain(
+      '/events/outbox?status=PENDING&tenantId=tenant-1&limit=10&offset=0',
+    );
     expect(capturedHeaders['x-user-id']).toBe(mockAdminActor.userId);
     expect(capturedHeaders['x-user-role']).toBe(mockAdminActor.role);
     expect(capturedHeaders['x-tenant-id']).toBe(mockAdminActor.tenantId);
@@ -262,7 +260,9 @@ describe('HttpOutboxClient', () => {
       fetchFn: mockFetch404 as unknown as typeof fetch,
     });
 
-    await expect(client404.getEventById(mockAdminActor, 'missing-id')).rejects.toThrow(NotFoundError);
+    await expect(client404.getEventById(mockAdminActor, 'missing-id')).rejects.toThrow(
+      NotFoundError,
+    );
 
     const mockFetch403 = vi.fn().mockImplementation(async () => {
       return new Response(JSON.stringify({ message: 'Forbidden' }), {

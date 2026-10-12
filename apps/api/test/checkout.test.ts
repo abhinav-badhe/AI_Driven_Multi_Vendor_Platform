@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -85,11 +89,29 @@ describe('Phase 5: Checkout Domain & Orchestration (Multi-Item Reservation & Com
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${alphaToken}` },
-      payload: { businessName: 'Alpha LLC', legalName: 'Alpha Legal', contactEmail: 'alpha@biz.com' },
+      payload: {
+        businessName: 'Alpha LLC',
+        legalName: 'Alpha Legal',
+        contactEmail: 'alpha@biz.com',
+      },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${alphaToken}` } });
-    const profA = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${alphaToken}` } })).json();
-    await app.inject({ method: 'POST', url: `/merchants/${profA.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${alphaToken}` },
+    });
+    const profA = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${alphaToken}` },
+      })
+    ).json();
+    await app.inject({
+      method: 'POST',
+      url: `/merchants/${profA.tenantId}/approve`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
 
     // 3. Merchant Beta
     const betaToken = await registerVerifiedUser(app, db, {
@@ -105,9 +127,23 @@ describe('Phase 5: Checkout Domain & Orchestration (Multi-Item Reservation & Com
       headers: { authorization: `Bearer ${betaToken}` },
       payload: { businessName: 'Beta LLC', legalName: 'Beta Legal', contactEmail: 'beta@biz.com' },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${betaToken}` } });
-    const profB = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${betaToken}` } })).json();
-    await app.inject({ method: 'POST', url: `/merchants/${profB.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${betaToken}` },
+    });
+    const profB = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${betaToken}` },
+      })
+    ).json();
+    await app.inject({
+      method: 'POST',
+      url: `/merchants/${profB.tenantId}/approve`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
 
     // 4. Customers
     const customer1Token = await registerVerifiedUser(app, db, {
@@ -304,8 +340,12 @@ describe('Phase 5: Checkout Domain & Orchestration (Multi-Item Reservation & Com
 
       // Verify immutable items snapshot
       expect(session.items.length).toBe(2);
-      const itemA = session.items.find((i: { listingId: string }) => i.listingId === listingAlpha.id);
-      const itemB = session.items.find((i: { listingId: string }) => i.listingId === listingBeta.id);
+      const itemA = session.items.find(
+        (i: { listingId: string }) => i.listingId === listingAlpha.id,
+      );
+      const itemB = session.items.find(
+        (i: { listingId: string }) => i.listingId === listingBeta.id,
+      );
 
       expect(itemA.merchantTenantId).toBe(listingAlpha.tenantId);
       expect(itemA.quantity).toBe(2);
@@ -383,7 +423,8 @@ describe('Phase 5: Checkout Domain & Orchestration (Multi-Item Reservation & Com
 
   describe('Inventory Reservation Orchestration & Multi-Item Compensation', () => {
     it('successfully reserves inventory for all items in multi-vendor checkout and marks session READY', async () => {
-      const { customer1Token, listingAlpha, listingBeta, invA, invB, alphaToken, betaToken } = await setupEcosystem();
+      const { customer1Token, listingAlpha, listingBeta, invA, invB, alphaToken, betaToken } =
+        await setupEcosystem();
 
       // Add items
       await app.inject({
@@ -460,15 +501,8 @@ describe('Phase 5: Checkout Domain & Orchestration (Multi-Item Reservation & Com
     });
 
     it('COMPENSATION GUARANTEE: releases already-acquired reservations if a later item in checkout fails reservation', async () => {
-      const {
-        customer1Token,
-        listingAlpha,
-        listingBeta,
-        invA,
-        invB,
-        alphaToken,
-        betaToken,
-      } = await setupEcosystem();
+      const { customer1Token, listingAlpha, listingBeta, invA, invB, alphaToken, betaToken } =
+        await setupEcosystem();
 
       // Setup scenario:
       // Item A (Merchant Alpha): 2 units requested (10 available) -> WILL SUCCEED

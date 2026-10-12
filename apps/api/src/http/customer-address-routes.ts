@@ -2,10 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
 import type { CustomerAddressService } from '../modules/customer/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
-import type {
-  CreateAddressInput,
-  UpdateAddressInput,
-} from '../modules/customer/index.js';
+import type { CreateAddressInput, UpdateAddressInput } from '../modules/customer/index.js';
 
 export function registerCustomerAddressRoutes(
   app: FastifyInstance,
@@ -112,14 +109,10 @@ export function registerCustomerAddressRoutes(
     },
   );
 
-  app.get(
-    '/v1/customers/addresses/:id',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const { id } = request.params as { id: string };
-      const address = await addressService.getAddress(actor, id);
-      return reply.status(200).send({ address });
-    },
-  );
+  app.get('/v1/customers/addresses/:id', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const { id } = request.params as { id: string };
+    const address = await addressService.getAddress(actor, id);
+    return reply.status(200).send({ address });
+  });
 }

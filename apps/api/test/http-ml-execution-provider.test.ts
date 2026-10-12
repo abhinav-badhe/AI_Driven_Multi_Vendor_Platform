@@ -101,8 +101,12 @@ describe('HttpMlExecutionProvider', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(capturedUrl).toBe(`${BASE_URL}/v1/predict`);
       expect(capturedInit?.method).toBe('POST');
-      expect((capturedInit?.headers as Record<string, string>)?.['Content-Type']).toBe('application/json');
-      expect((capturedInit?.headers as Record<string, string>)?.['Accept']).toBe('application/json');
+      expect((capturedInit?.headers as Record<string, string>)?.['Content-Type']).toBe(
+        'application/json',
+      );
+      expect((capturedInit?.headers as Record<string, string>)?.['Accept']).toBe(
+        'application/json',
+      );
 
       // Verify exact JSON body sent
       const parsedBody = JSON.parse(capturedInit?.body as string);
@@ -192,7 +196,11 @@ describe('HttpMlExecutionProvider', () => {
       });
 
       try {
-        await provider.runPrediction({ modelType: 'INVALID_TYPE', artifactPath: 'x', features: [] });
+        await provider.runPrediction({
+          modelType: 'INVALID_TYPE',
+          artifactPath: 'x',
+          features: [],
+        });
         expect.unreachable('Should have thrown');
       } catch (err) {
         expect(err).toBeInstanceOf(HttpMlProviderError);
@@ -218,7 +226,11 @@ describe('HttpMlExecutionProvider', () => {
       });
 
       try {
-        await provider.runPrediction({ modelType: 'STOCKOUT_RISK', artifactPath: 'missing.joblib', features: [] });
+        await provider.runPrediction({
+          modelType: 'STOCKOUT_RISK',
+          artifactPath: 'missing.joblib',
+          features: [],
+        });
         expect.unreachable('Should have thrown');
       } catch (err) {
         expect(err).toBeInstanceOf(HttpMlProviderError);
@@ -241,7 +253,11 @@ describe('HttpMlExecutionProvider', () => {
       });
 
       try {
-        await provider.runPrediction({ modelType: 'DEMAND_FORECASTING', artifactPath: 'model.joblib', features: [] });
+        await provider.runPrediction({
+          modelType: 'DEMAND_FORECASTING',
+          artifactPath: 'model.joblib',
+          features: [],
+        });
         expect.unreachable('Should have thrown');
       } catch (err) {
         expect(err).toBeInstanceOf(HttpMlProviderError);
@@ -266,7 +282,11 @@ describe('HttpMlExecutionProvider', () => {
       });
 
       await expect(
-        provider.runPrediction({ modelType: 'DEMAND_FORECASTING', artifactPath: 'm.joblib', features: [] }),
+        provider.runPrediction({
+          modelType: 'DEMAND_FORECASTING',
+          artifactPath: 'm.joblib',
+          features: [],
+        }),
       ).rejects.toThrow(HttpMlProviderError);
     });
 
@@ -286,7 +306,11 @@ describe('HttpMlExecutionProvider', () => {
       });
 
       try {
-        await provider.runPrediction({ modelType: 'DEMAND_FORECASTING', artifactPath: 'm.joblib', features: [] });
+        await provider.runPrediction({
+          modelType: 'DEMAND_FORECASTING',
+          artifactPath: 'm.joblib',
+          features: [],
+        });
         expect.unreachable('Should have thrown');
       } catch (err) {
         expect(err).toBeInstanceOf(HttpMlProviderError);
@@ -312,7 +336,11 @@ describe('HttpMlExecutionProvider', () => {
       });
 
       await expect(
-        provider.runPrediction({ modelType: 'DEMAND_FORECASTING', artifactPath: 'm.joblib', features: [] }),
+        provider.runPrediction({
+          modelType: 'DEMAND_FORECASTING',
+          artifactPath: 'm.joblib',
+          features: [],
+        }),
       ).rejects.toThrow(HttpMlProviderError);
     });
   });
@@ -337,7 +365,11 @@ describe('HttpMlExecutionProvider', () => {
       });
 
       try {
-        await provider.runPrediction({ modelType: 'DEMAND_FORECASTING', artifactPath: 'm.joblib', features: [] });
+        await provider.runPrediction({
+          modelType: 'DEMAND_FORECASTING',
+          artifactPath: 'm.joblib',
+          features: [],
+        });
         expect.unreachable('Should have thrown');
       } catch (err) {
         expect(err).toBeInstanceOf(HttpMlProviderError);
@@ -358,7 +390,11 @@ describe('HttpMlExecutionProvider', () => {
       });
 
       try {
-        await provider.runPrediction({ modelType: 'DEMAND_FORECASTING', artifactPath: 'm.joblib', features: [] });
+        await provider.runPrediction({
+          modelType: 'DEMAND_FORECASTING',
+          artifactPath: 'm.joblib',
+          features: [],
+        });
         expect.unreachable('Should have thrown');
       } catch (err) {
         expect(err).toBeInstanceOf(HttpMlProviderError);
@@ -405,7 +441,9 @@ describe('HttpMlExecutionProvider', () => {
         runPrediction: vi.fn(async () => ({
           success: true,
           modelType: 'DEMAND_FORECASTING',
-          predictions: [{ entityId: 'prod-1', predictionValue: 42.0, probability: null, confidence: 0.95 }],
+          predictions: [
+            { entityId: 'prod-1', predictionValue: 42.0, probability: null, confidence: 0.95 },
+          ],
         })),
       };
 
@@ -435,7 +473,10 @@ describe('HttpMlExecutionProvider', () => {
       expect(mockInference.runPrediction).toHaveBeenCalledTimes(1);
       expect(mockTraining.runTraining).not.toHaveBeenCalled();
 
-      const train = await composite.runTraining({ modelType: 'DEMAND_FORECASTING', version: 'v1.0.0' });
+      const train = await composite.runTraining({
+        modelType: 'DEMAND_FORECASTING',
+        version: 'v1.0.0',
+      });
       expect(train.success).toBe(true);
       expect(train.modelId).toBe('mdl-composite-1');
       expect(mockTraining.runTraining).toHaveBeenCalledTimes(1);

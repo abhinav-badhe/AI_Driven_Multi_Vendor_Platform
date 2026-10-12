@@ -72,16 +72,7 @@ export interface ICheckoutService extends ICheckoutReader {
       shippingAddress?: AddressSnapshot | Record<string, unknown> | null | undefined;
     },
   ): Promise<CheckoutSessionDto>;
-  reserveCheckoutInventory(
-    actor: AuthorizedActor,
-    sessionId: string,
-  ): Promise<CheckoutSessionDto>;
-  expireCheckoutSession(
-    actor: AuthorizedActor,
-    sessionId: string,
-  ): Promise<CheckoutSessionDto>;
-  cancelCheckoutSession(
-    actor: AuthorizedActor,
-    sessionId: string,
-  ): Promise<CheckoutSessionDto>;
+  reserveCheckoutInventory(actor: AuthorizedActor, sessionId: string): Promise<CheckoutSessionDto>;
+  expireCheckoutSession(actor: AuthorizedActor, sessionId: string): Promise<CheckoutSessionDto>;
+  cancelCheckoutSession(actor: AuthorizedActor, sessionId: string): Promise<CheckoutSessionDto>;
 }

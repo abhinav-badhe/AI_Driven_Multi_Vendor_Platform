@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -89,9 +93,23 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
       headers: { authorization: `Bearer ${merchantToken}` },
       payload: { businessName: 'Conc LLC', legalName: 'Conc Legal', contactEmail: 'c@c.com' },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${merchantToken}` } });
-    const prof = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${merchantToken}` } })).json();
-    await app.inject({ method: 'POST', url: `/merchants/${prof.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${merchantToken}` },
+    });
+    const prof = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${merchantToken}` },
+      })
+    ).json();
+    await app.inject({
+      method: 'POST',
+      url: `/merchants/${prof.tenantId}/approve`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
 
     // 3. Customer setup
     const customer1Token = await registerVerifiedUser(app, db, {
@@ -117,7 +135,12 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
         payload: { title: 'Limited Edition Sneaker', slug: 'ltd-sneaker' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/products/${prod.id}/status`, headers: { authorization: `Bearer ${adminToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/products/${prod.id}/status`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     const sku = (
       await app.inject({
@@ -127,7 +150,12 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
         payload: { skuCode: 'LTD-SNK-01' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/skus/${sku.id}/status`, headers: { authorization: `Bearer ${adminToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/skus/${sku.id}/status`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     const listing = (
       await app.inject({
@@ -137,7 +165,12 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
         payload: { skuId: sku.id, priceAmount: 1999900, currency: 'INR' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/listings/${listing.id}/status`, headers: { authorization: `Bearer ${merchantToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/listings/${listing.id}/status`,
+      headers: { authorization: `Bearer ${merchantToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     // 5. Initialize Inventory
     const inv = (
@@ -196,9 +229,10 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
       on_hand_quantity: number;
       reserved_quantity: number;
       non_sellable_quantity: number;
-    }>(`SELECT on_hand_quantity, reserved_quantity, non_sellable_quantity FROM inventory_items WHERE id = $1`, [
-      inventoryId,
-    ]);
+    }>(
+      `SELECT on_hand_quantity, reserved_quantity, non_sellable_quantity FROM inventory_items WHERE id = $1`,
+      [inventoryId],
+    );
     const inv = invRows.rows[0]!;
     expect(inv.on_hand_quantity).toBe(10);
     expect(inv.reserved_quantity).toBe(7);
@@ -232,9 +266,10 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
       on_hand_quantity: number;
       reserved_quantity: number;
       non_sellable_quantity: number;
-    }>(`SELECT on_hand_quantity, reserved_quantity, non_sellable_quantity FROM inventory_items WHERE id = $1`, [
-      inventoryId,
-    ]);
+    }>(
+      `SELECT on_hand_quantity, reserved_quantity, non_sellable_quantity FROM inventory_items WHERE id = $1`,
+      [inventoryId],
+    );
     const inv = invRows.rows[0]!;
     expect(inv.on_hand_quantity).toBe(10);
     expect(inv.reserved_quantity).toBe(10);
@@ -250,11 +285,20 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
         method: 'POST',
         url: '/inventory/reservations',
         headers: { authorization: `Bearer ${customer1Token}` },
-        payload: { inventoryId, quantity: 3, expiresAt: new Date(Date.now() - 10000).toISOString() },
+        payload: {
+          inventoryId,
+          quantity: 3,
+          expiresAt: new Date(Date.now() - 10000).toISOString(),
+        },
       });
       const reservationId = res.json().id;
 
-      let inv = (await db.query<{ reserved_quantity: number }>(`SELECT reserved_quantity FROM inventory_items WHERE id = $1`, [inventoryId])).rows[0]!;
+      let inv = (
+        await db.query<{ reserved_quantity: number }>(
+          `SELECT reserved_quantity FROM inventory_items WHERE id = $1`,
+          [inventoryId],
+        )
+      ).rows[0]!;
       expect(inv.reserved_quantity).toBe(3);
 
       // Trigger the expiration worker
@@ -268,15 +312,22 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
       expect(processRes.json().processedCount).toBe(1);
 
       // Verify state transition to EXPIRED
-      const updatedRes = (await app.inject({
-        method: 'GET',
-        url: `/inventory/reservations/${reservationId}`,
-        headers: { authorization: `Bearer ${adminToken}` },
-      })).json();
+      const updatedRes = (
+        await app.inject({
+          method: 'GET',
+          url: `/inventory/reservations/${reservationId}`,
+          headers: { authorization: `Bearer ${adminToken}` },
+        })
+      ).json();
       expect(updatedRes.status).toBe('EXPIRED');
 
       // Verify stock released exactly once
-      inv = (await db.query<{ reserved_quantity: number }>(`SELECT reserved_quantity FROM inventory_items WHERE id = $1`, [inventoryId])).rows[0]!;
+      inv = (
+        await db.query<{ reserved_quantity: number }>(
+          `SELECT reserved_quantity FROM inventory_items WHERE id = $1`,
+          [inventoryId],
+        )
+      ).rows[0]!;
       expect(inv.reserved_quantity).toBe(0);
     });
 
@@ -287,7 +338,11 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
         method: 'POST',
         url: '/inventory/reservations',
         headers: { authorization: `Bearer ${customer1Token}` },
-        payload: { inventoryId, quantity: 4, expiresAt: new Date(Date.now() + 10000).toISOString() },
+        payload: {
+          inventoryId,
+          quantity: 4,
+          expiresAt: new Date(Date.now() + 10000).toISOString(),
+        },
       });
 
       const processRes = await app.inject({
@@ -297,7 +352,12 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
       });
       expect(processRes.json().processedCount).toBe(0);
 
-      const inv = (await db.query<{ reserved_quantity: number }>(`SELECT reserved_quantity FROM inventory_items WHERE id = $1`, [inventoryId])).rows[0]!;
+      const inv = (
+        await db.query<{ reserved_quantity: number }>(
+          `SELECT reserved_quantity FROM inventory_items WHERE id = $1`,
+          [inventoryId],
+        )
+      ).rows[0]!;
       expect(inv.reserved_quantity).toBe(4);
     });
 
@@ -309,13 +369,21 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
         method: 'POST',
         url: '/inventory/reservations',
         headers: { authorization: `Bearer ${customer1Token}` },
-        payload: { inventoryId, quantity: 2, expiresAt: new Date(Date.now() - 10000).toISOString() },
+        payload: {
+          inventoryId,
+          quantity: 2,
+          expiresAt: new Date(Date.now() - 10000).toISOString(),
+        },
       });
       const reservationId = res.json().id;
 
       // First run expires it
-      await app.inject({ method: 'POST', url: '/inventory/reservations/process-expirations', headers: { authorization: `Bearer ${adminToken}` } });
-      
+      await app.inject({
+        method: 'POST',
+        url: '/inventory/reservations/process-expirations',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
       // Explicit retry via manual API
       const retryRes = await app.inject({
         method: 'POST',
@@ -325,7 +393,12 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
       expect(retryRes.statusCode).toBe(200);
 
       // Reserved quantity should be 0 (not negative)
-      const inv = (await db.query<{ reserved_quantity: number }>(`SELECT reserved_quantity FROM inventory_items WHERE id = $1`, [inventoryId])).rows[0]!;
+      const inv = (
+        await db.query<{ reserved_quantity: number }>(
+          `SELECT reserved_quantity FROM inventory_items WHERE id = $1`,
+          [inventoryId],
+        )
+      ).rows[0]!;
       expect(inv.reserved_quantity).toBe(0);
     });
 
@@ -336,7 +409,11 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
         method: 'POST',
         url: '/inventory/reservations',
         headers: { authorization: `Bearer ${customer1Token}` },
-        payload: { inventoryId, quantity: 2, expiresAt: new Date(Date.now() - 10000).toISOString() },
+        payload: {
+          inventoryId,
+          quantity: 2,
+          expiresAt: new Date(Date.now() - 10000).toISOString(),
+        },
       });
 
       // Launch 5 concurrent workers
@@ -345,45 +422,70 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
           method: 'POST',
           url: '/inventory/reservations/process-expirations',
           headers: { authorization: `Bearer ${adminToken}` },
-        })
+        }),
       );
       const responses = await Promise.all(requests);
-      
+
       const totalProcessed = responses.reduce((sum, r) => sum + r.json().processedCount, 0);
       expect(totalProcessed).toBe(1); // Only 1 worker should claim and process it
 
-      const inv = (await db.query<{ reserved_quantity: number }>(`SELECT reserved_quantity FROM inventory_items WHERE id = $1`, [inventoryId])).rows[0]!;
+      const inv = (
+        await db.query<{ reserved_quantity: number }>(
+          `SELECT reserved_quantity FROM inventory_items WHERE id = $1`,
+          [inventoryId],
+        )
+      ).rows[0]!;
       expect(inv.reserved_quantity).toBe(0);
     });
 
     it('5. race condition: expiration racing with consume guarantees exactly one wins', async () => {
-      const { customer1Token, merchantToken, adminToken, inventoryId } = await setupInventoryBaseline(10);
+      const { customer1Token, merchantToken, adminToken, inventoryId } =
+        await setupInventoryBaseline(10);
 
       const res = await app.inject({
         method: 'POST',
         url: '/inventory/reservations',
         headers: { authorization: `Bearer ${customer1Token}` },
-        payload: { inventoryId, quantity: 5, expiresAt: new Date(Date.now() - 10000).toISOString() },
+        payload: {
+          inventoryId,
+          quantity: 5,
+          expiresAt: new Date(Date.now() - 10000).toISOString(),
+        },
       });
       const resId = res.json().id;
 
       // Concurrently run process-expirations and consume
       const [expireResult, consumeResult] = await Promise.all([
-        app.inject({ method: 'POST', url: '/inventory/reservations/process-expirations', headers: { authorization: `Bearer ${adminToken}` } }),
-        app.inject({ method: 'POST', url: `/inventory/reservations/${resId}/consume`, headers: { authorization: `Bearer ${merchantToken}` } })
+        app.inject({
+          method: 'POST',
+          url: '/inventory/reservations/process-expirations',
+          headers: { authorization: `Bearer ${adminToken}` },
+        }),
+        app.inject({
+          method: 'POST',
+          url: `/inventory/reservations/${resId}/consume`,
+          headers: { authorization: `Bearer ${merchantToken}` },
+        }),
       ]);
       expect(expireResult.statusCode).toBe(200);
 
-      const reservation = (await app.inject({
-        method: 'GET',
-        url: `/inventory/reservations/${resId}`,
-        headers: { authorization: `Bearer ${adminToken}` },
-      })).json();
+      const reservation = (
+        await app.inject({
+          method: 'GET',
+          url: `/inventory/reservations/${resId}`,
+          headers: { authorization: `Bearer ${adminToken}` },
+        })
+      ).json();
 
-      const inv = (await db.query<{ reserved_quantity: number, on_hand_quantity: number }>(`SELECT reserved_quantity, on_hand_quantity FROM inventory_items WHERE id = $1`, [inventoryId])).rows[0]!;
-      
+      const inv = (
+        await db.query<{ reserved_quantity: number; on_hand_quantity: number }>(
+          `SELECT reserved_quantity, on_hand_quantity FROM inventory_items WHERE id = $1`,
+          [inventoryId],
+        )
+      ).rows[0]!;
+
       expect(inv.reserved_quantity).toBe(0);
-      
+
       if (reservation.status === 'CONSUMED') {
         expect(inv.on_hand_quantity).toBe(5); // Deducted
         expect(consumeResult.statusCode).toBe(200);
@@ -397,16 +499,25 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
       const { customer1Token, adminToken, inventoryId } = await setupInventoryBaseline(10);
 
       // Create 3 expired reservations of 2 quantity each (total 6 reserved)
-      for(let i=0; i<3; i++) {
+      for (let i = 0; i < 3; i++) {
         await app.inject({
           method: 'POST',
           url: '/inventory/reservations',
           headers: { authorization: `Bearer ${customer1Token}` },
-          payload: { inventoryId, quantity: 2, expiresAt: new Date(Date.now() - 10000).toISOString() },
+          payload: {
+            inventoryId,
+            quantity: 2,
+            expiresAt: new Date(Date.now() - 10000).toISOString(),
+          },
         });
       }
 
-      let inv = (await db.query<{ reserved_quantity: number }>(`SELECT reserved_quantity FROM inventory_items WHERE id = $1`, [inventoryId])).rows[0]!;
+      let inv = (
+        await db.query<{ reserved_quantity: number }>(
+          `SELECT reserved_quantity FROM inventory_items WHERE id = $1`,
+          [inventoryId],
+        )
+      ).rows[0]!;
       expect(inv.reserved_quantity).toBe(6);
 
       const processRes = await app.inject({
@@ -416,7 +527,12 @@ describe('Phase 4: Concurrency & Overselling Prevention', () => {
       });
       expect(processRes.json().processedCount).toBe(3);
 
-      inv = (await db.query<{ reserved_quantity: number }>(`SELECT reserved_quantity FROM inventory_items WHERE id = $1`, [inventoryId])).rows[0]!;
+      inv = (
+        await db.query<{ reserved_quantity: number }>(
+          `SELECT reserved_quantity FROM inventory_items WHERE id = $1`,
+          [inventoryId],
+        )
+      ).rows[0]!;
       expect(inv.reserved_quantity).toBe(0);
     });
   });

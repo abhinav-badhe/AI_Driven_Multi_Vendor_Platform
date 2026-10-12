@@ -29,24 +29,31 @@ export interface BackInStockSubscriptionDto {
   productId: string;
   skuId: string | null;
   status: BackInStockSubscriptionStatus;
-  product?: {
-    id: string;
-    title: string;
-    slug: string;
-    brand: string | null;
-    thumbnailUrl: string | null;
-    status: string;
-  } | undefined;
-  sku?: {
-    id: string;
-    skuCode: string;
-    attributes: Record<string, unknown>;
-  } | null | undefined;
-  availability?: {
-    isAvailable: boolean;
-    availableQuantity: number;
-    status: 'IN_STOCK' | 'OUT_OF_STOCK' | 'UNAVAILABLE';
-  } | undefined;
+  product?:
+    | {
+        id: string;
+        title: string;
+        slug: string;
+        brand: string | null;
+        thumbnailUrl: string | null;
+        status: string;
+      }
+    | undefined;
+  sku?:
+    | {
+        id: string;
+        skuCode: string;
+        attributes: Record<string, unknown>;
+      }
+    | null
+    | undefined;
+  availability?:
+    | {
+        isAvailable: boolean;
+        availableQuantity: number;
+        status: 'IN_STOCK' | 'OUT_OF_STOCK' | 'UNAVAILABLE';
+      }
+    | undefined;
   createdAt: string;
   notifiedAt: string | null;
   updatedAt: string;

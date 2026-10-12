@@ -4,10 +4,7 @@ import type { AuthorizedActor } from '../../identity/index.js';
 import { RbacPolicy } from '../../identity/index.js';
 import type { ListingService, IMarketplaceReader } from '../../marketplace/index.js';
 import { CartRepository } from './cart-repository.js';
-import {
-  ValidationError,
-  NotFoundError,
-} from '../../../errors/app-error.js';
+import { ValidationError, NotFoundError } from '../../../errors/app-error.js';
 
 export interface CartItemDto {
   id: string;
@@ -65,7 +62,14 @@ export class CartService implements ICartService {
   async getOrCreateCart(actor: AuthorizedActor): Promise<CartDto> {
     RbacPolicy.requirePermission(actor, 'cart:read-own');
     const cart = await this.repo.findOrCreateCart(actor.tenantId);
-    return this.buildCartDto(cart.id, cart.tenant_id, cart.status, cart.created_at, cart.updated_at, actor);
+    return this.buildCartDto(
+      cart.id,
+      cart.tenant_id,
+      cart.status,
+      cart.created_at,
+      cart.updated_at,
+      actor,
+    );
   }
 
   async addItem(actor: AuthorizedActor, input: AddCartItemInput): Promise<CartDto> {
@@ -99,7 +103,14 @@ export class CartService implements ICartService {
       input.quantity,
     );
 
-    return this.buildCartDto(cart.id, cart.tenant_id, cart.status, cart.created_at, cart.updated_at, actor);
+    return this.buildCartDto(
+      cart.id,
+      cart.tenant_id,
+      cart.status,
+      cart.created_at,
+      cart.updated_at,
+      actor,
+    );
   }
 
   async updateItemQuantity(
@@ -125,7 +136,14 @@ export class CartService implements ICartService {
 
     await this.repo.updateItemQuantity(cart.id, itemId, input.quantity);
 
-    return this.buildCartDto(cart.id, cart.tenant_id, cart.status, cart.created_at, cart.updated_at, actor);
+    return this.buildCartDto(
+      cart.id,
+      cart.tenant_id,
+      cart.status,
+      cart.created_at,
+      cart.updated_at,
+      actor,
+    );
   }
 
   async removeItem(actor: AuthorizedActor, itemId: string): Promise<CartDto> {
@@ -139,7 +157,14 @@ export class CartService implements ICartService {
 
     await this.repo.removeItem(cart.id, itemId);
 
-    return this.buildCartDto(cart.id, cart.tenant_id, cart.status, cart.created_at, cart.updated_at, actor);
+    return this.buildCartDto(
+      cart.id,
+      cart.tenant_id,
+      cart.status,
+      cart.created_at,
+      cart.updated_at,
+      actor,
+    );
   }
 
   async clearCart(actor: AuthorizedActor): Promise<CartDto> {
@@ -148,7 +173,14 @@ export class CartService implements ICartService {
     const cart = await this.repo.findOrCreateCart(actor.tenantId);
     await this.repo.clearCart(cart.id);
 
-    return this.buildCartDto(cart.id, cart.tenant_id, cart.status, cart.created_at, cart.updated_at, actor);
+    return this.buildCartDto(
+      cart.id,
+      cart.tenant_id,
+      cart.status,
+      cart.created_at,
+      cart.updated_at,
+      actor,
+    );
   }
 
   private async buildCartDto(

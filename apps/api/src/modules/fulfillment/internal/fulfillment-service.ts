@@ -10,7 +10,12 @@ import {
   InvalidStateTransitionError,
 } from '../../../errors/app-error.js';
 import { RbacPolicy, type AuthorizedActor } from '../../identity/rbac/policy.js';
-import type { OrderService, IOrderService, SellerOrderDto, OrderItemDto } from '../../orders/index.js';
+import type {
+  OrderService,
+  IOrderService,
+  SellerOrderDto,
+  OrderItemDto,
+} from '../../orders/index.js';
 import type { PaymentService, IPaymentService } from '../../payment/index.js';
 import type { InventoryService, IInventoryService } from '../../inventory/index.js';
 import type { OutboxService } from '../../events/index.js';
@@ -194,10 +199,7 @@ export class FulfillmentService implements IFulfillmentService {
 
   // --- SHIPMENT OPERATIONS ---
 
-  async createShipment(
-    actor: AuthorizedActor,
-    input: CreateShipmentInput,
-  ): Promise<ShipmentDto> {
+  async createShipment(actor: AuthorizedActor, input: CreateShipmentInput): Promise<ShipmentDto> {
     const releaseLock = await this.acquireLock(`ship_${input.sellerOrderId}`);
     try {
       return await this.createShipmentInternal(actor, input);
@@ -321,7 +323,10 @@ export class FulfillmentService implements IFulfillmentService {
     } else {
       let snapRecipient: CarrierAddress | null = null;
       try {
-        const customerOrder = await this.orderService.getCustomerOrder(adminActor, sellerOrder.customerOrderId);
+        const customerOrder = await this.orderService.getCustomerOrder(
+          adminActor,
+          sellerOrder.customerOrderId,
+        );
         if (customerOrder.shippingAddress) {
           const snap = customerOrder.shippingAddress;
           snapRecipient = {
@@ -366,7 +371,8 @@ export class FulfillmentService implements IFulfillmentService {
       carrierResult = {
         carrierShipmentId: existingOp.carrier_shipment_id,
         carrier: existingOp.carrier,
-        trackingNumber: existingOp.tracking_number || `TRK_${randomUUID().slice(0, 8).toUpperCase()}`,
+        trackingNumber:
+          existingOp.tracking_number || `TRK_${randomUUID().slice(0, 8).toUpperCase()}`,
         trackingUrl: existingOp.tracking_url,
         labelUrl: existingOp.label_url,
         status: 'READY_TO_SHIP',
@@ -413,7 +419,8 @@ export class FulfillmentService implements IFulfillmentService {
           carrierResult = {
             carrierShipmentId: polledOp.carrier_shipment_id,
             carrier: polledOp.carrier,
-            trackingNumber: polledOp.tracking_number || `TRK_${randomUUID().slice(0, 8).toUpperCase()}`,
+            trackingNumber:
+              polledOp.tracking_number || `TRK_${randomUUID().slice(0, 8).toUpperCase()}`,
             trackingUrl: polledOp.tracking_url,
             labelUrl: polledOp.label_url,
             status: 'READY_TO_SHIP',
@@ -592,11 +599,7 @@ export class FulfillmentService implements IFulfillmentService {
     // 8. If seller order was PAID, move to PROCESSING outside transaction lock to avoid deadlock
     if (sellerOrder.status === 'PAID') {
       try {
-        await this.orderService.updateSellerOrderStatus(
-          adminActor,
-          sellerOrder.id,
-          'PROCESSING',
-        );
+        await this.orderService.updateSellerOrderStatus(adminActor, sellerOrder.id, 'PROCESSING');
       } catch {
         // If already updated concurrently, safe to continue
       }
@@ -645,17 +648,14 @@ export class FulfillmentService implements IFulfillmentService {
       });
 
       // Durably persist the carrier shipment result into PostgreSQL (independent commit)
-      await this.repo.completeCarrierOperation(
-        carrierIdempotencyKey,
-        {
-          carrierShipmentId: carrierResult.carrierShipmentId,
-          carrier: carrierResult.carrier,
-          trackingNumber: carrierResult.trackingNumber,
-          trackingUrl: carrierResult.trackingUrl,
-          labelUrl: carrierResult.labelUrl,
-          responsePayload: (carrierResult.metadata as Record<string, unknown>) ?? {},
-        },
-      );
+      await this.repo.completeCarrierOperation(carrierIdempotencyKey, {
+        carrierShipmentId: carrierResult.carrierShipmentId,
+        carrier: carrierResult.carrier,
+        trackingNumber: carrierResult.trackingNumber,
+        trackingUrl: carrierResult.trackingUrl,
+        labelUrl: carrierResult.labelUrl,
+        responsePayload: (carrierResult.metadata as Record<string, unknown>) ?? {},
+      });
 
       return carrierResult;
     } catch (carrierErr) {
@@ -703,7 +703,9 @@ export class FulfillmentService implements IFulfillmentService {
         rows = await this.repo.findShipmentsBySellerTenant(actor.tenantId);
       }
       return Promise.all(
-        rows.map(async (r) => this.toShipmentDto(r, await this.repo.findShipmentItemsByShipment(r.id))),
+        rows.map(async (r) =>
+          this.toShipmentDto(r, await this.repo.findShipmentItemsByShipment(r.id)),
+        ),
       );
     }
 
@@ -719,7 +721,9 @@ export class FulfillmentService implements IFulfillmentService {
       }
       const rows = await this.repo.findShipmentsByCustomerOrder(filter.customerOrderId);
       return Promise.all(
-        rows.map(async (r) => this.toShipmentDto(r, await this.repo.findShipmentItemsByShipment(r.id))),
+        rows.map(async (r) =>
+          this.toShipmentDto(r, await this.repo.findShipmentItemsByShipment(r.id)),
+        ),
       );
     }
 
@@ -731,7 +735,9 @@ export class FulfillmentService implements IFulfillmentService {
         rows = await this.repo.findShipmentsByCustomerOrder(filter.customerOrderId);
       }
       return Promise.all(
-        rows.map(async (r) => this.toShipmentDto(r, await this.repo.findShipmentItemsByShipment(r.id))),
+        rows.map(async (r) =>
+          this.toShipmentDto(r, await this.repo.findShipmentItemsByShipment(r.id)),
+        ),
       );
     }
 
@@ -792,7 +798,9 @@ export class FulfillmentService implements IFulfillmentService {
         extra,
       );
       if (!updated) {
-        throw new InvalidStateTransitionError('Concurrent modification conflict on shipment status update');
+        throw new InvalidStateTransitionError(
+          'Concurrent modification conflict on shipment status update',
+        );
       }
 
       // If shipment is DELIVERED, evaluate if Seller Order can transition to COMPLETED
@@ -866,20 +874,17 @@ export class FulfillmentService implements IFulfillmentService {
 
     return this.db.withTransaction(async (tx) => {
       const txRepo = new FulfillmentRepository(tx);
-      const updated = await txRepo.updateShipmentStatus(
-        shipmentId,
-        current.status,
-        'CANCELLED',
-        {
-          metadata: {
-            ...current.metadata,
-            cancelReason: reason || 'Merchant cancelled',
-            cancelledAt: new Date().toISOString(),
-          },
+      const updated = await txRepo.updateShipmentStatus(shipmentId, current.status, 'CANCELLED', {
+        metadata: {
+          ...current.metadata,
+          cancelReason: reason || 'Merchant cancelled',
+          cancelledAt: new Date().toISOString(),
         },
-      );
+      });
       if (!updated) {
-        throw new InvalidStateTransitionError('Concurrent modification conflict on shipment cancellation');
+        throw new InvalidStateTransitionError(
+          'Concurrent modification conflict on shipment cancellation',
+        );
       }
 
       if (this.outboxService) {
@@ -963,7 +968,12 @@ export class FulfillmentService implements IFulfillmentService {
   async handleCarrierCallback(
     rawBody: string,
     signatureHeader: string,
-  ): Promise<{ processed: boolean; deduplicated?: boolean; shipmentId: string; status: ShipmentStatus }> {
+  ): Promise<{
+    processed: boolean;
+    deduplicated?: boolean;
+    shipmentId: string;
+    status: ShipmentStatus;
+  }> {
     // 1. Signature Verification outside transaction (rejects invalid/expired signatures)
     const isValid = this.carrierProvider.verifyCallbackSignature(
       rawBody,
@@ -980,19 +990,50 @@ export class FulfillmentService implements IFulfillmentService {
 
     // 2. Single Atomic PostgreSQL Transaction
     return this.db.withTransaction(async (tx) => {
-        const txRepo = new FulfillmentRepository(tx);
+      const txRepo = new FulfillmentRepository(tx);
 
-        // Lock shipment row to serialize concurrent webhook deliveries
-        const shipment = await txRepo.findShipmentByTrackingForUpdate(event.carrier, event.trackingNumber);
-        if (!shipment) {
-          throw new NotFoundError(
-            `Shipment with carrier '${event.carrier}' and tracking '${event.trackingNumber}' not found`,
-          );
-        }
+      // Lock shipment row to serialize concurrent webhook deliveries
+      const shipment = await txRepo.findShipmentByTrackingForUpdate(
+        event.carrier,
+        event.trackingNumber,
+      );
+      if (!shipment) {
+        throw new NotFoundError(
+          `Shipment with carrier '${event.carrier}' and tracking '${event.trackingNumber}' not found`,
+        );
+      }
 
-        // Replay / Duplicate check in carrier_webhook_events
-        const existingEvent = await txRepo.findCarrierWebhookEvent(event.carrier, event.eventId);
-        if (existingEvent) {
+      // Replay / Duplicate check in carrier_webhook_events
+      const existingEvent = await txRepo.findCarrierWebhookEvent(event.carrier, event.eventId);
+      if (existingEvent) {
+        return {
+          processed: true,
+          deduplicated: true,
+          shipmentId: shipment.id,
+          status: shipment.status,
+        };
+      }
+
+      // Record in carrier_webhook_events ledger
+      try {
+        await txRepo.recordCarrierWebhookEvent({
+          id: randomUUID(),
+          carrier: event.carrier,
+          providerEventId: event.eventId,
+          trackingNumber: event.trackingNumber,
+          status: event.status,
+          payload: {
+            location: event.location,
+            timestamp: event.timestamp,
+            signature: event.signature,
+          },
+        });
+      } catch (err: unknown) {
+        if (
+          err instanceof Error &&
+          (err.message.includes('uq_carrier_webhook_event') ||
+            (err as { code?: string }).code === '23505')
+        ) {
           return {
             processed: true,
             deduplicated: true,
@@ -1000,97 +1041,72 @@ export class FulfillmentService implements IFulfillmentService {
             status: shipment.status,
           };
         }
+        throw err;
+      }
 
-        // Record in carrier_webhook_events ledger
-        try {
-          await txRepo.recordCarrierWebhookEvent({
-            id: randomUUID(),
-            carrier: event.carrier,
-            providerEventId: event.eventId,
-            trackingNumber: event.trackingNumber,
-            status: event.status,
-            payload: {
-              location: event.location,
-              timestamp: event.timestamp,
-              signature: event.signature,
-            },
-          });
-        } catch (err: unknown) {
-          if (
-            err instanceof Error &&
-            (err.message.includes('uq_carrier_webhook_event') ||
-              (err as { code?: string }).code === '23505')
-          ) {
-            return {
-              processed: true,
-              deduplicated: true,
-              shipmentId: shipment.id,
-              status: shipment.status,
-            };
+      // State machine validation / Out-of-order protection:
+      // Monotonic progression: do not regress terminal or forward states
+      const validTransitions: Record<ShipmentStatus, ShipmentStatus[]> = {
+        PENDING: ['READY_TO_SHIP', 'CANCELLED'],
+        READY_TO_SHIP: ['SHIPPED', 'CANCELLED'],
+        SHIPPED: ['IN_TRANSIT', 'FAILED'],
+        IN_TRANSIT: ['OUT_FOR_DELIVERY', 'FAILED'],
+        OUT_FOR_DELIVERY: ['DELIVERED', 'FAILED'],
+        DELIVERED: ['RETURNED'],
+        CANCELLED: [],
+        FAILED: [],
+        RETURNED: [],
+      };
+
+      let latestStatus = shipment.status;
+      if (
+        shipment.status !== event.status &&
+        validTransitions[shipment.status]?.includes(event.status)
+      ) {
+        const extra: { shippedAt?: Date; deliveredAt?: Date } = {};
+        if (event.status === 'SHIPPED') extra.shippedAt = new Date(event.timestamp);
+        else if (event.status === 'DELIVERED') extra.deliveredAt = new Date(event.timestamp);
+
+        const updated = await txRepo.updateShipmentStatus(
+          shipment.id,
+          shipment.status,
+          event.status,
+          extra,
+        );
+        if (updated) {
+          latestStatus = updated.status;
+
+          // Record outbox event in same transaction
+          if (this.outboxService) {
+            const outboxEvt = createDomainEvent({
+              eventType: EventTypes.FULFILLMENT_SHIPMENT_STATUS_CHANGED,
+              eventVersion: 1,
+              aggregateType: 'shipment',
+              aggregateId: shipment.id,
+              tenantId: shipment.seller_tenant_id,
+              payload: {
+                shipmentId: shipment.id,
+                sellerOrderId: shipment.seller_order_id,
+                customerOrderId: shipment.customer_order_id,
+                carrier: shipment.carrier,
+                trackingNumber: shipment.tracking_number,
+                previousStatus: shipment.status,
+                newStatus: event.status,
+                location: event.location,
+                timestamp: event.timestamp,
+              },
+            });
+            await this.outboxService.recordEvent(tx, outboxEvt);
           }
-          throw err;
-        }
 
-        // State machine validation / Out-of-order protection:
-        // Monotonic progression: do not regress terminal or forward states
-        const validTransitions: Record<ShipmentStatus, ShipmentStatus[]> = {
-          PENDING: ['READY_TO_SHIP', 'CANCELLED'],
-          READY_TO_SHIP: ['SHIPPED', 'CANCELLED'],
-          SHIPPED: ['IN_TRANSIT', 'FAILED'],
-          IN_TRANSIT: ['OUT_FOR_DELIVERY', 'FAILED'],
-          OUT_FOR_DELIVERY: ['DELIVERED', 'FAILED'],
-          DELIVERED: ['RETURNED'],
-          CANCELLED: [],
-          FAILED: [],
-          RETURNED: [],
-        };
-
-        let latestStatus = shipment.status;
-        if (shipment.status !== event.status && validTransitions[shipment.status]?.includes(event.status)) {
-          const extra: { shippedAt?: Date; deliveredAt?: Date } = {};
-          if (event.status === 'SHIPPED') extra.shippedAt = new Date(event.timestamp);
-          else if (event.status === 'DELIVERED') extra.deliveredAt = new Date(event.timestamp);
-
-          const updated = await txRepo.updateShipmentStatus(
-            shipment.id,
-            shipment.status,
-            event.status,
-            extra,
-          );
-          if (updated) {
-            latestStatus = updated.status;
-
-            // Record outbox event in same transaction
-            if (this.outboxService) {
-              const outboxEvt = createDomainEvent({
-                eventType: EventTypes.FULFILLMENT_SHIPMENT_STATUS_CHANGED,
-                eventVersion: 1,
-                aggregateType: 'shipment',
-                aggregateId: shipment.id,
-                tenantId: shipment.seller_tenant_id,
-                payload: {
-                  shipmentId: shipment.id,
-                  sellerOrderId: shipment.seller_order_id,
-                  customerOrderId: shipment.customer_order_id,
-                  carrier: shipment.carrier,
-                  trackingNumber: shipment.tracking_number,
-                  previousStatus: shipment.status,
-                  newStatus: event.status,
-                  location: event.location,
-                  timestamp: event.timestamp,
-                },
-              });
-              await this.outboxService.recordEvent(tx, outboxEvt);
-            }
-
-            if (event.status === 'DELIVERED') {
-              await this.evaluateSellerOrderCompletionInTx(tx, shipment.seller_order_id);
-            }
+          if (event.status === 'DELIVERED') {
+            await this.evaluateSellerOrderCompletionInTx(tx, shipment.seller_order_id);
           }
         }
+      }
 
-        return { processed: true, shipmentId: shipment.id, status: latestStatus };
-      });
+      return { processed: true, shipmentId: shipment.id, status: latestStatus };
+    });
   }
 
   private async evaluateSellerOrderCompletionInTx(
@@ -1135,10 +1151,7 @@ export class FulfillmentService implements IFulfillmentService {
 
   // --- RETURN OPERATIONS ---
 
-  async createReturnRequest(
-    actor: AuthorizedActor,
-    input: CreateReturnInput,
-  ): Promise<ReturnDto> {
+  async createReturnRequest(actor: AuthorizedActor, input: CreateReturnInput): Promise<ReturnDto> {
     const releaseLock = await this.acquireLock(`ret_${input.sellerOrderId}`);
     try {
       return await this.createReturnRequestInternal(actor, input);
@@ -1284,9 +1297,7 @@ export class FulfillmentService implements IFulfillmentService {
 
       // Concurrency check on eligible remaining return quantities
       for (const reqItem of input.items) {
-        const deliveredQty = await txRepo.getTotalDeliveredQuantityByOrderItem(
-          reqItem.orderItemId,
-        );
+        const deliveredQty = await txRepo.getTotalDeliveredQuantityByOrderItem(reqItem.orderItemId);
         const returnedQty = await txRepo.getTotalReturnedQuantityByOrderItem(reqItem.orderItemId);
         const eligible = deliveredQty - returnedQty;
         if (reqItem.quantity > eligible) {
@@ -1597,14 +1608,11 @@ export class FulfillmentService implements IFulfillmentService {
 
     return this.db.withTransaction(async (tx) => {
       const txRepo = new FulfillmentRepository(tx);
-      const updated = await txRepo.updateReturnStatus(
-        returnId,
-        current.status,
-        nextStatus,
-        extra,
-      );
+      const updated = await txRepo.updateReturnStatus(returnId, current.status, nextStatus, extra);
       if (!updated) {
-        throw new InvalidStateTransitionError('Concurrent modification conflict on return status update');
+        throw new InvalidStateTransitionError(
+          'Concurrent modification conflict on return status update',
+        );
       }
 
       // Outbox event in same transaction
@@ -1649,10 +1657,7 @@ export class FulfillmentService implements IFulfillmentService {
         row.carrier_shipment_id ??
         (row.metadata?.['carrierShipmentId'] as string | undefined) ??
         null,
-      labelUrl:
-        row.label_url ??
-        (row.metadata?.['labelUrl'] as string | undefined) ??
-        null,
+      labelUrl: row.label_url ?? (row.metadata?.['labelUrl'] as string | undefined) ?? null,
       shippedAt: row.shipped_at ? row.shipped_at.toISOString() : null,
       deliveredAt: row.delivered_at ? row.delivered_at.toISOString() : null,
       estimatedDeliveryAt: row.estimated_delivery_at

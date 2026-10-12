@@ -125,7 +125,8 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
     params: AnalyticsQueryParams,
   ): Promise<CommerceKpiDto> {
     const scope = await this.resolveQueryScope(actor, params);
-    const startDate = scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const startDate =
+      scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const endDate = scope.endDate ?? new Date().toISOString().slice(0, 10);
     const queryParams: AnalyticsQueryParams = {
       ...scope,
@@ -200,7 +201,8 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
     params: AnalyticsQueryParams,
   ): Promise<MerchantAnalyticsDto> {
     const scope = await this.resolveQueryScope(actor, params);
-    const startDate = scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const startDate =
+      scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const endDate = scope.endDate ?? new Date().toISOString().slice(0, 10);
 
     const merchants = await this.repo.queryMerchantMetrics(this.db, {
@@ -233,7 +235,8 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
     params: AnalyticsQueryParams,
   ): Promise<ProductAnalyticsDto> {
     const scope = await this.resolveQueryScope(actor, params);
-    const startDate = scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const startDate =
+      scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const endDate = scope.endDate ?? new Date().toISOString().slice(0, 10);
 
     const products = await this.repo.queryProductPerformance(this.db, {
@@ -266,7 +269,8 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
     params: AnalyticsQueryParams,
   ): Promise<OperationalKpiDto> {
     const scope = await this.resolveQueryScope(actor, params);
-    const startDate = scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const startDate =
+      scope.startDate ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const endDate = scope.endDate ?? new Date().toISOString().slice(0, 10);
 
     const metrics = await this.repo.queryDailyMetrics(this.db, {
@@ -293,9 +297,7 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
         ? ((paymentSuccessCount / totalPayments) * 100).toFixed(2) + '%'
         : '100.00%';
     const paymentFailureRate =
-      totalPayments > 0
-        ? ((paymentFailCount / totalPayments) * 100).toFixed(2) + '%'
-        : '0.00%';
+      totalPayments > 0 ? ((paymentFailCount / totalPayments) * 100).toFixed(2) + '%' : '0.00%';
 
     return {
       period: {
@@ -349,7 +351,9 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
     try {
       switch (event.eventType) {
         case EventTypes.ORDER_CREATED: {
-          const items = Array.isArray(payload.items) ? (payload.items as Record<string, unknown>[]) : [];
+          const items = Array.isArray(payload.items)
+            ? (payload.items as Record<string, unknown>[])
+            : [];
           const currency = (payload.currency as string) || 'INR';
           const orderId = (payload.orderId as string) || event.aggregateId;
           const customerId = (payload.customerId as string) || null;
@@ -379,7 +383,8 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
               }
 
               const itemTotal = formatMoney(qty * price);
-              const merchantId = (item.merchantId as string) || (payload.merchantId as string) || null;
+              const merchantId =
+                (item.merchantId as string) || (payload.merchantId as string) || null;
 
               await this.repo.recordOrderFact(conn, {
                 factId: `fact_ord_${event.eventId}_${i}`,
@@ -402,7 +407,13 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
               });
 
               if (merchantId) {
-                await this.repo.recomputeDailyMetric(conn, tenantId, merchantId, metricDate, currency);
+                await this.repo.recomputeDailyMetric(
+                  conn,
+                  tenantId,
+                  merchantId,
+                  metricDate,
+                  currency,
+                );
               }
             }
           } else {
@@ -430,7 +441,13 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
             });
 
             if (merchantId) {
-              await this.repo.recomputeDailyMetric(conn, tenantId, merchantId, metricDate, currency);
+              await this.repo.recomputeDailyMetric(
+                conn,
+                tenantId,
+                merchantId,
+                metricDate,
+                currency,
+              );
             }
           }
 
@@ -548,9 +565,10 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
         case EventTypes.FULFILLMENT_SHIPMENT_STATUS_CHANGED:
         case EventTypes.FULFILLMENT_RETURN_STATUS_CHANGED: {
           const isReturn = event.eventType === EventTypes.FULFILLMENT_RETURN_STATUS_CHANGED;
-          const shipmentId = isReturn ? null : ((payload.shipmentId as string) || event.aggregateId);
-          const returnId = isReturn ? ((payload.returnId as string) || event.aggregateId) : null;
-          const merchantId = (payload.sellerTenantId as string) || (payload.merchantId as string) || null;
+          const shipmentId = isReturn ? null : (payload.shipmentId as string) || event.aggregateId;
+          const returnId = isReturn ? (payload.returnId as string) || event.aggregateId : null;
+          const merchantId =
+            (payload.sellerTenantId as string) || (payload.merchantId as string) || null;
 
           await this.repo.recordFulfillmentFact(conn, {
             factId: `fact_ful_${event.eventId}`,
@@ -579,7 +597,8 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
           }
 
           const currency = (payload.currency as string) || 'INR';
-          const merchantId = (payload.merchantId as string) || (payload.sellerTenantId as string) || 'UNKNOWN';
+          const merchantId =
+            (payload.merchantId as string) || (payload.sellerTenantId as string) || 'UNKNOWN';
 
           await this.repo.recordSettlementFact(conn, {
             factId: `fact_set_${event.eventId}`,
@@ -650,7 +669,8 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
             factId: `fact_prm_${event.eventId}`,
             eventId: event.eventId,
             tenantId,
-            merchantId: (payload.merchantTenantId as string) || (payload.merchantId as string) || null,
+            merchantId:
+              (payload.merchantTenantId as string) || (payload.merchantId as string) || null,
             promotionId: (payload.promotionId as string) || event.aggregateId,
             couponCode: (payload.couponCode as string) || null,
             orderId: (payload.orderId as string) || null,
@@ -742,16 +762,17 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
 
     for (const so of sellerOrders.rows) {
       const occurredAt =
-        so.created_at instanceof Date ? so.created_at.toISOString() : new Date(so.created_at).toISOString();
+        so.created_at instanceof Date
+          ? so.created_at.toISOString()
+          : new Date(so.created_at).toISOString();
       const customerOrder = (
         await tx.query<{
           customer_tenant_id: string;
           currency: string;
           created_at: string | Date;
-        }>(
-          `SELECT customer_tenant_id, currency, created_at FROM customer_orders WHERE id = $1`,
-          [so.customer_order_id],
-        )
+        }>(`SELECT customer_tenant_id, currency, created_at FROM customer_orders WHERE id = $1`, [
+          so.customer_order_id,
+        ])
       ).rows[0];
 
       const items = await tx.query<{
@@ -878,7 +899,8 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
         // 3. Re-ingest facts from events within the transaction
         for (const row of eventsRes.rows) {
           const payload = typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload;
-          const metadata = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata;
+          const metadata =
+            typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata;
           const domainEvent: DomainEvent = {
             eventId: row.event_id,
             eventType: row.event_type,
@@ -1012,7 +1034,11 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
     lookbackDays = 60,
   ): Promise<ProductDailyDemandRecord[]> {
     if (!tenantId?.trim()) throw new ValidationError('tenantId is required');
-    return this.repo.findProductDailyDemand(this.db, tenantId, Math.max(7, Math.min(lookbackDays, 365)));
+    return this.repo.findProductDailyDemand(
+      this.db,
+      tenantId,
+      Math.max(7, Math.min(lookbackDays, 365)),
+    );
   }
 
   async getInventoryVelocitySignals(tenantId: string): Promise<InventoryVelocitySignal[]> {
@@ -1047,5 +1073,3 @@ export class AnalyticsService implements IAnalyticsRecommendationReader, IAnalyt
     });
   }
 }
-
-

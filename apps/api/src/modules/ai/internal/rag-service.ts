@@ -194,9 +194,7 @@ export class RagService {
     );
 
     const groundedContext =
-      groundedLines.length > 0
-        ? `RELEVANT KNOWLEDGE CONTEXT:\n${groundedLines.join('\n\n')}`
-        : '';
+      groundedLines.length > 0 ? `RELEVANT KNOWLEDGE CONTEXT:\n${groundedLines.join('\n\n')}` : '';
 
     return {
       query,
@@ -232,7 +230,10 @@ export class RagService {
     // Strip 16-digit card numbers
     sanitized = sanitized.replace(/\b(?:\d{4}[-\s]?){3}\d{4}\b/g, '[REDACTED_CARD]');
     // Strip bearer tokens and API keys
-    sanitized = sanitized.replace(/(?:Bearer\s+[A-Za-z0-9\-._~+/]+=*|api_key=[A-Za-z0-9]+)/gi, '[REDACTED_SECRET]');
+    sanitized = sanitized.replace(
+      /(?:Bearer\s+[A-Za-z0-9\-._~+/]+=*|api_key=[A-Za-z0-9]+)/gi,
+      '[REDACTED_SECRET]',
+    );
     // Strip US SSN patterns
     sanitized = sanitized.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[REDACTED_SSN]');
     return sanitized;

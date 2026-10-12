@@ -410,7 +410,11 @@ export class InventoryService implements IInventoryService {
 
       // Idempotency check: if referenceId provided, verify if already applied
       if (referenceId) {
-        const existingMovement = await this.repo.findMovementByReference(tx, referenceId, 'STOCK_INCREASE');
+        const existingMovement = await this.repo.findMovementByReference(
+          tx,
+          referenceId,
+          'STOCK_INCREASE',
+        );
         if (existingMovement) {
           const latest = await this.repo.findInventoryById(tx, inventoryId);
           return this.toItemDto(latest!);
@@ -480,7 +484,10 @@ export class InventoryService implements IInventoryService {
     }
 
     // Availability validation: cannot decrease below reserved + non-sellable stock
-    if (current.on_hand_quantity - quantity < current.reserved_quantity + current.non_sellable_quantity) {
+    if (
+      current.on_hand_quantity - quantity <
+      current.reserved_quantity + current.non_sellable_quantity
+    ) {
       throw new InsufficientInventoryError(
         `Cannot decrease stock by ${quantity}: current on-hand (${current.on_hand_quantity}) has ${current.reserved_quantity} reserved and ${current.non_sellable_quantity} non-sellable units.`,
       );
@@ -587,13 +594,11 @@ export class InventoryService implements IInventoryService {
 
       let updated: InventoryItemRow | null = null;
       try {
-        updated = await this.repo.atomicNonSellableAdjust(
-          tx,
-          inventoryId,
-          newNonSellableQuantity,
-        );
+        updated = await this.repo.atomicNonSellableAdjust(tx, inventoryId, newNonSellableQuantity);
         if (!updated) {
-          throw new InsufficientInventoryError('Insufficient unreserved inventory for non-sellable adjustment');
+          throw new InsufficientInventoryError(
+            'Insufficient unreserved inventory for non-sellable adjustment',
+          );
         }
 
         const delta = newNonSellableQuantity - current.non_sellable_quantity;
@@ -643,7 +648,11 @@ export class InventoryService implements IInventoryService {
   ): Promise<InventoryReservationDto> {
     RbacPolicy.requirePermission(actor, 'inventory:reserve');
 
-    if (typeof input.quantity !== 'number' || !Number.isInteger(input.quantity) || input.quantity <= 0) {
+    if (
+      typeof input.quantity !== 'number' ||
+      !Number.isInteger(input.quantity) ||
+      input.quantity <= 0
+    ) {
       throw new ValidationError('quantity must be a positive integer');
     }
 
@@ -694,7 +703,8 @@ export class InventoryService implements IInventoryService {
           const item = await this.repo.findInventoryById(tx, inventoryId);
           if (!item) throw new NotFoundError(`Inventory item '${inventoryId}' not found`);
 
-          const available = item.on_hand_quantity - item.reserved_quantity - item.non_sellable_quantity;
+          const available =
+            item.on_hand_quantity - item.reserved_quantity - item.non_sellable_quantity;
           throw new InsufficientInventoryError(
             `Insufficient inventory available: requested ${input.quantity}, available ${available}`,
           );
@@ -730,7 +740,9 @@ export class InventoryService implements IInventoryService {
 
         const previousAvailable = Math.max(
           0,
-          updatedInv.on_hand_quantity - (updatedInv.reserved_quantity - input.quantity) - updatedInv.non_sellable_quantity,
+          updatedInv.on_hand_quantity -
+            (updatedInv.reserved_quantity - input.quantity) -
+            updatedInv.non_sellable_quantity,
         );
         await this.emitStockChangedEvent(tx, updatedInv, actor.userId, previousAvailable);
 
@@ -751,10 +763,7 @@ export class InventoryService implements IInventoryService {
     }
   }
 
-  async getReservationById(
-    actor: AuthorizedActor,
-    id: string,
-  ): Promise<InventoryReservationDto> {
+  async getReservationById(actor: AuthorizedActor, id: string): Promise<InventoryReservationDto> {
     const res = await this.repo.findReservationById(this.db, id);
     if (!res) throw new NotFoundError(`Reservation '${id}' not found`);
 
@@ -841,7 +850,9 @@ export class InventoryService implements IInventoryService {
 
       const previousAvailable = Math.max(
         0,
-        updatedInv.on_hand_quantity - (updatedInv.reserved_quantity + res.quantity) - updatedInv.non_sellable_quantity,
+        updatedInv.on_hand_quantity -
+          (updatedInv.reserved_quantity + res.quantity) -
+          updatedInv.non_sellable_quantity,
       );
       await this.emitStockChangedEvent(tx, updatedInv, actor.userId, previousAvailable);
 
@@ -889,7 +900,9 @@ export class InventoryService implements IInventoryService {
       // Decrement both reserved_quantity and on_hand_quantity atomically
       const updatedInv = await this.repo.atomicConsume(tx, res.inventory_id, res.quantity);
       if (!updatedInv) {
-        throw new ConflictError('Failed to decrement on-hand and reserved quantity on inventory item');
+        throw new ConflictError(
+          'Failed to decrement on-hand and reserved quantity on inventory item',
+        );
       }
 
       await this.repo.createMovement(tx, {
@@ -910,7 +923,9 @@ export class InventoryService implements IInventoryService {
 
       const previousAvailable = Math.max(
         0,
-        updatedInv.on_hand_quantity - updatedInv.reserved_quantity - updatedInv.non_sellable_quantity,
+        updatedInv.on_hand_quantity -
+          updatedInv.reserved_quantity -
+          updatedInv.non_sellable_quantity,
       );
       await this.emitStockChangedEvent(tx, updatedInv, actor.userId, previousAvailable);
 
@@ -967,7 +982,9 @@ export class InventoryService implements IInventoryService {
 
       const previousAvailable = Math.max(
         0,
-        updatedInv.on_hand_quantity - (updatedInv.reserved_quantity + res.quantity) - updatedInv.non_sellable_quantity,
+        updatedInv.on_hand_quantity -
+          (updatedInv.reserved_quantity + res.quantity) -
+          updatedInv.non_sellable_quantity,
       );
       await this.emitStockChangedEvent(tx, updatedInv, 'SYSTEM_EXPIRATION', previousAvailable);
 
@@ -981,50 +998,54 @@ export class InventoryService implements IInventoryService {
         const expiredRows = await this.repo.claimExpiredReservations(tx, batchSize);
         if (expiredRows.length === 0) return 0;
 
-      let processedCount = 0;
-      for (const res of expiredRows) {
-        // Atomic status transition
-        const updatedRes = await this.repo.updateReservationStatus(
-          tx,
-          res.id,
-          'ACTIVE',
-          'EXPIRED',
-          'released_at',
-        );
-        if (!updatedRes) {
-          continue; // Concurrent modification resolved safely
-        }
+        let processedCount = 0;
+        for (const res of expiredRows) {
+          // Atomic status transition
+          const updatedRes = await this.repo.updateReservationStatus(
+            tx,
+            res.id,
+            'ACTIVE',
+            'EXPIRED',
+            'released_at',
+          );
+          if (!updatedRes) {
+            continue; // Concurrent modification resolved safely
+          }
 
-        const updatedInv = await this.repo.atomicRelease(tx, res.inventory_id, res.quantity);
-        if (!updatedInv) {
-          throw new ConflictError(`Failed to decrement reserved quantity on inventory item ${res.inventory_id}`);
-        }
+          const updatedInv = await this.repo.atomicRelease(tx, res.inventory_id, res.quantity);
+          if (!updatedInv) {
+            throw new ConflictError(
+              `Failed to decrement reserved quantity on inventory item ${res.inventory_id}`,
+            );
+          }
 
-        await this.repo.createMovement(tx, {
-          inventoryId: res.inventory_id,
-          tenantId: updatedInv.tenant_id,
-          movementType: 'RESERVATION_RELEASE',
-          quantityDelta: -res.quantity,
-          previousOnHand: updatedInv.on_hand_quantity,
-          newOnHand: updatedInv.on_hand_quantity,
-          previousReserved: updatedInv.reserved_quantity + res.quantity,
-          newReserved: updatedInv.reserved_quantity,
-          previousNonSellable: updatedInv.non_sellable_quantity,
-          newNonSellable: updatedInv.non_sellable_quantity,
-          referenceId: res.id,
-          actorId: 'SYSTEM_EXPIRATION',
-          notes: 'Automatic background expiration',
-        });
-        const previousAvailable = Math.max(
-          0,
-          updatedInv.on_hand_quantity - (updatedInv.reserved_quantity + res.quantity) - updatedInv.non_sellable_quantity,
-        );
-        await this.emitStockChangedEvent(tx, updatedInv, 'SYSTEM_EXPIRATION', previousAvailable);
-        processedCount++;
-      }
-      return processedCount;
-    });
-    } catch(err) {
+          await this.repo.createMovement(tx, {
+            inventoryId: res.inventory_id,
+            tenantId: updatedInv.tenant_id,
+            movementType: 'RESERVATION_RELEASE',
+            quantityDelta: -res.quantity,
+            previousOnHand: updatedInv.on_hand_quantity,
+            newOnHand: updatedInv.on_hand_quantity,
+            previousReserved: updatedInv.reserved_quantity + res.quantity,
+            newReserved: updatedInv.reserved_quantity,
+            previousNonSellable: updatedInv.non_sellable_quantity,
+            newNonSellable: updatedInv.non_sellable_quantity,
+            referenceId: res.id,
+            actorId: 'SYSTEM_EXPIRATION',
+            notes: 'Automatic background expiration',
+          });
+          const previousAvailable = Math.max(
+            0,
+            updatedInv.on_hand_quantity -
+              (updatedInv.reserved_quantity + res.quantity) -
+              updatedInv.non_sellable_quantity,
+          );
+          await this.emitStockChangedEvent(tx, updatedInv, 'SYSTEM_EXPIRATION', previousAvailable);
+          processedCount++;
+        }
+        return processedCount;
+      });
+    } catch (err) {
       console.error('PROCESSEXPIRATIONS ERROR:', err);
       throw err;
     }

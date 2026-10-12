@@ -60,7 +60,12 @@ export interface PaymentProvider {
   readonly name: string;
   createIntent(input: ProviderCreateIntentInput): Promise<ProviderIntentResult>;
   createAttempt(input: ProviderCreateAttemptInput): Promise<ProviderAttemptResult>;
-  verifyWebhookSignature(rawBody: string, signature: string, secret?: string, toleranceSeconds?: number): boolean;
+  verifyWebhookSignature(
+    rawBody: string,
+    signature: string,
+    secret?: string,
+    toleranceSeconds?: number,
+  ): boolean;
   parseWebhookEvent(rawBody: string): ProviderWebhookEvent;
   createRefund(input: ProviderRefundInput): Promise<ProviderRefundResult>;
 }
@@ -132,7 +137,12 @@ export class MockPaymentProvider implements PaymentProvider {
     };
   }
 
-  verifyWebhookSignature(rawBody: string, signature: string, secret?: string, _toleranceSeconds?: number): boolean {
+  verifyWebhookSignature(
+    rawBody: string,
+    signature: string,
+    secret?: string,
+    _toleranceSeconds?: number,
+  ): boolean {
     if (!signature || !secret) {
       return false;
     }
@@ -163,7 +173,9 @@ export class MockPaymentProvider implements PaymentProvider {
       providerEventId,
       eventType,
       paymentIntentId: data.paymentIntentId ? String(data.paymentIntentId) : undefined,
-      providerTransactionId: data.providerTransactionId ? String(data.providerTransactionId) : undefined,
+      providerTransactionId: data.providerTransactionId
+        ? String(data.providerTransactionId)
+        : undefined,
       amount: typeof data.amount === 'number' ? data.amount : undefined,
       currency: typeof data.currency === 'string' ? data.currency : undefined,
       status: data.status === 'SUCCEEDED' || data.status === 'FAILED' ? data.status : undefined,

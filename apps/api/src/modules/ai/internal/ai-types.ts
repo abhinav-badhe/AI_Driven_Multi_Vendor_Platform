@@ -253,9 +253,21 @@ export interface IAiStore {
   // Conversations
   createConversation(conv: ConversationRecord): Promise<void>;
   getConversationById(tenantId: string, id: string): Promise<ConversationRecord | null>;
-  findConversationByUser(tenantId: string, channel: ChannelType, externalUserId: string): Promise<ConversationRecord | null>;
-  listConversations(tenantId: string, channel?: ChannelType, limit?: number): Promise<ConversationRecord[]>;
-  updateConversation(tenantId: string, id: string, updates: Partial<ConversationRecord>): Promise<void>;
+  findConversationByUser(
+    tenantId: string,
+    channel: ChannelType,
+    externalUserId: string,
+  ): Promise<ConversationRecord | null>;
+  listConversations(
+    tenantId: string,
+    channel?: ChannelType,
+    limit?: number,
+  ): Promise<ConversationRecord[]>;
+  updateConversation(
+    tenantId: string,
+    id: string,
+    updates: Partial<ConversationRecord>,
+  ): Promise<void>;
 
   // Messages
   addMessage(msg: MessageRecord): Promise<void>;
@@ -265,7 +277,12 @@ export interface IAiStore {
   saveDocument(doc: KnowledgeDocumentRecord): Promise<void>;
   getDocumentById(tenantId: string, id: string): Promise<KnowledgeDocumentRecord | null>;
   listDocuments(tenantId: string, category?: DocumentCategory): Promise<KnowledgeDocumentRecord[]>;
-  updateDocumentStatus(tenantId: string, id: string, status: DocumentStatus, currentVersion?: number): Promise<void>;
+  updateDocumentStatus(
+    tenantId: string,
+    id: string,
+    status: DocumentStatus,
+    currentVersion?: number,
+  ): Promise<void>;
 
   // Document Versions
   saveVersion(ver: KnowledgeVersionRecord): Promise<void>;
@@ -285,7 +302,11 @@ export interface IAiStore {
   recordWebhook(webhook: WhatsAppWebhookRecord): Promise<boolean>; // returns false if duplicate
   getWebhook(tenantId: string, messageId: string): Promise<WhatsAppWebhookRecord | null>;
   listWebhooks(tenantId: string, limit?: number): Promise<WhatsAppWebhookRecord[]>;
-  updateWebhookStatus(tenantId: string, messageId: string, status: WhatsAppWebhookRecord['status']): Promise<void>;
+  updateWebhookStatus(
+    tenantId: string,
+    messageId: string,
+    status: WhatsAppWebhookRecord['status'],
+  ): Promise<void>;
 
   // Audit Logs
   recordAudit(audit: AiAuditRecord): Promise<void>;

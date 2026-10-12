@@ -1,34 +1,26 @@
-import { useState, useEffect } from "react";
-import {
-  Truck,
-  ExternalLink,
-  Printer,
-  Ban,
-  RefreshCw,
-  Search,
-  Compass
-} from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { apiClient } from "../../api/client";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { Input, Label } from "../../components/ui/input";
-import { DeliveryRouteMap, type DeliveryAddressCoords } from "./components/DeliveryRouteMap";
-import { PrintableShippingLabelModal } from "./components/PrintableShippingLabelModal";
+import { useState, useEffect } from 'react';
+import { Truck, ExternalLink, Printer, Ban, RefreshCw, Search, Compass } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { apiClient } from '../../api/client';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { Input, Label } from '../../components/ui/input';
+import { DeliveryRouteMap, type DeliveryAddressCoords } from './components/DeliveryRouteMap';
+import { PrintableShippingLabelModal } from './components/PrintableShippingLabelModal';
 
 export type ShipmentStatus =
-  | "PENDING"
-  | "READY_TO_SHIP"
-  | "SHIPPED"
-  | "IN_TRANSIT"
-  | "OUT_FOR_DELIVERY"
-  | "DELIVERED"
-  | "CANCELLED"
-  | "FAILED"
-  | "RETURNED";
+  | 'PENDING'
+  | 'READY_TO_SHIP'
+  | 'SHIPPED'
+  | 'IN_TRANSIT'
+  | 'OUT_FOR_DELIVERY'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'FAILED'
+  | 'RETURNED';
 
 export interface ShipmentItemDto {
   orderItemId: string;
@@ -63,37 +55,37 @@ interface SellerOrderSummary {
 }
 
 const NEXT_STEP: Partial<Record<ShipmentStatus, { to: ShipmentStatus; label: string }>> = {
-  PENDING: { to: "READY_TO_SHIP", label: "Mark ready to ship" },
-  READY_TO_SHIP: { to: "SHIPPED", label: "Dispatch with carrier" },
-  SHIPPED: { to: "IN_TRANSIT", label: "Mark in transit" },
-  IN_TRANSIT: { to: "OUT_FOR_DELIVERY", label: "Mark out for delivery" },
-  OUT_FOR_DELIVERY: { to: "DELIVERED", label: "Confirm delivery" },
+  PENDING: { to: 'READY_TO_SHIP', label: 'Mark ready to ship' },
+  READY_TO_SHIP: { to: 'SHIPPED', label: 'Dispatch with carrier' },
+  SHIPPED: { to: 'IN_TRANSIT', label: 'Mark in transit' },
+  IN_TRANSIT: { to: 'OUT_FOR_DELIVERY', label: 'Mark out for delivery' },
+  OUT_FOR_DELIVERY: { to: 'DELIVERED', label: 'Confirm delivery' },
 };
 
 const statusVariant = (s: ShipmentStatus) =>
-  s === "DELIVERED"
-    ? ("success" as const)
-    : s === "CANCELLED" || s === "FAILED"
-      ? ("destructive" as const)
-      : s === "PENDING"
-        ? ("warning" as const)
-        : ("outline" as const);
+  s === 'DELIVERED'
+    ? ('success' as const)
+    : s === 'CANCELLED' || s === 'FAILED'
+      ? ('destructive' as const)
+      : s === 'PENDING'
+        ? ('warning' as const)
+        : ('outline' as const);
 
 const CARRIERS = [
-  "BlueDart Express",
-  "Delhivery Surface",
-  "Shippo Sandbox",
-  "FedEx Priority",
-  "DHL Express",
+  'BlueDart Express',
+  'Delhivery Surface',
+  'Shippo Sandbox',
+  'FedEx Priority',
+  'DHL Express',
 ];
 
-const STATUS_FILTERS: Array<{ label: string; value: ShipmentStatus | "ALL" }> = [
-  { label: "All", value: "ALL" },
-  { label: "Pending", value: "PENDING" },
-  { label: "Ready to ship", value: "READY_TO_SHIP" },
-  { label: "Shipped", value: "SHIPPED" },
-  { label: "In transit", value: "IN_TRANSIT" },
-  { label: "Delivered", value: "DELIVERED" },
+const STATUS_FILTERS: Array<{ label: string; value: ShipmentStatus | 'ALL' }> = [
+  { label: 'All', value: 'ALL' },
+  { label: 'Pending', value: 'PENDING' },
+  { label: 'Ready to ship', value: 'READY_TO_SHIP' },
+  { label: 'Shipped', value: 'SHIPPED' },
+  { label: 'In transit', value: 'IN_TRANSIT' },
+  { label: 'Delivered', value: 'DELIVERED' },
 ];
 
 export const MerchantFulfillment = () => {
@@ -107,11 +99,11 @@ export const MerchantFulfillment = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ShipmentStatus | "ALL">("ALL");
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<ShipmentStatus | 'ALL'>('ALL');
 
   const [showCreate, setShowCreate] = useState(false);
-  const [selectedSellerOrderId, setSelectedSellerOrderId] = useState("");
+  const [selectedSellerOrderId, setSelectedSellerOrderId] = useState('');
   const [selectedCarrier, setSelectedCarrier] = useState(CARRIERS[0]!);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [labelModalShipment, setLabelModalShipment] = useState<ShipmentDto | null>(null);
@@ -121,8 +113,8 @@ export const MerchantFulfillment = () => {
     setError(null);
     try {
       const [shipmentsData, ordersData] = await Promise.all([
-        apiClient<ShipmentDto[]>("/fulfillment/shipments"),
-        apiClient<SellerOrderSummary[]>("/seller/orders").catch(() => [] as SellerOrderSummary[]),
+        apiClient<ShipmentDto[]>('/fulfillment/shipments'),
+        apiClient<SellerOrderSummary[]>('/seller/orders').catch(() => [] as SellerOrderSummary[]),
       ]);
       const loadedShipments = Array.isArray(shipmentsData) ? shipmentsData : [];
       setShipments(loadedShipments);
@@ -139,7 +131,7 @@ export const MerchantFulfillment = () => {
         setSelectedSellerOrderId(loadedOrders[0]!.id);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not load fulfillment records.");
+      setError(err instanceof Error ? err.message : 'Could not load fulfillment records.');
     } finally {
       setIsLoading(false);
     }
@@ -156,33 +148,33 @@ export const MerchantFulfillment = () => {
     setError(null);
     try {
       await apiClient<ShipmentDto>(`/fulfillment/shipments/${s.id}/status`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({ status: next.to }),
       });
-      setNotice(`Shipment marked as ${next.to.toLowerCase().replace(/_/g, " ")}.`);
+      setNotice(`Shipment marked as ${next.to.toLowerCase().replace(/_/g, ' ')}.`);
       setTimeout(() => setNotice(null), 4000);
       await loadData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Status update failed.");
+      setError(err instanceof Error ? err.message : 'Status update failed.');
     } finally {
       setUpdatingId(null);
     }
   };
 
   const handleCancel = async (s: ShipmentDto) => {
-    if (!confirm("Are you sure you want to cancel this carrier shipment label?")) return;
+    if (!confirm('Are you sure you want to cancel this carrier shipment label?')) return;
     setUpdatingId(s.id);
     setError(null);
     try {
       await apiClient<ShipmentDto>(`/fulfillment/shipments/${s.id}/cancel`, {
-        method: "POST",
-        body: JSON.stringify({ reason: "Merchant cancelled fulfillment" }),
+        method: 'POST',
+        body: JSON.stringify({ reason: 'Merchant cancelled fulfillment' }),
       });
       setNotice(`Shipment #${s.id.slice(0, 8)} cancelled with carrier.`);
       setTimeout(() => setNotice(null), 4000);
       await loadData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Cancellation failed.");
+      setError(err instanceof Error ? err.message : 'Cancellation failed.');
     } finally {
       setUpdatingId(null);
     }
@@ -192,13 +184,18 @@ export const MerchantFulfillment = () => {
     setUpdatingId(s.id);
     setError(null);
     try {
-      const telemetry = await apiClient<{ carrier: string; trackingNumber: string; status: string; location?: string }>(
-        `/fulfillment/shipments/${s.id}/tracking`,
+      const telemetry = await apiClient<{
+        carrier: string;
+        trackingNumber: string;
+        status: string;
+        location?: string;
+      }>(`/fulfillment/shipments/${s.id}/tracking`);
+      setNotice(
+        `Carrier telemetry: ${telemetry.status} ${telemetry.location ? `(${telemetry.location})` : ''}`,
       );
-      setNotice(`Carrier telemetry: ${telemetry.status} ${telemetry.location ? `(${telemetry.location})` : ""}`);
       setTimeout(() => setNotice(null), 5000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not fetch carrier telemetry.");
+      setError(err instanceof Error ? err.message : 'Could not fetch carrier telemetry.');
     } finally {
       setUpdatingId(null);
     }
@@ -207,7 +204,7 @@ export const MerchantFulfillment = () => {
   const handleCreateShipment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSellerOrderId.trim()) {
-      setError("Please select or enter a seller order to fulfill.");
+      setError('Please select or enter a seller order to fulfill.');
       return;
     }
 
@@ -224,10 +221,13 @@ export const MerchantFulfillment = () => {
       if (itemsToFulfill.length === 0 && selectedSellerOrderId.trim()) {
         try {
           const detail = await apiClient<{ items?: Array<{ id: string; quantity: number }> }>(
-            `/seller/orders/${selectedSellerOrderId.trim()}`
+            `/seller/orders/${selectedSellerOrderId.trim()}`,
           );
           if (detail?.items && detail.items.length > 0) {
-            itemsToFulfill = detail.items.map((it) => ({ orderItemId: it.id, quantity: it.quantity }));
+            itemsToFulfill = detail.items.map((it) => ({
+              orderItemId: it.id,
+              quantity: it.quantity,
+            }));
           }
         } catch {
           // fall through
@@ -235,12 +235,12 @@ export const MerchantFulfillment = () => {
       }
 
       if (itemsToFulfill.length === 0) {
-        setError("Could not identify items for this order. Please verify order details.");
+        setError('Could not identify items for this order. Please verify order details.');
         return;
       }
 
-      const newShipment = await apiClient<ShipmentDto>("/fulfillment/shipments", {
-        method: "POST",
+      const newShipment = await apiClient<ShipmentDto>('/fulfillment/shipments', {
+        method: 'POST',
         body: JSON.stringify({
           sellerOrderId: selectedSellerOrderId.trim(),
           carrier: selectedCarrier.trim(),
@@ -253,25 +253,25 @@ export const MerchantFulfillment = () => {
       setActiveShipmentId(newShipment.id);
       setLabelModalShipment(newShipment);
       setNotice(
-        `Carrier shipment created successfully! Tracking: ${newShipment.trackingNumber || "Assigned"}. Airway bill generated.`,
+        `Carrier shipment created successfully! Tracking: ${newShipment.trackingNumber || 'Assigned'}. Airway bill generated.`,
       );
       setTimeout(() => setNotice(null), 5000);
       await loadData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not register shipment with carrier.");
+      setError(err instanceof Error ? err.message : 'Could not register shipment with carrier.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const filteredShipments = shipments.filter((s) => {
-    if (statusFilter !== "ALL" && s.status !== statusFilter) return false;
+    if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       const matchId = s.id.toLowerCase().includes(q);
       const matchOrder = s.sellerOrderId.toLowerCase().includes(q);
-      const matchCarrier = (s.carrier || "").toLowerCase().includes(q);
-      const matchTrack = (s.trackingNumber || "").toLowerCase().includes(q);
+      const matchCarrier = (s.carrier || '').toLowerCase().includes(q);
+      const matchTrack = (s.trackingNumber || '').toLowerCase().includes(q);
       if (!matchId && !matchOrder && !matchCarrier && !matchTrack) return false;
     }
     return true;
@@ -281,29 +281,33 @@ export const MerchantFulfillment = () => {
   const activeShipment = shipments.find((s) => s.id === activeShipmentId) || shipments[0] || null;
 
   // Selected order for pending route inspection
-  const selectedOrder = sellerOrders.find((o) => o.id === selectedSellerOrderId.trim()) || sellerOrders[0] || null;
+  const selectedOrder =
+    sellerOrders.find((o) => o.id === selectedSellerOrderId.trim()) || sellerOrders[0] || null;
 
   // Resolve matching seller order to obtain delivery address details
   const matchingOrder = activeShipment
     ? sellerOrders.find(
-        (o) => o.id === activeShipment.sellerOrderId || o.customerOrderId === activeShipment.customerOrderId,
+        (o) =>
+          o.id === activeShipment.sellerOrderId ||
+          o.customerOrderId === activeShipment.customerOrderId,
       )
     : selectedOrder;
 
-  const activeDeliveryAddress: DeliveryAddressCoords =
-    (activeShipment?.metadata?.['deliveryAddress'] as DeliveryAddressCoords) ||
+  const activeDeliveryAddress: DeliveryAddressCoords = (activeShipment?.metadata?.[
+    'deliveryAddress'
+  ] as DeliveryAddressCoords) ||
     matchingOrder?.shippingAddress || {
-      recipientName: "Abhinav Badhe",
-      phone: "+91 77740 94369",
-      addressLine1: "MIT AOE Campus, Alandi",
-      addressLine2: "Dighi Road",
-      city: "Pune",
-      state: "Maharashtra",
-      postalCode: "412105",
-      country: "IN",
+      recipientName: 'Abhinav Badhe',
+      phone: '+91 77740 94369',
+      addressLine1: 'MIT AOE Campus, Alandi',
+      addressLine2: 'Dighi Road',
+      city: 'Pune',
+      state: 'Maharashtra',
+      postalCode: '412105',
+      country: 'IN',
       latitude: 18.6755,
       longitude: 73.8967,
-      formattedAddress: "Alandi, Pune, Maharashtra 412105, India",
+      formattedAddress: 'Alandi, Pune, Maharashtra 412105, India',
     };
 
   return (
@@ -320,7 +324,8 @@ export const MerchantFulfillment = () => {
             </Badge>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Visualize customer delivery pinpoints with coordinates, calculate transit routes, and track live carrier fulfillment.
+            Visualize customer delivery pinpoints with coordinates, calculate transit routes, and
+            track live carrier fulfillment.
           </p>
         </div>
         <div className="flex gap-2">
@@ -344,7 +349,7 @@ export const MerchantFulfillment = () => {
           <DeliveryRouteMap
             shipmentId={activeShipment.id}
             trackingNumber={activeShipment.trackingNumber || undefined}
-            carrier={activeShipment.carrier || "BlueDart Express"}
+            carrier={activeShipment.carrier || 'BlueDart Express'}
             status={activeShipment.status}
             deliveryAddress={activeDeliveryAddress}
             onAdvanceStatus={() => handleAdvance(activeShipment)}
@@ -395,9 +400,12 @@ export const MerchantFulfillment = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-foreground">Initiate Carrier Label & Route Dispatch</h2>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Initiate Carrier Label & Route Dispatch
+                </h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Purchases carrier postage label and pins the customer delivery coordinates onto the fulfillment map.
+                  Purchases carrier postage label and pins the customer delivery coordinates onto
+                  the fulfillment map.
                 </p>
               </div>
             </div>
@@ -415,7 +423,8 @@ export const MerchantFulfillment = () => {
                     >
                       {sellerOrders.map((o) => (
                         <option key={o.id} value={o.id}>
-                          Order #{o.id.slice(0, 8)} • Total: {o.currency} {o.totalAmount} ({o.status})
+                          Order #{o.id.slice(0, 8)} • Total: {o.currency} {o.totalAmount} (
+                          {o.status})
                         </option>
                       ))}
                     </select>
@@ -455,8 +464,11 @@ export const MerchantFulfillment = () => {
                   </span>
                   <div className="flex flex-wrap gap-2">
                     {selectedOrder.items.map((it) => (
-                      <span key={it.id} className="rounded bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">
-                        {it.productName || "Product"} × {it.quantity}
+                      <span
+                        key={it.id}
+                        className="rounded bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground"
+                      >
+                        {it.productName || 'Product'} × {it.quantity}
                       </span>
                     ))}
                   </div>
@@ -474,7 +486,7 @@ export const MerchantFulfillment = () => {
                   Cancel
                 </Button>
                 <Button type="submit" size="sm" disabled={isSubmitting}>
-                  {isSubmitting ? "Generating Label…" : "Purchase label & calculate route"}
+                  {isSubmitting ? 'Generating Label…' : 'Purchase label & calculate route'}
                 </Button>
               </div>
             </form>
@@ -498,7 +510,7 @@ export const MerchantFulfillment = () => {
           {STATUS_FILTERS.map((s) => (
             <Button
               key={s.value}
-              variant={statusFilter === s.value ? "default" : "outline"}
+              variant={statusFilter === s.value ? 'default' : 'outline'}
               size="sm"
               onClick={() => setStatusFilter(s.value)}
               className="text-xs"
@@ -519,18 +531,18 @@ export const MerchantFulfillment = () => {
       ) : filteredShipments.length === 0 ? (
         <EmptyState
           icon={Truck}
-          title={shipments.length === 0 ? "No active shipments" : "No matching shipments"}
+          title={shipments.length === 0 ? 'No active shipments' : 'No matching shipments'}
           description={
             shipments.length === 0
-              ? "Purchased orders ready for fulfillment will appear here once processed."
-              : "Try clearing search or changing the status filter."
+              ? 'Purchased orders ready for fulfillment will appear here once processed.'
+              : 'Try clearing search or changing the status filter.'
           }
         />
       ) : (
         <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
           {filteredShipments.map((s) => {
             const next = NEXT_STEP[s.status];
-            const canCancel = s.status === "PENDING" || s.status === "READY_TO_SHIP";
+            const canCancel = s.status === 'PENDING' || s.status === 'READY_TO_SHIP';
             const isSelected = activeShipmentId === s.id;
 
             return (
@@ -538,8 +550,8 @@ export const MerchantFulfillment = () => {
                 key={s.id}
                 className={`transition-all cursor-pointer ${
                   isSelected
-                    ? "border-primary ring-1 ring-primary shadow-sm bg-primary/[0.02]"
-                    : "border-border hover:border-muted-foreground/40"
+                    ? 'border-primary ring-1 ring-primary shadow-sm bg-primary/[0.02]'
+                    : 'border-border hover:border-muted-foreground/40'
                 }`}
                 onClick={() => setActiveShipmentId(s.id)}
               >
@@ -563,7 +575,7 @@ export const MerchantFulfillment = () => {
                       </div>
                     </div>
                     <Badge variant={statusVariant(s.status)} className="text-[11px]">
-                      {s.status.replace(/_/g, " ")}
+                      {s.status.replace(/_/g, ' ')}
                     </Badge>
                   </div>
 
@@ -571,20 +583,23 @@ export const MerchantFulfillment = () => {
                   <div className="rounded-md border border-border/80 bg-muted/30 p-2.5 text-xs space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-muted-foreground">Carrier Fleet:</span>
-                      <span className="font-medium text-foreground">{s.carrier || "BlueDart Express"}</span>
+                      <span className="font-medium text-foreground">
+                        {s.carrier || 'BlueDart Express'}
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-muted-foreground">Tracking ID:</span>
                       <span className="font-mono font-medium text-foreground">
-                        {s.trackingNumber || "Pending"}
+                        {s.trackingNumber || 'Pending'}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-muted-foreground">Destination:</span>
                       <span className="font-medium text-foreground truncate max-w-[170px]">
-                        {activeDeliveryAddress.city || "Pune"}, {activeDeliveryAddress.state || "MH"}
+                        {activeDeliveryAddress.city || 'Pune'},{' '}
+                        {activeDeliveryAddress.state || 'MH'}
                       </span>
                     </div>
 
@@ -599,7 +614,7 @@ export const MerchantFulfillment = () => {
                       >
                         <Printer size={12} /> Airway Bill (AWB)
                       </button>
-                      {s.labelUrl && !s.labelUrl.includes("mocklogistics") && (
+                      {s.labelUrl && !s.labelUrl.includes('mocklogistics') && (
                         <a
                           href={s.labelUrl}
                           target="_blank"
@@ -636,7 +651,10 @@ export const MerchantFulfillment = () => {
                       onClick={() => handleCheckTracking(s)}
                       className="text-xs h-7 px-2"
                     >
-                      <RefreshCw size={11} className={`mr-1 ${updatingId === s.id ? "animate-spin" : ""}`} />
+                      <RefreshCw
+                        size={11}
+                        className={`mr-1 ${updatingId === s.id ? 'animate-spin' : ''}`}
+                      />
                       Telemetry
                     </Button>
 
@@ -647,7 +665,7 @@ export const MerchantFulfillment = () => {
                         onClick={() => handleAdvance(s)}
                         className="text-xs h-7 px-2"
                       >
-                        {updatingId === s.id ? "Updating…" : next.label}
+                        {updatingId === s.id ? 'Updating…' : next.label}
                       </Button>
                     )}
 

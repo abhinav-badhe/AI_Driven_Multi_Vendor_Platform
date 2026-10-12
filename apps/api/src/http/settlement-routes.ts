@@ -8,12 +8,7 @@ import type {
   FinancialAdjustmentType,
 } from '../modules/settlement-ledger/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
-import {
-  CachePresets,
-  CacheTags,
-  cacheKey,
-  sendCached,
-} from './cache-helper.js';
+import { CachePresets, CacheTags, cacheKey, sendCached } from './cache-helper.js';
 
 export function registerSettlementRoutes(
   app: FastifyInstance,
@@ -40,7 +35,8 @@ export function registerSettlementRoutes(
           tags: [CacheTags.settlement, `${CacheTags.settlement}:merchant:${params.merchantId}`],
           preset: CachePresets.merchantScoped,
         },
-        () => settlementService.getFinancialSummary(actor, params.merchantId, query.currency ?? 'INR'),
+        () =>
+          settlementService.getFinancialSummary(actor, params.merchantId, query.currency ?? 'INR'),
       );
     },
   );
@@ -99,130 +95,127 @@ export function registerSettlementRoutes(
   );
 
   // 3. POST /settlement/ingest/order
-  app.post(
-    '/settlement/ingest/order',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const body = (request.body as {
-        sellerOrderId?: unknown;
-        commissionRate?: unknown;
-        feeAmount?: unknown;
-        idempotencyKey?: unknown;
-      } | undefined) ?? {};
+  app.post('/settlement/ingest/order', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const body =
+      (request.body as
+        | {
+            sellerOrderId?: unknown;
+            commissionRate?: unknown;
+            feeAmount?: unknown;
+            idempotencyKey?: unknown;
+          }
+        | undefined) ?? {};
 
-      if (typeof body.sellerOrderId !== 'string') {
-        return reply.status(400).send({
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'sellerOrderId is required',
-          },
-        });
-      }
-
-      const result = await settlementService.ingestOrderFinancials(actor, {
-        sellerOrderId: body.sellerOrderId,
-        commissionRate: typeof body.commissionRate === 'number' ? body.commissionRate : undefined,
-        feeAmount: typeof body.feeAmount === 'number' ? body.feeAmount : undefined,
-        idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
+    if (typeof body.sellerOrderId !== 'string') {
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'sellerOrderId is required',
+        },
       });
+    }
 
-      await app.cache.invalidateTags(CacheTags.settlement);
-      return reply.status(201).send(result);
-    },
-  );
+    const result = await settlementService.ingestOrderFinancials(actor, {
+      sellerOrderId: body.sellerOrderId,
+      commissionRate: typeof body.commissionRate === 'number' ? body.commissionRate : undefined,
+      feeAmount: typeof body.feeAmount === 'number' ? body.feeAmount : undefined,
+      idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
+    });
+
+    await app.cache.invalidateTags(CacheTags.settlement);
+    return reply.status(201).send(result);
+  });
 
   // 4. POST /settlement/ingest/refund
-  app.post(
-    '/settlement/ingest/refund',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const body = (request.body as {
-        merchantId?: unknown;
-        refundId?: unknown;
-        sellerOrderId?: unknown;
-        refundAmount?: unknown;
-        commissionRefundAmount?: unknown;
-        currency?: unknown;
-        reason?: unknown;
-        idempotencyKey?: unknown;
-      } | undefined) ?? {};
+  app.post('/settlement/ingest/refund', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const body =
+      (request.body as
+        | {
+            merchantId?: unknown;
+            refundId?: unknown;
+            sellerOrderId?: unknown;
+            refundAmount?: unknown;
+            commissionRefundAmount?: unknown;
+            currency?: unknown;
+            reason?: unknown;
+            idempotencyKey?: unknown;
+          }
+        | undefined) ?? {};
 
-      if (
-        typeof body.merchantId !== 'string' ||
-        typeof body.refundId !== 'string' ||
-        typeof body.refundAmount !== 'number' ||
-        typeof body.currency !== 'string'
-      ) {
-        return reply.status(400).send({
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'merchantId, refundId, refundAmount, and currency are required',
-          },
-        });
-      }
-
-      const result = await settlementService.ingestRefundFinancials(actor, {
-        merchantId: body.merchantId,
-        refundId: body.refundId,
-        sellerOrderId: typeof body.sellerOrderId === 'string' ? body.sellerOrderId : undefined,
-        refundAmount: body.refundAmount,
-        commissionRefundAmount:
-          typeof body.commissionRefundAmount === 'number' ? body.commissionRefundAmount : undefined,
-        currency: body.currency,
-        reason: typeof body.reason === 'string' ? body.reason : undefined,
-        idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
+    if (
+      typeof body.merchantId !== 'string' ||
+      typeof body.refundId !== 'string' ||
+      typeof body.refundAmount !== 'number' ||
+      typeof body.currency !== 'string'
+    ) {
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'merchantId, refundId, refundAmount, and currency are required',
+        },
       });
+    }
 
-      await app.cache.invalidateTags(CacheTags.settlement);
-      return reply.status(201).send(result);
-    },
-  );
+    const result = await settlementService.ingestRefundFinancials(actor, {
+      merchantId: body.merchantId,
+      refundId: body.refundId,
+      sellerOrderId: typeof body.sellerOrderId === 'string' ? body.sellerOrderId : undefined,
+      refundAmount: body.refundAmount,
+      commissionRefundAmount:
+        typeof body.commissionRefundAmount === 'number' ? body.commissionRefundAmount : undefined,
+      currency: body.currency,
+      reason: typeof body.reason === 'string' ? body.reason : undefined,
+      idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
+    });
+
+    await app.cache.invalidateTags(CacheTags.settlement);
+    return reply.status(201).send(result);
+  });
 
   // 5. POST /settlement/adjustments
-  app.post(
-    '/settlement/adjustments',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const body = (request.body as {
-        merchantId?: unknown;
-        amount?: unknown;
-        currency?: unknown;
-        type?: unknown;
-        reason?: unknown;
-        idempotencyKey?: unknown;
-      } | undefined) ?? {};
+  app.post('/settlement/adjustments', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const body =
+      (request.body as
+        | {
+            merchantId?: unknown;
+            amount?: unknown;
+            currency?: unknown;
+            type?: unknown;
+            reason?: unknown;
+            idempotencyKey?: unknown;
+          }
+        | undefined) ?? {};
 
-      if (
-        typeof body.merchantId !== 'string' ||
-        typeof body.amount !== 'number' ||
-        typeof body.currency !== 'string' ||
-        (body.type !== 'CREDIT' && body.type !== 'DEBIT') ||
-        typeof body.reason !== 'string'
-      ) {
-        return reply.status(400).send({
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'merchantId, amount, currency, type (CREDIT|DEBIT), and reason are required',
-          },
-        });
-      }
-
-      const result = await settlementService.createAdjustment(actor, {
-        merchantId: body.merchantId,
-        amount: body.amount,
-        currency: body.currency,
-        type: body.type as FinancialAdjustmentType,
-        reason: body.reason,
-        idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
+    if (
+      typeof body.merchantId !== 'string' ||
+      typeof body.amount !== 'number' ||
+      typeof body.currency !== 'string' ||
+      (body.type !== 'CREDIT' && body.type !== 'DEBIT') ||
+      typeof body.reason !== 'string'
+    ) {
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'merchantId, amount, currency, type (CREDIT|DEBIT), and reason are required',
+        },
       });
+    }
 
-      await app.cache.invalidateTags(CacheTags.settlement);
-      return reply.status(201).send(result);
-    },
-  );
+    const result = await settlementService.createAdjustment(actor, {
+      merchantId: body.merchantId,
+      amount: body.amount,
+      currency: body.currency,
+      type: body.type as FinancialAdjustmentType,
+      reason: body.reason,
+      idempotencyKey: typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined,
+    });
+
+    await app.cache.invalidateTags(CacheTags.settlement);
+    return reply.status(201).send(result);
+  });
 
   // 6. POST /settlement/settlements/calculate
   app.post(
@@ -230,13 +223,16 @@ export function registerSettlementRoutes(
     { preHandler: authenticate },
     async (request, reply) => {
       const actor = requireActor(request);
-      const body = (request.body as {
-        merchantId?: unknown;
-        periodStart?: unknown;
-        periodEnd?: unknown;
-        currency?: unknown;
-        idempotencyKey?: unknown;
-      } | undefined) ?? {};
+      const body =
+        (request.body as
+          | {
+              merchantId?: unknown;
+              periodStart?: unknown;
+              periodEnd?: unknown;
+              currency?: unknown;
+              idempotencyKey?: unknown;
+            }
+          | undefined) ?? {};
 
       if (
         typeof body.merchantId !== 'string' ||
@@ -294,11 +290,14 @@ export function registerSettlementRoutes(
     async (request, reply) => {
       const actor = requireActor(request);
       const params = request.params as { settlementId: string };
-      const body = (request.body as {
-        targetStatus?: unknown;
-        reason?: unknown;
-        failureReason?: unknown;
-      } | undefined) ?? {};
+      const body =
+        (request.body as
+          | {
+              targetStatus?: unknown;
+              reason?: unknown;
+              failureReason?: unknown;
+            }
+          | undefined) ?? {};
 
       if (typeof body.targetStatus !== 'string') {
         return reply.status(400).send({

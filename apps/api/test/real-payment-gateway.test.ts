@@ -19,7 +19,12 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
   let dbConn: DatabaseConnection;
   let eventTransport: InMemoryEventTransport;
   let searchStore: InMemorySearchStore;
-  const logger = new JsonLogger({ serviceName: 'payment-test', level: 'error', pretty: false, redactKeys: [] });
+  const logger = new JsonLogger({
+    serviceName: 'payment-test',
+    level: 'error',
+    pretty: false,
+    redactKeys: [],
+  });
 
   const tenantId = 'tenant-cust-stripe';
   const customerId = 'cust-stripe-user';
@@ -30,7 +35,10 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
   // In-memory simulator for Stripe v1 REST endpoints
   const simulatedStripeStore = new Map<string, Record<string, unknown>>();
 
-  const mockStripeFetch: typeof fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+  const mockStripeFetch: typeof fetch = async (
+    input: string | URL | Request,
+    init?: RequestInit,
+  ): Promise<Response> => {
     const urlStr = typeof input === 'string' ? input : input.toString();
     const bodyStr = init?.body ? String(init.body) : '';
     const params = new URLSearchParams(bodyStr);
@@ -40,7 +48,11 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
       const piId = parts;
       const paymentMethod = params.get('payment_method') || 'pm_card_visa';
 
-      if (paymentMethod.includes('fail') || paymentMethod.includes('decline') || paymentMethod === 'pm_card_chargeCustomerFail') {
+      if (
+        paymentMethod.includes('fail') ||
+        paymentMethod.includes('decline') ||
+        paymentMethod === 'pm_card_chargeCustomerFail'
+      ) {
         const errorResp = {
           error: {
             code: 'card_declined',
@@ -48,10 +60,17 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
             decline_code: 'generic_decline',
           },
         };
-        return new Response(JSON.stringify(errorResp), { status: 402, headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify(errorResp), {
+          status: 402,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
 
-      if (paymentMethod === 'pm_card_threeDSecure2Required' || paymentMethod.includes('3ds') || paymentMethod.includes('action')) {
+      if (
+        paymentMethod === 'pm_card_threeDSecure2Required' ||
+        paymentMethod.includes('3ds') ||
+        paymentMethod.includes('action')
+      ) {
         const requiresActionResp = {
           id: piId,
           status: 'requires_action',
@@ -64,7 +83,10 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
           },
         };
         simulatedStripeStore.set(piId, requiresActionResp);
-        return new Response(JSON.stringify(requiresActionResp), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify(requiresActionResp), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
 
       const existing = (simulatedStripeStore.get(piId) ?? {}) as Record<string, unknown>;
@@ -76,7 +98,10 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
       };
       simulatedStripeStore.set(piId, confirmed);
 
-      return new Response(JSON.stringify(confirmed), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify(confirmed), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     if (urlStr.includes('/payment_intents')) {
@@ -95,7 +120,10 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
       };
       simulatedStripeStore.set(piId, pi);
 
-      return new Response(JSON.stringify(pi), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify(pi), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     if (urlStr.includes('/refunds')) {
@@ -107,14 +135,23 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
         status: 'succeeded',
         payment_intent: params.get('payment_intent'),
       };
-      return new Response(JSON.stringify(refund), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify(refund), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     return new Response(JSON.stringify({ error: { message: 'Not found' } }), { status: 404 });
   };
 
-  const createStripeSignature = (rawPayload: string, secret = stripeWebhookSecret, timestamp = Math.floor(Date.now() / 1000)): string => {
-    const signature = createHmac('sha256', secret).update(`${timestamp}.${rawPayload}`).digest('hex');
+  const createStripeSignature = (
+    rawPayload: string,
+    secret = stripeWebhookSecret,
+    timestamp = Math.floor(Date.now() / 1000),
+  ): string => {
+    const signature = createHmac('sha256', secret)
+      .update(`${timestamp}.${rawPayload}`)
+      .digest('hex');
     return `t=${timestamp},v1=${signature}`;
   };
 
@@ -174,9 +211,18 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
     await app.ready();
 
     // Seed base customer tenant and verified WhatsApp mapping
-    await dbConn.query(`INSERT INTO tenants (id, type, name, status) VALUES ($1, 'CUSTOMER', 'Stripe Tenant', 'ACTIVE')`, [tenantId]);
-    await dbConn.query(`INSERT INTO users (id, email, password_hash, status, email_verified_at) VALUES ($1, 'stripe@user.com', 'pw', 'ACTIVE', NOW())`, [customerId]);
-    await dbConn.query(`INSERT INTO tenant_memberships (id, tenant_id, user_id, role, status) VALUES ('mem-stripe-1', $1, $2, 'CUSTOMER', 'ACTIVE')`, [tenantId, customerId]);
+    await dbConn.query(
+      `INSERT INTO tenants (id, type, name, status) VALUES ($1, 'CUSTOMER', 'Stripe Tenant', 'ACTIVE')`,
+      [tenantId],
+    );
+    await dbConn.query(
+      `INSERT INTO users (id, email, password_hash, status, email_verified_at) VALUES ($1, 'stripe@user.com', 'pw', 'ACTIVE', NOW())`,
+      [customerId],
+    );
+    await dbConn.query(
+      `INSERT INTO tenant_memberships (id, tenant_id, user_id, role, status) VALUES ('mem-stripe-1', $1, $2, 'CUSTOMER', 'ACTIVE')`,
+      [tenantId, customerId],
+    );
     await dbConn.query(
       `INSERT INTO ai_whatsapp_mappings (id, phone_number, tenant_id, customer_id, is_verified, verified_at, created_at, updated_at)
        VALUES ('wam-stripe', $1, $2, $3, TRUE, NOW(), NOW(), NOW())`,
@@ -184,12 +230,24 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
     );
 
     // Seed merchant, product, and stock
-    await dbConn.query(`INSERT INTO tenants (id, type, name, status) VALUES ('tenant-merch-stripe', 'MERCHANT', 'Stripe Merchant', 'ACTIVE')`);
-    await dbConn.query(`INSERT INTO categories (id, name, slug) VALUES ('cat-electronics', 'Electronics', 'electronics')`);
-    await dbConn.query(`INSERT INTO products (id, title, slug, category_id, status) VALUES ('prod-phone', 'Smart Phone 15', 'phone-15', 'cat-electronics', 'ACTIVE')`);
-    await dbConn.query(`INSERT INTO product_skus (id, product_id, sku_code, status) VALUES ('sku-phone-15', 'prod-phone', 'PHONE-15', 'ACTIVE')`);
-    await dbConn.query(`INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status) VALUES ('list-phone-deal', 'tenant-merch-stripe', 'sku-phone-15', 999, 'USD', 'ACTIVE')`);
-    await dbConn.query(`INSERT INTO inventory_items (id, tenant_id, listing_id, sku_id, on_hand_quantity, reserved_quantity, non_sellable_quantity, version) VALUES ('inv-phone-1', 'tenant-merch-stripe', 'list-phone-deal', 'sku-phone-15', 50, 0, 0, 1)`);
+    await dbConn.query(
+      `INSERT INTO tenants (id, type, name, status) VALUES ('tenant-merch-stripe', 'MERCHANT', 'Stripe Merchant', 'ACTIVE')`,
+    );
+    await dbConn.query(
+      `INSERT INTO categories (id, name, slug) VALUES ('cat-electronics', 'Electronics', 'electronics')`,
+    );
+    await dbConn.query(
+      `INSERT INTO products (id, title, slug, category_id, status) VALUES ('prod-phone', 'Smart Phone 15', 'phone-15', 'cat-electronics', 'ACTIVE')`,
+    );
+    await dbConn.query(
+      `INSERT INTO product_skus (id, product_id, sku_code, status) VALUES ('sku-phone-15', 'prod-phone', 'PHONE-15', 'ACTIVE')`,
+    );
+    await dbConn.query(
+      `INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status) VALUES ('list-phone-deal', 'tenant-merch-stripe', 'sku-phone-15', 999, 'USD', 'ACTIVE')`,
+    );
+    await dbConn.query(
+      `INSERT INTO inventory_items (id, tenant_id, listing_id, sku_id, on_hand_quantity, reserved_quantity, non_sellable_quantity, version) VALUES ('inv-phone-1', 'tenant-merch-stripe', 'list-phone-deal', 'sku-phone-15', 50, 0, 0, 1)`,
+    );
 
     await searchStore.indexDocument({
       id: 'prod-phone',
@@ -208,20 +266,22 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
       projectionVersion: 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      offers: [{
-        listingId: 'list-phone-deal',
-        merchantId: 'tenant-merch-stripe',
-        skuId: 'sku-phone-1',
-        skuCode: 'SP-15-BLK',
-        priceAmount: 999,
-        currency: 'USD',
-        status: 'ACTIVE',
-        inStock: true,
-        availableQuantity: 50,
-        attributes: {},
-        sourceVersion: 1,
-        updatedAt: new Date().toISOString(),
-      }],
+      offers: [
+        {
+          listingId: 'list-phone-deal',
+          merchantId: 'tenant-merch-stripe',
+          skuId: 'sku-phone-1',
+          skuCode: 'SP-15-BLK',
+          priceAmount: 999,
+          currency: 'USD',
+          status: 'ACTIVE',
+          inStock: true,
+          availableQuantity: 50,
+          attributes: {},
+          sourceVersion: 1,
+          updatedAt: new Date().toISOString(),
+        },
+      ],
     });
   });
 
@@ -232,7 +292,10 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
   // Helper to create a ready & reserved checkout session
   async function createReservedCheckout(total = 999): Promise<string> {
     const cartId = randomUUID();
-    await dbConn.query(`INSERT INTO carts (id, tenant_id, status) VALUES ($1, $2, 'ACTIVE')`, [cartId, tenantId]);
+    await dbConn.query(`INSERT INTO carts (id, tenant_id, status) VALUES ($1, $2, 'ACTIVE')`, [
+      cartId,
+      tenantId,
+    ]);
     await dbConn.query(
       `INSERT INTO cart_items (id, cart_id, listing_id, sku_id, merchant_tenant_id, quantity, created_at)
        VALUES ($1, $2, 'list-phone-deal', 'sku-phone-15', 'tenant-merch-stripe', 1, NOW())`,
@@ -270,7 +333,11 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
 
     it('verifies valid Stripe HMAC signature format and enforces timestamp tolerance', () => {
       const provider = new StripePaymentProvider(
-        { secretKey: 'sk_test_123', webhookSecret: 'whsec_test_secret_abc', webhookToleranceSeconds: 300 },
+        {
+          secretKey: 'sk_test_123',
+          webhookSecret: 'whsec_test_secret_abc',
+          webhookToleranceSeconds: 300,
+        },
         logger,
       );
 
@@ -279,19 +346,31 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
 
       // Fresh valid signature within tolerance
       const validSig = createStripeSignature(payload, 'whsec_test_secret_abc', nowSec);
-      expect(provider.verifyWebhookSignature(payload, validSig, 'whsec_test_secret_abc')).toBe(true);
+      expect(provider.verifyWebhookSignature(payload, validSig, 'whsec_test_secret_abc')).toBe(
+        true,
+      );
 
       // Invalid signature digest
-      expect(provider.verifyWebhookSignature(payload, `t=${nowSec},v1=invalid_sig`, 'whsec_test_secret_abc')).toBe(false);
+      expect(
+        provider.verifyWebhookSignature(
+          payload,
+          `t=${nowSec},v1=invalid_sig`,
+          'whsec_test_secret_abc',
+        ),
+      ).toBe(false);
       expect(provider.verifyWebhookSignature(payload, '', 'whsec_test_secret_abc')).toBe(false);
 
       // Expired signature (> 300s old)
       const expiredSig = createStripeSignature(payload, 'whsec_test_secret_abc', nowSec - 301);
-      expect(provider.verifyWebhookSignature(payload, expiredSig, 'whsec_test_secret_abc')).toBe(false);
+      expect(provider.verifyWebhookSignature(payload, expiredSig, 'whsec_test_secret_abc')).toBe(
+        false,
+      );
 
       // Future signature (> 300s ahead)
       const futureSig = createStripeSignature(payload, 'whsec_test_secret_abc', nowSec + 301);
-      expect(provider.verifyWebhookSignature(payload, futureSig, 'whsec_test_secret_abc')).toBe(false);
+      expect(provider.verifyWebhookSignature(payload, futureSig, 'whsec_test_secret_abc')).toBe(
+        false,
+      );
     });
 
     it('creates PaymentIntent and confirms attempt using simulated Stripe REST API', async () => {
@@ -340,10 +419,7 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
     });
 
     it('parses Stripe webhook events with status and transaction mapping', () => {
-      const provider = new StripePaymentProvider(
-        { secretKey: 'sk_test_123' },
-        logger,
-      );
+      const provider = new StripePaymentProvider({ secretKey: 'sk_test_123' }, logger);
 
       const webhookPayload = JSON.stringify({
         id: 'evt_stripe_test_101',
@@ -424,7 +500,11 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
         [intentId, tenantId, chkId],
       );
 
-      const pService = (app as unknown as { paymentService: import('../src/modules/payment/index.js').PaymentService }).paymentService;
+      const pService = (
+        app as unknown as {
+          paymentService: import('../src/modules/payment/index.js').PaymentService;
+        }
+      ).paymentService;
 
       // Attempt 1: Triggers 3D-Secure requirement
       const attempt1 = await pService.createPaymentAttempt(actor, intentId, {
@@ -504,7 +584,9 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
       const webhookPayload = JSON.stringify({
         id: 'evt_stripe_webhook_expired',
         type: 'payment_intent.succeeded',
-        data: { object: { id: 'pi_test_expired', amount: 99900, currency: 'usd', status: 'succeeded' } },
+        data: {
+          object: { id: 'pi_test_expired', amount: 99900, currency: 'usd', status: 'succeeded' },
+        },
       });
 
       const nowSec = Math.floor(Date.now() / 1000);
@@ -541,7 +623,9 @@ describe('Real Payment Gateway (Stripe Sandbox) Integration & Architecture', () 
       const payload = JSON.stringify({
         id: eventId,
         type: 'payment_intent.succeeded',
-        data: { object: { id: 'pi_test_dup', amount: 99900, currency: 'usd', status: 'succeeded' } },
+        data: {
+          object: { id: 'pi_test_dup', amount: 99900, currency: 'usd', status: 'succeeded' },
+        },
       });
       const sig = createStripeSignature(payload);
 

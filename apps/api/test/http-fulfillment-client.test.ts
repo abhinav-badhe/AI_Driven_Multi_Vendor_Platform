@@ -146,7 +146,9 @@ describe('HttpFulfillmentClient', () => {
     expect(list[0]?.id).toBe('ship-123');
 
     const [listUrl, listInit] = fetchFn.mock.calls[1] as [string, RequestInit];
-    expect(listUrl).toBe('http://fulfillment-service:4140/fulfillment/shipments?sellerOrderId=so-123');
+    expect(listUrl).toBe(
+      'http://fulfillment-service:4140/fulfillment/shipments?sellerOrderId=so-123',
+    );
     expect(listInit.method).toBe('GET');
   });
 
@@ -270,14 +272,16 @@ describe('HttpFulfillmentClient', () => {
   });
 
   it('maps error codes correctly from HTTP response', async () => {
-    const validationFetch = vi.fn().mockImplementation(() =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Missing fields' } }),
-          { status: 400, headers: { 'content-type': 'application/json' } },
+    const validationFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Missing fields' } }),
+            { status: 400, headers: { 'content-type': 'application/json' } },
+          ),
         ),
-      ),
-    );
+      );
     const client = new HttpFulfillmentClient('http://fulfillment-service:4140', {
       fetchFn: validationFetch,
     });
@@ -285,20 +289,22 @@ describe('HttpFulfillmentClient', () => {
       client.createShipment(mockSellerActor, { sellerOrderId: '', items: [] }),
     ).rejects.toThrowError(ValidationError);
 
-    const notFoundFetch = vi.fn().mockImplementation(() =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Shipment not found' } }),
-          { status: 404, headers: { 'content-type': 'application/json' } },
+    const notFoundFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Shipment not found' } }),
+            { status: 404, headers: { 'content-type': 'application/json' } },
+          ),
         ),
-      ),
-    );
+      );
     const notFoundClient = new HttpFulfillmentClient('http://fulfillment-service:4140', {
       fetchFn: notFoundFetch,
     });
-    await expect(
-      notFoundClient.getShipment(mockSellerActor, 'ship-missing'),
-    ).rejects.toThrowError(NotFoundError);
+    await expect(notFoundClient.getShipment(mockSellerActor, 'ship-missing')).rejects.toThrowError(
+      NotFoundError,
+    );
 
     const transitionFetch = vi.fn().mockImplementation(() =>
       Promise.resolve(
@@ -326,9 +332,11 @@ describe('HttpFulfillmentClient', () => {
     memoryStore.seedShipment(mockShipment);
     memoryStore.seedReturn(mockReturn);
 
-    const failingFetch = vi.fn().mockImplementation(() =>
-      Promise.reject(new Error('ECONNREFUSED connect to fulfillment-service:4140')),
-    );
+    const failingFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.reject(new Error('ECONNREFUSED connect to fulfillment-service:4140')),
+      );
 
     const client = new HttpFulfillmentClient('http://fulfillment-service:4140', {
       fetchFn: failingFetch,

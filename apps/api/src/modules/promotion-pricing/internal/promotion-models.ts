@@ -237,4 +237,3 @@ export interface IPromotionPricingEngine {
     checkoutSessionId: string,
   ): Promise<RemoveCouponResult>;
 }
-

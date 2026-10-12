@@ -45,9 +45,12 @@ export const backInStockApi = {
   },
 
   cancelSubscription: async (productId: string): Promise<{ success: boolean; message: string }> => {
-    return apiClient<{ success: boolean; message: string }>(`/customer/back-in-stock/${productId}`, {
-      method: 'DELETE',
-    });
+    return apiClient<{ success: boolean; message: string }>(
+      `/customer/back-in-stock/${productId}`,
+      {
+        method: 'DELETE',
+      },
+    );
   },
 
   checkSubscription: async (productId: string): Promise<BackInStockCheckResult> => {

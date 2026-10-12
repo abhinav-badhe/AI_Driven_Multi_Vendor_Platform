@@ -40,7 +40,9 @@ function validateDomainEvent(body: unknown): DomainEvent {
   const eventVersion = b.eventVersion;
 
   if (!isEventVersionSupported(eventType, eventVersion)) {
-    throw new ValidationError(`Unsupported event version ${eventVersion} for event type '${eventType}'`);
+    throw new ValidationError(
+      `Unsupported event version ${eventVersion} for event type '${eventType}'`,
+    );
   }
 
   if (!b.aggregateType || typeof b.aggregateType !== 'string' || b.aggregateType.trim() === '') {
@@ -63,14 +65,24 @@ function validateDomainEvent(body: unknown): DomainEvent {
     throw new ValidationError('occurredAt must be a valid ISO date string');
   }
 
-  if (b.payload === undefined || b.payload === null || typeof b.payload !== 'object' || Array.isArray(b.payload)) {
+  if (
+    b.payload === undefined ||
+    b.payload === null ||
+    typeof b.payload !== 'object' ||
+    Array.isArray(b.payload)
+  ) {
     throw new ValidationError('payload is required and must be a non-null object');
   }
 
   // Canonical security scan for sensitive keys / credential leaks in payload
   inspectForSensitiveKeys(b.payload);
 
-  if (b.metadata === undefined || b.metadata === null || typeof b.metadata !== 'object' || Array.isArray(b.metadata)) {
+  if (
+    b.metadata === undefined ||
+    b.metadata === null ||
+    typeof b.metadata !== 'object' ||
+    Array.isArray(b.metadata)
+  ) {
     throw new ValidationError('metadata is required and must be an object');
   }
 
@@ -208,34 +220,38 @@ export function registerInternalRoutes(
   });
 
   // POST /v1/internal/notifications/transactional-email
-  app.post('/v1/internal/notifications/transactional-email', { preHandler }, async (request, reply) => {
-    const body = request.body as Record<string, unknown>;
-    if (!body || typeof body !== 'object') {
-      throw new ValidationError('Request body must be an object');
-    }
+  app.post(
+    '/v1/internal/notifications/transactional-email',
+    { preHandler },
+    async (request, reply) => {
+      const body = request.body as Record<string, unknown>;
+      if (!body || typeof body !== 'object') {
+        throw new ValidationError('Request body must be an object');
+      }
 
-    if (!body.recipient || typeof body.recipient !== 'string') {
-      throw new ValidationError('recipient is required');
-    }
-    if (!body.subject || typeof body.subject !== 'string') {
-      throw new ValidationError('subject is required');
-    }
-    if (!body.body || typeof body.body !== 'string') {
-      throw new ValidationError('body is required');
-    }
+      if (!body.recipient || typeof body.recipient !== 'string') {
+        throw new ValidationError('recipient is required');
+      }
+      if (!body.subject || typeof body.subject !== 'string') {
+        throw new ValidationError('subject is required');
+      }
+      if (!body.body || typeof body.body !== 'string') {
+        throw new ValidationError('body is required');
+      }
 
-    const result = await notificationService.sendTransactionalEmail({
-      tenantId: typeof body.tenantId === 'string' ? body.tenantId : 'default',
-      recipient: body.recipient,
-      subject: body.subject,
-      body: body.body,
-      ...(body.metadata && typeof body.metadata === 'object'
-        ? { metadata: body.metadata as Record<string, unknown> }
-        : {}),
-    });
+      const result = await notificationService.sendTransactionalEmail({
+        tenantId: typeof body.tenantId === 'string' ? body.tenantId : 'default',
+        recipient: body.recipient,
+        subject: body.subject,
+        body: body.body,
+        ...(body.metadata && typeof body.metadata === 'object'
+          ? { metadata: body.metadata as Record<string, unknown> }
+          : {}),
+      });
 
-    return reply.status(200).send(result);
-  });
+      return reply.status(200).send(result);
+    },
+  );
 
   // POST /v1/internal/notifications/process
   app.post('/v1/internal/notifications/process', { preHandler }, async (request, reply) => {

@@ -177,13 +177,19 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
       `SELECT tenant_id FROM tenant_memberships WHERE user_id = (SELECT id FROM users WHERE email = 'seller@price.test')`,
     );
     const merchTenantId = merchTenant.rows[0]!.tenant_id;
-    await db.query(`UPDATE merchant_listings SET tenant_id = $1 WHERE id = 'list-apple'`, [merchTenantId]);
-    await db.query(`UPDATE inventory_items SET tenant_id = $1 WHERE id = 'inv-apple'`, [merchTenantId]);
-    const merch = await app.inject({
-      method: 'POST',
-      url: '/auth/login',
-      payload: { email: 'seller@price.test', password: 'Password123!' },
-    }).then((r) => r.json().accessToken as string);
+    await db.query(`UPDATE merchant_listings SET tenant_id = $1 WHERE id = 'list-apple'`, [
+      merchTenantId,
+    ]);
+    await db.query(`UPDATE inventory_items SET tenant_id = $1 WHERE id = 'inv-apple'`, [
+      merchTenantId,
+    ]);
+    const merch = await app
+      .inject({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email: 'seller@price.test', password: 'Password123!' },
+      })
+      .then((r) => r.json().accessToken as string);
 
     await app.inject({
       method: 'POST',
@@ -370,7 +376,12 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
         processPendingNotifications: vi.fn(),
       };
 
-      const service = new PriceAlertService(db, flakyClient, app.log as any, 'http://localhost:3000');
+      const service = new PriceAlertService(
+        db,
+        flakyClient,
+        app.log as any,
+        'http://localhost:3000',
+      );
 
       // Attempt 1: Transient failure during enqueue
       const attempt1 = await service.checkProduct('prod-apple');
@@ -425,7 +436,12 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
 
       const notifService = notificationModule.createService(db, app.log as any);
       const notifClient = notificationModule.createClient(notifService);
-      const service = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+      const service = new PriceAlertService(
+        db,
+        notifClient,
+        app.log as any,
+        'http://localhost:3000',
+      );
 
       // Price drops to 8000
       await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
@@ -491,7 +507,12 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
 
       const notifService = notificationModule.createService(db, app.log as any);
       const notifClient = notificationModule.createClient(notifService);
-      const service = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+      const service = new PriceAlertService(
+        db,
+        notifClient,
+        app.log as any,
+        'http://localhost:3000',
+      );
 
       // 1st drop to 8000
       await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
@@ -549,7 +570,12 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
         processPendingNotifications: vi.fn(),
       };
 
-      const service = new PriceAlertService(db, mockClient, app.log as any, 'http://localhost:3000');
+      const service = new PriceAlertService(
+        db,
+        mockClient,
+        app.log as any,
+        'http://localhost:3000',
+      );
 
       // 1. PENDING: queued, but NOT delivered yet -> must NOT mark alerted!
       simulatedStatus = 'PENDING';
@@ -699,7 +725,12 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
 
         const notifService = notificationModule.createService(db, app.log as any);
         const notifClient = notificationModule.createClient(notifService);
-        const service = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+        const service = new PriceAlertService(
+          db,
+          notifClient,
+          app.log as any,
+          'http://localhost:3000',
+        );
 
         // 1. Price drops to 8000 -> notification queued in PENDING
         await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
@@ -718,7 +749,9 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
         expect(dispatch.sent).toBe(1);
 
         // 3. BEFORE the next sweep, the product becomes UNAVAILABLE (inactive listing)
-        await db.query(`UPDATE merchant_listings SET status = 'INACTIVE', price_amount = 9500 WHERE id = 'list-apple'`);
+        await db.query(
+          `UPDATE merchant_listings SET status = 'INACTIVE', price_amount = 9500 WHERE id = 'list-apple'`,
+        );
 
         // Verify current floor price is now unavailable (null)
         const floorCheck = await service.checkProduct('prod-apple');
@@ -755,7 +788,12 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
 
         const notifService = notificationModule.createService(db, app.log as any);
         const notifClient = notificationModule.createClient(notifService);
-        const service = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+        const service = new PriceAlertService(
+          db,
+          notifClient,
+          app.log as any,
+          'http://localhost:3000',
+        );
 
         await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
         await service.checkProduct('prod-apple');
@@ -800,7 +838,12 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
 
         const notifService = notificationModule.createService(db, app.log as any);
         const notifClient = notificationModule.createClient(notifService);
-        const service = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+        const service = new PriceAlertService(
+          db,
+          notifClient,
+          app.log as any,
+          'http://localhost:3000',
+        );
 
         await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
         await service.checkProduct('prod-apple');
@@ -814,7 +857,7 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
         const rec = await service.reconcileDeliveredAlerts();
         expect(rec.reconciled).toBe(0);
 
-        let watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
+        const watch = await db.query<{ last_alerted_price: number | null; alert_count: number }>(
           `SELECT last_alerted_price, alert_count FROM product_price_watches WHERE product_id = 'prod-apple'`,
         );
         expect(watch.rows[0]!.last_alerted_price).toBeNull();
@@ -847,15 +890,30 @@ describe('Price-drop alerts (views, drops, email queue)', () => {
 
         const notifService = notificationModule.createService(db, app.log as any);
         const notifClient = notificationModule.createClient(notifService);
-        const serviceInstance1 = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+        const serviceInstance1 = new PriceAlertService(
+          db,
+          notifClient,
+          app.log as any,
+          'http://localhost:3000',
+        );
 
         await db.query(`UPDATE merchant_listings SET price_amount = 8000 WHERE id = 'list-apple'`);
         await serviceInstance1.checkProduct('prod-apple');
         await notifClient.processPendingNotifications();
 
         // Simulate app restart: instantiate brand new PriceAlertService instances against the shared DB
-        const restartedServiceA = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
-        const restartedServiceB = new PriceAlertService(db, notifClient, app.log as any, 'http://localhost:3000');
+        const restartedServiceA = new PriceAlertService(
+          db,
+          notifClient,
+          app.log as any,
+          'http://localhost:3000',
+        );
+        const restartedServiceB = new PriceAlertService(
+          db,
+          notifClient,
+          app.log as any,
+          'http://localhost:3000',
+        );
 
         // Execute concurrent reconciliation passes
         const [resA, resB] = await Promise.all([

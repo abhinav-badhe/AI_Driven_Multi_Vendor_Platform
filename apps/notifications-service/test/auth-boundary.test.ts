@@ -11,9 +11,7 @@ describe('Authentication Boundary (Decoupled from Monolith User Database)', () =
   function makeToken(payload: Record<string, unknown>, key: string = secret): string {
     const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
     const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    const signature = createHash('sha256')
-      .update(`${header}.${body}.${key}`)
-      .digest('base64url');
+    const signature = createHash('sha256').update(`${header}.${body}.${key}`).digest('base64url');
     return `${header}.${body}.${signature}`;
   }
 

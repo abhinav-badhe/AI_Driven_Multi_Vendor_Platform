@@ -1,13 +1,7 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 
 export type CheckoutStatus =
-  | 'OPEN'
-  | 'VALIDATING'
-  | 'RESERVED'
-  | 'READY'
-  | 'FAILED'
-  | 'EXPIRED'
-  | 'CANCELLED';
+  'OPEN' | 'VALIDATING' | 'RESERVED' | 'READY' | 'FAILED' | 'EXPIRED' | 'CANCELLED';
 
 export interface CheckoutSessionRow {
   id: string;
@@ -192,12 +186,14 @@ export class CheckoutRepository {
     id: string,
     currentStatus: CheckoutStatus | CheckoutStatus[],
     nextStatus: CheckoutStatus,
-    extra?: {
-      failureReason?: string | null | undefined;
-      reservedAt?: Date | undefined;
-      cancelledAt?: Date | undefined;
-      failedAt?: Date | undefined;
-    } | undefined,
+    extra?:
+      | {
+          failureReason?: string | null | undefined;
+          reservedAt?: Date | undefined;
+          cancelledAt?: Date | undefined;
+          failedAt?: Date | undefined;
+        }
+      | undefined,
   ): Promise<CheckoutSessionRow | null> {
     const allowed = Array.isArray(currentStatus) ? currentStatus : [currentStatus];
     const params: unknown[] = [id, nextStatus];
@@ -221,10 +217,12 @@ export class CheckoutRepository {
       query += `, failed_at = $${params.length}`;
     }
 
-    const statusPlaceholders = allowed.map((s) => {
-      params.push(s);
-      return `$${params.length}`;
-    }).join(', ');
+    const statusPlaceholders = allowed
+      .map((s) => {
+        params.push(s);
+        return `$${params.length}`;
+      })
+      .join(', ');
 
     query += ` WHERE id = $1 AND status IN (${statusPlaceholders})
       RETURNING id, cart_id, customer_tenant_id, status, currency,
@@ -253,10 +251,7 @@ export class CheckoutRepository {
     return res.rows[0] ?? null;
   }
 
-  async setCheckoutItemReservation(
-    itemId: string,
-    reservationId: string | null,
-  ): Promise<void> {
+  async setCheckoutItemReservation(itemId: string, reservationId: string | null): Promise<void> {
     await this.db.query(
       `UPDATE checkout_items
        SET inventory_reservation_id = $1
@@ -285,4 +280,3 @@ export class CheckoutRepository {
     return res.rows[0] ?? null;
   }
 }
-

@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto';
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
-import { RbacPolicy, SecurityAuditService, type ISecurityAuditService } from '../../identity/index.js';
+import {
+  RbacPolicy,
+  SecurityAuditService,
+  type ISecurityAuditService,
+} from '../../identity/index.js';
 import { OutboxService, EventTypes, createDomainEvent } from '../../events/index.js';
 import {
   ValidationError,
@@ -42,7 +46,10 @@ export class PromotionService implements IPromotionPricingEngine {
     this.audit = audit ?? new SecurityAuditService(db, logger);
   }
 
-  async createPromotion(actor: AuthorizedActor, input: CreatePromotionInput): Promise<PromotionDto> {
+  async createPromotion(
+    actor: AuthorizedActor,
+    input: CreatePromotionInput,
+  ): Promise<PromotionDto> {
     // 1. Authorization check
     let merchantTenantId: string | null = null;
 
@@ -76,7 +83,11 @@ export class PromotionService implements IPromotionPricingEngine {
       throw new ValidationError('Minimum order amount cannot be negative');
     }
 
-    if (input.maxDiscountAmount !== undefined && input.maxDiscountAmount !== null && input.maxDiscountAmount <= 0) {
+    if (
+      input.maxDiscountAmount !== undefined &&
+      input.maxDiscountAmount !== null &&
+      input.maxDiscountAmount <= 0
+    ) {
       throw new ValidationError('Maximum discount amount must be greater than zero');
     }
 
@@ -169,7 +180,9 @@ export class PromotionService implements IPromotionPricingEngine {
     if (actor.role === 'MERCHANT') {
       RbacPolicy.requirePermission(actor, 'promotion:update-own');
       if (existing.merchant_tenant_id !== actor.tenantId) {
-        throw new ForbiddenError('Merchants cannot update promotions of other merchants or platform promotions');
+        throw new ForbiddenError(
+          'Merchants cannot update promotions of other merchants or platform promotions',
+        );
       }
     } else if (actor.role === 'ADMINISTRATOR') {
       RbacPolicy.requirePermission(actor, 'promotion:manage-any');
@@ -200,7 +213,10 @@ export class PromotionService implements IPromotionPricingEngine {
     if (this.outbox) {
       let eventType: string = EventTypes.PROMOTION_UPDATED;
       if (input.status && input.status !== existing.status) {
-        eventType = input.status === 'ACTIVE' ? EventTypes.PROMOTION_ACTIVATED : EventTypes.PROMOTION_DEACTIVATED;
+        eventType =
+          input.status === 'ACTIVE'
+            ? EventTypes.PROMOTION_ACTIVATED
+            : EventTypes.PROMOTION_DEACTIVATED;
       }
       await this.db.withTransaction(async (tx) => {
         await this.outbox!.recordEvent(
@@ -236,7 +252,11 @@ export class PromotionService implements IPromotionPricingEngine {
       throw new NotFoundError(`Promotion '${id}' not found`);
     }
 
-    if (actor.role === 'MERCHANT' && promo.merchant_tenant_id && promo.merchant_tenant_id !== actor.tenantId) {
+    if (
+      actor.role === 'MERCHANT' &&
+      promo.merchant_tenant_id &&
+      promo.merchant_tenant_id !== actor.tenantId
+    ) {
       throw new ForbiddenError('Merchants cannot view promotions of other merchants');
     }
 
@@ -420,7 +440,10 @@ export class PromotionService implements IPromotionPricingEngine {
       promo.id,
       session.customer_tenant_id,
     );
-    const orderCount = await this.repo.getCustomerCompletedOrderCount(this.db, session.customer_tenant_id);
+    const orderCount = await this.repo.getCustomerCompletedOrderCount(
+      this.db,
+      session.customer_tenant_id,
+    );
 
     const customerUsageCounts = new Map([[promo.id, customerUsageCount]]);
 
@@ -432,7 +455,9 @@ export class PromotionService implements IPromotionPricingEngine {
     });
 
     if (!eligibility.eligible) {
-      throw new ValidationError(eligibility.reason ?? `Coupon '${couponCode}' is not eligible for this order`);
+      throw new ValidationError(
+        eligibility.reason ?? `Coupon '${couponCode}' is not eligible for this order`,
+      );
     }
 
     // 6. Run calculation
@@ -444,7 +469,9 @@ export class PromotionService implements IPromotionPricingEngine {
     });
 
     if (calcResult.totalDiscountAmount <= 0) {
-      throw new ValidationError(`Coupon '${couponCode}' did not qualify for any discount on this order`);
+      throw new ValidationError(
+        `Coupon '${couponCode}' did not qualify for any discount on this order`,
+      );
     }
 
     const subtotal = Number(session.subtotal_amount);
@@ -462,7 +489,13 @@ export class PromotionService implements IPromotionPricingEngine {
            applied_promotions = $4::jsonb,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $5`,
-      [discount, finalTotal, promo.code, JSON.stringify(calcResult.appliedPromotions), checkoutSessionId],
+      [
+        discount,
+        finalTotal,
+        promo.code,
+        JSON.stringify(calcResult.appliedPromotions),
+        checkoutSessionId,
+      ],
     );
 
     // 8. Record reservation in coupon_redemptions table
@@ -586,7 +619,10 @@ export class PromotionService implements IPromotionPricingEngine {
     }
 
     // Check if redemptions for this checkout session / order have already been finalized (idempotent retry)
-    const existingRedemptions = await this.repo.getRedemptionsByCheckout(tx, params.checkoutSessionId);
+    const existingRedemptions = await this.repo.getRedemptionsByCheckout(
+      tx,
+      params.checkoutSessionId,
+    );
     if (existingRedemptions.some((r) => r.status === 'COMPLETED')) {
       return;
     }
@@ -595,11 +631,16 @@ export class PromotionService implements IPromotionPricingEngine {
       // 2. Lock promotion row FOR UPDATE to prevent concurrency races on usage limits
       const promo = await this.repo.lockPromotionForUpdate(tx, applied.promotionId);
       if (!promo) {
-        throw new NotFoundError(`Promotion '${applied.promotionId}' not found during checkout redemption`);
+        throw new NotFoundError(
+          `Promotion '${applied.promotionId}' not found during checkout redemption`,
+        );
       }
 
       // Check global usage limit under lock
-      if (promo.usage_limit_total !== null && promo.current_usage_count >= promo.usage_limit_total) {
+      if (
+        promo.usage_limit_total !== null &&
+        promo.current_usage_count >= promo.usage_limit_total
+      ) {
         throw new ConflictError(
           `Promotion '${promo.name}' usage limit has been reached by a concurrent order`,
         );
@@ -679,7 +720,12 @@ export class PromotionService implements IPromotionPricingEngine {
     for (const r of redemptions) {
       if (r.status === 'COMPLETED') {
         await this.repo.decrementUsageCount(tx, r.promotion_id);
-        await this.repo.updateRedemptionStatus(tx, params.checkoutSessionId, r.promotion_id, 'CANCELLED');
+        await this.repo.updateRedemptionStatus(
+          tx,
+          params.checkoutSessionId,
+          r.promotion_id,
+          'CANCELLED',
+        );
 
         if (this.outbox) {
           await this.outbox.recordEvent(

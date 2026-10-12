@@ -15,7 +15,12 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
   let dbConn: DatabaseConnection;
   let eventTransport: InMemoryEventTransport;
   let searchStore: InMemorySearchStore;
-  const logger = new JsonLogger({ serviceName: 'wa-test', level: 'error', pretty: false, redactKeys: [] });
+  const logger = new JsonLogger({
+    serviceName: 'wa-test',
+    level: 'error',
+    pretty: false,
+    redactKeys: [],
+  });
 
   const tenantId = 'tenant-wa-store';
   const webhookSecret = 'test-wa-app-secret-32-chars-long!';
@@ -93,14 +98,22 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
     await dbConn.query(
       `INSERT INTO merchant_profiles (id, tenant_id, business_name, legal_name, contact_email, verification_status)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      ['merch-1', 'tenant-merch-1', 'Alpha Merchant Store', 'Alpha LLC', 'alpha@merchant.com', 'VERIFIED'],
+      [
+        'merch-1',
+        'tenant-merch-1',
+        'Alpha Merchant Store',
+        'Alpha LLC',
+        'alpha@merchant.com',
+        'VERIFIED',
+      ],
     );
 
     // 3. Category, Canonical Product & SKU
-    await dbConn.query(
-      `INSERT INTO categories (id, name, slug) VALUES ($1, $2, $3)`,
-      ['cat-laptops', 'Laptops & Computers', 'laptops'],
-    );
+    await dbConn.query(`INSERT INTO categories (id, name, slug) VALUES ($1, $2, $3)`, [
+      'cat-laptops',
+      'Laptops & Computers',
+      'laptops',
+    ]);
 
     await dbConn.query(
       `INSERT INTO products (id, title, slug, category_id, status)
@@ -236,7 +249,8 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
         method: 'POST',
         url: '/ai/whatsapp/webhook',
         headers: {
-          'x-hub-signature-256': 'sha256=0000000000000000000000000000000000000000000000000000000000000000',
+          'x-hub-signature-256':
+            'sha256=0000000000000000000000000000000000000000000000000000000000000000',
           'content-type': 'application/json',
         },
         payload,
@@ -301,7 +315,9 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
                     display_phone_number: '15559876543',
                     phone_number_id: '10001',
                   },
-                  contacts: [{ profile: { name: 'Abhinav' }, wa_id: customerPhone.replace('+', '') }],
+                  contacts: [
+                    { profile: { name: 'Abhinav' }, wa_id: customerPhone.replace('+', '') },
+                  ],
                   messages: [
                     {
                       from: customerPhone,
@@ -351,7 +367,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(payload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(payload),
+          'content-type': 'application/json',
+        },
         payload,
       });
 
@@ -373,7 +392,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(payload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(payload),
+          'content-type': 'application/json',
+        },
         payload,
       });
 
@@ -397,7 +419,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(payload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(payload),
+          'content-type': 'application/json',
+        },
         payload,
       });
 
@@ -418,7 +443,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(payload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(payload),
+          'content-type': 'application/json',
+        },
         payload,
       });
 
@@ -445,7 +473,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resAdd = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(addPayload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(addPayload),
+          'content-type': 'application/json',
+        },
         payload: addPayload,
       });
       expect(resAdd.statusCode).toBe(200);
@@ -463,7 +494,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resCart = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(cartPayload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(cartPayload),
+          'content-type': 'application/json',
+        },
         payload: cartPayload,
       });
       expect(resCart.statusCode).toBe(200);
@@ -481,7 +515,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resChk = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(chkPayload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(chkPayload),
+          'content-type': 'application/json',
+        },
         payload: chkPayload,
       });
       expect(resChk.statusCode).toBe(200);
@@ -506,7 +543,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resPay = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(payPayload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(payPayload),
+          'content-type': 'application/json',
+        },
         payload: payPayload,
       });
       expect(resPay.statusCode).toBe(200);
@@ -530,7 +570,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resStatus = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(statusPayload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(statusPayload),
+          'content-type': 'application/json',
+        },
         payload: statusPayload,
       });
       expect(resStatus.statusCode).toBe(200);
@@ -555,7 +598,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(payload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(payload),
+          'content-type': 'application/json',
+        },
         payload,
       });
 
@@ -576,7 +622,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(payload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(payload),
+          'content-type': 'application/json',
+        },
         payload,
       });
 
@@ -596,7 +645,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(payload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(payload),
+          'content-type': 'application/json',
+        },
         payload,
       });
 
@@ -676,7 +728,14 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       await dbConn.query(
         `INSERT INTO ai_whatsapp_mappings (id, phone_number, tenant_id, customer_id, is_verified, verification_code, metadata, created_at, updated_at)
          VALUES ($1, $2, $3, $4, FALSE, $5, $6::jsonb, NOW(), NOW())`,
-        [`wam-${newPhone}`, newPhone, tenantId, customerId, testCode, JSON.stringify({ codeExpiresAt: expiresAt })],
+        [
+          `wam-${newPhone}`,
+          newPhone,
+          tenantId,
+          customerId,
+          testCode,
+          JSON.stringify({ codeExpiresAt: expiresAt }),
+        ],
       );
 
       // Verify in-chat OTP verification: user sends "verify 654321" via WhatsApp
@@ -691,7 +750,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resVerify = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(verifyMsg), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(verifyMsg),
+          'content-type': 'application/json',
+        },
         payload: verifyMsg,
       });
 
@@ -699,7 +761,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       expect(resVerify.json().replyText).toContain('Phone number verified');
 
       // Check DB: mapping is now verified
-      const updated = await dbConn.query<{ is_verified: boolean; verification_code: string | null }>(
+      const updated = await dbConn.query<{
+        is_verified: boolean;
+        verification_code: string | null;
+      }>(
         `SELECT is_verified, verification_code FROM ai_whatsapp_mappings WHERE phone_number = $1`,
         [newPhone],
       );
@@ -713,7 +778,13 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       await dbConn.query(
         `INSERT INTO ai_whatsapp_mappings (id, phone_number, tenant_id, customer_id, is_verified, verification_code, metadata, created_at, updated_at)
          VALUES ($1, $2, $3, $4, FALSE, '112233', $5::jsonb, NOW(), NOW())`,
-        [`wam-${expiredPhone}`, expiredPhone, tenantId, customerId, JSON.stringify({ codeExpiresAt: expiredTime })],
+        [
+          `wam-${expiredPhone}`,
+          expiredPhone,
+          tenantId,
+          customerId,
+          JSON.stringify({ codeExpiresAt: expiredTime }),
+        ],
       );
 
       const expiredMsg = JSON.stringify({
@@ -727,7 +798,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resExpired = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(expiredMsg), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(expiredMsg),
+          'content-type': 'application/json',
+        },
         payload: expiredMsg,
       });
 
@@ -779,7 +853,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resAddA = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(addPayloadA), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(addPayloadA),
+          'content-type': 'application/json',
+        },
         payload: addPayloadA,
       });
       expect(resAddA.statusCode).toBe(200);
@@ -796,7 +873,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resB = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(payloadB), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(payloadB),
+          'content-type': 'application/json',
+        },
         payload: payloadB,
       });
 
@@ -823,7 +903,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(addPayload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(addPayload),
+          'content-type': 'application/json',
+        },
         payload: addPayload,
       });
 
@@ -837,7 +920,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resChk = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(checkoutPayload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(checkoutPayload),
+          'content-type': 'application/json',
+        },
         payload: checkoutPayload,
       });
       const sessionId = resChk.json().replyText.match(/Session ID: ([a-zA-Z0-9-]+)\./)![1];
@@ -853,7 +939,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resPay1 = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(pay1Payload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(pay1Payload),
+          'content-type': 'application/json',
+        },
         payload: pay1Payload,
       });
       expect(resPay1.statusCode).toBe(200);
@@ -870,7 +959,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const resPay2 = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(pay2Payload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(pay2Payload),
+          'content-type': 'application/json',
+        },
         payload: pay2Payload,
       });
       expect(resPay2.statusCode).toBe(200);
@@ -911,7 +1003,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const res1 = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(msgPayload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(msgPayload),
+          'content-type': 'application/json',
+        },
         payload: msgPayload,
       });
       expect(res1.statusCode).toBe(200);
@@ -922,7 +1017,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const res2 = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(msgPayload), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(msgPayload),
+          'content-type': 'application/json',
+        },
         payload: msgPayload,
       });
       expect(res2.statusCode).toBe(200);
@@ -951,7 +1049,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(retryMsg), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(retryMsg),
+          'content-type': 'application/json',
+        },
         payload: retryMsg,
       });
 
@@ -979,7 +1080,10 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/ai/whatsapp/webhook',
-        headers: { 'x-hub-signature-256': signPayload(persistMsg), 'content-type': 'application/json' },
+        headers: {
+          'x-hub-signature-256': signPayload(persistMsg),
+          'content-type': 'application/json',
+        },
         payload: persistMsg,
       });
       expect(res.statusCode).toBe(200);
@@ -1001,4 +1105,3 @@ describe('Production WhatsApp Commerce Channel & End-to-End Workflow', () => {
     });
   });
 });
-

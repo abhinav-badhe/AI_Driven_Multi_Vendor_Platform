@@ -121,13 +121,15 @@ export interface IFulfillmentReader {
   getShipment(actor: AuthorizedActor, id: string): Promise<ShipmentDto>;
   listShipments(
     actor: AuthorizedActor,
-    filter?: { sellerOrderId?: string | undefined; customerOrderId?: string | undefined } | undefined,
+    filter?:
+      { sellerOrderId?: string | undefined; customerOrderId?: string | undefined } | undefined,
   ): Promise<ShipmentDto[]>;
   getShipmentTracking(actor: AuthorizedActor, shipmentId: string): Promise<CarrierTrackingEvent>;
   getReturn(actor: AuthorizedActor, returnId: string): Promise<ReturnDto>;
   listReturns(
     actor: AuthorizedActor,
-    filter?: { customerOrderId?: string | undefined; sellerOrderId?: string | undefined } | undefined,
+    filter?:
+      { customerOrderId?: string | undefined; sellerOrderId?: string | undefined } | undefined,
   ): Promise<ReturnDto[]>;
 }
 

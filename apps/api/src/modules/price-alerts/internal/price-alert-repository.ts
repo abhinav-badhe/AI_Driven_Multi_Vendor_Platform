@@ -46,7 +46,11 @@ export class PriceAlertRepository {
     );
   }
 
-  async setUnsubscribed(customerTenantId: string, productId: string, value: boolean): Promise<void> {
+  async setUnsubscribed(
+    customerTenantId: string,
+    productId: string,
+    value: boolean,
+  ): Promise<void> {
     await this.db.query(
       `INSERT INTO product_price_watches (id, customer_tenant_id, product_id, unsubscribed)
        VALUES ($1, $2, $3, $4)
@@ -80,7 +84,10 @@ export class PriceAlertRepository {
    * whose last seen price beats it by a margin and who were not already
    * alerted at an equal-or-lower price.
    */
-  async findAlertCandidates(productId: string, currentMinMinor: number): Promise<WatchCandidateRow[]> {
+  async findAlertCandidates(
+    productId: string,
+    currentMinMinor: number,
+  ): Promise<WatchCandidateRow[]> {
     const eventId = `price-drop:${productId}:${currentMinMinor}`;
     const res = await this.db.query<WatchCandidateRow>(
       `SELECT w.customer_tenant_id, w.product_id,
@@ -113,7 +120,11 @@ export class PriceAlertRepository {
    * Guards against duplicate increments: only updates if last_alerted_price
    * is null or higher than the alerted price.
    */
-  async markAlerted(customerTenantId: string, productId: string, priceMinor: number): Promise<boolean> {
+  async markAlerted(
+    customerTenantId: string,
+    productId: string,
+    priceMinor: number,
+  ): Promise<boolean> {
     const res = await this.db.query(
       `UPDATE product_price_watches
        SET last_alerted_price = $3,
@@ -131,12 +142,14 @@ export class PriceAlertRepository {
    * Finds all delivered (SENT) price drop notifications across all products within the horizon.
    * Completely independent of current floor prices or live catalog availability.
    */
-  async findDeliveredAlerts(sinceDays = 90): Promise<Array<{
-    notification_id: string;
-    customer_tenant_id: string;
-    product_id: string;
-    price_minor: number;
-  }>> {
+  async findDeliveredAlerts(sinceDays = 90): Promise<
+    Array<{
+      notification_id: string;
+      customer_tenant_id: string;
+      product_id: string;
+      price_minor: number;
+    }>
+  > {
     const cutoff = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000).toISOString();
     const res = await this.db.query<{
       notification_id: string;
@@ -208,12 +221,14 @@ export class PriceAlertRepository {
   /**
    * Finds all delivered (SENT) price drop notifications for a specific product.
    */
-  async findDeliveredAlertsForProduct(productId: string): Promise<Array<{
-    notification_id: string;
-    customer_tenant_id: string;
-    product_id: string;
-    price_minor: number;
-  }>> {
+  async findDeliveredAlertsForProduct(productId: string): Promise<
+    Array<{
+      notification_id: string;
+      customer_tenant_id: string;
+      product_id: string;
+      price_minor: number;
+    }>
+  > {
     const res = await this.db.query<{
       notification_id: string;
       customer_tenant_id: string;
@@ -281,10 +296,9 @@ export class PriceAlertRepository {
   }
 
   async productExists(productId: string): Promise<boolean> {
-    const res = await this.db.query<{ id: string }>(
-      `SELECT id FROM products WHERE id = $1`,
-      [productId],
-    );
+    const res = await this.db.query<{ id: string }>(`SELECT id FROM products WHERE id = $1`, [
+      productId,
+    ]);
     return res.rows.length > 0;
   }
 
@@ -293,10 +307,11 @@ export class PriceAlertRepository {
     brand: string | null;
     thumbnail: string | null;
   } | null> {
-    const res = await this.db.query<{ title: string; brand: string | null; thumbnail_url: string | null }>(
-      `SELECT title, brand, thumbnail_url FROM products WHERE id = $1`,
-      [productId],
-    );
+    const res = await this.db.query<{
+      title: string;
+      brand: string | null;
+      thumbnail_url: string | null;
+    }>(`SELECT title, brand, thumbnail_url FROM products WHERE id = $1`, [productId]);
     const row = res.rows[0];
     if (!row) return null;
     return { title: row.title, brand: row.brand, thumbnail: row.thumbnail_url };
@@ -332,7 +347,10 @@ export class PriceAlertRepository {
       [productId],
     );
     if (anyActive.rows[0]) {
-      return { price: Number(anyActive.rows[0].price_amount), currency: anyActive.rows[0].currency };
+      return {
+        price: Number(anyActive.rows[0].price_amount),
+        currency: anyActive.rows[0].currency,
+      };
     }
     return null;
   }

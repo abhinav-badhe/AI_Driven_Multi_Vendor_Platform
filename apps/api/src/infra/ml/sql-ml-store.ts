@@ -23,7 +23,13 @@ interface RawModelRow {
   training_dataset_id: string;
   data_source_type: 'REAL' | 'BOOTSTRAP';
   prediction_horizon: string;
-  metrics: { train: Record<string, number>; validation: Record<string, number>; test: Record<string, number> } | string;
+  metrics:
+    | {
+        train: Record<string, number>;
+        validation: Record<string, number>;
+        test: Record<string, number>;
+      }
+    | string;
   artifact_path?: string | null;
   is_active: boolean;
   rejection_reason?: string | null;
@@ -133,7 +139,10 @@ export class SqlMlStore implements IMlStore {
     return firstRow ? this.mapModelRow(firstRow) : null;
   }
 
-  async getActiveModel(tenantId: string, modelType: ModelType): Promise<RegisteredModelRecord | null> {
+  async getActiveModel(
+    tenantId: string,
+    modelType: ModelType,
+  ): Promise<RegisteredModelRecord | null> {
     const sql = `
       SELECT * FROM ml_models
       WHERE tenant_id = $1 AND model_type = $2 AND is_active = TRUE AND status = 'APPROVED'
@@ -217,7 +226,11 @@ export class SqlMlStore implements IMlStore {
       ]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('uq_ml_active_training_job') || msg.includes('duplicate key') || msg.includes('unique constraint')) {
+      if (
+        msg.includes('uq_ml_active_training_job') ||
+        msg.includes('duplicate key') ||
+        msg.includes('unique constraint')
+      ) {
         throw new ConflictError(
           `A training job is already active (PENDING or RUNNING) for tenant ${job.tenantId} ${job.modelType}`,
         );
@@ -228,7 +241,12 @@ export class SqlMlStore implements IMlStore {
 
   async updateTrainingJob(
     jobId: string,
-    updates: Partial<Pick<TrainingJobRecord, 'status' | 'modelId' | 'errorMessage' | 'completedAt' | 'sampleCount' | 'dataSourceType'>>,
+    updates: Partial<
+      Pick<
+        TrainingJobRecord,
+        'status' | 'modelId' | 'errorMessage' | 'completedAt' | 'sampleCount' | 'dataSourceType'
+      >
+    >,
   ): Promise<void> {
     const fields: string[] = [];
     const params: unknown[] = [];
@@ -274,7 +292,10 @@ export class SqlMlStore implements IMlStore {
     return firstRow ? this.mapJobRow(firstRow) : null;
   }
 
-  async getLatestRunningJob(tenantId: string, modelType: ModelType): Promise<TrainingJobRecord | null> {
+  async getLatestRunningJob(
+    tenantId: string,
+    modelType: ModelType,
+  ): Promise<TrainingJobRecord | null> {
     const sql = `
       SELECT * FROM ml_training_jobs
       WHERE tenant_id = $1 AND model_type = $2 AND status IN ('RUNNING', 'PENDING')
@@ -411,7 +432,12 @@ export class SqlMlStore implements IMlStore {
       WHERE tenant_id = $1 AND model_type = $2 AND entity_type = $3 AND entity_id = $4
       LIMIT 1
     `;
-    const res = await this.db.query<RawPredictionRow>(sql, [tenantId, modelType, entityType, entityId]);
+    const res = await this.db.query<RawPredictionRow>(sql, [
+      tenantId,
+      modelType,
+      entityType,
+      entityId,
+    ]);
     if (res.rows.length === 0) return null;
     const firstRow = res.rows[0];
     return firstRow ? this.mapPredictionRow(firstRow) : null;
@@ -445,7 +471,10 @@ export class SqlMlStore implements IMlStore {
   }
 
   // 4. Retraining Policies
-  async getRetrainingPolicy(tenantId: string, modelType: ModelType): Promise<RetrainingPolicyRecord | null> {
+  async getRetrainingPolicy(
+    tenantId: string,
+    modelType: ModelType,
+  ): Promise<RetrainingPolicyRecord | null> {
     const sql = 'SELECT * FROM ml_retraining_policies WHERE tenant_id = $1 AND model_type = $2';
     const res = await this.db.query<RawPolicyRow>(sql, [tenantId, modelType]);
     if (res.rows.length === 0) return null;
@@ -506,7 +535,10 @@ export class SqlMlStore implements IMlStore {
       version: row.version,
       status: row.status,
       algorithm: row.algorithm,
-      hyperparameters: typeof row.hyperparameters === 'string' ? JSON.parse(row.hyperparameters) : row.hyperparameters,
+      hyperparameters:
+        typeof row.hyperparameters === 'string'
+          ? JSON.parse(row.hyperparameters)
+          : row.hyperparameters,
       featureVersion: row.feature_version,
       trainingDatasetId: row.training_dataset_id,
       dataSourceType: row.data_source_type,
@@ -555,8 +587,10 @@ export class SqlMlStore implements IMlStore {
       entityType: row.entity_type,
       entityId: row.entity_id,
       predictionValue: Number(row.prediction_value),
-      probability: row.probability !== null && row.probability !== undefined ? Number(row.probability) : null,
-      confidence: row.confidence !== null && row.confidence !== undefined ? Number(row.confidence) : null,
+      probability:
+        row.probability !== null && row.probability !== undefined ? Number(row.probability) : null,
+      confidence:
+        row.confidence !== null && row.confidence !== undefined ? Number(row.confidence) : null,
       horizon: row.horizon,
       featureVersion: row.feature_version,
       dataSourceType: row.data_source_type,

@@ -33,10 +33,7 @@ export class InMemoryFulfillmentStore implements IFulfillmentService {
   private readonly returnIdempotency = new Map<string, string>(); // tenantId:key -> returnId
   private readonly trackingEvents = new Map<string, CarrierTrackingEvent[]>();
 
-  async createShipment(
-    actor: AuthorizedActor,
-    input: CreateShipmentInput,
-  ): Promise<ShipmentDto> {
+  async createShipment(actor: AuthorizedActor, input: CreateShipmentInput): Promise<ShipmentDto> {
     RbacPolicy.requirePermission(actor, 'fulfillment:create-own');
 
     if (!input.sellerOrderId) {
@@ -113,7 +110,8 @@ export class InMemoryFulfillmentStore implements IFulfillmentService {
 
   async listShipments(
     actor: AuthorizedActor,
-    filter?: { sellerOrderId?: string | undefined; customerOrderId?: string | undefined } | undefined,
+    filter?:
+      { sellerOrderId?: string | undefined; customerOrderId?: string | undefined } | undefined,
   ): Promise<ShipmentDto[]> {
     let list = Array.from(this.shipments.values());
 
@@ -259,10 +257,7 @@ export class InMemoryFulfillmentStore implements IFulfillmentService {
     };
   }
 
-  async createReturnRequest(
-    actor: AuthorizedActor,
-    input: CreateReturnInput,
-  ): Promise<ReturnDto> {
+  async createReturnRequest(actor: AuthorizedActor, input: CreateReturnInput): Promise<ReturnDto> {
     if (actor.role !== 'ADMINISTRATOR') {
       RbacPolicy.requirePermission(actor, 'return:create-own');
     }
@@ -340,7 +335,8 @@ export class InMemoryFulfillmentStore implements IFulfillmentService {
 
   async listReturns(
     actor: AuthorizedActor,
-    filter?: { customerOrderId?: string | undefined; sellerOrderId?: string | undefined } | undefined,
+    filter?:
+      { customerOrderId?: string | undefined; sellerOrderId?: string | undefined } | undefined,
   ): Promise<ReturnDto[]> {
     let list = Array.from(this.returns.values());
 
@@ -447,7 +443,10 @@ export class InMemoryFulfillmentStore implements IFulfillmentService {
   seedShipment(shipment: ShipmentDto): void {
     this.shipments.set(shipment.id, shipment);
     if (shipment.idempotencyKey) {
-      this.shipmentIdempotency.set(`${shipment.sellerTenantId}:${shipment.idempotencyKey}`, shipment.id);
+      this.shipmentIdempotency.set(
+        `${shipment.sellerTenantId}:${shipment.idempotencyKey}`,
+        shipment.id,
+      );
     }
   }
 

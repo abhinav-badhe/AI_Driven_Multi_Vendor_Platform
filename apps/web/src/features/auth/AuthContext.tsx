@@ -106,39 +106,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [clearAuth]);
 
+  const login = useCallback(
+    async (credentials: LoginCredentials): Promise<LoginResult> => {
+      const res = await apiClient<{
+        accessToken?: string;
+        requires2FA?: boolean;
+        tempToken?: string;
+      }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+      });
 
-  const login = useCallback(async (credentials: LoginCredentials): Promise<LoginResult> => {
-    const res = await apiClient<{ accessToken?: string; requires2FA?: boolean; tempToken?: string }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
+      if (res.requires2FA && res.tempToken) {
+        return { requires2FA: true, tempToken: res.tempToken };
+      }
 
-    if (res.requires2FA && res.tempToken) {
-      return { requires2FA: true, tempToken: res.tempToken };
-    }
+      if (!res.accessToken) {
+        throw new Error('Login failed: invalid response from server');
+      }
 
-    if (!res.accessToken) {
-      throw new Error('Login failed: invalid response from server');
-    }
+      setAuthData(res.accessToken, null);
+      const me = await apiClient<UserContext>('/auth/me');
+      setAuthData(res.accessToken, me.tenantId);
+      setUser(me);
+      return me;
+    },
+    [setUser],
+  );
 
-    setAuthData(res.accessToken, null);
-    const me = await apiClient<UserContext>('/auth/me');
-    setAuthData(res.accessToken, me.tenantId);
-    setUser(me);
-    return me;
-  }, [setUser]);
-
-  const verify2FALogin = useCallback(async (tempToken: string, code: string): Promise<UserContext> => {
-    const res = await apiClient<{ accessToken: string }>('/auth/2fa/verify-login', {
-      method: 'POST',
-      body: JSON.stringify({ tempToken, code: code.trim() }),
-    });
-    setAuthData(res.accessToken, null);
-    const me = await apiClient<UserContext>('/auth/me');
-    setAuthData(res.accessToken, me.tenantId);
-    setUser(me);
-    return me;
-  }, [setUser]);
+  const verify2FALogin = useCallback(
+    async (tempToken: string, code: string): Promise<UserContext> => {
+      const res = await apiClient<{ accessToken: string }>('/auth/2fa/verify-login', {
+        method: 'POST',
+        body: JSON.stringify({ tempToken, code: code.trim() }),
+      });
+      setAuthData(res.accessToken, null);
+      const me = await apiClient<UserContext>('/auth/me');
+      setAuthData(res.accessToken, me.tenantId);
+      setUser(me);
+      return me;
+    },
+    [setUser],
+  );
 
   const register = useCallback(async (data: RegisterData): Promise<RegisterResult> => {
     // Signup creates an UNVERIFIED account and emails a verification link.
@@ -171,12 +180,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  const resetPassword = useCallback(async (token: string, password: string): Promise<{ message: string }> => {
-    return await apiClient<{ message: string }>('/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({ token, password }),
-    });
-  }, []);
+  const resetPassword = useCallback(
+    async (token: string, password: string): Promise<{ message: string }> => {
+      return await apiClient<{ message: string }>('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ token, password }),
+      });
+    },
+    [],
+  );
 
   const logout = async () => {
     try {
@@ -214,9 +226,9 @@ export const useAuth = () => {
       user: null,
       isAuthenticated: false,
       isLoading: false,
-      login: async () => ({} as UserContext),
-      verify2FALogin: async () => ({} as UserContext),
-      register: async () => ({} as RegisterResult),
+      login: async () => ({}) as UserContext,
+      verify2FALogin: async () => ({}) as UserContext,
+      register: async () => ({}) as RegisterResult,
       verifyEmail: async () => {},
       resendVerification: async () => {},
       forgotPassword: async () => ({ message: '' }),
@@ -226,4 +238,3 @@ export const useAuth = () => {
   }
   return ctx;
 };
-

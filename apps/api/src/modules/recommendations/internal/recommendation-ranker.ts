@@ -142,7 +142,9 @@ export class DeterministicRuleBasedRanker implements IRecommendationRanker {
     if (candidate.reasonCode === 'COLD_START_FALLBACK') {
       return {
         reasonCode: 'COLD_START_FALLBACK',
-        explanation: candidate.explanation || 'Recommended via catalogue fallback due to insufficient historical activity.',
+        explanation:
+          candidate.explanation ||
+          'Recommended via catalogue fallback due to insufficient historical activity.',
       };
     }
 
@@ -157,21 +159,27 @@ export class DeterministicRuleBasedRanker implements IRecommendationRanker {
     if (maxSignal === signals.coPurchaseScore && signals.coPurchaseScore > 0) {
       return {
         reasonCode: 'FREQUENTLY_BOUGHT_TOGETHER',
-        explanation: candidate.explanation || 'Frequently purchased together with items in your order history.',
+        explanation:
+          candidate.explanation ||
+          'Frequently purchased together with items in your order history.',
       };
     }
 
     if (maxSignal === signals.affinityScore && signals.affinityScore > 0) {
       return {
         reasonCode: 'PERSONALIZED_HISTORY',
-        explanation: candidate.explanation || 'Recommended based on your recent purchasing patterns and brand preferences.',
+        explanation:
+          candidate.explanation ||
+          'Recommended based on your recent purchasing patterns and brand preferences.',
       };
     }
 
     if (maxSignal === signals.popularityScore && signals.popularityScore > 0) {
       return {
         reasonCode: 'TRENDING',
-        explanation: candidate.explanation || 'Currently popular with strong recent purchase volume across the marketplace.',
+        explanation:
+          candidate.explanation ||
+          'Currently popular with strong recent purchase volume across the marketplace.',
       };
     }
 

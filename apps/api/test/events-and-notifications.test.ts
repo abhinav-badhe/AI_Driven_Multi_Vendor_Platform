@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { InMemorySearchStore } from '../src/modules/search/index.js';
 import {
@@ -361,7 +365,10 @@ describe('Phase 10: Events & Notifications Architecture', () => {
       // Simulate transport failure
       transport.setSimulateFailure(true);
 
-      const res1 = await outboxService.publishPendingEvents({ maxAttempts: 3, baseRetryDelayMs: 20 });
+      const res1 = await outboxService.publishPendingEvents({
+        maxAttempts: 3,
+        baseRetryDelayMs: 20,
+      });
       expect(res1.failedCount).toBe(1);
 
       const afterFail = await outboxRepo.getEventById(db, event.eventId);
@@ -400,7 +407,10 @@ describe('Phase 10: Events & Notifications Architecture', () => {
       await new Promise((res) => setTimeout(res, 15));
 
       // Attempt 2 (reaches maxAttempts = 2) -> DEAD_LETTERED
-      const res2 = await outboxService.publishPendingEvents({ maxAttempts: 2, baseRetryDelayMs: 10 });
+      const res2 = await outboxService.publishPendingEvents({
+        maxAttempts: 2,
+        baseRetryDelayMs: 10,
+      });
       expect(res2.deadLetteredCount).toBe(1);
 
       const dlqDoc = await outboxRepo.getEventById(db, event.eventId);
@@ -622,8 +632,14 @@ describe('Phase 10: Events & Notifications Architecture', () => {
         smsEnabled: true,
       });
 
-      const prefA = await notificationService.getCustomerPreferences('tenant-alpha', 'shared-user-id');
-      const prefB = await notificationService.getCustomerPreferences('tenant-beta', 'shared-user-id');
+      const prefA = await notificationService.getCustomerPreferences(
+        'tenant-alpha',
+        'shared-user-id',
+      );
+      const prefB = await notificationService.getCustomerPreferences(
+        'tenant-beta',
+        'shared-user-id',
+      );
 
       expect(prefA?.smsEnabled).toBe(false);
       expect(prefB?.smsEnabled).toBe(true);

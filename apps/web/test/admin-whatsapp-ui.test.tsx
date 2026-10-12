@@ -71,7 +71,8 @@ function mockApi() {
     if (url.includes('/auth/refresh')) return ok({ accessToken: 'test-admin-token' });
     if (url.includes('/auth/me')) return ok(ADMIN_ME);
     if (url.includes('/ai/whatsapp/status')) return ok(MOCK_STATUS);
-    if (url.includes('/ai/whatsapp/conversations')) return ok({ conversations: MOCK_CONVERSATIONS });
+    if (url.includes('/ai/whatsapp/conversations'))
+      return ok({ conversations: MOCK_CONVERSATIONS });
     if (url.includes('/ai/whatsapp/webhooks')) return ok({ webhooks: MOCK_WEBHOOKS });
     if (url.includes('/ai/audit')) return ok({ records: MOCK_AUDIT });
 

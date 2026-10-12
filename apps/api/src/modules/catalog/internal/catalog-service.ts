@@ -127,10 +127,7 @@ import type { ICatalogService } from './catalog-models.js';
 export class CatalogService implements ICatalogService {
   private readonly repo: CatalogRepository;
 
-  constructor(
-    db: DatabaseConnection,
-    _logger: Logger,
-  ) {
+  constructor(db: DatabaseConnection, _logger: Logger) {
     this.repo = new CatalogRepository(db);
   }
 
@@ -359,17 +356,20 @@ export class CatalogService implements ICatalogService {
     return this.toSkuDto(row);
   }
 
-  async listSkusByProduct(productId: string, actor?: AuthorizedActor | null): Promise<ProductSkuDto[]> {
+  async listSkusByProduct(
+    productId: string,
+    actor?: AuthorizedActor | null,
+  ): Promise<ProductSkuDto[]> {
     const product = await this.repo.findProductById(productId);
     if (!product) throw new NotFoundError(`Product '${productId}' not found`);
 
     let rows = await this.repo.findSkusByProductId(productId);
-    
+
     // Only administrators can see non-active SKUs.
     if (actor?.role !== 'ADMINISTRATOR') {
-      rows = rows.filter(r => r.status === 'ACTIVE');
+      rows = rows.filter((r) => r.status === 'ACTIVE');
     }
-    
+
     return rows.map((r) => this.toSkuDto(r));
   }
 
@@ -427,7 +427,9 @@ export class CatalogService implements ICatalogService {
     if (newStatus === 'ACTIVE') {
       const product = await this.repo.findProductById(current.product_id);
       if (!product || product.status === 'ARCHIVED') {
-        throw new InvalidStateTransitionError('Cannot activate SKU for an ARCHIVED or missing product');
+        throw new InvalidStateTransitionError(
+          'Cannot activate SKU for an ARCHIVED or missing product',
+        );
       }
     }
 
@@ -493,7 +495,7 @@ export class CatalogService implements ICatalogService {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
-  };
+  }
 }
 
 function parseAttributes(val: unknown): Record<string, unknown> {

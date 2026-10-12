@@ -86,7 +86,9 @@ export class HttpNotificationClient implements INotificationClient {
     }
 
     if (!this.baseUrl) {
-      throw new ValidationError('Notifications service baseUrl is required for HttpNotificationClient');
+      throw new ValidationError(
+        'Notifications service baseUrl is required for HttpNotificationClient',
+      );
     }
     try {
       new URL(this.baseUrl);
@@ -105,7 +107,9 @@ export class HttpNotificationClient implements INotificationClient {
     }
 
     if (!Number.isInteger(this.maxResponseBytes) || this.maxResponseBytes <= 0) {
-      throw new ValidationError('Notifications service maxResponseBytes must be a positive integer');
+      throw new ValidationError(
+        'Notifications service maxResponseBytes must be a positive integer',
+      );
     }
   }
 
@@ -128,7 +132,7 @@ export class HttpNotificationClient implements INotificationClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'X-Internal-Service-Key': this.internalServiceKey,
         },
         body: JSON.stringify(body),

@@ -1,14 +1,13 @@
-
-
-
-
-
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createHmac } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { InventoryService } from '../src/modules/inventory/internal/inventory-service.js';
 
@@ -95,7 +94,11 @@ describe('Phase 7: Fulfillment & Returns', () => {
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${alphaToken}` },
-      payload: { businessName: 'Alpha LLC', legalName: 'Alpha Legal', contactEmail: 'alpha@biz.com' },
+      payload: {
+        businessName: 'Alpha LLC',
+        legalName: 'Alpha Legal',
+        contactEmail: 'alpha@biz.com',
+      },
     });
     await app.inject({
       method: 'POST',
@@ -162,7 +165,12 @@ describe('Phase 7: Fulfillment & Returns', () => {
         method: 'POST',
         url: '/products',
         headers: { authorization: `Bearer ${adminToken}` },
-        payload: { title: 'Smartphone Pro', slug: 'smartphone-pro', brand: 'AlphaBrand', categoryId: cat.id },
+        payload: {
+          title: 'Smartphone Pro',
+          slug: 'smartphone-pro',
+          brand: 'AlphaBrand',
+          categoryId: cat.id,
+        },
       })
     ).json();
     await app.inject({
@@ -195,7 +203,12 @@ describe('Phase 7: Fulfillment & Returns', () => {
         payload: { skuId: skuA.id, priceAmount: 1000, currency: 'INR' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/listings/${listA.id}/status`, headers: { authorization: `Bearer ${alphaToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/listings/${listA.id}/status`,
+      headers: { authorization: `Bearer ${alphaToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     // Inventory: Alpha has 20 units
     const invA = (
@@ -781,10 +794,30 @@ describe('Phase 7: Fulfillment & Returns', () => {
           },
         })
       ).json();
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'SHIPPED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'OUT_FOR_DELIVERY' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'DELIVERED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'SHIPPED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'OUT_FOR_DELIVERY' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'DELIVERED' },
+      });
 
       // Return 1: Request 1 unit
       const ret1 = await app.inject({
@@ -826,13 +859,36 @@ describe('Phase 7: Fulfillment & Returns', () => {
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'SHIPPED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'OUT_FOR_DELIVERY' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'DELIVERED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'SHIPPED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'OUT_FOR_DELIVERY' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'DELIVERED' },
+      });
 
       const ret = (
         await app.inject({
@@ -912,13 +968,36 @@ describe('Phase 7: Fulfillment & Returns', () => {
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 3 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 3 }],
+          },
         })
       ).json();
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'SHIPPED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'OUT_FOR_DELIVERY' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'DELIVERED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'SHIPPED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'OUT_FOR_DELIVERY' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'DELIVERED' },
+      });
 
       // Attempt two concurrent returns of 2 units each (total 4 > 3)
       const [retA, retB] = await Promise.all([
@@ -975,13 +1054,36 @@ describe('Phase 7: Fulfillment & Returns', () => {
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 4 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 4 }],
+          },
         })
       ).json();
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'SHIPPED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'OUT_FOR_DELIVERY' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'DELIVERED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'SHIPPED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'OUT_FOR_DELIVERY' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'DELIVERED' },
+      });
 
       // Customer requests return of 2 units
       const ret = (
@@ -999,9 +1101,24 @@ describe('Phase 7: Fulfillment & Returns', () => {
       ).json();
 
       // Merchant approves, receives, and completes with restock: true
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'APPROVED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'RECEIVED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'APPROVED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'RECEIVED' },
+      });
 
       const completeRes = await app.inject({
         method: 'POST',
@@ -1036,13 +1153,36 @@ describe('Phase 7: Fulfillment & Returns', () => {
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 2 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 2 }],
+          },
         })
       ).json();
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'SHIPPED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'OUT_FOR_DELIVERY' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'DELIVERED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'SHIPPED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'OUT_FOR_DELIVERY' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'DELIVERED' },
+      });
 
       const ret = (
         await app.inject({
@@ -1058,9 +1198,24 @@ describe('Phase 7: Fulfillment & Returns', () => {
         })
       ).json();
 
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'APPROVED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'RECEIVED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'APPROVED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'RECEIVED' },
+      });
 
       const completeRes = await app.inject({
         method: 'POST',
@@ -1094,13 +1249,36 @@ describe('Phase 7: Fulfillment & Returns', () => {
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'SHIPPED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'OUT_FOR_DELIVERY' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'DELIVERED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'SHIPPED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'OUT_FOR_DELIVERY' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'DELIVERED' },
+      });
 
       // Customer creates return
       const ret = (
@@ -1118,9 +1296,24 @@ describe('Phase 7: Fulfillment & Returns', () => {
         })
       ).json();
 
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'APPROVED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'RECEIVED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'APPROVED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'RECEIVED' },
+      });
 
       // Temporarily simulate payment intent failure by setting status to 'CANCELLED' in DB
       await db.query(`UPDATE payment_intents SET status = 'CANCELLED' WHERE id = $1`, [intent.id]);
@@ -1176,13 +1369,36 @@ describe('Phase 7: Fulfillment & Returns', () => {
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 2 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 2 }],
+          },
         })
       ).json();
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'SHIPPED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'OUT_FOR_DELIVERY' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'DELIVERED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'SHIPPED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'OUT_FOR_DELIVERY' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'DELIVERED' },
+      });
 
       const ret = (
         await app.inject({
@@ -1198,9 +1414,24 @@ describe('Phase 7: Fulfillment & Returns', () => {
         })
       ).json();
 
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'APPROVED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'RECEIVED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'APPROVED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'RECEIVED' },
+      });
 
       // Spy on InventoryService to simulate transient failure on restock
       const spy = vi
@@ -1217,11 +1448,13 @@ describe('Phase 7: Fulfillment & Returns', () => {
       expect(failRes.statusCode).not.toBe(200);
 
       // Verify return is STILL in RECEIVED state (never falsely marked COMPLETED)
-      const retCheck = (await app.inject({
-        method: 'GET',
-        url: `/fulfillment/returns/${ret.id}`,
-        headers: { authorization: `Bearer ${eco.alphaToken}` },
-      })).json();
+      const retCheck = (
+        await app.inject({
+          method: 'GET',
+          url: `/fulfillment/returns/${ret.id}`,
+          headers: { authorization: `Bearer ${eco.alphaToken}` },
+        })
+      ).json();
       expect(retCheck.status).toBe('RECEIVED');
 
       // But payment refund succeeded!
@@ -1256,11 +1489,13 @@ describe('Phase 7: Fulfillment & Returns', () => {
       const { order, sellerOrder, orderItem, intent } = await createPaidOrder(eco, 2);
 
       // Initial onHand: 20 - 2 = 18
-      const invInit = (await app.inject({
-        method: 'GET',
-        url: `/inventory/${eco.invA.id}`,
-        headers: { authorization: `Bearer ${eco.alphaToken}` },
-      })).json();
+      const invInit = (
+        await app.inject({
+          method: 'GET',
+          url: `/inventory/${eco.invA.id}`,
+          headers: { authorization: `Bearer ${eco.alphaToken}` },
+        })
+      ).json();
       expect(invInit.onHandQuantity).toBe(18);
 
       // Deliver 2 units
@@ -1269,13 +1504,36 @@ describe('Phase 7: Fulfillment & Returns', () => {
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 2 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 2 }],
+          },
         })
       ).json();
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'SHIPPED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'OUT_FOR_DELIVERY' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'DELIVERED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'SHIPPED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'OUT_FOR_DELIVERY' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'DELIVERED' },
+      });
 
       const ret = (
         await app.inject({
@@ -1291,9 +1549,24 @@ describe('Phase 7: Fulfillment & Returns', () => {
         })
       ).json();
 
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'APPROVED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'RECEIVED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'APPROVED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'RECEIVED' },
+      });
 
       // First completion succeeds
       const compRes1 = await app.inject({
@@ -1305,11 +1578,13 @@ describe('Phase 7: Fulfillment & Returns', () => {
       expect(compRes1.statusCode).toBe(200);
 
       // Inventory onHand should be back to 20
-      const invAfter1 = (await app.inject({
-        method: 'GET',
-        url: `/inventory/${eco.invA.id}`,
-        headers: { authorization: `Bearer ${eco.alphaToken}` },
-      })).json();
+      const invAfter1 = (
+        await app.inject({
+          method: 'GET',
+          url: `/inventory/${eco.invA.id}`,
+          headers: { authorization: `Bearer ${eco.alphaToken}` },
+        })
+      ).json();
       expect(invAfter1.onHandQuantity).toBe(20);
 
       // Simulate a retry where the client resubmits completion
@@ -1322,11 +1597,13 @@ describe('Phase 7: Fulfillment & Returns', () => {
       expect(compRes2.statusCode).toBe(200);
 
       // Verify onHand is STILL exactly 20 (NOT 22!)
-      const invAfter2 = (await app.inject({
-        method: 'GET',
-        url: `/inventory/${eco.invA.id}`,
-        headers: { authorization: `Bearer ${eco.alphaToken}` },
-      })).json();
+      const invAfter2 = (
+        await app.inject({
+          method: 'GET',
+          url: `/inventory/${eco.invA.id}`,
+          headers: { authorization: `Bearer ${eco.alphaToken}` },
+        })
+      ).json();
       expect(invAfter2.onHandQuantity).toBe(20);
 
       // Exactly 1 refund record exists
@@ -1347,13 +1624,36 @@ describe('Phase 7: Fulfillment & Returns', () => {
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 3 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 3 }],
+          },
         })
       ).json();
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'SHIPPED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'OUT_FOR_DELIVERY' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/shipments/${shipRes.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'DELIVERED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'SHIPPED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'OUT_FOR_DELIVERY' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/shipments/${shipRes.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'DELIVERED' },
+      });
 
       const ret = (
         await app.inject({
@@ -1369,9 +1669,24 @@ describe('Phase 7: Fulfillment & Returns', () => {
         })
       ).json();
 
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'APPROVED' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'IN_TRANSIT' } });
-      await app.inject({ method: 'POST', url: `/fulfillment/returns/${ret.id}/status`, headers: { authorization: `Bearer ${eco.alphaToken}` }, payload: { status: 'RECEIVED' } });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'APPROVED' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'IN_TRANSIT' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/fulfillment/returns/${ret.id}/status`,
+        headers: { authorization: `Bearer ${eco.alphaToken}` },
+        payload: { status: 'RECEIVED' },
+      });
 
       // Two concurrent completion requests
       const [c1, c2] = await Promise.all([
@@ -1402,11 +1717,13 @@ describe('Phase 7: Fulfillment & Returns', () => {
       expect(parseInt(refundCount.rows[0]!.count, 10)).toBe(1);
 
       // On-hand stock increased by 3 exactly once: (20 - 3 = 17) + 3 = 20
-      const invAfter = (await app.inject({
-        method: 'GET',
-        url: `/inventory/${eco.invA.id}`,
-        headers: { authorization: `Bearer ${eco.alphaToken}` },
-      })).json();
+      const invAfter = (
+        await app.inject({
+          method: 'GET',
+          url: `/inventory/${eco.invA.id}`,
+          headers: { authorization: `Bearer ${eco.alphaToken}` },
+        })
+      ).json();
       expect(invAfter.onHandQuantity).toBe(20);
     });
 
@@ -1449,7 +1766,11 @@ describe('Phase 7: Fulfillment & Returns', () => {
         method: 'POST',
         url: `/payments/intents/${intentB.id}/refund`,
         headers: { authorization: `Bearer ${eco.adminToken}` },
-        payload: { amount: 1000, idempotencyKey: 'ref-idem-test-01', reason: 'Different payment intent' },
+        payload: {
+          amount: 1000,
+          idempotencyKey: 'ref-idem-test-01',
+          reason: 'Different payment intent',
+        },
       });
       expect(r4.statusCode).toBe(400);
     });
@@ -1521,13 +1842,21 @@ describe('Phase 7: Fulfillment & Returns', () => {
           method: 'POST',
           url: `/inventory/${eco.invA.id}/increase-stock`,
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { quantity: 5, notes: 'Concurrent Restock A', referenceId: 'concurrent_restock_ref_01' },
+          payload: {
+            quantity: 5,
+            notes: 'Concurrent Restock A',
+            referenceId: 'concurrent_restock_ref_01',
+          },
         }),
         app.inject({
           method: 'POST',
           url: `/inventory/${eco.invA.id}/increase-stock`,
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { quantity: 5, notes: 'Concurrent Restock B', referenceId: 'concurrent_restock_ref_01' },
+          payload: {
+            quantity: 5,
+            notes: 'Concurrent Restock B',
+            referenceId: 'concurrent_restock_ref_01',
+          },
         }),
       ]);
 
@@ -1622,7 +1951,10 @@ describe('Phase 7: Fulfillment & Returns', () => {
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
 
@@ -1716,4 +2048,3 @@ describe('Phase 7: Fulfillment & Returns', () => {
     });
   });
 });
-

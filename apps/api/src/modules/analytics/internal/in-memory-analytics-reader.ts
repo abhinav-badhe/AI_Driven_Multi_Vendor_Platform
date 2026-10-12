@@ -33,11 +33,19 @@ export class InMemoryAnalyticsReader
     this.trendingSignals.set(tenantId, [...signals]);
   }
 
-  setCustomerPurchaseHistory(tenantId: string, customerId: string, signals: CustomerPurchaseHistorySignal[]): void {
+  setCustomerPurchaseHistory(
+    tenantId: string,
+    customerId: string,
+    signals: CustomerPurchaseHistorySignal[],
+  ): void {
     this.purchaseHistories.set(`${tenantId}:${customerId}`, [...signals]);
   }
 
-  setCoPurchasedProducts(tenantId: string, sourceProductId: string, signals: CoPurchaseSignal[]): void {
+  setCoPurchasedProducts(
+    tenantId: string,
+    sourceProductId: string,
+    signals: CoPurchaseSignal[],
+  ): void {
     this.coPurchases.set(`${tenantId}:${sourceProductId}`, [...signals]);
   }
 
@@ -63,17 +71,27 @@ export class InMemoryAnalyticsReader
     return limit && limit > 0 ? list.slice(0, limit) : list;
   }
 
-  async getCustomerPurchaseHistory(tenantId: string, customerId: string): Promise<CustomerPurchaseHistorySignal[]> {
+  async getCustomerPurchaseHistory(
+    tenantId: string,
+    customerId: string,
+  ): Promise<CustomerPurchaseHistorySignal[]> {
     return this.purchaseHistories.get(`${tenantId}:${customerId}`) ?? [];
   }
 
-  async getCoPurchasedProducts(tenantId: string, sourceProductId: string, limit?: number): Promise<CoPurchaseSignal[]> {
+  async getCoPurchasedProducts(
+    tenantId: string,
+    sourceProductId: string,
+    limit?: number,
+  ): Promise<CoPurchaseSignal[]> {
     const list = this.coPurchases.get(`${tenantId}:${sourceProductId}`) ?? [];
     return limit && limit > 0 ? list.slice(0, limit) : list;
   }
 
   // --- IAnalyticsMlFeatureReader ---
-  async getProductDailyDemandHistory(tenantId: string, _lookbackDays?: number): Promise<ProductDailyDemandRecord[]> {
+  async getProductDailyDemandHistory(
+    tenantId: string,
+    _lookbackDays?: number,
+  ): Promise<ProductDailyDemandRecord[]> {
     return this.demandHistories.get(tenantId) ?? [];
   }
 

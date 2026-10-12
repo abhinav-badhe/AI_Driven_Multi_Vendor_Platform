@@ -113,7 +113,11 @@ describe('Phase 3.2: Shared Event Consumer Reliability Correction', () => {
     expect(attempts).toBe(1);
 
     // Verify receipt in DB is FAILED
-    const receiptAfterFailure = await outboxRepo.findReceipt(db, 'resilient-consumer', event.eventId);
+    const receiptAfterFailure = await outboxRepo.findReceipt(
+      db,
+      'resilient-consumer',
+      event.eventId,
+    );
     expect(receiptAfterFailure?.status).toBe('FAILED');
     expect(receiptAfterFailure?.errorMetadata).toMatchObject({
       attempts: 1,
@@ -151,14 +155,16 @@ describe('Phase 3.2: Shared Event Consumer Reliability Correction', () => {
 
     // Mock db.query to throw a non-23505 DB error on INSERT
     const originalQuery = db.query.bind(db);
-    const querySpy = vi.spyOn(db, 'query').mockImplementation(async (sql: string, params?: unknown[]) => {
-      if (typeof sql === 'string' && sql.includes('INSERT INTO event_consumer_receipts')) {
-        const error = new Error('Connection terminated unexpectedly');
-        (error as { code?: string }).code = '08006'; // Connection failure, NOT 23505
-        throw error;
-      }
-      return originalQuery(sql, params);
-    });
+    const querySpy = vi
+      .spyOn(db, 'query')
+      .mockImplementation(async (sql: string, params?: unknown[]) => {
+        if (typeof sql === 'string' && sql.includes('INSERT INTO event_consumer_receipts')) {
+          const error = new Error('Connection terminated unexpectedly');
+          (error as { code?: string }).code = '08006'; // Connection failure, NOT 23505
+          throw error;
+        }
+        return originalQuery(sql, params);
+      });
 
     try {
       await expect(consumer.process(event)).rejects.toThrow('Connection terminated unexpectedly');
@@ -168,9 +174,15 @@ describe('Phase 3.2: Shared Event Consumer Reliability Correction', () => {
 
     // Verify helper isUniqueConstraintViolation correctly identifies PG errors
     expect(isUniqueConstraintViolation({ code: '23505' })).toBe(true);
-    expect(isUniqueConstraintViolation(new Error('duplicate key value violates unique constraint "uq_consumer_event_receipt"'))).toBe(true);
+    expect(
+      isUniqueConstraintViolation(
+        new Error('duplicate key value violates unique constraint "uq_consumer_event_receipt"'),
+      ),
+    ).toBe(true);
     expect(isUniqueConstraintViolation({ code: '08006' })).toBe(false);
-    expect(isUniqueConstraintViolation(new Error('Connection terminated unexpectedly'))).toBe(false);
+    expect(isUniqueConstraintViolation(new Error('Connection terminated unexpectedly'))).toBe(
+      false,
+    );
   });
 
   // --- 3. Concurrent duplicate delivery does not execute the same consumer concurrently ---
@@ -470,9 +482,11 @@ describe('Phase 3.2: Shared Event Consumer Reliability Correction', () => {
 
     // 4. Verify OrderEventConsumer idempotency handling when OrderService throws idempotency key ValidationError
     const mockOrderServiceIdempotent = {
-      createOrderFromCheckout: vi.fn().mockRejectedValue(
-        new ValidationError('An order has already been created for idempotency key'),
-      ),
+      createOrderFromCheckout: vi
+        .fn()
+        .mockRejectedValue(
+          new ValidationError('An order has already been created for idempotency key'),
+        ),
     } as unknown as OrderService;
 
     const consumerIdempotent = new OrderEventConsumer(
@@ -557,7 +571,13 @@ describe('Phase 3.2: Shared Event Consumer Reliability Correction', () => {
       }
       registerSubscriptions(): void {}
       protected async handleEvent(): Promise<void> {}
-      override async retryFailedEvents(): Promise<{ claimed: number; retried: number; succeeded: number; failed: number; quarantined: number }> {
+      override async retryFailedEvents(): Promise<{
+        claimed: number;
+        retried: number;
+        succeeded: number;
+        failed: number;
+        quarantined: number;
+      }> {
         retryCalls++;
         return { claimed: 0, retried: 0, succeeded: 0, failed: 0, quarantined: 0 };
       }
@@ -676,20 +696,26 @@ describe('Phase 3.2: Shared Event Consumer Reliability Correction', () => {
     const originalQuery = db.query.bind(db);
     let workerBCompleted = false;
 
-    const querySpy = vi.spyOn(db, 'query').mockImplementation(async (sql: string, params?: unknown[]) => {
-      // Intercept Worker A right before it attempts the QUARANTINED update
-      if (typeof sql === 'string' && sql.includes("SET status = 'QUARANTINED'") && !workerBCompleted) {
-        workerBCompleted = true;
-        // Concurrent Worker B completes the receipt in the database!
-        await originalQuery(
-          `UPDATE event_consumer_receipts
+    const querySpy = vi
+      .spyOn(db, 'query')
+      .mockImplementation(async (sql: string, params?: unknown[]) => {
+        // Intercept Worker A right before it attempts the QUARANTINED update
+        if (
+          typeof sql === 'string' &&
+          sql.includes("SET status = 'QUARANTINED'") &&
+          !workerBCompleted
+        ) {
+          workerBCompleted = true;
+          // Concurrent Worker B completes the receipt in the database!
+          await originalQuery(
+            `UPDATE event_consumer_receipts
            SET status = 'COMPLETED', error_metadata = NULL, processed_at = NOW()
            WHERE consumer_name = $1 AND event_id = $2`,
-          ['exhausted-consumer', event.eventId],
-        );
-      }
-      return originalQuery(sql, params);
-    });
+            ['exhausted-consumer', event.eventId],
+          );
+        }
+        return originalQuery(sql, params);
+      });
 
     try {
       // Worker A attempts to process the event
@@ -774,4 +800,3 @@ describe('Phase 3.2: Shared Event Consumer Reliability Correction', () => {
     expect(eligibleReceipt?.status).toBe('COMPLETED');
   });
 });
-

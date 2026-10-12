@@ -3,10 +3,7 @@ import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
 import { RbacPolicy } from '../../identity/index.js';
-import {
-  ValidationError,
-  NotFoundError,
-} from '../../../errors/app-error.js';
+import { ValidationError, NotFoundError } from '../../../errors/app-error.js';
 import { CustomerAddressRepository } from './customer-address-repository.js';
 import type {
   AddressLabel,
@@ -38,13 +35,21 @@ export class CustomerAddressService implements ICustomerAddressReader {
   }
 
   private validateAddressInput(input: CreateAddressInput): void {
-    if (!input.recipientName || typeof input.recipientName !== 'string' || !input.recipientName.trim()) {
+    if (
+      !input.recipientName ||
+      typeof input.recipientName !== 'string' ||
+      !input.recipientName.trim()
+    ) {
       throw new ValidationError('recipientName is required');
     }
     if (!input.phone || typeof input.phone !== 'string' || !input.phone.trim()) {
       throw new ValidationError('phone is required');
     }
-    if (!input.addressLine1 || typeof input.addressLine1 !== 'string' || !input.addressLine1.trim()) {
+    if (
+      !input.addressLine1 ||
+      typeof input.addressLine1 !== 'string' ||
+      !input.addressLine1.trim()
+    ) {
       throw new ValidationError('addressLine1 is required');
     }
     if (!input.city || typeof input.city !== 'string' || !input.city.trim()) {
@@ -56,10 +61,18 @@ export class CustomerAddressService implements ICustomerAddressReader {
     if (!input.postalCode || typeof input.postalCode !== 'string' || !input.postalCode.trim()) {
       throw new ValidationError('postalCode is required');
     }
-    if (input.latitude !== undefined && input.latitude !== null && (typeof input.latitude !== 'number' || isNaN(input.latitude))) {
+    if (
+      input.latitude !== undefined &&
+      input.latitude !== null &&
+      (typeof input.latitude !== 'number' || isNaN(input.latitude))
+    ) {
       throw new ValidationError('latitude must be a valid number');
     }
-    if (input.longitude !== undefined && input.longitude !== null && (typeof input.longitude !== 'number' || isNaN(input.longitude))) {
+    if (
+      input.longitude !== undefined &&
+      input.longitude !== null &&
+      (typeof input.longitude !== 'number' || isNaN(input.longitude))
+    ) {
       throw new ValidationError('longitude must be a valid number');
     }
   }
@@ -84,8 +97,10 @@ export class CustomerAddressService implements ICustomerAddressReader {
       googlePlaceId: row.google_place_id,
       formattedAddress: row.formatted_address,
       isDefault: Boolean(row.is_default),
-      createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
-      updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
+      createdAt:
+        row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+      updatedAt:
+        row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
     };
   }
 
@@ -106,7 +121,10 @@ export class CustomerAddressService implements ICustomerAddressReader {
     return this.toDto(row);
   }
 
-  async createAddress(actor: AuthorizedActor, input: CreateAddressInput): Promise<CustomerAddressDto> {
+  async createAddress(
+    actor: AuthorizedActor,
+    input: CreateAddressInput,
+  ): Promise<CustomerAddressDto> {
     RbacPolicy.requirePermission(actor, 'customer:address:manage-own');
     this.validateAddressInput(input);
     const label = this.validateLabel(input.label);
@@ -161,7 +179,11 @@ export class CustomerAddressService implements ICustomerAddressReader {
     return this.toDto(result);
   }
 
-  async updateAddress(actor: AuthorizedActor, id: string, input: UpdateAddressInput): Promise<CustomerAddressDto> {
+  async updateAddress(
+    actor: AuthorizedActor,
+    id: string,
+    input: UpdateAddressInput,
+  ): Promise<CustomerAddressDto> {
     RbacPolicy.requirePermission(actor, 'customer:address:manage-own');
     const customerId = actor.userId;
 

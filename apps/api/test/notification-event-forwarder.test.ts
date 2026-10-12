@@ -81,9 +81,9 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
     });
 
     it('rejects missing or invalid baseUrl', () => {
-      expect(
-        () => new HttpEventForwarder({ baseUrl: '', internalServiceKey: VALID_KEY }),
-      ).toThrow(ValidationError);
+      expect(() => new HttpEventForwarder({ baseUrl: '', internalServiceKey: VALID_KEY })).toThrow(
+        ValidationError,
+      );
       expect(
         () => new HttpEventForwarder({ baseUrl: 'not-a-url', internalServiceKey: VALID_KEY }),
       ).toThrow(ValidationError);
@@ -176,17 +176,18 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
 
     it('3. HTTP 409 CURRENTLY_PROCESSING causes delivery failure and retry rather than acknowledgement', async () => {
       const event = makeSampleEvent();
-      const mockFetch = vi.fn().mockImplementation(() =>
-        new Response(
-          JSON.stringify({
-            status: 'CURRENTLY_PROCESSING',
-            eventId: event.eventId,
-            handled: false,
-            duplicate: true,
-            error: 'Event is currently being processed by another worker',
-          }),
-          { status: 409, headers: { 'Content-Type': 'application/json' } },
-        ),
+      const mockFetch = vi.fn().mockImplementation(
+        () =>
+          new Response(
+            JSON.stringify({
+              status: 'CURRENTLY_PROCESSING',
+              eventId: event.eventId,
+              handled: false,
+              duplicate: true,
+              error: 'Event is currently being processed by another worker',
+            }),
+            { status: 409, headers: { 'Content-Type': 'application/json' } },
+          ),
       );
 
       const forwarder = new HttpEventForwarder(
@@ -205,15 +206,16 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       const event = makeSampleEvent();
 
       // 4a. HTTP 500 error
-      const mockFetch500 = vi.fn().mockImplementation(() =>
-        new Response(
-          JSON.stringify({
-            error: { message: 'Database connection failed downstream' },
-            status: 'FAILED',
-            eventId: event.eventId,
-          }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } },
-        ),
+      const mockFetch500 = vi.fn().mockImplementation(
+        () =>
+          new Response(
+            JSON.stringify({
+              error: { message: 'Database connection failed downstream' },
+              status: 'FAILED',
+              eventId: event.eventId,
+            }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } },
+          ),
       );
       const forwarder500 = new HttpEventForwarder(
         { baseUrl: BASE_URL, internalServiceKey: VALID_KEY, fetchFn: mockFetch500 },
@@ -239,14 +241,22 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
 
       // 4c. Timeout
       const mockFetchTimeout = vi.fn().mockImplementation(
-        () => new Promise((_, reject) => setTimeout(() => {
-          const err = new Error('The operation was aborted');
-          err.name = 'AbortError';
-          reject(err);
-        }, 50)),
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => {
+              const err = new Error('The operation was aborted');
+              err.name = 'AbortError';
+              reject(err);
+            }, 50),
+          ),
       );
       const forwarderTimeout = new HttpEventForwarder(
-        { baseUrl: BASE_URL, internalServiceKey: VALID_KEY, timeoutMs: 10, fetchFn: mockFetchTimeout },
+        {
+          baseUrl: BASE_URL,
+          internalServiceKey: VALID_KEY,
+          timeoutMs: 10,
+          fetchFn: mockFetchTimeout,
+        },
         logger,
       );
       await expect(forwarderTimeout.forward(event)).rejects.toThrow(HttpEventForwarderError);
@@ -263,7 +273,12 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       const mockFetch = vi.fn().mockImplementation(async (_url: string, opts: RequestInit) => {
         sentBody = JSON.parse(opts.body as string);
         return new Response(
-          JSON.stringify({ status: 'PROCESSED', eventId: event.eventId, handled: true, duplicate: false }),
+          JSON.stringify({
+            status: 'PROCESSED',
+            eventId: event.eventId,
+            handled: true,
+            duplicate: false,
+          }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         );
       });
@@ -294,11 +309,12 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       const event = makeSampleEvent();
 
       // 11a. Malformed non-JSON response on HTTP 200
-      const mockFetchHtml = vi.fn().mockImplementation(() =>
-        new Response('<html><body>502 Bad Gateway</body></html>', {
-          status: 200,
-          headers: { 'Content-Type': 'text/html' },
-        }),
+      const mockFetchHtml = vi.fn().mockImplementation(
+        () =>
+          new Response('<html><body>502 Bad Gateway</body></html>', {
+            status: 200,
+            headers: { 'Content-Type': 'text/html' },
+          }),
       );
       const forwarderHtml = new HttpEventForwarder(
         { baseUrl: BASE_URL, internalServiceKey: VALID_KEY, fetchFn: mockFetchHtml },
@@ -310,11 +326,12 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       });
 
       // 11b. HTTP 200 with unexpected status string
-      const mockFetchUnknownStatus = vi.fn().mockImplementation(() =>
-        new Response(
-          JSON.stringify({ status: 'UNKNOWN_STATE', eventId: event.eventId }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        ),
+      const mockFetchUnknownStatus = vi.fn().mockImplementation(
+        () =>
+          new Response(JSON.stringify({ status: 'UNKNOWN_STATE', eventId: event.eventId }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
       );
       const forwarderUnknown = new HttpEventForwarder(
         { baseUrl: BASE_URL, internalServiceKey: VALID_KEY, fetchFn: mockFetchUnknownStatus },
@@ -326,9 +343,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       });
 
       // 11c. HTTP 401 Unauthorized
-      const mockFetch401 = vi.fn().mockImplementation(() =>
-        new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }),
-      );
+      const mockFetch401 = vi
+        .fn()
+        .mockImplementation(
+          () => new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }),
+        );
       const forwarder401 = new HttpEventForwarder(
         { baseUrl: BASE_URL, internalServiceKey: VALID_KEY, fetchFn: mockFetch401 },
         logger,
@@ -368,11 +387,12 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       expect(readerCancelled).toBe(true);
 
       // 11e. HTTP 413 Payload Too Large from server throws EVENT_FORWARDING_PAYLOAD_TOO_LARGE
-      const mockFetch413 = vi.fn().mockImplementation(() =>
-        new Response(JSON.stringify({ error: 'Payload exceeds limit' }), {
-          status: 413,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+      const mockFetch413 = vi.fn().mockImplementation(
+        () =>
+          new Response(JSON.stringify({ error: 'Payload exceeds limit' }), {
+            status: 413,
+            headers: { 'Content-Type': 'application/json' },
+          }),
       );
       const forwarder413 = new HttpEventForwarder(
         { baseUrl: BASE_URL, internalServiceKey: VALID_KEY, fetchFn: mockFetch413 },
@@ -406,12 +426,14 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       });
 
       // Wire a failing forwarder to transport
-      const mockFetchFail = vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ error: { message: 'Internal server error' }, status: 'FAILED' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } },
-        ),
-      );
+      const mockFetchFail = vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ error: { message: 'Internal server error' }, status: 'FAILED' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } },
+          ),
+        );
       const forwarder = new HttpEventForwarder(
         { baseUrl: BASE_URL, internalServiceKey: VALID_KEY, fetchFn: mockFetchFail },
         logger,
@@ -458,7 +480,10 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       // Wire a failing DB-backed forwarder
       const mockFetchFail = vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({ error: { message: 'Notifications cluster unreachable' }, status: 'FAILED' }),
+          JSON.stringify({
+            error: { message: 'Notifications cluster unreachable' },
+            status: 'FAILED',
+          }),
           { status: 500, headers: { 'Content-Type': 'application/json' } },
         ),
       );
@@ -486,11 +511,19 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
 
       // 2. Sibling consumer executed successfully and was not blocked
       expect(siblingConsumerRan).toBe(true);
-      const siblingReceipt = await outboxRepo.findReceipt(db, 'sibling-order-processor', event.eventId);
+      const siblingReceipt = await outboxRepo.findReceipt(
+        db,
+        'sibling-order-processor',
+        event.eventId,
+      );
       expect(siblingReceipt?.status).toBe('COMPLETED');
 
       // 3. Forwarder recorded its receipt as FAILED in event_consumer_receipts
-      const forwarderReceipt = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const forwarderReceipt = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(forwarderReceipt).toBeDefined();
       expect(forwarderReceipt?.status).toBe('FAILED');
       expect(forwarderReceipt?.errorMetadata).toMatchObject({
@@ -511,7 +544,12 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
           return new Response(JSON.stringify({ error: 'Temporary outage' }), { status: 500 });
         }
         return new Response(
-          JSON.stringify({ status: 'PROCESSED', eventId: event.eventId, handled: true, duplicate: false }),
+          JSON.stringify({
+            status: 'PROCESSED',
+            eventId: event.eventId,
+            handled: true,
+            duplicate: false,
+          }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         );
       });
@@ -524,7 +562,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
 
       await outboxService.publishPendingEvents();
 
-      const initialReceipt = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const initialReceipt = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(initialReceipt?.status).toBe('FAILED');
 
       // Retry 1: still failing
@@ -533,7 +575,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       expect(retryFailResult.retried).toBe(0);
       expect(retryFailResult.failed).toBe(1);
 
-      const afterRetryReceipt = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const afterRetryReceipt = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(afterRetryReceipt?.status).toBe('FAILED');
       expect(afterRetryReceipt?.errorMetadata).toMatchObject({ attempts: 2 });
 
@@ -544,7 +590,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       expect(retrySuccessResult.retried).toBe(1);
       expect(retrySuccessResult.failed).toBe(0);
 
-      const finalReceipt = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const finalReceipt = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(finalReceipt?.status).toBe('COMPLETED');
     });
 
@@ -572,7 +622,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       const res2 = await forwarder.retryFailedEvents({ baseRetryDelayMs: 0, maxAttempts: 2 });
       expect(res2.quarantined).toBe(1);
 
-      const quarantinedReceipt = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const quarantinedReceipt = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(quarantinedReceipt?.status).toBe('QUARANTINED');
     });
 
@@ -584,11 +638,17 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       });
 
       // Wire a succeeding forwarder
-      const mockFetchSuccess = vi.fn().mockImplementation(() =>
-        new Response(
-          JSON.stringify({ status: 'PROCESSED', eventId: event.eventId, handled: true, duplicate: false }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        ),
+      const mockFetchSuccess = vi.fn().mockImplementation(
+        () =>
+          new Response(
+            JSON.stringify({
+              status: 'PROCESSED',
+              eventId: event.eventId,
+              handled: true,
+              duplicate: false,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
       );
       const forwarder = new HttpEventForwarder(
         { baseUrl: BASE_URL, internalServiceKey: VALID_KEY, fetchFn: mockFetchSuccess },
@@ -614,11 +674,17 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
 
   describe('4. Mode Isolation & Multi-Consumer Guarantees', () => {
     it('7. HTTP mode forwards notification events without invoking the local notification consumer', async () => {
-      const mockFetch = vi.fn().mockImplementation(() =>
-        new Response(
-          JSON.stringify({ status: 'PROCESSED', eventId: 'evt-1', handled: true, duplicate: false }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        ),
+      const mockFetch = vi.fn().mockImplementation(
+        () =>
+          new Response(
+            JSON.stringify({
+              status: 'PROCESSED',
+              eventId: 'evt-1',
+              handled: true,
+              duplicate: false,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
       );
 
       const config = parseConfig({
@@ -672,11 +738,17 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
     });
 
     it('8. Unrelated local event consumers still execute in HTTP mode', async () => {
-      const mockFetch = vi.fn().mockImplementation(() =>
-        new Response(
-          JSON.stringify({ status: 'PROCESSED', eventId: 'evt-order-1', handled: true, duplicate: false }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        ),
+      const mockFetch = vi.fn().mockImplementation(
+        () =>
+          new Response(
+            JSON.stringify({
+              status: 'PROCESSED',
+              eventId: 'evt-order-1',
+              handled: true,
+              duplicate: false,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
       );
 
       const config = parseConfig({
@@ -735,7 +807,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       expect(mockFetch).toHaveBeenCalled();
 
       // 2. Unrelated consumer (order-processor) also executed and claimed receipt in DB
-      const orderReceipt = await outboxRepo.findReceipt(db, 'order-processor', paymentEvent.eventId);
+      const orderReceipt = await outboxRepo.findReceipt(
+        db,
+        'order-processor',
+        paymentEvent.eventId,
+      );
       expect(orderReceipt).toBeDefined();
 
       await httpApp.close();
@@ -827,7 +903,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       await httpApp.ready();
 
       const adminToken = await createTestAdminToken(httpApp, db, 'admin-fwd-test@platform.com');
-      const customerToken = await createTestCustomerToken(httpApp, db, 'cust-fwd-test@platform.com');
+      const customerToken = await createTestCustomerToken(
+        httpApp,
+        db,
+        'cust-fwd-test@platform.com',
+      );
 
       // Authorization guard: non-admin customer still gets 403 Forbidden
       const forbiddenRes = await httpApp.inject({
@@ -911,7 +991,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       expect(unauthRes.statusCode).toBe(401);
 
       // Customer authenticated request receives 501
-      const customerToken = await createTestCustomerToken(httpApp, db, 'cust-pref-test@platform.com');
+      const customerToken = await createTestCustomerToken(
+        httpApp,
+        db,
+        'cust-pref-test@platform.com',
+      );
 
       const getPrefRes = await httpApp.inject({
         method: 'GET',
@@ -946,10 +1030,10 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
     it('12. In HTTP mode, POST /notifications/process proxies to notificationClient.processPendingNotifications', async () => {
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/internal/notifications/process')) {
-          return new Response(
-            JSON.stringify({ claimed: 4, sent: 4, failed: 0, deadLettered: 0 }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } },
-          );
+          return new Response(JSON.stringify({ claimed: 4, sent: 4, failed: 0, deadLettered: 0 }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
         }
         return new Response('{}', { status: 200 });
       });
@@ -1038,7 +1122,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       await localApp.ready();
 
       const adminToken = await createTestAdminToken(localApp, db, 'admin-local-test@platform.com');
-      const customerToken = await createTestCustomerToken(localApp, db, 'cust-local-test@platform.com');
+      const customerToken = await createTestCustomerToken(
+        localApp,
+        db,
+        'cust-local-test@platform.com',
+      );
 
       // GET /notifications in local mode returns 200 array
       const listRes = await localApp.inject({
@@ -1086,7 +1174,10 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
     let FORBIDDEN_PAYLOAD_KEYS: Set<string>;
 
     beforeAll(async () => {
-      const modelsPath = resolve(process.cwd(), '../notifications-service/src/events/event-models.ts');
+      const modelsPath = resolve(
+        process.cwd(),
+        '../notifications-service/src/events/event-models.ts',
+      );
       const mod = (await import(pathToFileURL(modelsPath).href)) as {
         NotificationEventTypes: Record<string, string>;
         SUPPORTED_EVENT_VERSIONS: Record<string, number[]>;
@@ -1238,7 +1329,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       await outboxService.publishPendingEvents();
       expect(forwardCalls).toBe(1);
 
-      const receipt1 = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const receipt1 = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(receipt1?.status).toBe('FAILED');
       expect(receipt1?.errorMetadata).toMatchObject({ attempts: 1 });
 
@@ -1267,7 +1362,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       expect(afterBackoffResult.failed).toBe(1);
       expect(forwardCalls).toBe(2);
 
-      const receipt2 = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const receipt2 = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(receipt2?.errorMetadata).toMatchObject({ attempts: 2 });
 
       // Second failure -> backoff multiplier is 2^1 = 2 -> delay is 2000 * 2 = 4000ms
@@ -1328,7 +1427,12 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
         // Introduce small async tick
         await new Promise((r) => setTimeout(r, 20));
         return new Response(
-          JSON.stringify({ status: 'PROCESSED', eventId: event.eventId, handled: true, duplicate: false }),
+          JSON.stringify({
+            status: 'PROCESSED',
+            eventId: event.eventId,
+            handled: true,
+            duplicate: false,
+          }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         );
       });
@@ -1355,7 +1459,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       expect(totalSucceeded).toBe(1);
       expect(forwardCalls).toBe(1);
 
-      const finalReceipt = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const finalReceipt = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(finalReceipt?.status).toBe('COMPLETED');
     });
 
@@ -1383,7 +1491,12 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       const mockFetch = vi.fn().mockImplementation(async () => {
         forwardCalled = true;
         return new Response(
-          JSON.stringify({ status: 'PROCESSED', eventId: event.eventId, handled: true, duplicate: false }),
+          JSON.stringify({
+            status: 'PROCESSED',
+            eventId: event.eventId,
+            handled: true,
+            duplicate: false,
+          }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         );
       });
@@ -1404,7 +1517,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       expect(staleResult.succeeded).toBe(1);
       expect(forwardCalled).toBe(true);
 
-      const receipt = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const receipt = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(receipt?.status).toBe('COMPLETED');
     });
 
@@ -1442,18 +1559,18 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
          WHERE consumer_name = 'notifications-http-forwarder' AND event_id = $2
            AND status = 'PROCESSING'
            AND error_metadata->>'claimToken' = $3`,
-        [
-          JSON.stringify({ attempts: 2, lastError: 'Late failure' }),
-          event.eventId,
-          oldToken,
-        ],
+        [JSON.stringify({ attempts: 2, lastError: 'Late failure' }), event.eventId, oldToken],
       );
 
       // Fencing check: 0 rows affected!
       expect(updateRes.rowCount).toBe(0);
 
       // Verify the receipt is still COMPLETED as set by Worker B!
-      const receipt = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const receipt = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(receipt?.status).toBe('COMPLETED');
     });
 
@@ -1487,7 +1604,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       expect(result.claimed).toBe(0);
       expect(mockFetch).not.toHaveBeenCalled();
 
-      const receipt = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const receipt = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(receipt?.status).toBe('QUARANTINED');
     });
 
@@ -1531,7 +1652,11 @@ describe('Monolith-to-Notifications HTTP Event Forwarding (Phase 2)', () => {
       const result = await forwarder.retryFailedEvents({ baseRetryDelayMs: 0 });
       expect(result.succeeded).toBe(1);
 
-      const receipt = await outboxRepo.findReceipt(db, 'notifications-http-forwarder', event.eventId);
+      const receipt = await outboxRepo.findReceipt(
+        db,
+        'notifications-http-forwarder',
+        event.eventId,
+      );
       expect(receipt?.status).toBe('COMPLETED');
     });
   });

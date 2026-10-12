@@ -6,12 +6,7 @@ import type {
   WebhookProcessStatus,
 } from './payment-repository.js';
 
-export type {
-  PaymentIntentStatus,
-  PaymentAttemptStatus,
-  RefundStatus,
-  WebhookProcessStatus,
-};
+export type { PaymentIntentStatus, PaymentAttemptStatus, RefundStatus, WebhookProcessStatus };
 
 export interface CreatePaymentIntentInput {
   checkoutSessionId: string;
@@ -123,4 +118,3 @@ export interface IPaymentService extends IPaymentReader {
     signatureHeader: string,
   ): Promise<WebhookProcessResultDto>;
 }
-

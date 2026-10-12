@@ -364,7 +364,6 @@ describe('Architecture Boundary & Dependency Enforcement', () => {
   }
 
   describe('Static Scan of Current Repository Files', () => {
-
     it('proves zero architecture violations in the current codebase', () => {
       const srcDir = join(__dirname, '../src');
       const allFiles = getAllSourceFiles(srcDir);
@@ -649,5 +648,3 @@ describe('Architecture Boundary & Dependency Enforcement', () => {
     });
   });
 });
-
-

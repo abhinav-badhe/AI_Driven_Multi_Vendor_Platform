@@ -32,7 +32,7 @@ export function sanitizeErrorMessage(rawMessage: string): string {
     return 'Event processing failed';
   }
   let sanitized = rawMessage;
-  sanitized = sanitized.replace(/(authorization|bearer)\s+[a-zA-Z0-9_\-\.]+/gi, '$1 [REDACTED]');
+  sanitized = sanitized.replace(/(authorization|bearer)\s+[a-zA-Z0-9_.-]+/gi, '$1 [REDACTED]');
   const sensitiveWords = [
     'password',
     'password_hash',
@@ -94,13 +94,16 @@ export class NotificationEventConsumer {
         });
         return { status: 'ALREADY_COMPLETED', eventId: event.eventId };
       } else {
-        this.logger.info('Event currently being processed by concurrent or recent worker, skipping', {
-          consumerName: this.consumerName,
-          eventId: event.eventId,
-          eventType: event.eventType,
-          correlationId: event.metadata?.correlationId,
-          causationId: event.metadata?.causationId,
-        });
+        this.logger.info(
+          'Event currently being processed by concurrent or recent worker, skipping',
+          {
+            consumerName: this.consumerName,
+            eventId: event.eventId,
+            eventType: event.eventType,
+            correlationId: event.metadata?.correlationId,
+            causationId: event.metadata?.causationId,
+          },
+        );
         return { status: 'CURRENTLY_PROCESSING', eventId: event.eventId };
       }
     }
@@ -161,11 +164,14 @@ export class NotificationEventConsumer {
       );
 
       if (!updated) {
-        this.logger.warn('Consumer handler failed and receipt claim was superseded by another worker', {
-          consumerName: this.consumerName,
-          eventId: event.eventId,
-          error: safeError,
-        });
+        this.logger.warn(
+          'Consumer handler failed and receipt claim was superseded by another worker',
+          {
+            consumerName: this.consumerName,
+            eventId: event.eventId,
+            error: safeError,
+          },
+        );
       } else {
         this.logger.error('Consumer event handler failed', {
           consumerName: this.consumerName,

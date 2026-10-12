@@ -134,7 +134,11 @@ export class MetaWhatsAppCloudProvider implements IWhatsAppProvider {
       return { success: true, messageId };
     } catch (err: unknown) {
       const isAbort = err instanceof Error && err.name === 'AbortError';
-      const msg = isAbort ? 'Request timed out after 10s' : err instanceof Error ? err.message : String(err);
+      const msg = isAbort
+        ? 'Request timed out after 10s'
+        : err instanceof Error
+          ? err.message
+          : String(err);
       this.logger.error('Meta WhatsApp outbound request threw error', {
         recipient: cleanTo,
         error: msg,

@@ -33,7 +33,9 @@ describe('Identity Microservice Boundary: Stateless & Gateway Actor Resolvers', 
     });
 
     it('returns null on invalid signatures', async () => {
-      const resolver = identityModule.createStatelessResolver('different-secret-that-does-not-match-32c');
+      const resolver = identityModule.createStatelessResolver(
+        'different-secret-that-does-not-match-32c',
+      );
       const actor = await resolver.resolveActiveActor(validToken);
       expect(actor).toBeNull();
     });

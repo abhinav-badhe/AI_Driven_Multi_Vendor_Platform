@@ -54,4 +54,3 @@ export const promotionPricingModule: PromotionPricingModule = {
     return new HttpPromotionPricingClient(options);
   },
 };
-

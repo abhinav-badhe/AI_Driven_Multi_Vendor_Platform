@@ -3,12 +3,7 @@ import type { IdentityService } from '../modules/identity/index.js';
 import type { MlService, ModelType } from '../modules/analytics-ml/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ValidationError, NotFoundError, ForbiddenError } from '../errors/app-error.js';
-import {
-  CachePresets,
-  CacheTags,
-  cacheKey,
-  sendCached,
-} from './cache-helper.js';
+import { CachePresets, CacheTags, cacheKey, sendCached } from './cache-helper.js';
 
 export function registerMlRoutes(
   app: FastifyInstance,
@@ -442,7 +437,8 @@ export function registerMlRoutes(
       const body = (request.body as Record<string, unknown>) || {};
 
       const policy = await mlService.saveRetrainingPolicy(actor, tenantId, params.modelType, {
-        minNewOrdersThreshold: typeof body.minNewOrdersThreshold === 'number' ? body.minNewOrdersThreshold : 10,
+        minNewOrdersThreshold:
+          typeof body.minNewOrdersThreshold === 'number' ? body.minNewOrdersThreshold : 10,
         enabled: typeof body.enabled === 'boolean' ? body.enabled : true,
       });
 

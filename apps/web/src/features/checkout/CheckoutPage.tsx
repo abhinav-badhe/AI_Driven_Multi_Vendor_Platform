@@ -1,19 +1,29 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { CheckCircle2, Lock, ShieldCheck, MapPin, Plus, Edit2, Home, Briefcase, Building } from "lucide-react";
-import { checkoutApi, type CheckoutSessionDto, type OrderConfirmationDto } from "./api/checkout";
-import { addressesApi, type CustomerAddressDto } from "../customer/api/addresses";
-import { AddressFormModal } from "../customer/components/AddressFormModal";
-import { initiateRazorpayPayment } from "./api/razorpay";
-import { useCart } from "../cart/CartContext";
-import { Button, buttonVariants } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { Input, Label } from "../../components/ui/input";
-import { formatPrice } from "../../lib/format";
-import { cn } from "../../lib/utils";
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  CheckCircle2,
+  Lock,
+  ShieldCheck,
+  MapPin,
+  Plus,
+  Edit2,
+  Home,
+  Briefcase,
+  Building,
+} from 'lucide-react';
+import { checkoutApi, type CheckoutSessionDto, type OrderConfirmationDto } from './api/checkout';
+import { addressesApi, type CustomerAddressDto } from '../customer/api/addresses';
+import { AddressFormModal } from '../customer/components/AddressFormModal';
+import { initiateRazorpayPayment } from './api/razorpay';
+import { useCart } from '../cart/CartContext';
+import { Button, buttonVariants } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { Input, Label } from '../../components/ui/input';
+import { formatPrice } from '../../lib/format';
+import { cn } from '../../lib/utils';
 
 export const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -25,14 +35,14 @@ export const CheckoutPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<OrderConfirmationDto | null>(null);
 
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [postalCode, setPostalCode] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("pm_card_visa");
-  const isCod = paymentMethod === "cod";
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('pm_card_visa');
+  const isCod = paymentMethod === 'cod';
 
   // Address Book state
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddressDto[]>([]);
@@ -45,7 +55,7 @@ export const CheckoutPage = () => {
     setSelectedAddressId(addr.id);
     setFullName(addr.recipientName);
     setPhone(addr.phone);
-    setAddress(addr.addressLine1 + (addr.addressLine2 ? `, ${addr.addressLine2}` : ""));
+    setAddress(addr.addressLine1 + (addr.addressLine2 ? `, ${addr.addressLine2}` : ''));
     setCity(addr.city);
     setState(addr.state);
     setPostalCode(addr.postalCode);
@@ -59,7 +69,7 @@ export const CheckoutPage = () => {
         const updated = await checkoutApi.setShippingAddress(session.id, { addressId: addr.id });
         setSession(updated);
       } catch (err) {
-        console.warn("Failed to sync checkout address snapshot", err);
+        console.warn('Failed to sync checkout address snapshot', err);
       }
     }
   };
@@ -85,7 +95,7 @@ export const CheckoutPage = () => {
   const [isAuthorizingAction, setIsAuthorizingAction] = useState(false);
 
   // Coupon handling
-  const [couponInput, setCouponInput] = useState("");
+  const [couponInput, setCouponInput] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
 
@@ -107,9 +117,9 @@ export const CheckoutPage = () => {
             }
           : prev,
       );
-      setCouponInput("");
+      setCouponInput('');
     } catch (err: unknown) {
-      setCouponError(err instanceof Error ? err.message : "Failed to apply coupon");
+      setCouponError(err instanceof Error ? err.message : 'Failed to apply coupon');
     } finally {
       setIsApplyingCoupon(false);
     }
@@ -133,7 +143,7 @@ export const CheckoutPage = () => {
           : prev,
       );
     } catch (err: unknown) {
-      setCouponError(err instanceof Error ? err.message : "Failed to remove coupon");
+      setCouponError(err instanceof Error ? err.message : 'Failed to remove coupon');
     } finally {
       setIsApplyingCoupon(false);
     }
@@ -169,7 +179,11 @@ export const CheckoutPage = () => {
         const reserved = await checkoutApi.reserveInventory(sess.id);
         setSession(reserved);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Could not start checkout. Return to your cart and try again.");
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Could not start checkout. Return to your cart and try again.',
+        );
       } finally {
         setIsInitializing(false);
         setIsReserving(false);
@@ -200,12 +214,12 @@ export const CheckoutPage = () => {
           activeSession = await checkoutApi.setShippingAddress(activeSession.id, {
             shippingAddress: {
               recipientName: fullName.trim(),
-              phone: phone.trim() || "+1000000000",
+              phone: phone.trim() || '+1000000000',
               addressLine1: address.trim(),
               city: city.trim(),
-              state: state.trim() || "CA",
+              state: state.trim() || 'CA',
               postalCode: postalCode.trim(),
-              country: "US",
+              country: 'US',
             },
           });
         } catch {
@@ -213,7 +227,7 @@ export const CheckoutPage = () => {
         }
       }
 
-      if (activeSession.status === "OPEN") {
+      if (activeSession.status === 'OPEN') {
         activeSession = await checkoutApi.reserveInventory(activeSession.id);
         setSession(activeSession);
       }
@@ -222,35 +236,37 @@ export const CheckoutPage = () => {
 
       let attemptPayload = paymentMethod;
 
-      if (paymentMethod === "razorpay" || paymentMethod === "pm_upi") {
-        const config = typeof checkoutApi.getPaymentConfig === "function"
-          ? await checkoutApi.getPaymentConfig().catch(() => ({
-              provider: "razorpay" as const,
-              razorpayKeyId: "rzp_test_Tma2xqRvNkQNEy",
-              currency: "INR",
-            }))
-          : {
-              provider: "razorpay" as const,
-              razorpayKeyId: "rzp_test_Tma2xqRvNkQNEy",
-              currency: "INR",
-            };
+      if (paymentMethod === 'razorpay' || paymentMethod === 'pm_upi') {
+        const config =
+          typeof checkoutApi.getPaymentConfig === 'function'
+            ? await checkoutApi.getPaymentConfig().catch(() => ({
+                provider: 'razorpay' as const,
+                razorpayKeyId: 'rzp_test_Tma2xqRvNkQNEy',
+                currency: 'INR',
+              }))
+            : {
+                provider: 'razorpay' as const,
+                razorpayKeyId: 'rzp_test_Tma2xqRvNkQNEy',
+                currency: 'INR',
+              };
 
         const rzpResult = await initiateRazorpayPayment({
-          key: config.razorpayKeyId || "rzp_test_Tma2xqRvNkQNEy",
-          amount: typeof activeSession.totalAmount === 'number'
-            ? (Number.isInteger(activeSession.totalAmount)
+          key: config.razorpayKeyId || 'rzp_test_Tma2xqRvNkQNEy',
+          amount:
+            typeof activeSession.totalAmount === 'number'
+              ? Number.isInteger(activeSession.totalAmount)
                 ? activeSession.totalAmount
-                : Math.round(activeSession.totalAmount * 100))
-            : 0,
-          currency: activeSession.currency || "INR",
-          name: "Commerce Marketplace",
+                : Math.round(activeSession.totalAmount * 100)
+              : 0,
+          currency: activeSession.currency || 'INR',
+          name: 'Commerce Marketplace',
           description: `Order Payment (${activeSession.items.length} item${activeSession.items.length === 1 ? '' : 's'})`,
           order_id: intent.clientSecret || intent.id,
           prefill: {
             name: fullName,
             contact: phone,
           },
-          theme: { color: "#18181b" },
+          theme: { color: '#18181b' },
         });
 
         attemptPayload = JSON.stringify(rzpResult);
@@ -258,7 +274,7 @@ export const CheckoutPage = () => {
 
       const attempt = await checkoutApi.submitPaymentAttempt(intent.id, attemptPayload);
 
-      if (attempt.status === "REQUIRES_ACTION") {
+      if (attempt.status === 'REQUIRES_ACTION') {
         // Stripe 3D-Secure / Strong Customer Authentication challenge flow
         setPendingAction({
           intentId: intent.id,
@@ -268,17 +284,19 @@ export const CheckoutPage = () => {
         return;
       }
 
-      if (attempt.status !== "SUCCEEDED") {
+      if (attempt.status !== 'SUCCEEDED') {
         throw new Error(
           attempt.failureMessage ||
-            "Payment attempt was declined by the payment gateway. Please check your payment details or select another method.",
+            'Payment attempt was declined by the payment gateway. Please check your payment details or select another method.',
         );
       }
       const order = await checkoutApi.finalizeOrder(session.id, intent.id);
       setCompletedOrder(order);
       await refreshCart();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Payment failed. No charge was made — try again.");
+      setError(
+        err instanceof Error ? err.message : 'Payment failed. No charge was made — try again.',
+      );
     } finally {
       setIsPaying(false);
     }
@@ -292,12 +310,12 @@ export const CheckoutPage = () => {
       // Browser-side 3DS authentication completed by customer; confirm with provider
       const confirmedAttempt = await checkoutApi.submitPaymentAttempt(
         pendingAction.intentId,
-        "pm_card_visa",
+        'pm_card_visa',
       );
-      if (confirmedAttempt.status !== "SUCCEEDED") {
+      if (confirmedAttempt.status !== 'SUCCEEDED') {
         throw new Error(
           confirmedAttempt.failureMessage ||
-            "Strong customer authentication could not be completed by your issuing bank.",
+            'Strong customer authentication could not be completed by your issuing bank.',
         );
       }
       const order = await checkoutApi.finalizeOrder(session.id, pendingAction.intentId);
@@ -305,7 +323,7 @@ export const CheckoutPage = () => {
       setPendingAction(null);
       await refreshCart();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "3D-Secure authentication failed.");
+      setError(err instanceof Error ? err.message : '3D-Secure authentication failed.');
       setPendingAction(null);
     } finally {
       setIsAuthorizingAction(false);
@@ -314,7 +332,9 @@ export const CheckoutPage = () => {
 
   const handleCancelAction = () => {
     setPendingAction(null);
-    setError("3D Secure verification was cancelled. Please try again or select another payment method.");
+    setError(
+      '3D Secure verification was cancelled. Please try again or select another payment method.',
+    );
   };
 
   if (isInitializing) {
@@ -338,8 +358,8 @@ export const CheckoutPage = () => {
             <h1 className="mt-2 text-xl font-semibold tracking-tight">Order confirmed</h1>
             <p className="mt-1 text-[13px] text-muted-foreground">
               {isCod
-                ? "Pay in cash when your order arrives. The seller has been notified."
-                : "Payment received. The seller has been notified."}
+                ? 'Pay in cash when your order arrives. The seller has been notified.'
+                : 'Payment received. The seller has been notified.'}
             </p>
             <dl className="mt-3 rounded-md bg-muted px-3 py-2 text-left text-[13px]">
               <div className="flex justify-between gap-2">
@@ -358,10 +378,10 @@ export const CheckoutPage = () => {
               </div>
             </dl>
             <div className="mt-3 flex justify-center gap-1.5">
-              <Link to="/orders" className={cn(buttonVariants({ size: "sm" }))}>
+              <Link to="/orders" className={cn(buttonVariants({ size: 'sm' }))}>
                 View my orders
               </Link>
-              <Link to="/search" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              <Link to="/search" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
                 Continue shopping
               </Link>
             </div>
@@ -379,7 +399,7 @@ export const CheckoutPage = () => {
           title="Checkout unavailable"
           description={error}
           actionLabel="Return to cart"
-          onAction={() => navigate("/cart")}
+          onAction={() => navigate('/cart')}
         />
       </div>
     );
@@ -402,12 +422,7 @@ export const CheckoutPage = () => {
             <div className="flex flex-col gap-2">
               <span>{error}</span>
               <div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setError(null)}
-                >
+                <Button type="button" variant="outline" size="sm" onClick={() => setError(null)}>
                   Retry Payment
                 </Button>
               </div>
@@ -475,7 +490,10 @@ export const CheckoutPage = () => {
                                   </Badge>
                                 )}
                                 {isSelected && (
-                                  <Badge variant="default" className="text-[9px] px-1 py-0 bg-primary text-primary-foreground">
+                                  <Badge
+                                    variant="default"
+                                    className="text-[9px] px-1 py-0 bg-primary text-primary-foreground"
+                                  >
                                     Selected
                                   </Badge>
                                 )}
@@ -522,7 +540,9 @@ export const CheckoutPage = () => {
                 <div className="mt-3 flex flex-col gap-3">
                   {savedAddresses.length > 0 && (
                     <div className="flex justify-between items-center pb-2 border-b border-border">
-                      <span className="text-xs text-muted-foreground">Entering address manually</span>
+                      <span className="text-xs text-muted-foreground">
+                        Entering address manually
+                      </span>
                       <button
                         type="button"
                         onClick={() => setIsManualEntry(false)}
@@ -535,29 +555,58 @@ export const CheckoutPage = () => {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="flex flex-col gap-1">
                       <Label htmlFor="co-name">Full name</Label>
-                      <Input id="co-name" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                      <Input
+                        id="co-name"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                      />
                     </div>
                     <div className="flex flex-col gap-1">
                       <Label htmlFor="co-phone">Phone number</Label>
-                      <Input id="co-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555-0123" />
+                      <Input
+                        id="co-phone"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+1 555-0123"
+                      />
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
                     <Label htmlFor="co-address">Street address</Label>
-                    <Input id="co-address" required value={address} onChange={(e) => setAddress(e.target.value)} />
+                    <Input
+                      id="co-address"
+                      required
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                    />
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <div className="flex flex-col gap-1">
                       <Label htmlFor="co-city">City</Label>
-                      <Input id="co-city" required value={city} onChange={(e) => setCity(e.target.value)} />
+                      <Input
+                        id="co-city"
+                        required
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                      />
                     </div>
                     <div className="flex flex-col gap-1">
                       <Label htmlFor="co-state">State</Label>
-                      <Input id="co-state" value={state} onChange={(e) => setState(e.target.value)} />
+                      <Input
+                        id="co-state"
+                        value={state}
+                        onChange={(e) => setState(e.target.value)}
+                      />
                     </div>
                     <div className="flex flex-col gap-1">
                       <Label htmlFor="co-pin">PIN code</Label>
-                      <Input id="co-pin" required value={postalCode} onChange={(e) => setPostalCode(e.target.value)} />
+                      <Input
+                        id="co-pin"
+                        required
+                        value={postalCode}
+                        onChange={(e) => setPostalCode(e.target.value)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -571,9 +620,12 @@ export const CheckoutPage = () => {
               <div className="mt-2 flex flex-col gap-2">
                 {(
                   [
-                    { value: "razorpay", label: "Razorpay (UPI / Google Pay / PhonePe / Paytm / Netbanking / Cards)" },
-                    { value: "pm_card_visa", label: "Credit / debit card (Visa / Mastercard)" },
-                    { value: "cod", label: "Cash on delivery (pay when your order arrives)" },
+                    {
+                      value: 'razorpay',
+                      label: 'Razorpay (UPI / Google Pay / PhonePe / Paytm / Netbanking / Cards)',
+                    },
+                    { value: 'pm_card_visa', label: 'Credit / debit card (Visa / Mastercard)' },
+                    { value: 'cod', label: 'Cash on delivery (pay when your order arrives)' },
                   ] as const
                 ).map((opt) => (
                   <label
@@ -610,7 +662,10 @@ export const CheckoutPage = () => {
                       className="size-9 shrink-0 rounded border border-border object-cover"
                     />
                   ) : (
-                    <span className="size-9 shrink-0 rounded border border-border bg-muted" aria-hidden />
+                    <span
+                      className="size-9 shrink-0 rounded border border-border bg-muted"
+                      aria-hidden
+                    />
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">
@@ -618,10 +673,12 @@ export const CheckoutPage = () => {
                     </span>
                     <span className="tnum block text-xs text-muted-foreground">
                       × {it.quantity}
-                      {it.productBrand ? ` · ${it.productBrand}` : ""}
+                      {it.productBrand ? ` · ${it.productBrand}` : ''}
                     </span>
                   </span>
-                  <span className="tnum shrink-0 font-medium">{formatPrice(it.lineTotalAmount, it.currency, 2)}</span>
+                  <span className="tnum shrink-0 font-medium">
+                    {formatPrice(it.lineTotalAmount, it.currency, 2)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -663,12 +720,10 @@ export const CheckoutPage = () => {
                       onClick={handleApplyCoupon}
                       disabled={isApplyingCoupon || !couponInput.trim()}
                     >
-                      {isApplyingCoupon ? "Applying…" : "Apply"}
+                      {isApplyingCoupon ? 'Applying…' : 'Apply'}
                     </Button>
                   </div>
-                  {couponError && (
-                    <p className="text-[11px] text-destructive">{couponError}</p>
-                  )}
+                  {couponError && <p className="text-[11px] text-destructive">{couponError}</p>}
                 </div>
               )}
             </div>
@@ -676,12 +731,16 @@ export const CheckoutPage = () => {
             <dl className="mt-2 flex flex-col gap-1.5 border-t border-border pt-2 text-[13px]">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Subtotal</dt>
-                <dd className="tnum">{formatPrice(session?.subtotalAmount ?? 0, session?.currency, 2)}</dd>
+                <dd className="tnum">
+                  {formatPrice(session?.subtotalAmount ?? 0, session?.currency, 2)}
+                </dd>
               </div>
               {session?.discountAmount ? (
                 <div className="flex justify-between text-success">
-                  <dt>Discount {session.couponCode ? `(${session.couponCode})` : ""}</dt>
-                  <dd className="tnum font-medium">−{formatPrice(session.discountAmount, session?.currency, 2)}</dd>
+                  <dt>Discount {session.couponCode ? `(${session.couponCode})` : ''}</dt>
+                  <dd className="tnum font-medium">
+                    −{formatPrice(session.discountAmount, session?.currency, 2)}
+                  </dd>
                 </div>
               ) : null}
               <div className="flex justify-between">
@@ -690,12 +749,14 @@ export const CheckoutPage = () => {
               </div>
               <div className="flex justify-between border-t border-border pt-1.5 text-sm font-semibold">
                 <dt>Total</dt>
-                <dd className="tnum">{formatPrice(session?.totalAmount ?? 0, session?.currency, 2)}</dd>
+                <dd className="tnum">
+                  {formatPrice(session?.totalAmount ?? 0, session?.currency, 2)}
+                </dd>
               </div>
             </dl>
             <Button type="submit" className="mt-3 w-full" disabled={isPaying || isReserving}>
               {isPaying
-                ? "Processing payment…"
+                ? 'Processing payment…'
                 : isCod
                   ? `Place order · pay ${formatPrice(session?.totalAmount ?? 0, session?.currency, 2)} on delivery`
                   : `Pay ${formatPrice(session?.totalAmount ?? 0, session?.currency, 2)}`}
@@ -721,16 +782,19 @@ export const CheckoutPage = () => {
                   <h2 id="sca-modal-title" className="text-base font-semibold">
                     3D Secure Authentication
                   </h2>
-                  <p className="text-xs text-muted-foreground">Strong Customer Authentication (SCA)</p>
+                  <p className="text-xs text-muted-foreground">
+                    Strong Customer Authentication (SCA)
+                  </p>
                 </div>
               </div>
 
               <div className="mt-4 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
                 <p>
-                  Your issuing bank requires verification to authorize this payment of{" "}
+                  Your issuing bank requires verification to authorize this payment of{' '}
                   <strong className="text-foreground">
-                    {formatPrice(session?.totalAmount ?? 0, session?.currency ?? "USD", 2)}
-                  </strong>.
+                    {formatPrice(session?.totalAmount ?? 0, session?.currency ?? 'USD', 2)}
+                  </strong>
+                  .
                 </p>
               </div>
 
@@ -742,7 +806,7 @@ export const CheckoutPage = () => {
                   onClick={handleAuthorizeAction}
                   className="w-full"
                 >
-                  {isAuthorizingAction ? "Authorizing with bank…" : "Authorize & Complete Payment"}
+                  {isAuthorizingAction ? 'Authorizing with bank…' : 'Authorize & Complete Payment'}
                 </Button>
                 <Button
                   type="button"

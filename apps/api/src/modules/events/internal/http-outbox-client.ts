@@ -133,7 +133,12 @@ export class HttpOutboxClient implements IOutboxService {
 
   async publishPendingEvents(options: PublishOptions = {}): Promise<PublishResult> {
     try {
-      return await this.request<PublishResult>('POST', '/events/outbox/process', undefined, options);
+      return await this.request<PublishResult>(
+        'POST',
+        '/events/outbox/process',
+        undefined,
+        options,
+      );
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
         this.logger?.warn('Remote outbox service failed; falling back to local service', {

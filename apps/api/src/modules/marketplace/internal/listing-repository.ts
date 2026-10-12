@@ -171,7 +171,8 @@ export class ListingRepository {
     const current = await this.findListingById(id);
     if (!current) return null;
 
-    const priceAmount = updates.priceAmount !== undefined ? updates.priceAmount : current.price_amount;
+    const priceAmount =
+      updates.priceAmount !== undefined ? updates.priceAmount : current.price_amount;
     const currency = updates.currency !== undefined ? updates.currency : current.currency;
     const compareAtPrice =
       updates.compareAtPrice !== undefined ? updates.compareAtPrice : current.compare_at_price;
@@ -217,4 +218,3 @@ export class ListingRepository {
     return res.rows;
   }
 }
-

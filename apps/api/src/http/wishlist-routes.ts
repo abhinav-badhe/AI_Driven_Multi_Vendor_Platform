@@ -14,15 +14,11 @@ export function registerWishlistRoutes(
 
   for (const prefix of routePrefixes) {
     // GET /customer/wishlist: List customer wishlist with resolved live offers & availability
-    app.get(
-      `${prefix}/customer/wishlist`,
-      { preHandler: authenticate },
-      async (request, reply) => {
-        const actor = requireActor(request);
-        const wishlist = await wishlistService.listWishlist(actor);
-        return reply.status(200).send(wishlist);
-      },
-    );
+    app.get(`${prefix}/customer/wishlist`, { preHandler: authenticate }, async (request, reply) => {
+      const actor = requireActor(request);
+      const wishlist = await wishlistService.listWishlist(actor);
+      return reply.status(200).send(wishlist);
+    });
 
     // POST /customer/wishlist: Add product to customer wishlist
     app.post(

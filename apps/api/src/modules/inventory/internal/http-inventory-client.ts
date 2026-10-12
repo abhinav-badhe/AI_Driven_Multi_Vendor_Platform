@@ -313,10 +313,7 @@ export class HttpInventoryClient implements IInventoryService {
     }
   }
 
-  async getReservationById(
-    actor: AuthorizedActor,
-    id: string,
-  ): Promise<InventoryReservationDto> {
+  async getReservationById(actor: AuthorizedActor, id: string): Promise<InventoryReservationDto> {
     try {
       return await this.request<InventoryReservationDto>(
         `/inventory/reservations/${encodeURIComponent(id)}`,
@@ -344,7 +341,9 @@ export class HttpInventoryClient implements IInventoryService {
     idempotencyKey: string,
   ): Promise<InventoryReservationDto | null> {
     try {
-      const result = await this.request<{ reservation: InventoryReservationDto | null } | InventoryReservationDto | null>(
+      const result = await this.request<
+        { reservation: InventoryReservationDto | null } | InventoryReservationDto | null
+      >(
         `/inventory/reservations/by-idempotency/${encodeURIComponent(idempotencyKey)}`,
         'GET',
         undefined,
@@ -482,10 +481,7 @@ export class HttpInventoryClient implements IInventoryService {
     }
   }
 
-  async getMovements(
-    actor: AuthorizedActor,
-    inventoryId: string,
-  ): Promise<InventoryMovementDto[]> {
+  async getMovements(actor: AuthorizedActor, inventoryId: string): Promise<InventoryMovementDto[]> {
     try {
       return await this.request<InventoryMovementDto[]>(
         `/inventory/${encodeURIComponent(inventoryId)}/movements`,
@@ -632,4 +628,3 @@ export class HttpInventoryClient implements IInventoryService {
   startExpirationWorker?(_intervalMs?: number): void {}
   stopExpirationWorker?(): void {}
 }
-

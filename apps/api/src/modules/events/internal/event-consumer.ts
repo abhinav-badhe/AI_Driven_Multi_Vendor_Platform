@@ -195,7 +195,9 @@ export abstract class BaseEventConsumer<TPayload = Record<string, unknown>> {
 
       const errMeta = existing.errorMetadata ?? {};
       const priorAttempts =
-        typeof errMeta.attempts === 'number' && Number.isInteger(errMeta.attempts) && errMeta.attempts > 0
+        typeof errMeta.attempts === 'number' &&
+        Number.isInteger(errMeta.attempts) &&
+        errMeta.attempts > 0
           ? errMeta.attempts
           : 1;
 
@@ -351,7 +353,10 @@ export abstract class BaseEventConsumer<TPayload = Record<string, unknown>> {
       const finalStatus = isTerminal ? 'QUARANTINED' : 'FAILED';
 
       const backoffMultiplier = Math.pow(2, Math.min(Math.max(0, currentAttempts - 1), 8));
-      const retryDelayMs = Math.min(this.baseRetryDelayMs * backoffMultiplier, this.maxRetryDelayMs);
+      const retryDelayMs = Math.min(
+        this.baseRetryDelayMs * backoffMultiplier,
+        this.maxRetryDelayMs,
+      );
       const nextRetryAt = isTerminal ? null : new Date(Date.now() + retryDelayMs).toISOString();
 
       // Fenced failure update
@@ -384,11 +389,14 @@ export abstract class BaseEventConsumer<TPayload = Record<string, unknown>> {
       );
 
       if ((failRes.rowCount ?? 0) === 0) {
-        this.logger.warn('Consumer handler failed, but claim token lease expired or was overwritten', {
-          consumerName: this.consumerName,
-          eventId,
-          error: errorMessage,
-        });
+        this.logger.warn(
+          'Consumer handler failed, but claim token lease expired or was overwritten',
+          {
+            consumerName: this.consumerName,
+            eventId,
+            error: errorMessage,
+          },
+        );
         const latest = await this.outboxRepo.findReceipt(this.db, this.consumerName, eventId);
         return {
           handled: false,
@@ -747,5 +755,3 @@ export abstract class BaseEventConsumer<TPayload = Record<string, unknown>> {
     return { claimed, retried, succeeded, failed, quarantined };
   }
 }
-
-

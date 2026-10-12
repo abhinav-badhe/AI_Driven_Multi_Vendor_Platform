@@ -19,13 +19,16 @@ export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Pro
   `);
 
   // 2. Users (accounts are pre-verified)
-  await db.query(`
+  await db.query(
+    `
     INSERT INTO users (id, email, password_hash, status, email_verified_at) VALUES
       ('user-admin-leon', 'leonsintegration@gmail.com', $1, 'ACTIVE', CURRENT_TIMESTAMP),
       ('user-merchant-1', 'merchant@example.com', $2, 'ACTIVE', CURRENT_TIMESTAMP),
       ('user-customer-1', 'customer@example.com', $2, 'ACTIVE', CURRENT_TIMESTAMP)
     ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
-  `, [adminPasswordHash, defaultPasswordHash]);
+  `,
+    [adminPasswordHash, defaultPasswordHash],
+  );
 
   // 3. Tenant Memberships
   await db.query(`
@@ -69,7 +72,8 @@ export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Pro
       id: 'prod-iphone-15',
       title: 'Apple iPhone 15 Pro',
       slug: 'apple-iphone-15-pro',
-      description: 'Aerospace-grade titanium design with A17 Pro chip and customizable Action button.',
+      description:
+        'Aerospace-grade titanium design with A17 Pro chip and customizable Action button.',
       brand: 'Apple',
       categoryId: 'cat-smartphones',
       status: 'ACTIVE',
@@ -87,7 +91,8 @@ export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Pro
       id: 'prod-sony-wh1000',
       title: 'Sony WH-1000XM5 Wireless Headphones',
       slug: 'sony-wh-1000xm5',
-      description: 'Industry-leading noise cancellation optimized by two processors and 8 microphones.',
+      description:
+        'Industry-leading noise cancellation optimized by two processors and 8 microphones.',
       brand: 'Sony',
       categoryId: 'cat-audio',
       status: 'ACTIVE',
@@ -114,7 +119,8 @@ export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Pro
       id: 'prod-watch-ultra',
       title: 'Apple Watch Ultra 2 GPS + Cellular',
       slug: 'apple-watch-ultra-2',
-      description: 'Rugged titanium case with precision dual-frequency GPS and 36-hour battery life.',
+      description:
+        'Rugged titanium case with precision dual-frequency GPS and 36-hour battery life.',
       brand: 'Apple',
       categoryId: 'cat-wearables',
       status: 'ACTIVE',
@@ -122,29 +128,65 @@ export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Pro
   ];
 
   for (const p of products) {
-    await db.query(`
+    await db.query(
+      `
       INSERT INTO products (id, title, slug, description, brand, category_id, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (id) DO NOTHING;
-    `, [p.id, p.title, p.slug, p.description, p.brand, p.categoryId, p.status]);
+    `,
+      [p.id, p.title, p.slug, p.description, p.brand, p.categoryId, p.status],
+    );
   }
 
   // 7. Product SKUs
   const skus = [
-    { id: 'sku-iphone-15-blk', productId: 'prod-iphone-15', skuCode: 'IPHONE-15-PRO-BLK', barcode: '195949012345' },
-    { id: 'sku-mbp-16-space', productId: 'prod-macbook-pro', skuCode: 'MBP-16-M3-SPACE', barcode: '195949067890' },
-    { id: 'sku-sony-xm5-blk', productId: 'prod-sony-wh1000', skuCode: 'SONY-WH1000XM5-BLK', barcode: '027242923456' },
-    { id: 'sku-s24-ultra-gry', productId: 'prod-galaxy-s24', skuCode: 'GALAXY-S24U-GRY', barcode: '887276812345' },
-    { id: 'sku-dell-xps15-slv', productId: 'prod-dell-xps15', skuCode: 'DELL-XPS15-SLV', barcode: '884116412345' },
-    { id: 'sku-watch-ultra-2', productId: 'prod-watch-ultra', skuCode: 'AW-ULTRA-2-TITANIUM', barcode: '195949098765' },
+    {
+      id: 'sku-iphone-15-blk',
+      productId: 'prod-iphone-15',
+      skuCode: 'IPHONE-15-PRO-BLK',
+      barcode: '195949012345',
+    },
+    {
+      id: 'sku-mbp-16-space',
+      productId: 'prod-macbook-pro',
+      skuCode: 'MBP-16-M3-SPACE',
+      barcode: '195949067890',
+    },
+    {
+      id: 'sku-sony-xm5-blk',
+      productId: 'prod-sony-wh1000',
+      skuCode: 'SONY-WH1000XM5-BLK',
+      barcode: '027242923456',
+    },
+    {
+      id: 'sku-s24-ultra-gry',
+      productId: 'prod-galaxy-s24',
+      skuCode: 'GALAXY-S24U-GRY',
+      barcode: '887276812345',
+    },
+    {
+      id: 'sku-dell-xps15-slv',
+      productId: 'prod-dell-xps15',
+      skuCode: 'DELL-XPS15-SLV',
+      barcode: '884116412345',
+    },
+    {
+      id: 'sku-watch-ultra-2',
+      productId: 'prod-watch-ultra',
+      skuCode: 'AW-ULTRA-2-TITANIUM',
+      barcode: '195949098765',
+    },
   ];
 
   for (const s of skus) {
-    await db.query(`
+    await db.query(
+      `
       INSERT INTO product_skus (id, product_id, sku_code, barcode, status)
       VALUES ($1, $2, $3, $4, 'ACTIVE')
       ON CONFLICT (id) DO NOTHING;
-    `, [s.id, s.productId, s.skuCode, s.barcode]);
+    `,
+      [s.id, s.productId, s.skuCode, s.barcode],
+    );
   }
 
   // 8. Merchant Listings
@@ -194,18 +236,24 @@ export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Pro
   ];
 
   for (const l of listings) {
-    await db.query(`
+    await db.query(
+      `
       INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, compare_at_price, status)
       VALUES ($1, 'tenant-merchant-1', $2, $3, 'INR', $4, 'ACTIVE')
       ON CONFLICT (id) DO NOTHING;
-    `, [l.id, l.skuId, l.priceAmount, l.compareAtPrice]);
+    `,
+      [l.id, l.skuId, l.priceAmount, l.compareAtPrice],
+    );
 
     // Inventory items
-    await db.query(`
+    await db.query(
+      `
       INSERT INTO inventory_items (id, tenant_id, listing_id, sku_id, on_hand_quantity, reserved_quantity, non_sellable_quantity, version)
       VALUES ($1, 'tenant-merchant-1', $2, $3, $4, 0, 0, 1)
       ON CONFLICT (listing_id) DO NOTHING;
-    `, [`inv-${l.id}`, l.id, l.skuId, l.stock]);
+    `,
+      [`inv-${l.id}`, l.id, l.skuId, l.stock],
+    );
   }
 
   // 9. Search Projection State & Projections
@@ -229,7 +277,8 @@ export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Pro
     if (!p || !l || !s) continue;
 
     // Search product projection
-    await db.query(`
+    await db.query(
+      `
       INSERT INTO search_product_projections (
         id, generation, title, slug, description, brand, category_id, category_name,
         status, min_price, max_price, currency, has_in_stock_offer, total_offers_count,
@@ -237,10 +286,22 @@ export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Pro
       )
       VALUES ($1, 1, $2, $3, $4, $5, $6, $7, 'ACTIVE', $8, $8, 'INR', true, 1, '{}'::jsonb, 1, 1)
       ON CONFLICT (id, generation) DO NOTHING;
-    `, [p.id, p.title, p.slug, p.description, p.brand, p.categoryId, categoryMap[p.categoryId] ?? 'Electronics', l.priceAmount]);
+    `,
+      [
+        p.id,
+        p.title,
+        p.slug,
+        p.description,
+        p.brand,
+        p.categoryId,
+        categoryMap[p.categoryId] ?? 'Electronics',
+        l.priceAmount,
+      ],
+    );
 
     // Search seller offer
-    await db.query(`
+    await db.query(
+      `
       INSERT INTO search_seller_offers (
         listing_id, generation, product_id, merchant_id, merchant_name, sku_id, sku_code,
         price_amount, currency, compare_at_price, status, in_stock, available_quantity,
@@ -248,7 +309,9 @@ export async function seedDemoData(db: DatabaseConnection, logger?: Logger): Pro
       )
       VALUES ($1, 1, $2, 'tenant-merchant-1', 'Apex Electronics', $3, $4, $5, 'INR', $6, 'ACTIVE', true, $7, '{}'::jsonb, 1)
       ON CONFLICT (listing_id, generation) DO NOTHING;
-    `, [l.id, p.id, s.id, s.skuCode, l.priceAmount, l.compareAtPrice, l.stock]);
+    `,
+      [l.id, p.id, s.id, s.skuCode, l.priceAmount, l.compareAtPrice, l.stock],
+    );
   }
 
   logger?.info('Successfully seeded demo catalog, merchants, and search projections.');

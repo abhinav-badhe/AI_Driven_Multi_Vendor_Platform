@@ -1,18 +1,18 @@
-import { useState, useEffect, useCallback, type FormEvent } from "react";
-import { useSearchParams, Link } from "react-router-dom";
-import { SearchX } from "lucide-react";
-import { searchApi, type SearchResponseDto, type SearchSortBy } from "./api/search";
-import { useCart } from "../cart/CartContext";
-import { useAuth } from "../auth/AuthContext";
-import { Button, buttonVariants } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { Input, Label } from "../../components/ui/input";
-import { ProductCard, QtyControl } from "../../components/product/ProductCard";
-import { getDisplay } from "../../components/product/display";
-import { formatPrice } from "../../lib/format";
-import { cn } from "../../lib/utils";
+import { useState, useEffect, useCallback, type FormEvent } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { SearchX } from 'lucide-react';
+import { searchApi, type SearchResponseDto, type SearchSortBy } from './api/search';
+import { useCart } from '../cart/CartContext';
+import { useAuth } from '../auth/AuthContext';
+import { Button, buttonVariants } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { Input, Label } from '../../components/ui/input';
+import { ProductCard, QtyControl } from '../../components/product/ProductCard';
+import { getDisplay } from '../../components/product/display';
+import { formatPrice } from '../../lib/format';
+import { cn } from '../../lib/utils';
 
 export const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -20,12 +20,12 @@ export const SearchPage = () => {
   const { cart, addItem, updateQuantity, removeItem } = useCart();
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
-  const queryQ = searchParams.get("q") || "";
-  const queryCategory = searchParams.get("categoryId") || "";
-  const queryBrand = searchParams.get("brand") || "";
-  const queryInStock = searchParams.get("inStock") === "true";
-  const querySort = (searchParams.get("sortBy") as SearchSortBy) || "relevance";
-  const queryPage = parseInt(searchParams.get("page") || "1", 10);
+  const queryQ = searchParams.get('q') || '';
+  const queryCategory = searchParams.get('categoryId') || '';
+  const queryBrand = searchParams.get('brand') || '';
+  const queryInStock = searchParams.get('inStock') === 'true';
+  const querySort = (searchParams.get('sortBy') as SearchSortBy) || 'relevance';
+  const queryPage = parseInt(searchParams.get('page') || '1', 10);
 
   const [inputQuery, setInputQuery] = useState(queryQ);
   const [data, setData] = useState<SearchResponseDto | null>(null);
@@ -34,12 +34,19 @@ export const SearchPage = () => {
 
   const handleAddToCart = async (
     listingId: string,
-    optimistic?: { skuId: string; merchantId: string; priceAmount: number; currency: string; title?: string | null | undefined; thumbnailUrl?: string | null | undefined },
+    optimistic?: {
+      skuId: string;
+      merchantId: string;
+      priceAmount: number;
+      currency: string;
+      title?: string | null | undefined;
+      thumbnailUrl?: string | null | undefined;
+    },
   ) => {
     setActionLoadingId(listingId);
     try {
       if (!isAuthenticated) {
-        await login({ email: "customer@example.com", password: "password123" });
+        await login({ email: 'customer@example.com', password: 'password123' });
       }
       await addItem(
         listingId,
@@ -56,7 +63,7 @@ export const SearchPage = () => {
           : undefined,
       );
     } catch (err: unknown) {
-      alert(`Could not add to cart: ${err instanceof Error ? err.message : "Error"}`);
+      alert(`Could not add to cart: ${err instanceof Error ? err.message : 'Error'}`);
     } finally {
       setActionLoadingId(null);
     }
@@ -72,7 +79,7 @@ export const SearchPage = () => {
         await updateQuantity(itemId, nextQty);
       }
     } catch (err: unknown) {
-      alert(`Quantity update failed: ${err instanceof Error ? err.message : "Error"}`);
+      alert(`Quantity update failed: ${err instanceof Error ? err.message : 'Error'}`);
     } finally {
       setActionLoadingId(null);
     }
@@ -93,7 +100,7 @@ export const SearchPage = () => {
       });
       setData(response);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Search failed. Please try again.");
+      setError(err instanceof Error ? err.message : 'Search failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -107,11 +114,11 @@ export const SearchPage = () => {
     e.preventDefault();
     const next = new URLSearchParams(searchParams);
     if (inputQuery.trim()) {
-      next.set("q", inputQuery.trim());
+      next.set('q', inputQuery.trim());
     } else {
-      next.delete("q");
+      next.delete('q');
     }
-    next.set("page", "1");
+    next.set('page', '1');
     setSearchParams(next);
   };
 
@@ -122,13 +129,13 @@ export const SearchPage = () => {
     } else {
       next.delete(key);
     }
-    next.set("page", "1");
+    next.set('page', '1');
     setSearchParams(next);
   };
 
   const handlePageChange = (newPage: number) => {
     const next = new URLSearchParams(searchParams);
-    next.set("page", newPage.toString());
+    next.set('page', newPage.toString());
     setSearchParams(next);
     window.scrollTo({ top: 0 });
   };
@@ -146,7 +153,7 @@ export const SearchPage = () => {
           aria-label="Search products"
         />
         <Button id="search-submit" type="submit" disabled={isLoading}>
-          {isLoading ? "Searching…" : "Search"}
+          {isLoading ? 'Searching…' : 'Search'}
         </Button>
       </form>
 
@@ -160,7 +167,7 @@ export const SearchPage = () => {
                 <select
                   id="sort-select"
                   value={querySort}
-                  onChange={(e) => handleFilterChange("sortBy", e.target.value)}
+                  onChange={(e) => handleFilterChange('sortBy', e.target.value)}
                   aria-label="Sort products"
                   className="h-8 rounded-md border border-input bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring"
                 >
@@ -175,7 +182,7 @@ export const SearchPage = () => {
                   id="filter-in-stock"
                   type="checkbox"
                   checked={queryInStock}
-                  onChange={(e) => handleFilterChange("inStock", e.target.checked ? "true" : null)}
+                  onChange={(e) => handleFilterChange('inStock', e.target.checked ? 'true' : null)}
                   className="size-4 accent-primary"
                 />
                 In stock only
@@ -191,10 +198,12 @@ export const SearchPage = () => {
                   <li>
                     <button
                       type="button"
-                      onClick={() => handleFilterChange("categoryId", null)}
+                      onClick={() => handleFilterChange('categoryId', null)}
                       className={cn(
-                        "w-full rounded px-1 py-1 text-left text-[13px]",
-                        !queryCategory ? "font-semibold text-primary" : "text-muted-foreground hover:text-foreground"
+                        'w-full rounded px-1 py-1 text-left text-[13px]',
+                        !queryCategory
+                          ? 'font-semibold text-primary'
+                          : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
                       All categories
@@ -204,12 +213,12 @@ export const SearchPage = () => {
                     <li key={cat.id}>
                       <button
                         type="button"
-                        onClick={() => handleFilterChange("categoryId", cat.id)}
+                        onClick={() => handleFilterChange('categoryId', cat.id)}
                         className={cn(
-                          "flex w-full items-center justify-between gap-2 rounded px-1 py-1 text-left text-[13px]",
+                          'flex w-full items-center justify-between gap-2 rounded px-1 py-1 text-left text-[13px]',
                           queryCategory === cat.id
-                            ? "font-semibold text-primary"
-                            : "text-muted-foreground hover:text-foreground"
+                            ? 'font-semibold text-primary'
+                            : 'text-muted-foreground hover:text-foreground',
                         )}
                       >
                         <span>{cat.name}</span>
@@ -230,10 +239,12 @@ export const SearchPage = () => {
                   <li>
                     <button
                       type="button"
-                      onClick={() => handleFilterChange("brand", null)}
+                      onClick={() => handleFilterChange('brand', null)}
                       className={cn(
-                        "w-full rounded px-1 py-1 text-left text-[13px]",
-                        !queryBrand ? "font-semibold text-primary" : "text-muted-foreground hover:text-foreground"
+                        'w-full rounded px-1 py-1 text-left text-[13px]',
+                        !queryBrand
+                          ? 'font-semibold text-primary'
+                          : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
                       All brands
@@ -243,12 +254,12 @@ export const SearchPage = () => {
                     <li key={b.name}>
                       <button
                         type="button"
-                        onClick={() => handleFilterChange("brand", b.name)}
+                        onClick={() => handleFilterChange('brand', b.name)}
                         className={cn(
-                          "flex w-full items-center justify-between gap-2 rounded px-1 py-1 text-left text-[13px]",
+                          'flex w-full items-center justify-between gap-2 rounded px-1 py-1 text-left text-[13px]',
                           queryBrand === b.name
-                            ? "font-semibold text-primary"
-                            : "text-muted-foreground hover:text-foreground"
+                            ? 'font-semibold text-primary'
+                            : 'text-muted-foreground hover:text-foreground',
                         )}
                       >
                         <span>{b.name}</span>
@@ -278,10 +289,12 @@ export const SearchPage = () => {
           ) : data?.items && data.items.length > 0 ? (
             <>
               <p className="text-[13px] text-muted-foreground" role="status">
-                Showing {data.items.length} of {data.total} {data.total === 1 ? "product" : "products"}
+                Showing {data.items.length} of {data.total}{' '}
+                {data.total === 1 ? 'product' : 'products'}
                 {queryQ && (
                   <span>
-                    {" "}for “<strong className="text-foreground">{queryQ}</strong>”
+                    {' '}
+                    for “<strong className="text-foreground">{queryQ}</strong>”
                   </span>
                 )}
               </p>
@@ -341,13 +354,13 @@ export const SearchPage = () => {
                                 })
                               }
                             >
-                              {actionLoadingId === bestOffer.listingId ? "Adding…" : "Add to cart"}
+                              {actionLoadingId === bestOffer.listingId ? 'Adding…' : 'Add to cart'}
                             </Button>
                           )
                         ) : (
                           <Link
                             to={`/product/${item.productId}`}
-                            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                            className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
                           >
                             Details
                           </Link>
@@ -359,7 +372,10 @@ export const SearchPage = () => {
               </div>
 
               {data.totalPages > 1 && (
-                <nav aria-label="Pagination" className="mt-4 flex items-center justify-center gap-2">
+                <nav
+                  aria-label="Pagination"
+                  className="mt-4 flex items-center justify-center gap-2"
+                >
                   <Button
                     variant="outline"
                     size="sm"
@@ -391,7 +407,7 @@ export const SearchPage = () => {
               description="No products match your query or filters. Try different keywords or reset the filters."
               actionLabel="Reset all filters"
               onAction={() => {
-                setInputQuery("");
+                setInputQuery('');
                 setSearchParams(new URLSearchParams());
               }}
             />

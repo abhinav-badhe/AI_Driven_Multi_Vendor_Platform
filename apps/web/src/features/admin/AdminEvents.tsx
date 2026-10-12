@@ -1,16 +1,22 @@
-import { useState, useEffect, useMemo } from "react";
-import { Navigate } from "react-router-dom";
-import { Activity, RefreshCw } from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { apiClient } from "../../api/client";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { cn } from "../../lib/utils";
+import { useState, useEffect, useMemo } from 'react';
+import { Navigate } from 'react-router-dom';
+import { Activity, RefreshCw } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { apiClient } from '../../api/client';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { cn } from '../../lib/utils';
 
 interface OutboxEvent {
   id: string;
@@ -26,13 +32,13 @@ export const AdminEvents = () => {
   const [events, setEvents] = useState<OutboxEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState('ALL');
 
   const loadEvents = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await apiClient<unknown>("/events/outbox?limit=50");
+      const res = await apiClient<unknown>('/events/outbox?limit=50');
       const list = Array.isArray(res)
         ? (res as OutboxEvent[])
         : ((res as { events?: OutboxEvent[] }).events ?? []);
@@ -41,24 +47,24 @@ export const AdminEvents = () => {
       // Fallback clean demonstration events
       setEvents([
         {
-          id: "evt-001",
-          eventType: "ORDER_CREATED",
-          aggregateId: "ord-test-1",
-          status: "PROCESSED",
+          id: 'evt-001',
+          eventType: 'ORDER_CREATED',
+          aggregateId: 'ord-test-1',
+          status: 'PROCESSED',
           createdAt: new Date().toISOString(),
         },
         {
-          id: "evt-002",
-          eventType: "PAYMENT_CAPTURED",
-          aggregateId: "pay-test-1",
-          status: "PROCESSED",
+          id: 'evt-002',
+          eventType: 'PAYMENT_CAPTURED',
+          aggregateId: 'pay-test-1',
+          status: 'PROCESSED',
           createdAt: new Date().toISOString(),
         },
         {
-          id: "evt-003",
-          eventType: "INVENTORY_RESERVED",
-          aggregateId: "inv-test-1",
-          status: "PROCESSED",
+          id: 'evt-003',
+          eventType: 'INVENTORY_RESERVED',
+          aggregateId: 'inv-test-1',
+          status: 'PROCESSED',
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -68,33 +74,35 @@ export const AdminEvents = () => {
   };
 
   useEffect(() => {
-    if (user?.role !== "ADMINISTRATOR") return;
+    if (user?.role !== 'ADMINISTRATOR') return;
     loadEvents();
   }, [user]);
 
-  if (user?.role !== "ADMINISTRATOR") return <Navigate to="/account" replace />;
+  if (user?.role !== 'ADMINISTRATOR') return <Navigate to="/account" replace />;
 
-  const eventTypes = useMemo(() => ["ALL", ...new Set(events.map((e) => e.eventType))], [events]);
+  const eventTypes = useMemo(() => ['ALL', ...new Set(events.map((e) => e.eventType))], [events]);
 
   const filtered = useMemo(() => {
-    if (typeFilter === "ALL") return events;
+    if (typeFilter === 'ALL') return events;
     return events.filter((e) => e.eventType === typeFilter);
   }, [events, typeFilter]);
 
-  const processedCount = events.filter((e) => e.status === "PROCESSED" || !e.status).length;
+  const processedCount = events.filter((e) => e.status === 'PROCESSED' || !e.status).length;
 
   return (
     <div className="space-y-4 p-4">
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Transactional outbox &amp; domain events</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Transactional outbox &amp; domain events
+          </h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
             Distributed event log, asynchronous delivery guarantees, and event bus consumer states.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={loadEvents} disabled={isLoading}>
-          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isLoading && "animate-spin")} />
+          <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isLoading && 'animate-spin')} />
           Refresh
         </Button>
       </div>
@@ -113,7 +121,9 @@ export const AdminEvents = () => {
             <p className="tnum mt-1 text-2xl font-semibold tracking-tight">
               {events.length} dispatched
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">Guaranteed at-least-once outbox delivery</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Guaranteed at-least-once outbox delivery
+            </p>
           </CardContent>
         </Card>
         <div className="grid gap-3 sm:grid-cols-3 lg:col-span-2">
@@ -138,7 +148,7 @@ export const AdminEvents = () => {
             >
               {eventTypes.map((t) => (
                 <option key={t} value={t}>
-                  {t === "ALL" ? "All event types" : t}
+                  {t === 'ALL' ? 'All event types' : t}
                 </option>
               ))}
             </select>
@@ -172,12 +182,14 @@ export const AdminEvents = () => {
                   <tr key={e.id}>
                     <TD className="font-mono text-xs font-medium">#{e.id.slice(0, 10)}</TD>
                     <TD className="text-xs font-semibold">{e.eventType}</TD>
-                    <TD className="font-mono text-xs text-muted-foreground">{e.aggregateId || "—"}</TD>
+                    <TD className="font-mono text-xs text-muted-foreground">
+                      {e.aggregateId || '—'}
+                    </TD>
                     <TD>
-                      <Badge variant="success">{e.status || "PROCESSED"}</Badge>
+                      <Badge variant="success">{e.status || 'PROCESSED'}</Badge>
                     </TD>
                     <TD className="text-right text-xs text-muted-foreground">
-                      {e.createdAt ? new Date(e.createdAt).toLocaleString() : "—"}
+                      {e.createdAt ? new Date(e.createdAt).toLocaleString() : '—'}
                     </TD>
                   </tr>
                 ))}

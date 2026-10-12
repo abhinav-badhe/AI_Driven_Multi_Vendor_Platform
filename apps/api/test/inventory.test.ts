@@ -102,11 +102,29 @@ describe('Phase 4: Inventory & Stock Management (Authoritative Stock Truth)', ()
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${alphaToken}` },
-      payload: { businessName: 'Alpha LLC', legalName: 'Alpha Legal Corp', contactEmail: 'alpha@biz.com' },
+      payload: {
+        businessName: 'Alpha LLC',
+        legalName: 'Alpha Legal Corp',
+        contactEmail: 'alpha@biz.com',
+      },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${alphaToken}` } });
-    const profA = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${alphaToken}` } })).json();
-    await app.inject({ method: 'POST', url: `/merchants/${profA.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${alphaToken}` },
+    });
+    const profA = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${alphaToken}` },
+      })
+    ).json();
+    await app.inject({
+      method: 'POST',
+      url: `/merchants/${profA.tenantId}/approve`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
 
     // 3. Merchant Beta
     const betaReg = await app.inject({
@@ -134,11 +152,29 @@ describe('Phase 4: Inventory & Stock Management (Authoritative Stock Truth)', ()
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${betaToken}` },
-      payload: { businessName: 'Beta LLC', legalName: 'Beta Legal Corp', contactEmail: 'beta@biz.com' },
+      payload: {
+        businessName: 'Beta LLC',
+        legalName: 'Beta Legal Corp',
+        contactEmail: 'beta@biz.com',
+      },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${betaToken}` } });
-    const profB = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${betaToken}` } })).json();
-    await app.inject({ method: 'POST', url: `/merchants/${profB.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${betaToken}` },
+    });
+    const profB = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${betaToken}` },
+      })
+    ).json();
+    await app.inject({
+      method: 'POST',
+      url: `/merchants/${profB.tenantId}/approve`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
 
     // 4. Customer
     const custReg = await app.inject({

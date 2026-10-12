@@ -378,6 +378,3 @@ describe('Configuration Validation', () => {
     expect(config.ai.timeoutMs).toBe(20000);
   });
 });
-
-
-

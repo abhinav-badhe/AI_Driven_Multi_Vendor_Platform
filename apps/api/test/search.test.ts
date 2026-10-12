@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { InMemorySearchStore, SearchService } from '../src/modules/search/index.js';
 import { JsonLogger } from '../src/observability/logger.js';
@@ -18,7 +22,10 @@ describe('Phase 9: Derived Read-Model Search', () => {
   beforeEach(async () => {
     db = await createMigratedTestDatabase();
     searchStore = new InMemorySearchStore();
-    searchService = new SearchService(searchStore, new JsonLogger({ serviceName: 'test-search', level: 'info' }));
+    searchService = new SearchService(
+      searchStore,
+      new JsonLogger({ serviceName: 'test-search', level: 'info' }),
+    );
 
     const config = parseConfig({
       NODE_ENV: 'test',
@@ -94,7 +101,11 @@ describe('Phase 9: Derived Read-Model Search', () => {
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${alphaToken}` },
-      payload: { businessName: 'Alpha Electronics', legalName: 'Alpha LLC', contactEmail: 'alpha@biz.com' },
+      payload: {
+        businessName: 'Alpha Electronics',
+        legalName: 'Alpha LLC',
+        contactEmail: 'alpha@biz.com',
+      },
     });
     await app.inject({
       method: 'POST',
@@ -126,7 +137,11 @@ describe('Phase 9: Derived Read-Model Search', () => {
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${betaToken}` },
-      payload: { businessName: 'Beta Mobiles', legalName: 'Beta Retail', contactEmail: 'beta@biz.com' },
+      payload: {
+        businessName: 'Beta Mobiles',
+        legalName: 'Beta Retail',
+        contactEmail: 'beta@biz.com',
+      },
     });
     await app.inject({
       method: 'POST',
@@ -164,7 +179,9 @@ describe('Phase 9: Derived Read-Model Search', () => {
     };
   }
 
-  async function createCatalogAndMultiVendorListings(eco: Awaited<ReturnType<typeof setupEcosystem>>) {
+  async function createCatalogAndMultiVendorListings(
+    eco: Awaited<ReturnType<typeof setupEcosystem>>,
+  ) {
     // 1. Category
     const catRes = await app.inject({
       method: 'POST',
@@ -318,8 +335,12 @@ describe('Phase 9: Derived Read-Model Search', () => {
 
       // Preserves both seller offers in offers array
       expect(item.offers.length).toBe(2);
-      const alphaOffer = item.offers.find((o: { merchantId: string }) => o.merchantId === eco.alphaTenantId);
-      const betaOffer = item.offers.find((o: { merchantId: string }) => o.merchantId === eco.betaTenantId);
+      const alphaOffer = item.offers.find(
+        (o: { merchantId: string }) => o.merchantId === eco.alphaTenantId,
+      );
+      const betaOffer = item.offers.find(
+        (o: { merchantId: string }) => o.merchantId === eco.betaTenantId,
+      );
       expect(alphaOffer).toBeDefined();
       expect(alphaOffer.priceAmount).toBe(10000000);
       expect(betaOffer).toBeDefined();
@@ -690,8 +711,12 @@ describe('Phase 9: Derived Read-Model Search', () => {
       // Verify that stored document used authoritative Catalog title and database updatedAt, NOT the client payload!
       const doc = await searchStore.getDocument(setup.product.id);
       expect(doc?.title).toBe('Apple iPhone 15 Pro');
-      const dbProd = await db.query('SELECT updated_at FROM products WHERE id = $1', [setup.product.id]);
-      expect(doc?.sourceVersion).toBe(new Date((dbProd.rows[0] as { updated_at: string | Date }).updated_at).getTime());
+      const dbProd = await db.query('SELECT updated_at FROM products WHERE id = $1', [
+        setup.product.id,
+      ]);
+      expect(doc?.sourceVersion).toBe(
+        new Date((dbProd.rows[0] as { updated_at: string | Date }).updated_at).getTime(),
+      );
       expect(doc?.sourceVersion).not.toBe(999999999);
 
       // 2. Direct internal application call with stale version is deterministically rejected
@@ -805,7 +830,10 @@ describe('Phase 9: Derived Read-Model Search', () => {
       expect(delOfferRes.json().removed).toBe(true);
 
       // Search index now has only 1 offer (Beta @ ₹95,000)
-      const afterDelOffer = await app.inject({ method: 'GET', url: `/search/documents/${setup.product.id}` });
+      const afterDelOffer = await app.inject({
+        method: 'GET',
+        url: `/search/documents/${setup.product.id}`,
+      });
       expect(afterDelOffer.json().totalOffersCount).toBe(1);
       expect(afterDelOffer.json().minPrice).toBe(9500000);
       expect(afterDelOffer.json().maxPrice).toBe(9500000);
@@ -819,14 +847,19 @@ describe('Phase 9: Derived Read-Model Search', () => {
       expect(delProdRes.statusCode).toBe(200);
       expect(delProdRes.json().removed).toBe(true);
 
-      const afterDelProd = await app.inject({ method: 'GET', url: `/search/documents/${setup.product.id}` });
+      const afterDelProd = await app.inject({
+        method: 'GET',
+        url: `/search/documents/${setup.product.id}`,
+      });
       expect(afterDelProd.statusCode).toBe(404);
 
       // CRITICAL PROOF: Transactional tables are completely untouched
       const dbProd = await db.query('SELECT * FROM products WHERE id = $1', [setup.product.id]);
       expect(dbProd.rows.length).toBe(1);
 
-      const dbListing = await db.query('SELECT * FROM merchant_listings WHERE id = $1', [setup.listingAlpha.id]);
+      const dbListing = await db.query('SELECT * FROM merchant_listings WHERE id = $1', [
+        setup.listingAlpha.id,
+      ]);
       expect(dbListing.rows.length).toBe(1);
     });
 

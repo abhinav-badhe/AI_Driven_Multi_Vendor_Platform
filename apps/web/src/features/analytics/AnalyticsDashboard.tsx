@@ -1,5 +1,5 @@
-import { useState, useEffect, Fragment } from "react";
-import { Activity, BarChart3 } from "lucide-react";
+import { useState, useEffect, Fragment } from 'react';
+import { Activity, BarChart3 } from 'lucide-react';
 import {
   analyticsApi,
   type SalesAnalyticsDto,
@@ -11,52 +11,58 @@ import {
   type MlTrainingJobDto,
   type RetrainingPolicyDto,
   type TrainingJobHistoryDto,
-} from "./api/analytics";
-import { eventsApi, type OutboxEventDto } from "./api/events";
-import { useAuth } from "../auth/AuthContext";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { Label } from "../../components/ui/input";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { formatPrice } from "../../lib/format";
-import { ErrorBoundary } from "../../components/ui/error-boundary";
-import { cn } from "../../lib/utils";
+} from './api/analytics';
+import { eventsApi, type OutboxEventDto } from './api/events';
+import { useAuth } from '../auth/AuthContext';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { Label } from '../../components/ui/input';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { formatPrice } from '../../lib/format';
+import { ErrorBoundary } from '../../components/ui/error-boundary';
+import { cn } from '../../lib/utils';
 
-type Tab = "sales" | "products" | "models" | "operations" | "events";
+type Tab = 'sales' | 'products' | 'models' | 'operations' | 'events';
 
 // Server money arrives as decimal strings in MINOR units ("160998.0000").
 const money = (v: string | number | null | undefined, currency: string): string => {
-  const n = typeof v === "string" ? parseFloat(v) : (v ?? 0);
+  const n = typeof v === 'string' ? parseFloat(v) : (v ?? 0);
   return formatPrice(Number.isFinite(n) ? n : 0, currency, 2);
 };
 
 const num = (v: unknown, fallback = 0): number => {
-  const n = typeof v === "string" ? parseFloat(v) : (v as number | null | undefined) ?? fallback;
+  const n = typeof v === 'string' ? parseFloat(v) : ((v as number | null | undefined) ?? fallback);
   return Number.isFinite(n) ? (n as number) : fallback;
 };
 
-const str = (v: unknown, fallback = "—"): string =>
-  typeof v === "string" && v.length > 0 ? v : fallback;
+const str = (v: unknown, fallback = '—'): string =>
+  typeof v === 'string' && v.length > 0 ? v : fallback;
 
 const dateLabel = (v: unknown): string => {
-  if (typeof v !== "string" || !v) return "—";
+  if (typeof v !== 'string' || !v) return '—';
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
 };
 
 export const AnalyticsDashboard = () => {
   const { user, login } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>("sales");
+  const [activeTab, setActiveTab] = useState<Tab>('sales');
   const [sales, setSales] = useState<SalesAnalyticsDto | null>(null);
   const [products, setProducts] = useState<ProductAnalyticsItemDto[]>([]);
   const [operations, setOperations] = useState<OperationsResponseDto | null>(null);
   const [models, setModels] = useState<MlModelDto[]>([]);
   const [predictions, setPredictions] = useState<MlPredictionDto[]>([]);
-  const [trainType, setTrainType] = useState<MlModelType>("DEMAND_FORECASTING");
+  const [trainType, setTrainType] = useState<MlModelType>('DEMAND_FORECASTING');
   const [trainingJob, setTrainingJob] = useState<MlTrainingJobDto | null>(null);
   const [isTraining, setIsTraining] = useState(false);
   const [trainError, setTrainError] = useState<string | null>(null);
@@ -88,10 +94,12 @@ export const AnalyticsDashboard = () => {
     setProcessFeedback(null);
     try {
       const res = await eventsApi.processOutboxEvents(50);
-      setProcessFeedback(`${res.published} published, ${res.failed} failed (${res.processed} examined).`);
+      setProcessFeedback(
+        `${res.published} published, ${res.failed} failed (${res.processed} examined).`,
+      );
       await loadEvents();
     } catch (err: unknown) {
-      setProcessFeedback(err instanceof Error ? err.message : "Event processing failed.");
+      setProcessFeedback(err instanceof Error ? err.message : 'Event processing failed.');
     } finally {
       setIsProcessingEvents(false);
     }
@@ -102,19 +110,19 @@ export const AnalyticsDashboard = () => {
       await eventsApi.replayOutboxEvent(id);
       await loadEvents();
     } catch (err: unknown) {
-      setProcessFeedback(err instanceof Error ? err.message : "Replay failed.");
+      setProcessFeedback(err instanceof Error ? err.message : 'Replay failed.');
     }
   };
 
   useEffect(() => {
-    if (!user || (user.role !== "MERCHANT" && user.role !== "ADMINISTRATOR")) return;
+    if (!user || (user.role !== 'MERCHANT' && user.role !== 'ADMINISTRATOR')) return;
 
     const loadAnalytics = async () => {
       setIsLoading(true);
       setError(null);
       try {
         const [salesData, productsData, opsData, modelsData] = await Promise.all([
-          analyticsApi.getSalesAnalytics("day").catch(() => null),
+          analyticsApi.getSalesAnalytics('day').catch(() => null),
           analyticsApi.getProductAnalytics(10).catch(() => []),
           analyticsApi.getOperationsAnalytics().catch(() => null),
           analyticsApi.getMlModels().catch(() => ({ models: [] })),
@@ -130,12 +138,12 @@ export const AnalyticsDashboard = () => {
           setPredictions([]);
         }
 
-        if (user.role === "ADMINISTRATOR") {
+        if (user.role === 'ADMINISTRATOR') {
           await loadEvents();
         }
         await Promise.all([loadTrainingJobs(), loadPolicies()]);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Could not load analytics.");
+        setError(err instanceof Error ? err.message : 'Could not load analytics.');
       } finally {
         setIsLoading(false);
       }
@@ -164,7 +172,7 @@ export const AnalyticsDashboard = () => {
       try {
         const job = await analyticsApi.getTrainingJob(jobId);
         setTrainingJob(job);
-        if (job.status === "COMPLETED" || job.status === "FAILED") {
+        if (job.status === 'COMPLETED' || job.status === 'FAILED') {
           await refreshModels();
           setIsTraining(false);
           return;
@@ -187,7 +195,7 @@ export const AnalyticsDashboard = () => {
       setTrainError(
         err instanceof Error
           ? `Training could not start: ${err.message}. Check that Python dependencies are installed (pip install -r ml/requirements.txt) and the API was restarted.`
-          : "Training could not start."
+          : 'Training could not start.',
       );
       setIsTraining(false);
     }
@@ -209,9 +217,19 @@ export const AnalyticsDashboard = () => {
     setIsLoadingPolicies(true);
     setPolicyError(null);
     try {
-      const types: MlModelType[] = ["DEMAND_FORECASTING", "STOCKOUT_RISK", "PURCHASE_PROPENSITY", "ANOMALY_DETECTION"];
+      const types: MlModelType[] = [
+        'DEMAND_FORECASTING',
+        'STOCKOUT_RISK',
+        'PURCHASE_PROPENSITY',
+        'ANOMALY_DETECTION',
+      ];
       const results = await Promise.all(
-        types.map((t) => analyticsApi.getRetrainingPolicy(t).then((p) => (p ? { [t]: p } : null)).catch(() => null))
+        types.map((t) =>
+          analyticsApi
+            .getRetrainingPolicy(t)
+            .then((p) => (p ? { [t]: p } : null))
+            .catch(() => null),
+        ),
       );
       const merged: Record<string, RetrainingPolicyDto> = {};
       for (const r of results) {
@@ -219,7 +237,7 @@ export const AnalyticsDashboard = () => {
       }
       setPolicies(merged);
     } catch (err: unknown) {
-      setPolicyError(err instanceof Error ? err.message : "Failed to load retraining policies.");
+      setPolicyError(err instanceof Error ? err.message : 'Failed to load retraining policies.');
     } finally {
       setIsLoadingPolicies(false);
     }
@@ -236,7 +254,7 @@ export const AnalyticsDashboard = () => {
       }
       await loadPolicies();
     } catch (err: unknown) {
-      setPolicyError(err instanceof Error ? err.message : "Retrain trigger failed.");
+      setPolicyError(err instanceof Error ? err.message : 'Retrain trigger failed.');
     }
   };
 
@@ -246,17 +264,20 @@ export const AnalyticsDashboard = () => {
       await analyticsApi.rollbackModel(modelId);
       await refreshModels();
     } catch (err: unknown) {
-      setPolicyError(err instanceof Error ? err.message : "Rollback failed.");
+      setPolicyError(err instanceof Error ? err.message : 'Rollback failed.');
     }
   };
 
-  const handleSavePolicy = async (modelType: MlModelType, updates: Partial<RetrainingPolicyDto>) => {
+  const handleSavePolicy = async (
+    modelType: MlModelType,
+    updates: Partial<RetrainingPolicyDto>,
+  ) => {
     setPolicyError(null);
     try {
       const updated = await analyticsApi.saveRetrainingPolicy(modelType, updates);
       setPolicies((prev) => ({ ...prev, [modelType]: updated }));
     } catch (err: unknown) {
-      setPolicyError(err instanceof Error ? err.message : "Failed to save policy.");
+      setPolicyError(err instanceof Error ? err.message : 'Failed to save policy.');
     }
   };
 
@@ -272,7 +293,7 @@ export const AnalyticsDashboard = () => {
   const reloadAll = async () => {
     try {
       const [salesData, productsData, opsData] = await Promise.all([
-        analyticsApi.getSalesAnalytics("day").catch(() => null),
+        analyticsApi.getSalesAnalytics('day').catch(() => null),
         analyticsApi.getProductAnalytics(10).catch(() => []),
         analyticsApi.getOperationsAnalytics().catch(() => null),
       ]);
@@ -289,18 +310,16 @@ export const AnalyticsDashboard = () => {
     setRebuildMsg(null);
     try {
       const res = await analyticsApi.rebuildAnalytics();
-      setRebuildMsg(
-        `Rebuilt ${res.factsRebuilt} facts from ${res.sourceEventCount} events.`
-      );
+      setRebuildMsg(`Rebuilt ${res.factsRebuilt} facts from ${res.sourceEventCount} events.`);
       await reloadAll();
     } catch (err: unknown) {
-      setRebuildMsg(err instanceof Error ? err.message : "Rebuild failed.");
+      setRebuildMsg(err instanceof Error ? err.message : 'Rebuild failed.');
     } finally {
       setIsRebuilding(false);
     }
   };
 
-  if (user?.role !== "MERCHANT" && user?.role !== "ADMINISTRATOR") {
+  if (user?.role !== 'MERCHANT' && user?.role !== 'ADMINISTRATOR') {
     return (
       <div className="mx-auto w-full max-w-xl p-4">
         <Card>
@@ -313,14 +332,14 @@ export const AnalyticsDashboard = () => {
           <CardContent className="flex gap-2">
             <Button
               size="sm"
-              onClick={() => login({ email: "merchant@example.com", password: "password123" })}
+              onClick={() => login({ email: 'merchant@example.com', password: 'password123' })}
             >
               Merchant sign in
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => login({ email: "admin@example.com", password: "password123" })}
+              onClick={() => login({ email: 'admin@example.com', password: 'password123' })}
             >
               Admin sign in
             </Button>
@@ -343,13 +362,13 @@ export const AnalyticsDashboard = () => {
     );
   }
 
-  const currency = sales?.currency ?? "INR";
+  const currency = sales?.currency ?? 'INR';
   const tabs: Array<{ id: Tab; label: string }> = [
-    { id: "sales", label: "Sales" },
-    { id: "products", label: "Products" },
-    { id: "models", label: "Models" },
-    { id: "operations", label: "Operations" },
-    ...(user.role === "ADMINISTRATOR" ? [{ id: "events" as Tab, label: "Events" }] : []),
+    { id: 'sales', label: 'Sales' },
+    { id: 'products', label: 'Products' },
+    { id: 'models', label: 'Models' },
+    { id: 'operations', label: 'Operations' },
+    ...(user.role === 'ADMINISTRATOR' ? [{ id: 'events' as Tab, label: 'Events' }] : []),
   ];
 
   return (
@@ -362,13 +381,15 @@ export const AnalyticsDashboard = () => {
           </p>
         </div>
         <Button variant="outline" size="sm" disabled={isRebuilding} onClick={handleRebuild}>
-          {isRebuilding ? "Rebuilding…" : "Refresh data"}
+          {isRebuilding ? 'Rebuilding…' : 'Refresh data'}
         </Button>
       </div>
 
       {error && <Alert tone="error">{error}</Alert>}
       {rebuildMsg && (
-        <Alert tone={rebuildMsg.includes("failed") || rebuildMsg.includes("Error") ? "error" : "success"}>
+        <Alert
+          tone={rebuildMsg.includes('failed') || rebuildMsg.includes('Error') ? 'error' : 'success'}
+        >
           {rebuildMsg}
         </Alert>
       )}
@@ -379,11 +400,7 @@ export const AnalyticsDashboard = () => {
           value={money(sales?.totals.grossSales, currency)}
           hint={`net ${money(sales?.totals.netSales, currency)}`}
         />
-        <KpiCard
-          label="Orders"
-          value={String(sales?.totals.totalOrders ?? 0)}
-          hint="in period"
-        />
+        <KpiCard label="Orders" value={String(sales?.totals.totalOrders ?? 0)} hint="in period" />
         <KpiCard
           label="Average order value"
           value={money(sales?.totals.averageOrderValue, currency)}
@@ -391,12 +408,16 @@ export const AnalyticsDashboard = () => {
         />
         <KpiCard
           label="Payment success"
-          value={operations?.operations.paymentSuccessRate ?? "—"}
+          value={operations?.operations.paymentSuccessRate ?? '—'}
           hint="verified transactions"
         />
       </div>
 
-      <div className="flex gap-1 border-b border-border" role="tablist" aria-label="Analytics sections">
+      <div
+        className="flex gap-1 border-b border-border"
+        role="tablist"
+        aria-label="Analytics sections"
+      >
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -405,10 +426,10 @@ export const AnalyticsDashboard = () => {
             aria-selected={activeTab === t.id}
             onClick={() => setActiveTab(t.id)}
             className={cn(
-              "-mb-px border-b-2 px-2.5 py-1.5 text-[13px] font-medium",
+              '-mb-px border-b-2 px-2.5 py-1.5 text-[13px] font-medium',
               activeTab === t.id
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground',
             )}
           >
             {t.label}
@@ -416,7 +437,7 @@ export const AnalyticsDashboard = () => {
         ))}
       </div>
 
-      {activeTab === "sales" && (
+      {activeTab === 'sales' && (
         <Card>
           <CardHeader>
             <CardTitle>Revenue timeline</CardTitle>
@@ -432,7 +453,10 @@ export const AnalyticsDashboard = () => {
             ) : (
               <ul className="divide-y divide-border rounded-md border border-border">
                 {sales.trends.map((t, idx) => (
-                  <li key={idx} className="flex items-center justify-between gap-2 px-3 py-2 text-[13px]">
+                  <li
+                    key={idx}
+                    className="flex items-center justify-between gap-2 px-3 py-2 text-[13px]"
+                  >
                     <div>
                       <p className="font-medium">{t.date}</p>
                       <p className="tnum text-xs text-muted-foreground">{t.orders} orders</p>
@@ -451,7 +475,7 @@ export const AnalyticsDashboard = () => {
         </Card>
       )}
 
-      {activeTab === "products" && (
+      {activeTab === 'products' && (
         <Card>
           <CardHeader>
             <CardTitle>Top products</CardTitle>
@@ -478,14 +502,12 @@ export const AnalyticsDashboard = () => {
                   {products.map((p) => (
                     <tr key={p.productId}>
                       <TD className="font-medium">{p.title ?? p.productId}</TD>
-                      <TD className="tnum text-right">
-                        {p.unitsSold ?? p.totalUnitsSold ?? 0}
-                      </TD>
+                      <TD className="tnum text-right">{p.unitsSold ?? p.totalUnitsSold ?? 0}</TD>
                       <TD className="tnum text-right font-medium">
                         {money(p.revenue ?? p.totalRevenueAmount ?? 0, currency)}
                       </TD>
                       <TD className="tnum text-right text-muted-foreground">
-                        {p.orderCount ?? "—"}
+                        {p.orderCount ?? '—'}
                       </TD>
                     </tr>
                   ))}
@@ -496,333 +518,361 @@ export const AnalyticsDashboard = () => {
         </Card>
       )}
 
-      {activeTab === "models" && (
+      {activeTab === 'models' && (
         <ErrorBoundary key="models-tab" title="Models could not be displayed">
-        <div className="flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Train a model</CardTitle>
-              <CardDescription>
-                Trains on your store orders. With little history it bootstraps from
-                representative data, clearly labeled below.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap items-end gap-2">
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="train-type">Model type</Label>
-                  <select
-                    id="train-type"
-                    value={trainType}
-                    onChange={(e) => setTrainType(e.target.value as MlModelType)}
-                    disabled={isTraining}
-                    className="h-8 rounded-md border border-input bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring"
-                  >
-                    <option value="DEMAND_FORECASTING">Demand forecast</option>
-                    <option value="STOCKOUT_RISK">Stockout risk</option>
-                    <option value="PURCHASE_PROPENSITY">Purchase propensity</option>
-                    <option value="ANOMALY_DETECTION">Anomaly detection</option>
-                  </select>
-                </div>
-                <Button size="sm" disabled={isTraining} onClick={handleTrain}>
-                  {isTraining ? "Training…" : "Train model"}
-                </Button>
-                {trainingJob && (
-                  <p className="tnum text-[13px] text-muted-foreground" role="status">
-                    Job {str(trainingJob.id).slice(0, 8)} · {str(trainingJob.status, "?")}
-                    {trainingJob.status === "FAILED" && trainingJob.errorMessage
-                      ? ` — ${trainingJob.errorMessage}`
-                      : ""}
-                  </p>
-                )}
-              </div>
-              {trainError && (
-                <div className="mt-2">
-                  <Alert tone="error">{trainError}</Alert>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Forecast models</CardTitle>
-              <CardDescription>Registered demand, risk, and anomaly models.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {models.length === 0 ? (
-                <EmptyState
-                  icon={Activity}
-                  title="No models registered"
-                  description="Train your first model above — it takes under a minute."
-                />
-              ) : (
-                <Table>
-                  <THead>
-                    <tr>
-                      <TH>Model</TH>
-                      <TH>Version</TH>
-                      <TH>Status</TH>
-                      <TH>Source</TH>
-                      <TH>Accuracy</TH>
-                      <TH>Registered</TH>
-                      <TH className="text-right">Actions</TH>
-                    </tr>
-                  </THead>
-                  <tbody>
-                    {models.filter((m) => m && m.id).map((m) => (
-                      <tr key={m.id}>
-                        <TD className="font-medium">{str(m.modelType, "?")}</TD>
-                        <TD className="font-mono text-xs">{str(m.version)}</TD>
-                        <TD>
-                          <Badge variant={m.status === "APPROVED" ? "success" : "outline"}>{str(m.status, "?")}</Badge>
-                        </TD>
-                        <TD>
-                          <Badge variant={m.dataSourceType === "REAL" ? "success" : "warning"}>
-                            {str(m.dataSourceType)}
-                          </Badge>
-                        </TD>
-                        <TD className="tnum">
-                          {m.accuracy != null
-                            ? `${(num(m.accuracy) * 100).toFixed(1)}%`
-                            : m.rmse != null
-                              ? `RMSE ${num(m.rmse).toFixed(3)}`
-                              : "—"}
-                        </TD>
-                        <TD className="text-muted-foreground">
-                          {dateLabel(m.createdAt)}
-                        </TD>
-                        <TD className="text-right">
-                          {m.status === "APPROVED" && (
-                            <Button variant="ghost" size="sm" onClick={() => handleRollback(m.id)} disabled={isTraining}>
-                              Rollback
-                            </Button>
-                          )}
-                        </TD>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Retraining policies</CardTitle>
-              <CardDescription>
-                Automatic retraining thresholds per model. When new orders exceed
-                the threshold, a retraining job is triggered automatically.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingPolicies ? (
-                <div className="flex flex-col gap-2" aria-label="Loading policies">
-                  <Skeleton className="h-16" />
-                  <Skeleton className="h-16" />
-                </div>
-              ) : (
-                <>
-                  {policyError && (
-                    <div className="mb-2">
-                      <Alert tone="error">{policyError}</Alert>
-                    </div>
-                  )}
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {(["DEMAND_FORECASTING", "STOCKOUT_RISK", "PURCHASE_PROPENSITY", "ANOMALY_DETECTION"] as MlModelType[]).map((type) => {
-                      const policy = policies[type];
-                      const enabled = policy?.enabled ?? false;
-                      const threshold = policy?.minNewOrdersThreshold ?? 10;
-                      return (
-                        <div key={type} className="rounded-md border border-border p-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-[13px] font-medium">{type.replace(/_/g, " ")}</p>
-                            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
-                              <input
-                                type="checkbox"
-                                checked={enabled}
-                                onChange={(e) => handleTogglePolicy(type, e.target.checked)}
-                                className="size-3.5 accent-current"
-                              />
-                              Enabled
-                            </label>
-                          </div>
-                          <div className="mt-2 flex items-end gap-2">
-                            <div className="flex flex-col gap-1">
-                              <Label htmlFor={`threshold-${type}`}>Min new orders</Label>
-                            <input
-                                id={`threshold-${type}`}
-                                type="number"
-                                min={1}
-                                max={1000}
-                                defaultValue={threshold}
-                                key={`${type}-${threshold}`}
-                                onBlur={(e) => handleThresholdChange(type, Number(e.target.value) || 1)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                                }}
-                                className="mt-1 w-full h-8 rounded-md border border-input bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring"
-                              />
-                            </div>
-                            <Button size="sm" variant="outline" disabled={isTraining} onClick={() => handleRetrain(type)}>
-                              Retrain now
-                            </Button>
-                          </div>
-                          <p className="mt-1.5 text-xs text-muted-foreground">
-                            Last trained at {policy?.lastTrainedOrderCount ?? 0} orders
-                            {policy?.lastTrainedAt ? ` · ${dateLabel(policy.lastTrainedAt)}` : ""}
-                          </p>
-                        </div>
-                      );
-                    })}
+          <div className="flex flex-col gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Train a model</CardTitle>
+                <CardDescription>
+                  Trains on your store orders. With little history it bootstraps from representative
+                  data, clearly labeled below.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="train-type">Model type</Label>
+                    <select
+                      id="train-type"
+                      value={trainType}
+                      onChange={(e) => setTrainType(e.target.value as MlModelType)}
+                      disabled={isTraining}
+                      className="h-8 rounded-md border border-input bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring"
+                    >
+                      <option value="DEMAND_FORECASTING">Demand forecast</option>
+                      <option value="STOCKOUT_RISK">Stockout risk</option>
+                      <option value="PURCHASE_PROPENSITY">Purchase propensity</option>
+                      <option value="ANOMALY_DETECTION">Anomaly detection</option>
+                    </select>
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Training job history</CardTitle>
-              <CardDescription>Recent training jobs across all model types.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingJobs ? (
-                <div className="flex flex-col gap-2" aria-label="Loading jobs">
-                  <Skeleton className="h-12" />
-                  <Skeleton className="h-12" />
+                  <Button size="sm" disabled={isTraining} onClick={handleTrain}>
+                    {isTraining ? 'Training…' : 'Train model'}
+                  </Button>
+                  {trainingJob && (
+                    <p className="tnum text-[13px] text-muted-foreground" role="status">
+                      Job {str(trainingJob.id).slice(0, 8)} · {str(trainingJob.status, '?')}
+                      {trainingJob.status === 'FAILED' && trainingJob.errorMessage
+                        ? ` — ${trainingJob.errorMessage}`
+                        : ''}
+                    </p>
+                  )}
                 </div>
-              ) : trainingJobs.length === 0 ? (
-                <EmptyState
-                  icon={Activity}
-                  title="No training jobs yet"
-                  description="Train a model above to see job history here."
-                />
-              ) : (
-                <Table>
-                  <THead>
-                    <tr>
-                      <TH>Job</TH>
-                      <TH>Model</TH>
-                      <TH>Trigger</TH>
-                      <TH>Status</TH>
-                      <TH>Source</TH>
-                      <TH className="text-right">Samples</TH>
-                      <TH>Started</TH>
-                    </tr>
-                  </THead>
-                  <tbody>
-                    {trainingJobs.slice(0, 20).map((job) => (
-                      <tr key={job.id}>
-                        <TD className="font-mono text-xs">{str(job.id).slice(0, 12)}</TD>
-                        <TD className="text-xs">{str(job.modelType, "?")}</TD>
-                        <TD className="text-xs text-muted-foreground">{str(job.triggerType, "?")}</TD>
-                        <TD>
-                          <Badge
-                            variant={
-                              job.status === "COMPLETED"
-                                ? "success"
-                                : job.status === "FAILED"
-                                  ? "destructive"
-                                  : "outline"
-                            }
-                          >
-                            {str(job.status, "?")}
-                          </Badge>
-                        </TD>
-                        <TD>
-                          <Badge variant={job.dataSourceType === "REAL" ? "success" : "warning"}>
-                            {str(job.dataSourceType)}
-                          </Badge>
-                        </TD>
-                        <TD className="tnum text-right">{job.sampleCount}</TD>
-                        <TD className="text-muted-foreground">{dateLabel(job.startedAt)}</TD>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                {trainError && (
+                  <div className="mt-2">
+                    <Alert tone="error">{trainError}</Alert>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Demand &amp; stockout outlook</CardTitle>
-              <CardDescription>Latest predictions from approved models.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {predictions.length === 0 ? (
-                <EmptyState
-                  icon={Activity}
-                  title="No predictions yet"
-                  description="Predictions appear here after a model trains successfully."
-                />
-              ) : (
-                <Table>
-                  <THead>
-                    <tr>
-                      <TH>Entity</TH>
-                      <TH>Model</TH>
-                      <TH className="text-right">Value</TH>
-                      <TH>Horizon</TH>
-                      <TH>Source</TH>
-                    </tr>
-                  </THead>
-                  <tbody>
-                    {predictions.filter((p) => p && p.entityId).slice(0, 20).map((p, i) => (
-                      <tr key={`${p.entityId}-${p.modelType}-${i}`}>
-                        <TD className="max-w-48 truncate font-mono text-xs" title={str(p.entityId, "")}>
-                          {str(p.entityType, "?")} {str(p.entityId, "").slice(0, 12)}
-                        </TD>
-                        <TD className="text-xs text-muted-foreground">{str(p.modelType, "?")}</TD>
-                        <TD className="tnum text-right font-medium">
-                          {p.probability != null
-                            ? `${(num(p.probability) * 100).toFixed(1)}%`
-                            : num(p.predictedValue).toFixed(1)}
-                        </TD>
-                        <TD className="text-muted-foreground">{str(p.horizon)}</TD>
-                        <TD>
-                          <Badge variant={p.dataSourceType === "REAL" ? "success" : "warning"}>
-                            {str(p.dataSourceType)}
-                          </Badge>
-                        </TD>
+            <Card>
+              <CardHeader>
+                <CardTitle>Forecast models</CardTitle>
+                <CardDescription>Registered demand, risk, and anomaly models.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {models.length === 0 ? (
+                  <EmptyState
+                    icon={Activity}
+                    title="No models registered"
+                    description="Train your first model above — it takes under a minute."
+                  />
+                ) : (
+                  <Table>
+                    <THead>
+                      <tr>
+                        <TH>Model</TH>
+                        <TH>Version</TH>
+                        <TH>Status</TH>
+                        <TH>Source</TH>
+                        <TH>Accuracy</TH>
+                        <TH>Registered</TH>
+                        <TH className="text-right">Actions</TH>
                       </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                    </THead>
+                    <tbody>
+                      {models
+                        .filter((m) => m && m.id)
+                        .map((m) => (
+                          <tr key={m.id}>
+                            <TD className="font-medium">{str(m.modelType, '?')}</TD>
+                            <TD className="font-mono text-xs">{str(m.version)}</TD>
+                            <TD>
+                              <Badge variant={m.status === 'APPROVED' ? 'success' : 'outline'}>
+                                {str(m.status, '?')}
+                              </Badge>
+                            </TD>
+                            <TD>
+                              <Badge variant={m.dataSourceType === 'REAL' ? 'success' : 'warning'}>
+                                {str(m.dataSourceType)}
+                              </Badge>
+                            </TD>
+                            <TD className="tnum">
+                              {m.accuracy != null
+                                ? `${(num(m.accuracy) * 100).toFixed(1)}%`
+                                : m.rmse != null
+                                  ? `RMSE ${num(m.rmse).toFixed(3)}`
+                                  : '—'}
+                            </TD>
+                            <TD className="text-muted-foreground">{dateLabel(m.createdAt)}</TD>
+                            <TD className="text-right">
+                              {m.status === 'APPROVED' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRollback(m.id)}
+                                  disabled={isTraining}
+                                >
+                                  Rollback
+                                </Button>
+                              )}
+                            </TD>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Retraining policies</CardTitle>
+                <CardDescription>
+                  Automatic retraining thresholds per model. When new orders exceed the threshold, a
+                  retraining job is triggered automatically.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingPolicies ? (
+                  <div className="flex flex-col gap-2" aria-label="Loading policies">
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-16" />
+                  </div>
+                ) : (
+                  <>
+                    {policyError && (
+                      <div className="mb-2">
+                        <Alert tone="error">{policyError}</Alert>
+                      </div>
+                    )}
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {(
+                        [
+                          'DEMAND_FORECASTING',
+                          'STOCKOUT_RISK',
+                          'PURCHASE_PROPENSITY',
+                          'ANOMALY_DETECTION',
+                        ] as MlModelType[]
+                      ).map((type) => {
+                        const policy = policies[type];
+                        const enabled = policy?.enabled ?? false;
+                        const threshold = policy?.minNewOrdersThreshold ?? 10;
+                        return (
+                          <div key={type} className="rounded-md border border-border p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-[13px] font-medium">{type.replace(/_/g, ' ')}</p>
+                              <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                                <input
+                                  type="checkbox"
+                                  checked={enabled}
+                                  onChange={(e) => handleTogglePolicy(type, e.target.checked)}
+                                  className="size-3.5 accent-current"
+                                />
+                                Enabled
+                              </label>
+                            </div>
+                            <div className="mt-2 flex items-end gap-2">
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor={`threshold-${type}`}>Min new orders</Label>
+                                <input
+                                  id={`threshold-${type}`}
+                                  type="number"
+                                  min={1}
+                                  max={1000}
+                                  defaultValue={threshold}
+                                  key={`${type}-${threshold}`}
+                                  onBlur={(e) =>
+                                    handleThresholdChange(type, Number(e.target.value) || 1)
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                  }}
+                                  className="mt-1 w-full h-8 rounded-md border border-input bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring"
+                                />
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={isTraining}
+                                onClick={() => handleRetrain(type)}
+                              >
+                                Retrain now
+                              </Button>
+                            </div>
+                            <p className="mt-1.5 text-xs text-muted-foreground">
+                              Last trained at {policy?.lastTrainedOrderCount ?? 0} orders
+                              {policy?.lastTrainedAt ? ` · ${dateLabel(policy.lastTrainedAt)}` : ''}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Training job history</CardTitle>
+                <CardDescription>Recent training jobs across all model types.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingJobs ? (
+                  <div className="flex flex-col gap-2" aria-label="Loading jobs">
+                    <Skeleton className="h-12" />
+                    <Skeleton className="h-12" />
+                  </div>
+                ) : trainingJobs.length === 0 ? (
+                  <EmptyState
+                    icon={Activity}
+                    title="No training jobs yet"
+                    description="Train a model above to see job history here."
+                  />
+                ) : (
+                  <Table>
+                    <THead>
+                      <tr>
+                        <TH>Job</TH>
+                        <TH>Model</TH>
+                        <TH>Trigger</TH>
+                        <TH>Status</TH>
+                        <TH>Source</TH>
+                        <TH className="text-right">Samples</TH>
+                        <TH>Started</TH>
+                      </tr>
+                    </THead>
+                    <tbody>
+                      {trainingJobs.slice(0, 20).map((job) => (
+                        <tr key={job.id}>
+                          <TD className="font-mono text-xs">{str(job.id).slice(0, 12)}</TD>
+                          <TD className="text-xs">{str(job.modelType, '?')}</TD>
+                          <TD className="text-xs text-muted-foreground">
+                            {str(job.triggerType, '?')}
+                          </TD>
+                          <TD>
+                            <Badge
+                              variant={
+                                job.status === 'COMPLETED'
+                                  ? 'success'
+                                  : job.status === 'FAILED'
+                                    ? 'destructive'
+                                    : 'outline'
+                              }
+                            >
+                              {str(job.status, '?')}
+                            </Badge>
+                          </TD>
+                          <TD>
+                            <Badge variant={job.dataSourceType === 'REAL' ? 'success' : 'warning'}>
+                              {str(job.dataSourceType)}
+                            </Badge>
+                          </TD>
+                          <TD className="tnum text-right">{job.sampleCount}</TD>
+                          <TD className="text-muted-foreground">{dateLabel(job.startedAt)}</TD>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Demand &amp; stockout outlook</CardTitle>
+                <CardDescription>Latest predictions from approved models.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {predictions.length === 0 ? (
+                  <EmptyState
+                    icon={Activity}
+                    title="No predictions yet"
+                    description="Predictions appear here after a model trains successfully."
+                  />
+                ) : (
+                  <Table>
+                    <THead>
+                      <tr>
+                        <TH>Entity</TH>
+                        <TH>Model</TH>
+                        <TH className="text-right">Value</TH>
+                        <TH>Horizon</TH>
+                        <TH>Source</TH>
+                      </tr>
+                    </THead>
+                    <tbody>
+                      {predictions
+                        .filter((p) => p && p.entityId)
+                        .slice(0, 20)
+                        .map((p, i) => (
+                          <tr key={`${p.entityId}-${p.modelType}-${i}`}>
+                            <TD
+                              className="max-w-48 truncate font-mono text-xs"
+                              title={str(p.entityId, '')}
+                            >
+                              {str(p.entityType, '?')} {str(p.entityId, '').slice(0, 12)}
+                            </TD>
+                            <TD className="text-xs text-muted-foreground">
+                              {str(p.modelType, '?')}
+                            </TD>
+                            <TD className="tnum text-right font-medium">
+                              {p.probability != null
+                                ? `${(num(p.probability) * 100).toFixed(1)}%`
+                                : num(p.predictedValue).toFixed(1)}
+                            </TD>
+                            <TD className="text-muted-foreground">{str(p.horizon)}</TD>
+                            <TD>
+                              <Badge variant={p.dataSourceType === 'REAL' ? 'success' : 'warning'}>
+                                {str(p.dataSourceType)}
+                              </Badge>
+                            </TD>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </ErrorBoundary>
       )}
 
-      {activeTab === "operations" && (
+      {activeTab === 'operations' && (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard
             label="Payment attempts"
             value={String(
               (operations?.operations.paymentSuccessCount ?? 0) +
-                (operations?.operations.paymentFailCount ?? 0)
+                (operations?.operations.paymentFailCount ?? 0),
             )}
           />
           <KpiCard
             label="Shipments dispatched"
             value={String(operations?.operations.shipmentCount ?? 0)}
           />
-          <KpiCard
-            label="Returns"
-            value={String(operations?.operations.returnCount ?? 0)}
-          />
+          <KpiCard label="Returns" value={String(operations?.operations.returnCount ?? 0)} />
           <KpiCard
             label="Payment failures"
             value={String(operations?.operations.paymentFailCount ?? 0)}
-            hint={operations?.operations.paymentFailureRate ?? ""}
+            hint={operations?.operations.paymentFailureRate ?? ''}
           />
         </div>
       )}
 
-      {activeTab === "events" && user.role === "ADMINISTRATOR" && (
+      {activeTab === 'events' && user.role === 'ADMINISTRATOR' && (
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -835,7 +885,7 @@ export const AnalyticsDashboard = () => {
                   Refresh
                 </Button>
                 <Button size="sm" disabled={isProcessingEvents} onClick={handleProcessEvents}>
-                  {isProcessingEvents ? "Publishing…" : "Process pending"}
+                  {isProcessingEvents ? 'Publishing…' : 'Process pending'}
                 </Button>
               </div>
             </div>
@@ -866,9 +916,9 @@ export const AnalyticsDashboard = () => {
                       <tr>
                         <TD className="whitespace-nowrap text-muted-foreground">
                           {new Date(ev.createdAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit",
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
                           })}
                         </TD>
                         <TD>
@@ -880,11 +930,11 @@ export const AnalyticsDashboard = () => {
                         <TD>
                           <Badge
                             variant={
-                              ev.status === "PUBLISHED"
-                                ? "success"
-                                : ev.status === "PENDING"
-                                  ? "warning"
-                                  : "destructive"
+                              ev.status === 'PUBLISHED'
+                                ? 'success'
+                                : ev.status === 'PENDING'
+                                  ? 'warning'
+                                  : 'destructive'
                             }
                           >
                             {ev.status}
@@ -895,12 +945,18 @@ export const AnalyticsDashboard = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setExpandedEventId(expandedEventId === ev.id ? null : ev.id)}
+                              onClick={() =>
+                                setExpandedEventId(expandedEventId === ev.id ? null : ev.id)
+                              }
                             >
-                              {expandedEventId === ev.id ? "Close" : "Payload"}
+                              {expandedEventId === ev.id ? 'Close' : 'Payload'}
                             </Button>
-                            {(ev.status === "FAILED" || ev.status === "PENDING") && (
-                              <Button variant="ghost" size="sm" onClick={() => handleReplayEvent(ev.id)}>
+                            {(ev.status === 'FAILED' || ev.status === 'PENDING') && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleReplayEvent(ev.id)}
+                              >
                                 Replay
                               </Button>
                             )}

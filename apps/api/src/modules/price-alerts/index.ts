@@ -42,4 +42,3 @@ export const priceAlertsModule: PriceAlertsModule = {
     return new PriceAlertSweepRunner(service, logger, config);
   },
 };
-

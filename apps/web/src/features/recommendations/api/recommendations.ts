@@ -48,6 +48,8 @@ export const recommendationsApi = {
   },
 
   getSimilar: async (productId: string, limit = 4): Promise<RecommendationResponseDto> => {
-    return apiClient<RecommendationResponseDto>(`/recommendations/similar/${productId}?limit=${limit}`);
+    return apiClient<RecommendationResponseDto>(
+      `/recommendations/similar/${productId}?limit=${limit}`,
+    );
   },
 };

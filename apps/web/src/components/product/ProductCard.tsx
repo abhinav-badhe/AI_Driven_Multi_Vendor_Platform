@@ -1,10 +1,10 @@
-import { Link } from "react-router-dom";
-import { Minus, Plus } from "lucide-react";
-import { Card, CardContent } from "../ui/card";
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
-import { Rating, discountPercent } from "./display";
-import { prefetch } from "../../api/client";
+import { Link } from 'react-router-dom';
+import { Minus, Plus } from 'lucide-react';
+import { Card, CardContent } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Rating, discountPercent } from './display';
+import { prefetch } from '../../api/client';
 
 // Shared product card — one consistent treatment everywhere a product is
 // listed (home, search). Dense and sleek: 4:3 image with overlaid discount,
@@ -12,9 +12,7 @@ import { prefetch } from "../../api/client";
 // ("In Stock", seller offers).
 export function StockBadge({ inStock }: { inStock: boolean }) {
   return (
-    <Badge variant={inStock ? "success" : "outline"}>
-      {inStock ? "In Stock" : "Out of Stock"}
-    </Badge>
+    <Badge variant={inStock ? 'success' : 'outline'}>{inStock ? 'In Stock' : 'Out of Stock'}</Badge>
   );
 }
 
@@ -36,7 +34,7 @@ export function QtyControl({
       <Button
         variant="ghost"
         size="icon"
-        className={small ? "h-6 w-6" : "h-7 w-7"}
+        className={small ? 'h-6 w-6' : 'h-7 w-7'}
         aria-label="Decrease quantity"
         disabled={disabled}
         onClick={onDecrease}
@@ -47,7 +45,7 @@ export function QtyControl({
       <Button
         variant="ghost"
         size="icon"
-        className={small ? "h-6 w-6" : "h-7 w-7"}
+        className={small ? 'h-6 w-6' : 'h-7 w-7'}
         aria-label="Increase quantity"
         disabled={disabled}
         onClick={onIncrease}
@@ -126,7 +124,7 @@ export function ProductCard({
             <StockBadge inStock={inStock} />
             {offerCount !== undefined && (
               <span className="tnum text-xs text-muted-foreground">
-                {offerCount} {offerCount === 1 ? "seller offer" : "seller offers"}
+                {offerCount} {offerCount === 1 ? 'seller offer' : 'seller offers'}
               </span>
             )}
           </div>
@@ -149,7 +147,9 @@ export function ProductCard({
           <div className="min-w-0">
             <p className="tnum truncate text-[15px] font-semibold">{priceLabel}</p>
             {compareAtLabel && (
-              <p className="tnum truncate text-xs text-muted-foreground line-through">{compareAtLabel}</p>
+              <p className="tnum truncate text-xs text-muted-foreground line-through">
+                {compareAtLabel}
+              </p>
             )}
           </div>
           <div className="shrink-0">{action}</div>

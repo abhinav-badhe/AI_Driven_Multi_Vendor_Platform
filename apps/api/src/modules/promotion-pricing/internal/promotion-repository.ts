@@ -153,10 +153,9 @@ export class PromotionRepository {
 
   async getPromotionByCode(conn: DatabaseConnection, code: string): Promise<PromotionRow | null> {
     const trimmed = code.trim().toUpperCase();
-    const res = await conn.query<PromotionRow>(
-      `SELECT * FROM promotions WHERE UPPER(code) = $1`,
-      [trimmed],
-    );
+    const res = await conn.query<PromotionRow>(`SELECT * FROM promotions WHERE UPPER(code) = $1`, [
+      trimmed,
+    ]);
     if (!res.rows[0]) return null;
     return this.mapRow(res.rows[0]);
   }
@@ -375,15 +374,17 @@ export class PromotionRepository {
       ...row,
       discount_value: Number(row.discount_value),
       min_order_amount: Number(row.min_order_amount),
-      max_discount_amount: row.max_discount_amount !== null ? Number(row.max_discount_amount) : null,
+      max_discount_amount:
+        row.max_discount_amount !== null ? Number(row.max_discount_amount) : null,
       current_usage_count: Number(row.current_usage_count),
       usage_limit_total: row.usage_limit_total !== null ? Number(row.usage_limit_total) : null,
       usage_limit_per_customer:
         row.usage_limit_per_customer !== null ? Number(row.usage_limit_per_customer) : null,
       first_order_only: Boolean(row.first_order_only),
       stackable: Boolean(row.stackable),
-      target_ids: typeof row.target_ids === 'string' ? JSON.parse(row.target_ids) : row.target_ids ?? [],
-      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata ?? {},
+      target_ids:
+        typeof row.target_ids === 'string' ? JSON.parse(row.target_ids) : (row.target_ids ?? []),
+      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : (row.metadata ?? {}),
     };
   }
 }

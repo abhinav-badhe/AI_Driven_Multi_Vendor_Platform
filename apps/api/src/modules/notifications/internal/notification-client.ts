@@ -1,7 +1,4 @@
-import type {
-  RequestNotificationInput,
-  NotificationResultDto,
-} from './notification-models.js';
+import type { RequestNotificationInput, NotificationResultDto } from './notification-models.js';
 import type { NotificationService } from './notification-service.js';
 
 /**

@@ -13,23 +13,13 @@ export type LedgerEntryType =
 export type LedgerDirection = 'CREDIT' | 'DEBIT';
 
 export type SettlementStatus =
-  | 'PENDING'
-  | 'CALCULATED'
-  | 'APPROVED'
-  | 'PROCESSING'
-  | 'SETTLED'
-  | 'FAILED'
-  | 'REJECTED';
+  'PENDING' | 'CALCULATED' | 'APPROVED' | 'PROCESSING' | 'SETTLED' | 'FAILED' | 'REJECTED';
 
 export type FinancialAdjustmentType = 'CREDIT' | 'DEBIT';
 export type FinancialAdjustmentStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED';
 
 export type FinancialAccountType =
-  | 'MERCHANT_BALANCE'
-  | 'CLEARING'
-  | 'COMMISSION_REVENUE'
-  | 'FEE_REVENUE'
-  | 'PAYOUT_CASH';
+  'MERCHANT_BALANCE' | 'CLEARING' | 'COMMISSION_REVENUE' | 'FEE_REVENUE' | 'PAYOUT_CASH';
 
 export type FinancialTransactionType =
   | 'ORDER_EARNING'

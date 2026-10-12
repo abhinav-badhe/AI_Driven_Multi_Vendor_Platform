@@ -135,13 +135,7 @@ export class BackInStockRepository {
          notified_at = NULL,
          updated_at = CURRENT_TIMESTAMP
        RETURNING *;`,
-      [
-        input.id,
-        input.customerId,
-        input.tenantId,
-        input.productId,
-        input.skuId ?? null,
-      ],
+      [input.id, input.customerId, input.tenantId, input.productId, input.skuId ?? null],
     );
     return res.rows[0]!;
   }

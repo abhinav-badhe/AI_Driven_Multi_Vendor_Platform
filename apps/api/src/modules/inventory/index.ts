@@ -49,10 +49,7 @@ export interface InventoryModule {
     cacheInvalidator?: InventoryCacheInvalidator | undefined,
   ): InventoryService;
   createInMemoryStore(): InMemoryInventoryStore;
-  createHttpClient(
-    serviceUrl: string,
-    options?: HttpInventoryClientOptions,
-  ): HttpInventoryClient;
+  createHttpClient(serviceUrl: string, options?: HttpInventoryClientOptions): HttpInventoryClient;
 }
 
 export const inventoryModule: InventoryModule = {
@@ -69,10 +66,7 @@ export const inventoryModule: InventoryModule = {
   createInMemoryStore(): InMemoryInventoryStore {
     return new InMemoryInventoryStore();
   },
-  createHttpClient(
-    serviceUrl: string,
-    options?: HttpInventoryClientOptions,
-  ): HttpInventoryClient {
+  createHttpClient(serviceUrl: string, options?: HttpInventoryClientOptions): HttpInventoryClient {
     return new HttpInventoryClient(serviceUrl, options);
   },
 };

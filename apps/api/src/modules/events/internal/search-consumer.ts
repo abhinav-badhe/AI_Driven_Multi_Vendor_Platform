@@ -93,16 +93,19 @@ export class SearchEventConsumer extends BaseEventConsumer {
             await this.searchService.upsertListingProjection({
               listingId,
               merchantId: payload.merchantId,
-              merchantName: typeof payload.merchantName === 'string' ? payload.merchantName : undefined,
+              merchantName:
+                typeof payload.merchantName === 'string' ? payload.merchantName : undefined,
               productId: payload.productId,
               skuId: payload.skuId,
               skuCode: payload.skuCode,
               priceAmount: payload.priceAmount,
               currency: payload.currency,
-              compareAtPrice: typeof payload.compareAtPrice === 'number' ? payload.compareAtPrice : null,
+              compareAtPrice:
+                typeof payload.compareAtPrice === 'number' ? payload.compareAtPrice : null,
               status: (payload.status as 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED') ?? 'ACTIVE',
               inStock: payload.inStock === true,
-              availableQuantity: typeof payload.availableQuantity === 'number' ? payload.availableQuantity : 0,
+              availableQuantity:
+                typeof payload.availableQuantity === 'number' ? payload.availableQuantity : 0,
               attributes: (payload.attributes as Record<string, unknown>) ?? {},
               sourceVersion: payload.sourceVersion,
             });
@@ -121,9 +124,10 @@ export class SearchEventConsumer extends BaseEventConsumer {
       }
 
       case EventTypes.INVENTORY_STOCK_CHANGED: {
-        const listingId = (payload.listingId as string);
+        const listingId = payload.listingId as string;
         const inStock = payload.isAvailable === true;
-        const availableQuantity = typeof payload.availableQuantity === 'number' ? payload.availableQuantity : 0;
+        const availableQuantity =
+          typeof payload.availableQuantity === 'number' ? payload.availableQuantity : 0;
         const sourceVersion =
           typeof payload.sourceVersion === 'number'
             ? payload.sourceVersion

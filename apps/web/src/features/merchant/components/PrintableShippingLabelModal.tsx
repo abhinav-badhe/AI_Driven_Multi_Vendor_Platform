@@ -21,7 +21,8 @@ export const PrintableShippingLabelModal: React.FC<PrintableShippingLabelModalPr
   const carrier = shipment.carrier || 'BlueDart Express';
   const recipientName = deliveryAddress?.recipientName || 'Abhinav Badhe';
   const phone = deliveryAddress?.phone || '+91 77740 94369';
-  const addressLine = deliveryAddress?.formattedAddress || 
+  const addressLine =
+    deliveryAddress?.formattedAddress ||
     `${deliveryAddress?.addressLine1 || 'MIT AOE Campus, Alandi'}, ${deliveryAddress?.city || 'Pune'}, ${deliveryAddress?.state || 'Maharashtra'} - ${deliveryAddress?.postalCode || '412105'}`;
 
   const handlePrint = () => {
@@ -38,7 +39,9 @@ export const PrintableShippingLabelModal: React.FC<PrintableShippingLabelModalPr
               <Printer className="size-4" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Official Carrier Postage Airway Bill (AWB)</h2>
+              <h2 className="text-sm font-semibold text-foreground">
+                Official Carrier Postage Airway Bill (AWB)
+              </h2>
               <p className="text-[11px] text-muted-foreground font-mono">AWB #{tracking}</p>
             </div>
           </div>
@@ -59,7 +62,10 @@ export const PrintableShippingLabelModal: React.FC<PrintableShippingLabelModalPr
 
         {/* Printable Label Sheet */}
         <div className="overflow-y-auto p-6">
-          <div id="printable-carrier-label" className="mx-auto max-w-md border-2 border-black bg-white p-5 text-black font-sans shadow-md">
+          <div
+            id="printable-carrier-label"
+            className="mx-auto max-w-md border-2 border-black bg-white p-5 text-black font-sans shadow-md"
+          >
             {/* Carrier Banner */}
             <div className="flex items-center justify-between border-b-2 border-black pb-3">
               <div>
@@ -67,7 +73,9 @@ export const PrintableShippingLabelModal: React.FC<PrintableShippingLabelModalPr
                   <Truck className="size-5 text-black" />
                   <span className="text-lg font-black tracking-tight uppercase">{carrier}</span>
                 </div>
-                <p className="text-[10px] font-bold tracking-widest text-neutral-600 uppercase">PRIORITY AIR / ROUTE DISPATCH</p>
+                <p className="text-[10px] font-bold tracking-widest text-neutral-600 uppercase">
+                  PRIORITY AIR / ROUTE DISPATCH
+                </p>
               </div>
               <div className="text-right">
                 <span className="inline-block border border-black bg-black px-2 py-0.5 text-xs font-black text-white uppercase">
@@ -103,14 +111,18 @@ export const PrintableShippingLabelModal: React.FC<PrintableShippingLabelModalPr
               <div className="text-xs font-bold text-neutral-800">Phone: {phone}</div>
               <div className="mt-1 text-xs leading-snug">{addressLine}</div>
               <div className="mt-1.5 flex items-center justify-between font-mono text-xs font-bold">
-                <span className="border border-black px-1.5 py-0.5">PIN: {deliveryAddress?.postalCode || '412105'}</span>
+                <span className="border border-black px-1.5 py-0.5">
+                  PIN: {deliveryAddress?.postalCode || '412105'}
+                </span>
                 <span>DEST: {deliveryAddress?.city?.toUpperCase() || 'PUNE'}</span>
               </div>
             </div>
 
             {/* Return / Origin Dispatch Node */}
             <div className="border-b-2 border-black py-2.5 text-[11px]">
-              <span className="font-bold text-neutral-600 uppercase">DISPATCHED FROM (MERCHANT SENDER):</span>
+              <span className="font-bold text-neutral-600 uppercase">
+                DISPATCHED FROM (MERCHANT SENDER):
+              </span>
               <p className="mt-0.5 font-semibold text-black">
                 Central Warehouse Hub (FC-01) • Hinjawadi Phase 1, Pune, MH 411057
               </p>
@@ -137,7 +149,9 @@ export const PrintableShippingLabelModal: React.FC<PrintableShippingLabelModalPr
               <span className="flex items-center gap-1 font-semibold">
                 <ShieldCheck className="size-3 text-black" /> SECURE DISPATCH VERIFIED
               </span>
-              <span className="font-mono">{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</span>
+              <span className="font-mono">
+                {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+              </span>
             </div>
           </div>
         </div>

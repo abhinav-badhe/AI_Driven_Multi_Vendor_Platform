@@ -3,7 +3,11 @@ import { createHmac, randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig, type AppConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { InMemoryEventTransport, EventTypes } from '../src/modules/events/index.js';
 import { InMemorySearchStore } from '../src/modules/search/index.js';
@@ -21,7 +25,12 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
   let eventTransport: InMemoryEventTransport;
   let searchStore: InMemorySearchStore;
   let realShippoProvider: ShippoCarrierProvider;
-  const logger = new JsonLogger({ serviceName: 'shipping-test', level: 'error', pretty: false, redactKeys: [] });
+  const logger = new JsonLogger({
+    serviceName: 'shipping-test',
+    level: 'error',
+    pretty: false,
+    redactKeys: [],
+  });
 
   const shippoApiKey = 'shippo_test_1234567890abcdef';
   const shippoWebhookSecret = 'whsec_shippo_test_signing_secret_999';
@@ -31,7 +40,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
   const simulatedIdempotencyStore = new Map<string, Record<string, unknown>>();
   let shippoApiCallCount = 0;
 
-  const mockShippoFetch: typeof fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+  const mockShippoFetch: typeof fetch = async (
+    input: string | URL | Request,
+    init?: RequestInit,
+  ): Promise<Response> => {
     shippoApiCallCount++;
     const urlStr = typeof input === 'string' ? input : input.toString();
     const method = init?.method ?? 'GET';
@@ -49,9 +61,14 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
     let idempotencyKeyHeader: string | undefined;
     if (rawHeaders) {
       if (typeof (rawHeaders as Headers).get === 'function') {
-        idempotencyKeyHeader = (rawHeaders as Headers).get('Idempotency-Key') ?? (rawHeaders as Headers).get('idempotency-key') ?? undefined;
+        idempotencyKeyHeader =
+          (rawHeaders as Headers).get('Idempotency-Key') ??
+          (rawHeaders as Headers).get('idempotency-key') ??
+          undefined;
       } else if (typeof rawHeaders === 'object') {
-        idempotencyKeyHeader = (rawHeaders as Record<string, string>)['Idempotency-Key'] ?? (rawHeaders as Record<string, string>)['idempotency-key'];
+        idempotencyKeyHeader =
+          (rawHeaders as Record<string, string>)['Idempotency-Key'] ??
+          (rawHeaders as Record<string, string>)['idempotency-key'];
       }
     }
 
@@ -66,7 +83,9 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
 
       const shipmentId = `shp_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
       const rateId = `rate_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
-      const isReturn = Boolean((parsedBody['extra'] as Record<string, unknown> | undefined)?.['is_return']);
+      const isReturn = Boolean(
+        (parsedBody['extra'] as Record<string, unknown> | undefined)?.['is_return'],
+      );
 
       const shipmentRecord = {
         object_id: shipmentId,
@@ -184,7 +203,9 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
     secret = shippoWebhookSecret,
     timestamp = Math.floor(Date.now() / 1000),
   ): string => {
-    const signature = createHmac('sha256', secret).update(`${timestamp}.${rawPayload}`).digest('hex');
+    const signature = createHmac('sha256', secret)
+      .update(`${timestamp}.${rawPayload}`)
+      .digest('hex');
     return `t=${timestamp},v1=${signature}`;
   };
 
@@ -261,10 +282,19 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
     await app.inject({
       method: 'POST',
       url: '/auth/register',
-      payload: { email: 'admin@platform.com', password: 'Password123!', tenantName: 'Admin Ops', role: 'MERCHANT' },
+      payload: {
+        email: 'admin@platform.com',
+        password: 'Password123!',
+        tenantName: 'Admin Ops',
+        role: 'MERCHANT',
+      },
     });
-    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = 'admin@platform.com'`);
-    await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [userRes.rows[0]!.id]);
+    const userRes = await db.query<{ id: string }>(
+      `SELECT id FROM users WHERE email = 'admin@platform.com'`,
+    );
+    await db.query(`UPDATE tenant_memberships SET role = 'ADMINISTRATOR' WHERE user_id = $1`, [
+      userRes.rows[0]!.id,
+    ]);
     await markAllUsersVerified(db);
     const adminLogin = await app.inject({
       method: 'POST',
@@ -284,10 +314,24 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${alphaToken}` },
-      payload: { businessName: 'Alpha LLC', legalName: 'Alpha Legal', contactEmail: 'alpha@biz.com' },
+      payload: {
+        businessName: 'Alpha LLC',
+        legalName: 'Alpha Legal',
+        contactEmail: 'alpha@biz.com',
+      },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${alphaToken}` } });
-    const profA = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${alphaToken}` } })).json();
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${alphaToken}` },
+    });
+    const profA = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${alphaToken}` },
+      })
+    ).json();
     await app.inject({
       method: 'POST',
       url: `/merchants/${profA.tenantId}/approve`,
@@ -307,8 +351,18 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
       headers: { authorization: `Bearer ${betaToken}` },
       payload: { businessName: 'Beta LLC', legalName: 'Beta Legal', contactEmail: 'beta@biz.com' },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${betaToken}` } });
-    const profB = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${betaToken}` } })).json();
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${betaToken}` },
+    });
+    const profB = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${betaToken}` },
+      })
+    ).json();
     await app.inject({
       method: 'POST',
       url: `/merchants/${profB.tenantId}/approve`,
@@ -330,7 +384,12 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
         method: 'POST',
         url: '/products',
         headers: { authorization: `Bearer ${adminToken}` },
-        payload: { title: 'Shippo Router Pro', slug: 'shippo-router-pro', brand: 'AlphaBrand', categoryId: cat.id },
+        payload: {
+          title: 'Shippo Router Pro',
+          slug: 'shippo-router-pro',
+          brand: 'AlphaBrand',
+          categoryId: cat.id,
+        },
       })
     ).json();
     await app.inject({
@@ -451,8 +510,22 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
       const input: ProviderCreateShipmentInput = {
         sellerOrderId: 'so_test_123',
         customerOrderId: 'co_test_456',
-        senderAddress: { name: 'Alpha Warehouse', street1: '100 Mission St', city: 'San Francisco', state: 'CA', postalCode: '94105', country: 'US' },
-        recipientAddress: { name: 'Abhinav Buyer', street1: '500 Market St', city: 'San Francisco', state: 'CA', postalCode: '94105', country: 'US' },
+        senderAddress: {
+          name: 'Alpha Warehouse',
+          street1: '100 Mission St',
+          city: 'San Francisco',
+          state: 'CA',
+          postalCode: '94105',
+          country: 'US',
+        },
+        recipientAddress: {
+          name: 'Abhinav Buyer',
+          street1: '500 Market St',
+          city: 'San Francisco',
+          state: 'CA',
+          postalCode: '94105',
+          country: 'US',
+        },
         items: [{ orderItemId: 'item_1', productTitle: 'Router', quantity: 1, unitPrice: 4999 }],
         carrier: 'USPS',
         idempotencyKey: 'idemp_provider_test_1',
@@ -506,8 +579,22 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
         returnId: 'ret_test_123',
         sellerOrderId: 'so_test_123',
         customerOrderId: 'co_test_456',
-        senderAddress: { name: 'Customer', street1: 'Home', city: 'SF', state: 'CA', postalCode: '94105', country: 'US' },
-        recipientAddress: { name: 'Merchant', street1: 'Store', city: 'SF', state: 'CA', postalCode: '94105', country: 'US' },
+        senderAddress: {
+          name: 'Customer',
+          street1: 'Home',
+          city: 'SF',
+          state: 'CA',
+          postalCode: '94105',
+          country: 'US',
+        },
+        recipientAddress: {
+          name: 'Merchant',
+          street1: 'Store',
+          city: 'SF',
+          state: 'CA',
+          postalCode: '94105',
+          country: 'US',
+        },
         items: [{ orderItemId: 'item_1', quantity: 1 }],
       });
 
@@ -532,8 +619,22 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
           sellerOrderId: sellerOrder.id,
           items: [{ orderItemId: orderItem.id, quantity: 2 }],
           carrier: 'USPS',
-          senderAddress: { name: 'Alpha Warehouse', street1: '100 Mission St', city: 'San Francisco', state: 'CA', postalCode: '94105', country: 'US' },
-          recipientAddress: { name: 'Abhinav Buyer', street1: '500 Market St', city: 'San Francisco', state: 'CA', postalCode: '94105', country: 'US' },
+          senderAddress: {
+            name: 'Alpha Warehouse',
+            street1: '100 Mission St',
+            city: 'San Francisco',
+            state: 'CA',
+            postalCode: '94105',
+            country: 'US',
+          },
+          recipientAddress: {
+            name: 'Abhinav Buyer',
+            street1: '500 Market St',
+            city: 'San Francisco',
+            state: 'CA',
+            postalCode: '94105',
+            country: 'US',
+          },
           idempotencyKey: 'idemp_shipment_api_1',
         },
       });
@@ -622,7 +723,9 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
         carrier_shipment_id: string;
         label_url: string;
         tracking_number: string;
-      }>(`SELECT carrier_shipment_id, label_url, tracking_number FROM shipments WHERE id = $1`, [shipment.id]);
+      }>(`SELECT carrier_shipment_id, label_url, tracking_number FROM shipments WHERE id = $1`, [
+        shipment.id,
+      ]);
 
       expect(dbRows.rows).toHaveLength(1);
       expect(dbRows.rows[0]!.carrier_shipment_id).toBe(shipment.carrierShipmentId);
@@ -658,7 +761,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
 
@@ -745,7 +851,11 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
 
       // Timestamp from 10 minutes ago
       const expiredTimestamp = Math.floor(Date.now() / 1000) - 600;
-      const expiredSig = createShippoWebhookSignature(webhookPayload, shippoWebhookSecret, expiredTimestamp);
+      const expiredSig = createShippoWebhookSignature(
+        webhookPayload,
+        shippoWebhookSecret,
+        expiredTimestamp,
+      );
 
       const res = await app.inject({
         method: 'POST',
@@ -772,7 +882,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
 
@@ -834,7 +947,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
 
@@ -910,8 +1026,22 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
       const initialShipmentResult = await realShippoProvider.createShipment({
         sellerOrderId: sellerOrder.id,
         customerOrderId: sellerOrder.customerOrderId,
-        senderAddress: { name: 'Alpha', street1: '100 Mission St', city: 'SF', state: 'CA', postalCode: '94105', country: 'US' },
-        recipientAddress: { name: 'Customer', street1: '500 Market St', city: 'SF', state: 'CA', postalCode: '94105', country: 'US' },
+        senderAddress: {
+          name: 'Alpha',
+          street1: '100 Mission St',
+          city: 'SF',
+          state: 'CA',
+          postalCode: '94105',
+          country: 'US',
+        },
+        recipientAddress: {
+          name: 'Customer',
+          street1: '500 Market St',
+          city: 'SF',
+          state: 'CA',
+          postalCode: '94105',
+          country: 'US',
+        },
         items: [{ orderItemId: orderItem.id, quantity: 1 }],
         carrier: 'USPS',
         idempotencyKey,
@@ -974,8 +1104,22 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
       const initialShipmentResult = await realShippoProvider.createShipment({
         sellerOrderId: sellerOrder.id,
         customerOrderId: sellerOrder.customerOrderId,
-        senderAddress: { name: 'Alpha', street1: '100 Mission St', city: 'SF', state: 'CA', postalCode: '94105', country: 'US' },
-        recipientAddress: { name: 'Customer', street1: '500 Market St', city: 'SF', state: 'CA', postalCode: '94105', country: 'US' },
+        senderAddress: {
+          name: 'Alpha',
+          street1: '100 Mission St',
+          city: 'SF',
+          state: 'CA',
+          postalCode: '94105',
+          country: 'US',
+        },
+        recipientAddress: {
+          name: 'Customer',
+          street1: '500 Market St',
+          city: 'SF',
+          state: 'CA',
+          postalCode: '94105',
+          country: 'US',
+        },
         items: [{ orderItemId: orderItem.id, quantity: 1 }],
         carrier: 'USPS',
         idempotencyKey,
@@ -1147,7 +1291,12 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
         `INSERT INTO carrier_shipment_operations (
           idempotency_key, seller_order_id, seller_tenant_id, carrier, status, claim_token, created_at, updated_at
         ) VALUES ($1, $2, $3, 'USPS', 'IN_PROGRESS', $4, CURRENT_TIMESTAMP - INTERVAL '45 seconds', CURRENT_TIMESTAMP - INTERVAL '45 seconds')`,
-        [carrierKey, sellerOrder.id, sellerOrder.sellerTenantId, `crashed_token_${randomUUID().slice(0, 8)}`],
+        [
+          carrierKey,
+          sellerOrder.id,
+          sellerOrder.sellerTenantId,
+          `crashed_token_${randomUUID().slice(0, 8)}`,
+        ],
       );
 
       const callsBefore = shippoApiCallCount;
@@ -1289,8 +1438,22 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
       const firstCallResult = await realShippoProvider.createShipment({
         sellerOrderId: sellerOrder.id,
         customerOrderId: sellerOrder.customerOrderId,
-        senderAddress: { name: 'Alpha', street1: '100 Mission St', city: 'SF', state: 'CA', postalCode: '94105', country: 'US' },
-        recipientAddress: { name: 'Customer', street1: '500 Market St', city: 'SF', state: 'CA', postalCode: '94105', country: 'US' },
+        senderAddress: {
+          name: 'Alpha',
+          street1: '100 Mission St',
+          city: 'SF',
+          state: 'CA',
+          postalCode: '94105',
+          country: 'US',
+        },
+        recipientAddress: {
+          name: 'Customer',
+          street1: '500 Market St',
+          city: 'SF',
+          state: 'CA',
+          postalCode: '94105',
+          country: 'US',
+        },
         items: [{ orderItemId: orderItem.id, quantity: 1 }],
         carrier: 'USPS',
         idempotencyKey: carrierKey,
@@ -1418,12 +1581,20 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
         event_type: string;
         aggregate_id: string;
         payload: string | Record<string, unknown>;
-      }>(`SELECT event_id, event_type, aggregate_id, payload FROM outbox_events WHERE aggregate_id = $1`, [shipment.id]);
+      }>(
+        `SELECT event_id, event_type, aggregate_id, payload FROM outbox_events WHERE aggregate_id = $1`,
+        [shipment.id],
+      );
 
       expect(outboxRows.rows.length).toBeGreaterThanOrEqual(1);
-      const createdEvent = outboxRows.rows.find((r) => r.event_type === EventTypes.FULFILLMENT_SHIPMENT_CREATED);
+      const createdEvent = outboxRows.rows.find(
+        (r) => r.event_type === EventTypes.FULFILLMENT_SHIPMENT_CREATED,
+      );
       expect(createdEvent).toBeDefined();
-      const payload = typeof createdEvent!.payload === 'string' ? JSON.parse(createdEvent!.payload) : createdEvent!.payload;
+      const payload =
+        typeof createdEvent!.payload === 'string'
+          ? JSON.parse(createdEvent!.payload)
+          : createdEvent!.payload;
       expect(payload.shipmentId).toBe(shipment.id);
       expect(payload.carrierShipmentId).toBe(shipment.carrierShipmentId);
       expect(payload.trackingNumber).toBe(shipment.trackingNumber);
@@ -1441,7 +1612,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
 
@@ -1475,10 +1649,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
         event_type: string;
         aggregate_id: string;
         payload: string | Record<string, unknown>;
-      }>(`SELECT event_id, event_type, aggregate_id, payload FROM outbox_events WHERE aggregate_id = $1 AND event_type = $2`, [
-        shipRes.id,
-        EventTypes.FULFILLMENT_SHIPMENT_STATUS_CHANGED,
-      ]);
+      }>(
+        `SELECT event_id, event_type, aggregate_id, payload FROM outbox_events WHERE aggregate_id = $1 AND event_type = $2`,
+        [shipRes.id, EventTypes.FULFILLMENT_SHIPMENT_STATUS_CHANGED],
+      );
 
       expect(outboxRows.rows.length).toBeGreaterThanOrEqual(1);
       const statusEvt = outboxRows.rows.find((r) => {
@@ -1486,7 +1660,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
         return p.newStatus === 'IN_TRANSIT';
       });
       expect(statusEvt).toBeDefined();
-      const payload = typeof statusEvt!.payload === 'string' ? JSON.parse(statusEvt!.payload) : statusEvt!.payload;
+      const payload =
+        typeof statusEvt!.payload === 'string'
+          ? JSON.parse(statusEvt!.payload)
+          : statusEvt!.payload;
       expect(payload.newStatus).toBe('IN_TRANSIT');
       expect(payload.previousStatus).toBe('SHIPPED');
     });
@@ -1503,7 +1680,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
 
@@ -1538,7 +1718,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
 
@@ -1607,7 +1790,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
         method: 'POST',
         url: '/fulfillment/shipments',
         headers: { authorization: `Bearer ${eco.custToken}` },
-        payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+        payload: {
+          sellerOrderId: sellerOrder.id,
+          items: [{ orderItemId: orderItem.id, quantity: 1 }],
+        },
       });
       expect(res.statusCode).toBe(403);
     });
@@ -1620,7 +1806,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
         method: 'POST',
         url: '/fulfillment/shipments',
         headers: { authorization: `Bearer ${eco.betaToken}` },
-        payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+        payload: {
+          sellerOrderId: sellerOrder.id,
+          items: [{ orderItemId: orderItem.id, quantity: 1 }],
+        },
       });
       expect(res.statusCode).toBe(403);
     });
@@ -1634,7 +1823,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
 
@@ -1674,7 +1866,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
 
@@ -1766,7 +1961,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 1 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 1 }],
+          },
         })
       ).json();
 
@@ -1817,7 +2015,10 @@ describe('Real Shipping Gateway (Shippo Sandbox) Integration & Architecture', ()
           method: 'POST',
           url: '/fulfillment/shipments',
           headers: { authorization: `Bearer ${eco.alphaToken}` },
-          payload: { sellerOrderId: sellerOrder.id, items: [{ orderItemId: orderItem.id, quantity: 2 }] },
+          payload: {
+            sellerOrderId: sellerOrder.id,
+            items: [{ orderItemId: orderItem.id, quantity: 2 }],
+          },
         })
       ).json();
 

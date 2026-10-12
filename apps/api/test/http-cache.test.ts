@@ -40,14 +40,12 @@ describe('HTTP cache-aside behavior (X-Cache)', () => {
       LOG_PRETTY: 'false',
       REDACT_KEYS: 'password,token',
     });
-    const stubRedis = createRedisService(
-      {
-        host: 'localhost',
-        port: 6379,
-        password: 'placeholder_redis_password',
-        tls: false,
-      },
-    );
+    const stubRedis = createRedisService({
+      host: 'localhost',
+      port: 6379,
+      password: 'placeholder_redis_password',
+      tls: false,
+    });
     app = await buildApp({
       config,
       dbConnection: db,
@@ -96,9 +94,9 @@ describe('HTTP cache-aside behavior (X-Cache)', () => {
 
     const afterWrite = await app.inject({ method: 'GET', url: '/categories' });
     expect(afterWrite.headers['x-cache']).toBe('MISS');
-    expect(
-      (afterWrite.json() as Array<{ slug: string }>).some((c) => c.slug === 'cached'),
-    ).toBe(true);
+    expect((afterWrite.json() as Array<{ slug: string }>).some((c) => c.slug === 'cached')).toBe(
+      true,
+    );
   });
 
   it('isolates privileged SKU views from public cache entries', async () => {

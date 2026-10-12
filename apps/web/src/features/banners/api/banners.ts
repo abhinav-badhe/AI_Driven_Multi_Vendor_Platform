@@ -1,4 +1,4 @@
-import { apiClient } from "../../../api/client";
+import { apiClient } from '../../../api/client';
 
 export interface PromotionalBannerDto {
   id: string;
@@ -26,20 +26,20 @@ export interface CreateBannerPayload {
 export const bannersApi = {
   // Public active banners for customer homepage
   getActiveBanners: async (): Promise<PromotionalBannerDto[]> => {
-    const res = await apiClient<{ banners: PromotionalBannerDto[] }>("/banners");
+    const res = await apiClient<{ banners: PromotionalBannerDto[] }>('/banners');
     return res.banners || [];
   },
 
   // Admin list all banners
   getAllBanners: async (): Promise<PromotionalBannerDto[]> => {
-    const res = await apiClient<{ banners: PromotionalBannerDto[] }>("/admin/banners");
+    const res = await apiClient<{ banners: PromotionalBannerDto[] }>('/admin/banners');
     return res.banners || [];
   },
 
   // Admin create banner
   createBanner: async (payload: CreateBannerPayload): Promise<PromotionalBannerDto> => {
-    return apiClient<PromotionalBannerDto>("/admin/banners", {
-      method: "POST",
+    return apiClient<PromotionalBannerDto>('/admin/banners', {
+      method: 'POST',
       body: JSON.stringify(payload),
     });
   },
@@ -50,7 +50,7 @@ export const bannersApi = {
     payload: Partial<CreateBannerPayload>,
   ): Promise<PromotionalBannerDto> => {
     return apiClient<PromotionalBannerDto>(`/admin/banners/${id}`, {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify(payload),
     });
   },
@@ -58,7 +58,7 @@ export const bannersApi = {
   // Admin delete banner
   deleteBanner: async (id: string): Promise<{ success: boolean }> => {
     return apiClient<{ success: boolean }>(`/admin/banners/${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   },
 };

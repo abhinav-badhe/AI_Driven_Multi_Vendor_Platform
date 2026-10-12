@@ -103,7 +103,10 @@ export function getEffectiveMaxPrice(doc: SearchProductDocument, includeInactive
   return Math.max(...offers.map((o) => o.priceAmount));
 }
 
-export function aggregateFacets(docs: SearchProductDocument[], includeInactive: boolean): SearchFacets {
+export function aggregateFacets(
+  docs: SearchProductDocument[],
+  includeInactive: boolean,
+): SearchFacets {
   const categoryMap = new Map<string, { id: string; name: string; count: number }>();
   const brandMap = new Map<string, { name: string; count: number }>();
   const merchantMap = new Map<string, { id: string; name: string; count: number }>();
@@ -132,9 +135,7 @@ export function aggregateFacets(docs: SearchProductDocument[], includeInactive: 
     }
 
     // Offers: merchants and prices
-    const offers = includeInactive
-      ? doc.offers
-      : doc.offers.filter((o) => o.status === 'ACTIVE');
+    const offers = includeInactive ? doc.offers : doc.offers.filter((o) => o.status === 'ACTIVE');
 
     for (const offer of offers) {
       const mKey = offer.merchantId;
@@ -367,7 +368,9 @@ export class InMemorySearchStore implements ISearchStore {
 
         const mergedOffers = [...doc.offers];
         for (const existingOffer of existing.offers) {
-          const incomingIdx = mergedOffers.findIndex((o) => o.listingId === existingOffer.listingId);
+          const incomingIdx = mergedOffers.findIndex(
+            (o) => o.listingId === existingOffer.listingId,
+          );
           if (incomingIdx >= 0) {
             if (existingOffer.sourceVersion > mergedOffers[incomingIdx]!.sourceVersion) {
               mergedOffers[incomingIdx] = structuredClone(existingOffer);
@@ -379,9 +382,13 @@ export class InMemorySearchStore implements ISearchStore {
 
         const activeOffers = mergedOffers.filter((o) => o.status === 'ACTIVE');
         const minPrice =
-          activeOffers.length > 0 ? Math.min(...activeOffers.map((o) => o.priceAmount)) : baseDoc.minPrice;
+          activeOffers.length > 0
+            ? Math.min(...activeOffers.map((o) => o.priceAmount))
+            : baseDoc.minPrice;
         const maxPrice =
-          activeOffers.length > 0 ? Math.max(...activeOffers.map((o) => o.priceAmount)) : baseDoc.maxPrice;
+          activeOffers.length > 0
+            ? Math.max(...activeOffers.map((o) => o.priceAmount))
+            : baseDoc.maxPrice;
         const hasInStockOffer = activeOffers.some((o) => o.inStock && o.availableQuantity > 0);
 
         const reconciledDoc: SearchProductDocument = {

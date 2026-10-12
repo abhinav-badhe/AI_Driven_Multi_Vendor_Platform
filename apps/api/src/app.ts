@@ -25,8 +25,19 @@ import { merchantModule, type IMerchantService } from './modules/merchant/index.
 import { catalogModule, type ICatalogService } from './modules/catalog/index.js';
 import { marketplaceModule, type IMarketplaceService } from './modules/marketplace/index.js';
 import { inventoryModule, type IInventoryService } from './modules/inventory/index.js';
-import { cartCheckoutModule, type ICartService, type ICheckoutService } from './modules/cart-checkout/index.js';
-import { paymentModule, StripePaymentProvider, RazorpayPaymentProvider, MockPaymentProvider, type PaymentProvider, type IPaymentService } from './modules/payment/index.js';
+import {
+  cartCheckoutModule,
+  type ICartService,
+  type ICheckoutService,
+} from './modules/cart-checkout/index.js';
+import {
+  paymentModule,
+  StripePaymentProvider,
+  RazorpayPaymentProvider,
+  MockPaymentProvider,
+  type PaymentProvider,
+  type IPaymentService,
+} from './modules/payment/index.js';
 import { ordersModule, type IOrderService } from './modules/orders/index.js';
 import {
   fulfillmentModule,
@@ -40,7 +51,12 @@ import {
   type ISettlementService,
 } from './modules/settlement-ledger/index.js';
 import { searchModule, type ISearchStore, SqlSearchStore } from './modules/search/index.js';
-import { eventsModule, type EventTransport, type ConsumerRetryRunner, type IOutboxService } from './modules/events/index.js';
+import {
+  eventsModule,
+  type EventTransport,
+  type ConsumerRetryRunner,
+  type IOutboxService,
+} from './modules/events/index.js';
 import {
   notificationModule,
   ResendEmailProvider,
@@ -59,7 +75,10 @@ import {
   type IRecommendationStore,
 } from './modules/recommendations/index.js';
 import { analyticsMlModule, type IMlExecutionProvider } from './modules/analytics-ml/index.js';
-import { promotionPricingModule, type IPromotionPricingEngine } from './modules/promotion-pricing/index.js';
+import {
+  promotionPricingModule,
+  type IPromotionPricingEngine,
+} from './modules/promotion-pricing/index.js';
 import { SqlMlStore } from './infra/ml/sql-ml-store.js';
 import { registerIdentityRoutes } from './http/identity-routes.js';
 import { registerMerchantRoutes } from './http/merchant-routes.js';
@@ -210,7 +229,12 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
   // control over request volume (mirrors the outbox relay below).
   const globalRateLimiter =
     config.app.nodeEnv !== 'test'
-      ? new CompositeRateLimiter(redis, { windowMs: 60_000, maxRequests: 600 }, undefined, 'rl:global')
+      ? new CompositeRateLimiter(
+          redis,
+          { windowMs: 60_000, maxRequests: 600 },
+          undefined,
+          'rl:global',
+        )
       : null;
 
   // Database connection (may be injected for testing)
@@ -235,24 +259,33 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
 
   const securityAuditService =
     dependencies.securityAuditService ??
-    (dbConn ? identityModule.createAuditService(dbConn, rootLogger) : identityModule.createInMemoryAuditService());
+    (dbConn
+      ? identityModule.createAuditService(dbConn, rootLogger)
+      : identityModule.createInMemoryAuditService());
 
-  const identityService =
-    dbConn
-      ? identityModule.createService(dbConn, rootLogger, config.identity.accessTokenSecret, securityAuditService)
-      : null;
+  const identityService = dbConn
+    ? identityModule.createService(
+        dbConn,
+        rootLogger,
+        config.identity.accessTokenSecret,
+        securityAuditService,
+      )
+    : null;
 
   const actorResolver: IIdentityActorResolver | null =
     dependencies.actorResolver ??
     (config.identity.verificationMode === 'gateway'
       ? identityModule.createGatewayResolver(
-          identityService ?? identityModule.createStatelessResolver(config.identity.accessTokenSecret),
+          identityService ??
+            identityModule.createStatelessResolver(config.identity.accessTokenSecret),
         )
       : config.identity.verificationMode === 'stateless'
         ? identityModule.createStatelessResolver(config.identity.accessTokenSecret)
         : identityService);
 
-  const localMerchantService = dbConn ? merchantModule.createService(dbConn, rootLogger, securityAuditService) : null;
+  const localMerchantService = dbConn
+    ? merchantModule.createService(dbConn, rootLogger, securityAuditService)
+    : null;
 
   // Merchant service: injected override > http client > local DB service
   const merchantService: IMerchantService | null =
@@ -281,7 +314,13 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       : localCatalogService);
   const localMarketplaceService =
     dbConn && catalogService && merchantService
-      ? marketplaceModule.createService(dbConn, rootLogger, catalogService, merchantService, securityAuditService)
+      ? marketplaceModule.createService(
+          dbConn,
+          rootLogger,
+          catalogService,
+          merchantService,
+          securityAuditService,
+        )
       : null;
 
   // Marketplace service: injected override > http client > local DB service
@@ -383,10 +422,14 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       ? customerModule.createAddressService(dbConn, rootLogger)
       : null;
 
-
   const wishlistService =
     dbConn && cartService
-      ? customerModule.createWishlistService(dbConn, rootLogger, cartService, localOutboxService ?? undefined)
+      ? customerModule.createWishlistService(
+          dbConn,
+          rootLogger,
+          cartService,
+          localOutboxService ?? undefined,
+        )
       : null;
   const reviewService = dbConn
     ? createReviewService(dbConn, rootLogger, localOutboxService ?? undefined)
@@ -428,17 +471,17 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
           rootLogger,
         )
       : config.payment?.provider === 'stripe' && config.payment?.secretKey
-      ? new StripePaymentProvider(
-          {
-            secretKey: config.payment.secretKey,
-            webhookSecret: config.payment.webhookSecret,
-            publishableKey: config.payment.publishableKey,
-            apiVersion: config.payment.apiVersion,
-            webhookToleranceSeconds: config.payment.webhookToleranceSeconds,
-          },
-          rootLogger,
-        )
-      : new MockPaymentProvider());
+        ? new StripePaymentProvider(
+            {
+              secretKey: config.payment.secretKey,
+              webhookSecret: config.payment.webhookSecret,
+              publishableKey: config.payment.publishableKey,
+              apiVersion: config.payment.apiVersion,
+              webhookToleranceSeconds: config.payment.webhookToleranceSeconds,
+            },
+            rootLogger,
+          )
+        : new MockPaymentProvider());
 
   const localPaymentService =
     dbConn && checkoutService && localOutboxService
@@ -465,7 +508,12 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       : localPaymentService);
 
   const promotionService = dbConn
-    ? promotionPricingModule.createService(dbConn, rootLogger, localOutboxService ?? undefined, securityAuditService)
+    ? promotionPricingModule.createService(
+        dbConn,
+        rootLogger,
+        localOutboxService ?? undefined,
+        securityAuditService,
+      )
     : null;
 
   // Promotion Pricing Engine: injected override > http client > local DB service
@@ -548,12 +596,7 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
 
   const localSettlementService =
     dbConn && orderService && paymentService
-      ? settlementLedgerModule.createService(
-          dbConn,
-          rootLogger,
-          orderService,
-          paymentService,
-        )
+      ? settlementLedgerModule.createService(dbConn, rootLogger, orderService, paymentService)
       : null;
 
   const settlementService: ISettlementService | null =
@@ -572,10 +615,7 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       ? searchModule.createHttpStore(config.search.serviceUrl, {
           timeoutMs: config.search.timeoutMs,
           fetchFn: dependencies.searchFetchFn,
-          fallbackStore:
-            dbConn
-              ? new SqlSearchStore(dbConn)
-              : searchModule.createDefaultStore(),
+          fallbackStore: dbConn ? new SqlSearchStore(dbConn) : searchModule.createDefaultStore(),
           logger: rootLogger,
         })
       : dbConn && config.search?.storeAdapter !== 'memory'
@@ -589,8 +629,6 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     inventoryService ?? undefined,
     merchantService ?? undefined,
   );
-
-
 
   const notificationService = dbConn
     ? notificationModule.createService(
@@ -650,9 +688,7 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       )
     : null;
 
-  const localAnalyticsService = dbConn
-    ? analyticsModule.createService(dbConn, rootLogger)
-    : null;
+  const localAnalyticsService = dbConn ? analyticsModule.createService(dbConn, rootLogger) : null;
 
   const analyticsReader: IAnalyticsRecommendationReader & IAnalyticsMlFeatureReader =
     dependencies.analyticsReader ??
@@ -673,10 +709,9 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       ? recommendationsModule.createHttpStore(config.recommendations.serviceUrl, {
           timeoutMs: config.recommendations.timeoutMs,
           fetchFn: dependencies.recommendationFetchFn,
-          fallbackStore:
-            dbConn
-              ? new SqlRecommendationStore(dbConn)
-              : recommendationsModule.createInMemoryStore(),
+          fallbackStore: dbConn
+            ? new SqlRecommendationStore(dbConn)
+            : recommendationsModule.createInMemoryStore(),
           logger: rootLogger,
         })
       : dbConn && config.recommendations?.storeAdapter !== 'memory'
@@ -714,48 +749,74 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     : null;
 
   if (dbConn && outboxService && (notificationClient || notificationService)) {
-    const searchConsumer = eventsModule.createSearchConsumer(dbConn, eventTransport, rootLogger, searchService);
+    const searchConsumer = eventsModule.createSearchConsumer(
+      dbConn,
+      eventTransport,
+      rootLogger,
+      searchService,
+    );
     consumerRetryRunner?.registerConsumer(searchConsumer);
 
     if (config.notifications.clientMode === 'http') {
       if (config.notifications.serviceUrl && config.notifications.serviceKey) {
-        eventForwarder = notificationModule.createEventForwarder(
-          eventTransport,
-          rootLogger,
-          {
-            baseUrl: config.notifications.serviceUrl,
-            internalServiceKey: config.notifications.serviceKey,
-            timeoutMs: config.notifications.timeoutMs,
-            fetchFn: dependencies.notificationFetchFn,
-            db: dbConn ?? undefined,
-          },
-        );
+        eventForwarder = notificationModule.createEventForwarder(eventTransport, rootLogger, {
+          baseUrl: config.notifications.serviceUrl,
+          internalServiceKey: config.notifications.serviceKey,
+          timeoutMs: config.notifications.timeoutMs,
+          fetchFn: dependencies.notificationFetchFn,
+          db: dbConn ?? undefined,
+        });
       }
     } else {
       const consumerClient =
         notificationClient ??
         (notificationService ? notificationModule.createClient(notificationService) : null);
       if (consumerClient) {
-        const notifConsumer = notificationModule.createConsumer(dbConn, eventTransport, rootLogger, consumerClient);
+        const notifConsumer = notificationModule.createConsumer(
+          dbConn,
+          eventTransport,
+          rootLogger,
+          consumerClient,
+        );
         consumerRetryRunner?.registerConsumer(notifConsumer);
       }
     }
-    
+
     if (backInStockService) {
-      const bisConsumer = customerModule.createBackInStockConsumer(dbConn, eventTransport, rootLogger, backInStockService);
+      const bisConsumer = customerModule.createBackInStockConsumer(
+        dbConn,
+        eventTransport,
+        rootLogger,
+        backInStockService,
+      );
       consumerRetryRunner?.registerConsumer(bisConsumer);
     }
 
     if (orderService) {
-      const orderConsumer = ordersModule.createConsumer(dbConn, eventTransport, rootLogger, orderService);
+      const orderConsumer = ordersModule.createConsumer(
+        dbConn,
+        eventTransport,
+        rootLogger,
+        orderService,
+      );
       consumerRetryRunner?.registerConsumer(orderConsumer);
     }
     if (analyticsService) {
-      const analyticsConsumer = analyticsModule.createConsumer(dbConn, eventTransport, rootLogger, analyticsService);
+      const analyticsConsumer = analyticsModule.createConsumer(
+        dbConn,
+        eventTransport,
+        rootLogger,
+        analyticsService,
+      );
       consumerRetryRunner?.registerConsumer(analyticsConsumer);
     }
     if (recommendationService) {
-      const recConsumer = recommendationsModule.createConsumer(dbConn, eventTransport, rootLogger, recommendationService);
+      const recConsumer = recommendationsModule.createConsumer(
+        dbConn,
+        eventTransport,
+        rootLogger,
+        recommendationService,
+      );
       consumerRetryRunner?.registerConsumer(recConsumer);
     }
   }
@@ -766,7 +827,7 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
 
   // Security & HTTP Middleware
   app.register(fastifyCookie);
-  
+
   // Configure CORS explicitly. In production, this dynamically permits configured origins, Vercel frontends, and localhost.
   app.register(fastifyCors, {
     origin: (origin, cb) => {
@@ -912,7 +973,8 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
               notificationClient.sendTransactionalEmail(to, subject, body),
           }
         : undefined,
-    });    registerMerchantRoutes(app, identityService, merchantService);
+    });
+    registerMerchantRoutes(app, identityService, merchantService);
     registerCatalogRoutes(app, identityService, catalogService);
     registerListingRoutes(app, identityService, marketplaceService, priceAlertService ?? undefined);
     if (priceAlertService) {
@@ -1045,10 +1107,7 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     // In-process overlap guard prevents piling up timers if a batch takes longer than 15s.
     // Cleaned up via onClose hook on application shutdown.
     // Disabled under NODE_ENV=test unless enableBackgroundWorkers is explicitly enabled.
-    if (
-      eventForwarder &&
-      (config.app.nodeEnv !== 'test' || dependencies.enableBackgroundWorkers)
-    ) {
+    if (eventForwarder && (config.app.nodeEnv !== 'test' || dependencies.enableBackgroundWorkers)) {
       const forwarderInstance = eventForwarder;
       let forwarderRetryRunning = false;
       const forwarderRetryInterval = setInterval(() => {
@@ -1182,11 +1241,7 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       rootLogger,
     );
 
-    const localAiService = aiModule.createLocalService(
-      orchestrator,
-      ragService,
-      aiStore,
-    );
+    const localAiService = aiModule.createLocalService(orchestrator, ragService, aiStore);
 
     const aiService: IAiService | null =
       dependencies.aiService ??
@@ -1212,8 +1267,7 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
       whatsAppAdapter,
       store: aiStore,
       aiService: aiService ?? undefined,
-      whatsAppWebhookSecret:
-        config.whatsapp.appSecret ?? 'commerce-whatsapp-webhook-secret',
+      whatsAppWebhookSecret: config.whatsapp.appSecret ?? 'commerce-whatsapp-webhook-secret',
       whatsAppVerifyToken: config.whatsapp.webhookVerifyToken,
     });
   }

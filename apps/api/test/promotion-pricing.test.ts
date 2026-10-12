@@ -3,10 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import {
-  createMigratedTestDatabase,
-  registerVerifiedUser,
-} from './helpers/test-db.js';
+import { createMigratedTestDatabase, registerVerifiedUser } from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { InMemoryEventTransport, EventTypes } from '../src/modules/events/index.js';
 import { InMemorySearchStore } from '../src/modules/search/index.js';
@@ -215,7 +212,14 @@ describe('Promotion & Coupon Engine - Comprehensive Production Suite', () => {
       `INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status) VALUES
        ($1, $2, $3, 10000, 'USD', 'ACTIVE'),
        ($4, $5, $6, 5000, 'USD', 'ACTIVE')`,
-      [listing1Id, merchantAlphaActor.tenantId, sku1Id, listing2Id, merchantBetaActor.tenantId, sku2Id],
+      [
+        listing1Id,
+        merchantAlphaActor.tenantId,
+        sku1Id,
+        listing2Id,
+        merchantBetaActor.tenantId,
+        sku2Id,
+      ],
     );
 
     // Seed Inventory for both listings
@@ -680,7 +684,9 @@ describe('Promotion & Coupon Engine - Comprehensive Production Suite', () => {
 
   // --- 12. Invalid Coupon ---
   it('12. invalid coupon code returns clean error response', async () => {
-    const sessionId = await setupCheckoutSession(customer1Token, [{ listingId: listing1Id, quantity: 1 }]);
+    const sessionId = await setupCheckoutSession(customer1Token, [
+      { listingId: listing1Id, quantity: 1 },
+    ]);
 
     const res = await app.inject({
       method: 'POST',
@@ -690,7 +696,9 @@ describe('Promotion & Coupon Engine - Comprehensive Production Suite', () => {
     });
 
     expect(res.statusCode).toBe(404);
-    expect(res.json().error?.message ?? res.json().message).toMatch(/Coupon code 'DOESNOTEXIST' is invalid/);
+    expect(res.json().error?.message ?? res.json().message).toMatch(
+      /Coupon code 'DOESNOTEXIST' is invalid/,
+    );
   });
 
   // --- 13. Wrong Merchant ---
@@ -706,7 +714,9 @@ describe('Promotion & Coupon Engine - Comprehensive Production Suite', () => {
     });
 
     // Cart only contains Merchant Beta items
-    const sessionId = await setupCheckoutSession(customer1Token, [{ listingId: listing2Id, quantity: 1 }]);
+    const sessionId = await setupCheckoutSession(customer1Token, [
+      { listingId: listing2Id, quantity: 1 },
+    ]);
 
     const res = await app.inject({
       method: 'POST',
@@ -716,7 +726,9 @@ describe('Promotion & Coupon Engine - Comprehensive Production Suite', () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(res.json().error?.message ?? res.json().message).toMatch(/Promotion is only valid for products from merchant/);
+    expect(res.json().error?.message ?? res.json().message).toMatch(
+      /Promotion is only valid for products from merchant/,
+    );
   });
 
   // --- 14. Cross-Tenant Access ---
@@ -762,7 +774,9 @@ describe('Promotion & Coupon Engine - Comprehensive Production Suite', () => {
     // Artificially simulate 1 prior redemption
     await db.query(`UPDATE promotions SET current_usage_count = 1 WHERE id = $1`, [promo.id]);
 
-    const sessionId = await setupCheckoutSession(customer1Token, [{ listingId: listing1Id, quantity: 1 }]);
+    const sessionId = await setupCheckoutSession(customer1Token, [
+      { listingId: listing1Id, quantity: 1 },
+    ]);
 
     const res = await app.inject({
       method: 'POST',
@@ -772,7 +786,9 @@ describe('Promotion & Coupon Engine - Comprehensive Production Suite', () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(res.json().error?.message ?? res.json().message).toMatch(/reached its global usage limit/);
+    expect(res.json().error?.message ?? res.json().message).toMatch(
+      /reached its global usage limit/,
+    );
   });
 
   // --- 16. Per-Customer Usage Limit ---
@@ -795,7 +811,9 @@ describe('Promotion & Coupon Engine - Comprehensive Production Suite', () => {
     );
 
     // Customer 1 tries again -> rejected
-    const session1Id = await setupCheckoutSession(customer1Token, [{ listingId: listing1Id, quantity: 1 }]);
+    const session1Id = await setupCheckoutSession(customer1Token, [
+      { listingId: listing1Id, quantity: 1 },
+    ]);
     const res1 = await app.inject({
       method: 'POST',
       url: `/checkout/sessions/${session1Id}/coupon`,
@@ -803,10 +821,14 @@ describe('Promotion & Coupon Engine - Comprehensive Production Suite', () => {
       payload: { couponCode: 'ONCEPERCUST' },
     });
     expect(res1.statusCode).toBe(400);
-    expect(res1.json().error?.message ?? res1.json().message).toMatch(/Customer has reached usage limit/);
+    expect(res1.json().error?.message ?? res1.json().message).toMatch(
+      /Customer has reached usage limit/,
+    );
 
     // Customer 2 tries -> allowed!
-    const session2Id = await setupCheckoutSession(customer2Token, [{ listingId: listing1Id, quantity: 1 }]);
+    const session2Id = await setupCheckoutSession(customer2Token, [
+      { listingId: listing1Id, quantity: 1 },
+    ]);
     const res2 = await app.inject({
       method: 'POST',
       url: `/checkout/sessions/${session2Id}/coupon`,

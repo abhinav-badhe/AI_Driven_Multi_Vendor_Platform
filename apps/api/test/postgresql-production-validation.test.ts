@@ -63,24 +63,34 @@ describe('PostgreSQL Production Integration & Invariant Validation', () => {
 
     it('enforces table check constraints on status fields across bounded contexts', async () => {
       // 1. Setup tenant & user
-      await db.query(`INSERT INTO tenants (id, type, name, status) VALUES ('t-test', 'MERCHANT', 'Test Merchant', 'ACTIVE')`);
-      await db.query(`INSERT INTO users (id, email, password_hash, status) VALUES ('u-test', 'test@test.com', 'hash', 'ACTIVE')`);
+      await db.query(
+        `INSERT INTO tenants (id, type, name, status) VALUES ('t-test', 'MERCHANT', 'Test Merchant', 'ACTIVE')`,
+      );
+      await db.query(
+        `INSERT INTO users (id, email, password_hash, status) VALUES ('u-test', 'test@test.com', 'hash', 'ACTIVE')`,
+      );
 
       // Invalid user status must be rejected
       await expect(
-        db.query(`INSERT INTO users (id, email, password_hash, status) VALUES ('u-bad', 'bad@test.com', 'hash', 'INVALID_STATUS')`),
+        db.query(
+          `INSERT INTO users (id, email, password_hash, status) VALUES ('u-bad', 'bad@test.com', 'hash', 'INVALID_STATUS')`,
+        ),
       ).rejects.toThrow();
 
       // Invalid tenant type must be rejected
       await expect(
-        db.query(`INSERT INTO tenants (id, type, name, status) VALUES ('t-bad', 'NOT_A_TYPE', 'Bad Tenant', 'ACTIVE')`),
+        db.query(
+          `INSERT INTO tenants (id, type, name, status) VALUES ('t-bad', 'NOT_A_TYPE', 'Bad Tenant', 'ACTIVE')`,
+        ),
       ).rejects.toThrow();
     });
   });
 
   describe('2. Multi-Table Transactions & Atomic Rollback', () => {
     it('guarantees complete rollback of multi-table mutations when an error occurs mid-transaction', async () => {
-      await db.query(`INSERT INTO tenants (id, type, name, status) VALUES ('t-tx', 'CUSTOMER', 'Customer Tenant', 'ACTIVE')`);
+      await db.query(
+        `INSERT INTO tenants (id, type, name, status) VALUES ('t-tx', 'CUSTOMER', 'Customer Tenant', 'ACTIVE')`,
+      );
 
       await expect(
         db.withTransaction(async (tx) => {
@@ -101,11 +111,21 @@ describe('PostgreSQL Production Integration & Invariant Validation', () => {
   describe('3. Concurrency & Row-Level Locking Safety', () => {
     it('prevents inventory overselling under concurrent reservations using transaction isolation', async () => {
       // Setup catalog, listing, and inventory with stock 10
-      await db.query(`INSERT INTO tenants (id, type, name, status) VALUES ('t-merch-inv', 'MERCHANT', 'Apex', 'ACTIVE')`);
-      await db.query(`INSERT INTO categories (id, name, slug) VALUES ('cat-inv', 'Electronics', 'electronics')`);
-      await db.query(`INSERT INTO products (id, title, slug, brand, category_id, status) VALUES ('p-inv', 'Phone', 'phone', 'Brand', 'cat-inv', 'ACTIVE')`);
-      await db.query(`INSERT INTO product_skus (id, product_id, sku_code, barcode, status) VALUES ('sku-inv', 'p-inv', 'SKU-INV-1', 'BAR-1', 'ACTIVE')`);
-      await db.query(`INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status) VALUES ('l-inv', 't-merch-inv', 'sku-inv', 10000, 'INR', 'ACTIVE')`);
+      await db.query(
+        `INSERT INTO tenants (id, type, name, status) VALUES ('t-merch-inv', 'MERCHANT', 'Apex', 'ACTIVE')`,
+      );
+      await db.query(
+        `INSERT INTO categories (id, name, slug) VALUES ('cat-inv', 'Electronics', 'electronics')`,
+      );
+      await db.query(
+        `INSERT INTO products (id, title, slug, brand, category_id, status) VALUES ('p-inv', 'Phone', 'phone', 'Brand', 'cat-inv', 'ACTIVE')`,
+      );
+      await db.query(
+        `INSERT INTO product_skus (id, product_id, sku_code, barcode, status) VALUES ('sku-inv', 'p-inv', 'SKU-INV-1', 'BAR-1', 'ACTIVE')`,
+      );
+      await db.query(
+        `INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status) VALUES ('l-inv', 't-merch-inv', 'sku-inv', 10000, 'INR', 'ACTIVE')`,
+      );
 
       await db.query(`
         INSERT INTO inventory_items (id, tenant_id, listing_id, sku_id, on_hand_quantity, reserved_quantity, non_sellable_quantity, version)
@@ -121,11 +141,10 @@ describe('PostgreSQL Production Integration & Invariant Validation', () => {
             reserved_quantity: number;
             non_sellable_quantity: number;
             version: number;
-          }>(
-            `SELECT * FROM inventory_items WHERE id = 'inv-test-1'`,
-          );
+          }>(`SELECT * FROM inventory_items WHERE id = 'inv-test-1'`);
           const item = itemRes.rows[0]!;
-          const available = item.on_hand_quantity - item.reserved_quantity - item.non_sellable_quantity;
+          const available =
+            item.on_hand_quantity - item.reserved_quantity - item.non_sellable_quantity;
           if (available < qty) {
             throw new Error(`Insufficient inventory: required ${qty}, available ${available}`);
           }
@@ -154,8 +173,12 @@ describe('PostgreSQL Production Integration & Invariant Validation', () => {
 
   describe('4. Payment Webhook Replay Protection & Order Recovery', () => {
     it('enforces webhook idempotency via UNIQUE constraint on provider_event_id', async () => {
-      await db.query(`INSERT INTO tenants (id, type, name, status) VALUES ('t-pay', 'CUSTOMER', 'Customer', 'ACTIVE')`);
-      await db.query(`INSERT INTO users (id, email, password_hash, status) VALUES ('u-pay', 'pay@test.com', 'hash', 'ACTIVE')`);
+      await db.query(
+        `INSERT INTO tenants (id, type, name, status) VALUES ('t-pay', 'CUSTOMER', 'Customer', 'ACTIVE')`,
+      );
+      await db.query(
+        `INSERT INTO users (id, email, password_hash, status) VALUES ('u-pay', 'pay@test.com', 'hash', 'ACTIVE')`,
+      );
 
       // Insert payment intent
       await db.query(`
@@ -200,28 +223,40 @@ describe('PostgreSQL Production Integration & Invariant Validation', () => {
 
   describe('5. Double-Entry Financial Ledger Invariants', () => {
     it('verifies that every financial transaction satisfies SUM(DEBIT) == SUM(CREDIT)', async () => {
-      await db.query(`INSERT INTO tenants (id, type, name, status) VALUES ('t-fin', 'MERCHANT', 'Fin Merchant', 'ACTIVE')`);
-      await db.query(`INSERT INTO financial_accounts (id, tenant_id, currency, current_balance, pending_balance, settled_balance, account_type) VALUES ('fa-fin', 't-fin', 'INR', 0, 0, 0, 'MERCHANT_BALANCE')`);
+      await db.query(
+        `INSERT INTO tenants (id, type, name, status) VALUES ('t-fin', 'MERCHANT', 'Fin Merchant', 'ACTIVE')`,
+      );
+      await db.query(
+        `INSERT INTO financial_accounts (id, tenant_id, currency, current_balance, pending_balance, settled_balance, account_type) VALUES ('fa-fin', 't-fin', 'INR', 0, 0, 0, 'MERCHANT_BALANCE')`,
+      );
 
       const txId = 'ftx-test-1';
       await db.withTransaction(async (tx) => {
         // Record financial transaction journal header
-        await tx.query(`
+        await tx.query(
+          `
           INSERT INTO financial_transactions (id, tenant_id, transaction_type, source_type, source_id, currency)
           VALUES ($1, 't-fin', 'ORDER_EARNING', 'ORDER', 'ord-123', 'INR')
-        `, [txId]);
+        `,
+          [txId],
+        );
 
         // Seller earning journal: DEBIT customer clearing 10000, CREDIT seller earning balance 10000
-        await tx.query(`
+        await tx.query(
+          `
           INSERT INTO ledger_entries (id, financial_transaction_id, tenant_id, account_id, entry_type, direction, amount, currency, source_type, source_id, description, actor_id, actor_type)
           VALUES ('le-1', $1, 't-fin', 'fa-fin', 'CLEARING', 'DEBIT', 10000, 'INR', 'ORDER', 'ord-123', 'Customer order escrow', 'actor-1', 'SYSTEM')
-        `, [txId]);
+        `,
+          [txId],
+        );
 
-        await tx.query(`
+        await tx.query(
+          `
           INSERT INTO ledger_entries (id, financial_transaction_id, tenant_id, account_id, entry_type, direction, amount, currency, source_type, source_id, description, actor_id, actor_type)
           VALUES ('le-2', $1, 't-fin', 'fa-fin', 'EARNING', 'CREDIT', 10000, 'INR', 'ORDER', 'ord-123', 'Seller balance credit', 'actor-1', 'SYSTEM')
-        `, [txId]);
-
+        `,
+          [txId],
+        );
       });
 
       // Assert mathematical invariant: SUM(DEBIT) == SUM(CREDIT)
@@ -266,7 +301,6 @@ describe('PostgreSQL Production Integration & Invariant Validation', () => {
         updatedAt: new Date().toISOString(),
         offers: [],
       });
-
 
       // Simulate a distinct new application instance / restart connecting to same database
       const store2 = new SqlSearchStore(db);

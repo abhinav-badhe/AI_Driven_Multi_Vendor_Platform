@@ -3,7 +3,7 @@
 > **Document Status:** Living Master Migration Plan & Execution Tracker  
 > **Repository:** AI-Driven Multi-Vendor Predictive E-Commerce Platform  
 > **Architecture Target:** Decentralized, Independently Deployable Microservices with Event-Driven Architecture and Distributed Data Ownership  
-> **Last Updated:** October 2026  
+> **Last Updated:** October 2026
 
 ---
 
@@ -12,7 +12,9 @@
 The platform is transitioning from a Fastify/Node.js **Modular Monolith** with shared PostgreSQL storage (`commerce_db`) to an **Event-Driven Microservices Architecture** with independent service deployment, private database schemas/instances, and asynchronous event streaming.
 
 ### The Strangler Fig Execution Methodology
+
 To guarantee 100% business continuity and zero downtime:
+
 1. **Seam Creation**: Define clean abstraction interfaces (`I<Service>Client`, `IMlInferenceProvider`, etc.) within the monolith.
 2. **Dual-Mode Adapter**: Implement both an in-memory/in-process client (`Local<Service>Client`) and a network client (`Http<Service>Client`). The mode is controlled via zero-downtime environment variables (e.g., `NOTIFICATION_CLIENT_MODE=local|http`, `ML_EXECUTION_MODE=local|http`).
 3. **Service Scaffolding**: Create the standalone service under `apps/<service-name>` with its own runtime, HTTP endpoints, schema validation, isolated database connection, and automated test suite.
@@ -29,7 +31,7 @@ graph TD
     %% Infrastructure & Edge
     Broker[Events & Outbox Broker] --> Identity[1. Identity & Auth]
     Identity --> Audit[2. Security & Audit]
-    
+
     %% Peripheral / Leaf Services (Phase 1)
     Identity --> Notifications[19. Notifications Service]
     AnalyticsModule[15. Analytics] --> MLService[16. Analytics-ML Service]
@@ -37,7 +39,7 @@ graph TD
     Catalog[5. Product Catalog] --> Search[14. Search Service]
     Catalog --> PriceAlerts[18. Price Alerts Service]
     Notifications --> PriceAlerts
-    
+
     %% Core Domain Services (Phase 2)
     Identity --> Merchant[3. Merchant Management]
     Catalog --> Marketplace[4. Marketplace & Listings]
@@ -48,7 +50,7 @@ graph TD
     Marketplace --> Cart
     Inventory --> Cart
     Promotions[13. Promotions & Pricing] --> Cart
-    
+
     %% High-Risk Transactional Cluster (Phase 3)
     Cart --> Orders[9. Orders & Orchestrator]
     Inventory --> Orders
@@ -57,15 +59,16 @@ graph TD
     Orders --> Fulfillment[11. Fulfillment Service]
     Payments --> Settlement[12. Settlement & Ledger]
     Orders --> Settlement
-    
+
     %% Intelligence / Generative (Phase 4)
     Catalog --> AIService[21. AI & RAG Service]
 ```
 
 ### Extraction Sequence by Wave:
+
 - **Wave 1: Platform Edge & Leaf Intelligence (Low Risk, High Decoupling)**
-  - Domain 19: Notifications (`notifications-service`) — *Implemented & Tested*
-  - Domain 16: Analytics-ML (`ml-service`) — *Implemented & Tested*
+  - Domain 19: Notifications (`notifications-service`) — _Implemented & Tested_
+  - Domain 16: Analytics-ML (`ml-service`) — _Implemented & Tested_
   - Domain 1: Identity & Authentication (`identity-service`)
   - Domain 2: Security & Audit (`security-audit-service`)
 - **Wave 2: Read Projections & Peripheral Customer Engagement**
@@ -93,35 +96,36 @@ graph TD
 
 ## 3. Detailed Domain Specifications & Migration Status Matrix
 
-| ID | Domain Name | Target Service | Current Data Ownership | Target Data Ownership | Direct Dependencies | Migration Status |
-|---|---|---|---|---|---|---|
-| **1** | Identity & Auth | `identity-service` | `users`, `tenants`, `tenant_memberships`, `user_sessions`, `refresh_tokens` | Identity DB | None | `implemented` |
-| **2** | Security & Audit | `security-audit-service` | `audit_logs`, `rate_limit_events` | Audit DB | Identity | `implemented` |
-| **3** | Merchant Management | `merchant-service` | `merchants`, `merchant_payout_settings` | Merchant DB | Identity | `implemented` |
-| **4** | Marketplace & Listings | `marketplace-service` | `merchant_listings`, `listing_price_history` | Marketplace DB | Catalog, Merchant | `implemented` |
-| **5** | Product Catalog | `catalog-service` | `categories`, `products`, `product_skus`, `product_attributes`, `reviews` | Catalog DB | None | `implemented` |
-| **6** | Inventory | `inventory-service` | `inventory_items`, `inventory_reservations`, `inventory_ledger` | Inventory DB | Marketplace | `implemented` |
-| **7** | Customer Management | `customer-service` | `customer_profiles`, `customer_addresses`, `wishlists`, `wishlist_items`, `back_in_stock_subscriptions` | Customer DB | Identity | `implemented` |
-| **8** | Cart & Checkout | `cart-checkout-service` | `carts`, `cart_items`, `checkout_sessions` | Cart/Checkout DB | Inventory, Marketplace, Promotions | `implemented` |
-| **9** | Orders | `order-service` | `orders`, `order_items`, `order_status_history` | Orders DB | Cart, Inventory, Payment, Promotion | `implemented` |
-| **10** | Payments | `payment-service` | `payment_intents`, `payment_transactions`, `refunds` | Payment DB | Orders | `implemented` |
-| **11** | Fulfillment | `fulfillment-service` | `shipments`, `shipment_packages`, `carrier_tracking` | Fulfillment DB | Orders, Inventory | `implemented` |
-| **12** | Settlement & Ledger | `settlement-ledger-service`| `merchant_accounts`, `ledger_entries`, `payout_batches` | Settlement DB | Orders, Payments, Merchants | `implemented` |
-| **13** | Promotions & Pricing | `promotions-service` | `coupons`, `coupon_redemptions`, `pricing_rules` | Promotions DB | None | `implemented` |
-| **14** | Search | `search-service` | `search_documents`, `search_suggestions` | Search DB / OpenSearch | Catalog, Marketplace, Inventory | `implemented` |
-| **15** | Analytics | `analytics-service` | `analytics_events`, `daily_sales_aggregates` | Analytics DB / ClickHouse | Outbox events | `implemented` |
-| **16** | Analytics-ML | `ml-service` | `ml_models`, `ml_predictions`, `ml_training_jobs` | ML DB + Object Store | Analytics | `implemented` |
-| **17** | Recommendations | `recommendations-service`| `product_affinity_scores`, `user_recommendation_cache`| Recs Cache / Redis | Analytics, Catalog | `implemented` |
-| **18** | Price Alerts | `price-alerts-service` | `product_price_watches` | Price Alerts DB | Catalog, Notifications | `implemented` |
-| **19** | Notifications | `notifications-service` | `notifications`, `notification_preferences`, `notification_receipts` | Notifications DB | Outbox events | `implemented` |
-| **20** | Events & Outbox | `event-broker-service` | `outbox_events`, `consumer_receipts` | Distributed Message Broker | All services | `implemented` |
-| **21** | AI & RAG | `ai-service` | `product_embeddings`, `chat_conversations` | Vector DB (pgvector) | Catalog | `implemented` |
+| ID     | Domain Name            | Target Service              | Current Data Ownership                                                                                  | Target Data Ownership      | Direct Dependencies                 | Migration Status |
+| ------ | ---------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------- | ----------------------------------- | ---------------- |
+| **1**  | Identity & Auth        | `identity-service`          | `users`, `tenants`, `tenant_memberships`, `user_sessions`, `refresh_tokens`                             | Identity DB                | None                                | `implemented`    |
+| **2**  | Security & Audit       | `security-audit-service`    | `audit_logs`, `rate_limit_events`                                                                       | Audit DB                   | Identity                            | `implemented`    |
+| **3**  | Merchant Management    | `merchant-service`          | `merchants`, `merchant_payout_settings`                                                                 | Merchant DB                | Identity                            | `implemented`    |
+| **4**  | Marketplace & Listings | `marketplace-service`       | `merchant_listings`, `listing_price_history`                                                            | Marketplace DB             | Catalog, Merchant                   | `implemented`    |
+| **5**  | Product Catalog        | `catalog-service`           | `categories`, `products`, `product_skus`, `product_attributes`, `reviews`                               | Catalog DB                 | None                                | `implemented`    |
+| **6**  | Inventory              | `inventory-service`         | `inventory_items`, `inventory_reservations`, `inventory_ledger`                                         | Inventory DB               | Marketplace                         | `implemented`    |
+| **7**  | Customer Management    | `customer-service`          | `customer_profiles`, `customer_addresses`, `wishlists`, `wishlist_items`, `back_in_stock_subscriptions` | Customer DB                | Identity                            | `implemented`    |
+| **8**  | Cart & Checkout        | `cart-checkout-service`     | `carts`, `cart_items`, `checkout_sessions`                                                              | Cart/Checkout DB           | Inventory, Marketplace, Promotions  | `implemented`    |
+| **9**  | Orders                 | `order-service`             | `orders`, `order_items`, `order_status_history`                                                         | Orders DB                  | Cart, Inventory, Payment, Promotion | `implemented`    |
+| **10** | Payments               | `payment-service`           | `payment_intents`, `payment_transactions`, `refunds`                                                    | Payment DB                 | Orders                              | `implemented`    |
+| **11** | Fulfillment            | `fulfillment-service`       | `shipments`, `shipment_packages`, `carrier_tracking`                                                    | Fulfillment DB             | Orders, Inventory                   | `implemented`    |
+| **12** | Settlement & Ledger    | `settlement-ledger-service` | `merchant_accounts`, `ledger_entries`, `payout_batches`                                                 | Settlement DB              | Orders, Payments, Merchants         | `implemented`    |
+| **13** | Promotions & Pricing   | `promotions-service`        | `coupons`, `coupon_redemptions`, `pricing_rules`                                                        | Promotions DB              | None                                | `implemented`    |
+| **14** | Search                 | `search-service`            | `search_documents`, `search_suggestions`                                                                | Search DB / OpenSearch     | Catalog, Marketplace, Inventory     | `implemented`    |
+| **15** | Analytics              | `analytics-service`         | `analytics_events`, `daily_sales_aggregates`                                                            | Analytics DB / ClickHouse  | Outbox events                       | `implemented`    |
+| **16** | Analytics-ML           | `ml-service`                | `ml_models`, `ml_predictions`, `ml_training_jobs`                                                       | ML DB + Object Store       | Analytics                           | `implemented`    |
+| **17** | Recommendations        | `recommendations-service`   | `product_affinity_scores`, `user_recommendation_cache`                                                  | Recs Cache / Redis         | Analytics, Catalog                  | `implemented`    |
+| **18** | Price Alerts           | `price-alerts-service`      | `product_price_watches`                                                                                 | Price Alerts DB            | Catalog, Notifications              | `implemented`    |
+| **19** | Notifications          | `notifications-service`     | `notifications`, `notification_preferences`, `notification_receipts`                                    | Notifications DB           | Outbox events                       | `implemented`    |
+| **20** | Events & Outbox        | `event-broker-service`      | `outbox_events`, `consumer_receipts`                                                                    | Distributed Message Broker | All services                        | `implemented`    |
+| **21** | AI & RAG               | `ai-service`                | `product_embeddings`, `chat_conversations`                                                              | Vector DB (pgvector)       | Catalog                             | `implemented`    |
 
 ---
 
 ## 4. Domain-by-Domain Architectural Specifications
 
 ### Domain 1: Identity and Authentication
+
 - **Current Implementation**: `apps/api/src/modules/identity/`. Auth middleware is decoupled via `IIdentityActorResolver`. Supports `StatelessTokenActorResolver` (zero-DB cryptographic token validation) and `GatewayHeaderActorResolver` (edge-propagated `x-user-id`, `x-tenant-id`, `x-user-role`).
 - **Target Service Boundary**: `apps/identity-service`. Autonomous service owning user authentication, credentials, token issuance, tenant provisioning, and role assignment.
 - **APIs & Contracts**:
@@ -139,6 +143,7 @@ graph TD
 ---
 
 ### Domain 2: Security & Audit
+
 - **Current Implementation**: `apps/api/src/modules/identity/internal/security-audit-service.ts`. Decoupled via `ISecurityAuditService` interface. Concrete implementations include `SecurityAuditService` (Postgres table persistence) and `InMemorySecurityAuditService` (isolated mock/standalone execution).
 - **Target Service Boundary**: `apps/security-audit-service`. Autonomous audit sink storing tamper-evident compliance logs and rate limit telemetry.
 - **APIs & Contracts**:
@@ -155,6 +160,7 @@ graph TD
 ---
 
 ### Domain 3: Merchant Management
+
 - **Current Implementation**: `apps/api/src/modules/merchant/`. Manages merchant profile lifecycle, business onboarding, legal identity verification status (`DRAFT`, `PENDING`, `VERIFIED`, `REJECTED`, `SUSPENDED`), and security auditing.
 - **Core Abstractions**:
   - `IMerchantProfileReader`: decoupled read-only query interface consumed across Marketplace (`ListingService`) and Search (`SearchService`) to verify merchant verification status without direct DB queries to `merchant_profiles`.
@@ -181,6 +187,7 @@ graph TD
 ---
 
 ### Domain 5: Product Catalog
+
 - **Current Implementation**: `apps/api/src/modules/catalog/`. Manages master taxonomy (categories, subcategories), canonical products, product SKUs, variant attributes, review summaries, and strict lifecycle state machines (`DRAFT` -> `ACTIVE` -> `INACTIVE` -> `ARCHIVED`).
 - **Core Abstractions**:
   - `ICatalogReader`: decoupled read-only query interface consumed across Marketplace (`ListingService`), Search (`SearchService`), Recommendations (`RecommendationService`), Cart/Checkout (`CheckoutService`), Orders (`OrderService`), and AI orchestration (`ToolRegistry`).
@@ -204,6 +211,7 @@ graph TD
 ---
 
 ### Domain 14: Search
+
 - **Current Implementation**: `apps/api/src/modules/search/`. Derived read-only query models and faceted search projection. Core query interface is `ISearchStore`. Concrete implementations include `SqlSearchStore` (Postgres relational index), `InMemorySearchStore` (in-process testing), and `HttpSearchStoreAdapter` (remote microservice HTTP client with resilient fallback).
 - **Target Service Boundary**: `apps/search-service`. Autonomous search projection service powered by OpenSearch / Elasticsearch or Postgres read replicas.
 - **APIs & Contracts**:
@@ -222,6 +230,7 @@ graph TD
 ---
 
 ### Domain 15: Analytics & Aggregates
+
 - **Current Implementation**: `apps/api/src/modules/analytics/`. Event-driven ingestion of orders, payments, shipments, settlements, and promotions; analytical fact tables, quarantine tables, daily sales aggregates, and KPI queries.
 - **Core Abstractions**:
   - `IAnalyticsRecommendationReader`: provides trending products, customer purchase histories, and co-purchase signals to Recommendations domain.
@@ -248,6 +257,7 @@ graph TD
 ---
 
 ### Domain 16: Analytics-ML
+
 - **Current Implementation**: `apps/api/src/modules/analytics-ml/`. Previously invoked local Python scripts via Node.js `child_process.execFileAsync` pointing to root `/ml` directory and local `.ml_artifacts/`.
 - **Target Service Boundary**: `apps/ml-service`. A standalone stateless Python/FastAPI microservice executing Scikit-learn inference with models loaded from S3/MinIO.
 - **APIs & Contracts**:
@@ -262,6 +272,7 @@ graph TD
 ---
 
 ### Domain 17: Recommendations
+
 - **Current Implementation**: `apps/api/src/modules/recommendations/`. Candidate generation, deterministic ranking, derived recommendation storage, personalized/similar/trending/frequently-bought-together suggestions, cold-start fallbacks, and event-driven invalidation.
 - **Core Abstraction**: `IRecommendationStore` interface, supported by `SqlRecommendationStore` (Postgres relational tables), `InMemoryRecommendationStore` (zero-DB memory store), and `HttpRecommendationStoreAdapter` (remote microservice client).
 - **Target Service Boundary**: `apps/recommendations-service`. Standalone recommendation and affinity score microservice backed by Redis/Cache and ML affinity matrix.
@@ -283,6 +294,7 @@ graph TD
 ---
 
 ### Domain 18: Price Alerts
+
 - **Current Implementation**: `apps/api/src/modules/price-alerts/`. Tracks `product_price_watches`. Uses `PriceAlertSweepRunner` with 1-hour intervals to check price floors against customer thresholds.
 - **Target Service Boundary**: Decoupled worker service. Interacts with Catalog via HTTP or domain events and dispatches notifications via `INotificationClient`.
 - **APIs & Contracts**:
@@ -297,6 +309,7 @@ graph TD
 ---
 
 ### Domain 19: Notifications
+
 - **Current Implementation**: `apps/notifications-service` extracted as a standalone Fastify service. Monolith integrates via `INotificationClient` with `LocalNotificationClient` and `HttpNotificationClient`. Outbox events forward via `HttpEventForwarder`.
 - **Target Service Boundary**: Autonomous microservice owning email (Resend), WhatsApp, notification templates, preferences, and delivery receipts.
 - **APIs & Contracts**:
@@ -312,6 +325,7 @@ graph TD
 ---
 
 ### Domain 7: Customer Management
+
 - **Current Implementation**: `apps/api/src/modules/customer/`. Address books, wishlists, back-in-stock subscriptions, customer profile data, and address snapshot transformations.
 - **Core Abstractions**:
   - `ICustomerAddressReader`: decoupled address query and snapshot interface used across checkout, orders, and delivery estimation.
@@ -335,6 +349,7 @@ graph TD
 ---
 
 ### Domain 13: Promotions & Pricing
+
 - **Current Implementation**: `apps/api/src/modules/promotion-pricing/`. Promotions, coupon codes, percentage/fixed discounts, usage tracking, order-level/item-level scopes, first-order validation, and stackability calculations.
 - **Core Abstractions**:
   - `IPromotionPricingEngine`: universal promotion and pricing interface covering promotion CRUD, preview discount calculation, and checkout session coupon application/removal.
@@ -359,6 +374,7 @@ graph TD
 ---
 
 ### Domain 4: Marketplace & Listings
+
 - **Current Implementation**: `apps/api/src/modules/marketplace/`. Multi-vendor merchant product listings, pricing, compare-at discounts, listing lifecycle state machines (`DRAFT` -> `ACTIVE` <-> `INACTIVE` / `SUSPENDED`), and tenant isolation.
 - **Core Abstractions**:
   - `IMarketplaceReader`: Decoupled read interface (`getListingById`, `getActiveListingsForSku`) consumed by Cart/Checkout, Inventory, Search, Recommendations, and AI domains.
@@ -385,6 +401,7 @@ graph TD
 ---
 
 ### Domain 6: Inventory Management
+
 - **Current Implementation**: `apps/api/src/modules/inventory/`. Manages authoritative physical stock truth across multi-vendor listings, CAS optimistic locking reservations, stock adjustments (on-hand, non-sellable), stock movements ledger, and reservation lifecycle (`ACTIVE` -> `CONSUMED` | `RELEASED` | `EXPIRED`).
 - **Core Abstractions**:
   - `IInventoryReader`: decoupled read-only query interface (`getAvailabilityByListingId`, `getInventoryById`, `getInventoryByListingId`, `getReservationById`, `findReservationByIdempotencyKey`) consumed by Cart/Checkout (`CheckoutService`), Search (`SearchService`), Orders (`OrderService`), AI orchestration (`ToolRegistry`), and Fulfillment (`FulfillmentService`).
@@ -420,6 +437,7 @@ graph TD
 ---
 
 ### Domain 8: Cart & Checkout
+
 - **Current Implementation**: `apps/api/src/modules/cart-checkout/`. Manages customer shopping carts (`carts`, `cart_items`) with live multi-vendor availability checks and checkout sessions (`checkout_sessions`, `checkout_items`) with multi-item inventory reservations, address snapshots, and atomic state machine transitions (`OPEN` -> `VALIDATING` -> `READY` | `FAILED` | `CANCELLED` | `EXPIRED`).
 - **Core Abstractions**:
   - `ICartReader` & `ICartService`: decoupled shopping cart query and manipulation interface implemented by `CartService`, `InMemoryCartStore`, and `HttpCartClient`. Consumed by Customer Wishlist (`WishlistService`) and AI orchestration (`ToolRegistry`).
@@ -448,9 +466,10 @@ graph TD
 - **Rollback Strategy**: Set `CART_SERVICE_MODE=local` and `CHECKOUT_SERVICE_MODE=local` to revert to direct SQL queries without downtime.
 - **Status**: `implemented`.
 
------
+---
 
 ### Domain 9: Orders & Orchestration
+
 - **Current Implementation**: `apps/api/src/modules/orders/`. Manages customer order placement from READY checkout sessions and SUCCEEDED payment intents, multi-vendor seller order fan-out (`seller_orders`, `order_items`), status tracking (`PENDING` -> `PAID` -> `PROCESSING` -> `COMPLETED` | `CANCELLED`), and idempotent replay protection.
 - **Core Abstractions**:
   - `IOrderReader`: decoupled read-only query interface (`getCustomerOrder`, `listCustomerOrders`, `getSellerOrder`, `listSellerOrders`) consumed by Fulfillment (`FulfillmentService`), Settlement Ledger (`SettlementService`), and AI orchestration (`ToolRegistry`).
@@ -478,6 +497,7 @@ graph TD
 ---
 
 ### Domain 10: Payments
+
 - **Current Implementation**: `apps/api/src/modules/payment/`. Payment intent lifecycle (`OPEN` -> `PROCESSING` -> `SUCCEEDED` | `FAILED`), payment attempts, provider webhooks (Stripe signature verification & deduplication), and refund issuance.
 - **Core Abstractions**:
   - `IPaymentReader`: decoupled read-only query interface (`getPaymentIntent`, `linkOrderToIntent`) consumed by Orders (`OrderService`).
@@ -503,6 +523,7 @@ graph TD
 ---
 
 ### Domain 11: Fulfillment
+
 - **Current Implementation**: `apps/api/src/modules/fulfillment/`. Shipment lifecycle (`PENDING` -> `READY_TO_SHIP` -> `SHIPPED` -> `IN_TRANSIT` -> `OUT_FOR_DELIVERY` -> `DELIVERED`), return requests (`REQUESTED` -> `APPROVED` -> `IN_TRANSIT` -> `RECEIVED` -> `COMPLETED`), carrier integration (Shippo / Mock), and webhook handling.
 - **Core Abstractions**:
   - `IFulfillmentReader`: decoupled read-only query interface (`getShipment`, `listShipments`, `getShipmentTracking`, `getReturn`, `listReturns`).
@@ -535,6 +556,7 @@ graph TD
 ---
 
 ### Domain 12: Settlement & Ledger
+
 - **Current Implementation**: `apps/api/src/modules/settlement-ledger/`. Multi-vendor financial ledger, automated seller payouts, escrow settlement, fee reconciliation, and ledger balance auditing.
 - **Core Abstractions**:
   - `ISettlementReader`: decoupled read-only query interface (`getFinancialSummary`, `listLedgerEntries`, `getSettlement`).
@@ -563,6 +585,7 @@ graph TD
 ---
 
 ### Domain 20: Events & Outbox Platform
+
 - **Current Implementation**: `apps/api/src/modules/events/`. PostgreSQL transactional outbox relay, background event publishers, idempotent consumer retries, and distributed messaging bus.
 - **Core Abstractions**:
   - `IOutboxReader`: decoupled read-only query interface (`listEvents`, `getEventById`).
@@ -591,6 +614,7 @@ graph TD
 ---
 
 ### Domain 21: AI Orchestrator & Conversational Commerce
+
 - **Current Implementation**: `apps/api/src/modules/ai/`. Conversational WhatsApp & Web commerce agent, LLM tool execution engine, vector catalog embeddings, RAG memory store, and proactive shopper intervention policies.
 - **Core Abstractions**:
   - `IAiService`: unified decoupled interface for chat message processing, conversation history querying, knowledge document ingestion, and semantic retrieval.
@@ -618,59 +642,55 @@ graph TD
 
 ## 5. Verification & Test Evidence Log
 
-| Date | Scope | Tests Run | Result | Evidence / Logs |
-|---|---|---|---|---|
-| 2026-10-10 | Price Alert State Reconciliation | `price-alerts.test.ts`, `notification-client.test.ts` | **PASS (25/25)** | Full delivery reconciliation, concurrent sweep safety verified |
-| 2026-10-10 | Notification Event Forwarding | `notification-event-forwarder.test.ts` | **PASS (33/33)** | Monolith HTTP event forwarder verified with claim fencing & retry |
-| 2026-10-10 | Notifications Microservice | `apps/notifications-service` full test suite | **PASS (68/68)** | Auth boundary, channel providers, event ingestion, and claim fencing verified |
-| 2026-10-10 | ML Inference & Composite Execution Provider | `http-ml-execution-provider.test.ts` | **PASS (17/17)** | Contract preservation, composite provider decoupling, error mapping verified |
-| 2026-10-10 | Identity Microservice Decoupling | `stateless-token-actor-resolver.test.ts` | **PASS (13/13)** | Zero-DB token resolution and gateway header propagation verified |
-| 2026-10-10 | Identity Engine & RBAC Regression | `identity-auth.test.ts`, `identity-http.test.ts`, `rbac.test.ts`, `token-rotation.test.ts` | **PASS (44/44)** | Full registration, password hashing, token rotation, and RBAC verified |
-| 2026-10-10 | Microservices Configuration Schema | `config.test.ts` | **PASS (6/6)** | `AUTH_VERIFICATION_MODE`, `ML_EXECUTION_MODE`, and `NOTIFICATION_CLIENT_MODE` verified |
-| 2026-10-10 | Architecture Boundary Rules | `architecture.test.ts` | **PASS (38/38)** | Clean cross-module import boundaries verified with zero violations |
-| 2026-10-10 | Security & Audit Decoupling | `security-audit.test.ts` | **PASS (7/7)** | ISecurityAuditService, in-memory buffer, and cross-domain injection verified |
-| 2026-10-10 | Search HTTP Adapter & Resilient Fallback | `http-search-store.test.ts` | **PASS (10/10)** | ISearchStore HTTP delegation, normalization, and fail-safe local fallback verified |
-| 2026-10-10 | Search Read-Model Regression Suite | `search.test.ts`, `sql-search-store.test.ts` | **PASS (24/24)** | Multi-vendor projection, facet aggregation, and stale-write safeguards verified |
-| 2026-10-10 | Recommendations HTTP Adapter & Fallback | `http-recommendation-store.test.ts` | **PASS (12/12)** | IRecommendationStore in-memory store, remote HTTP client, and fallback verified |
-| 2026-10-10 | Recommendations Bounded Context Regression | `recommendations.test.ts` | **PASS (20/20)** | Candidate ranking, tenant isolation, and administrative rebuild verified |
-| 2026-10-10 | Analytics HTTP Client & Fallback Readers | `http-analytics-client.test.ts` | **PASS (9/9)** | Recommendation/ML signal reader HTTP delegation and zero-DB fallback verified |
-| 2026-10-10 | Analytics Bounded Context Regression Suite | `analytics.test.ts` | **PASS (21/21)** | Multi-channel event ingestion, quarantine tables, and aggregate calculation verified |
-| 2026-10-10 | Customer Address HTTP Client & Decoupled Reader | `http-customer-address-client.test.ts` | **PASS (6/6)** | ICustomerAddressReader HTTP client, snapshot converter, and fallback verified |
-| 2026-10-10 | Promotion Pricing HTTP Client & Fallback Engine | `http-promotion-client.test.ts` | **PASS (8/8)** | IPromotionPricingEngine HTTP client, CRUD, discount preview, and fallback verified |
-| 2026-10-11 | Merchant Management HTTP Client & Resilient Fallback | `http-merchant-client.test.ts` | **PASS (10/10)** | IMerchantService HTTP client, headers propagation, error mapping, and fallback verified |
-| 2026-10-11 | Merchant & Listing Regression Suite | `merchant-flow-isolation.test.ts`, `listings.test.ts` | **PASS (27/27)** | Multi-vendor listings, onboarding lifecycle, tenant isolation, and RBAC verified |
-| 2026-10-11 | Catalog HTTP Client & Resilient Fallback | `http-catalog-client.test.ts` | **PASS (9/9)** | ICatalogService HTTP client, categories, products, SKUs, and fallback verified |
-| 2026-10-11 | Catalog, Recommendations & Search Regression Suite | `catalog.test.ts`, `recommendations.test.ts`, `search.test.ts` | **PASS (53/53)** | Master catalog lifecycle, derived projections, candidate sources verified |
-| 2026-10-11 | Microservices Configuration Schema (Catalog added) | `config.test.ts` | **PASS (11/11)** | Added `CATALOG_SERVICE_MODE`, URL validation, and defaults verified |
-| 2026-10-11 | Marketplace HTTP Client & Resilient Fallback | `http-marketplace-client.test.ts` | **PASS (10/10)** | IMarketplaceService HTTP client, CRUD, status state machine, error mapping, and fallback verified |
-| 2026-10-11 | Marketplace Multi-Vendor & Lifecycle Suite | `listings.test.ts` | **PASS (15/15)** | Multi-vendor offers, tenant isolation, SKU validation, price constraints, and suspension verified |
-| 2026-10-11 | Inventory Management HTTP Client & Resilient Fallback | `http-inventory-client.test.ts` | **PASS (10/10)** | IInventoryService HTTP client, CAS reservations, stock movements, and fallback verified |
-| 2026-10-11 | Inventory Concurrency & State Machine Suite | `inventory.test.ts`, `inventory-concurrency.test.ts` | **PASS (22/22)** | Optimistic locking, double-release protection, expiration worker, and overselling guards verified |
-| 2026-10-11 | Cart & Checkout HTTP Clients & Resilient Fallback | `http-cart-checkout-client.test.ts` | **PASS (8/8)** | ICartService and ICheckoutService HTTP clients, multi-item reservations, and fallback verified |
-| 2026-10-11 | Checkout Concurrency & Hardening Suite | `checkout.test.ts`, `checkout-hardening.test.ts`, `checkout-concurrency.test.ts` | **PASS (37/37)** | Multi-item compensation, idempotency fingerprinting, crash recovery, and race protection verified |
-| 2026-10-11 | Microservices Configuration Schema (Cart & Checkout added) | `config.test.ts` | **PASS (15/15)** | Added `CART_SERVICE_MODE` and `CHECKOUT_SERVICE_MODE`, URL validation, and defaults verified |
-| 2026-10-11 | Orders & Orchestration HTTP Client & Resilient Fallback | `http-order-client.test.ts` | **PASS (9/9)** | IOrderService HTTP client, multi-vendor seller orders, status updates, and fallback verified |
-| 2026-10-11 | Orders & Payments Concurrency & State Machine Suite | `orders-and-payments.test.ts` | **PASS (32/32)** | Outbox crash recovery, immutable snapshots, idempotency deduplication verified |
-| 2026-10-11 | Microservices Configuration Schema (Orders added) | `config.test.ts` | **PASS (16/16)** | Added `ORDER_SERVICE_MODE`, URL validation, and defaults verified |
-| 2026-10-11 | Payment HTTP Client & Resilient Fallback | `http-payment-client.test.ts` | **PASS (7/7)** | IPaymentService HTTP client, attempts, refunds, webhooks, and fallback verified |
-| 2026-10-11 | Microservices Configuration Schema (Payments added) | `config.test.ts` | **PASS (17/17)** | Added `PAYMENT_SERVICE_MODE`, URL validation, and defaults verified |
-| 2026-10-11 | Fulfillment HTTP Client & Resilient Fallback | `http-fulfillment-client.test.ts` | **PASS (7/7)** | IFulfillmentService HTTP client, tracking, returns, callbacks, and fallback verified |
-| 2026-10-11 | Fulfillment & Returns Concurrency & Gateway Suite | `fulfillment-and-returns.test.ts`, `real-shipping-gateway.test.ts` | **PASS (60/60)** | Shippo provider, state machines, partial fulfillment, and recovery verified |
-| 2026-10-11 | Microservices Configuration Schema (Fulfillment added) | `config.test.ts` | **PASS (18/18)** | Added `FULFILLMENT_SERVICE_MODE`, URL validation, and defaults verified |
-| 2026-10-11 | Settlement & Ledger HTTP Client & Resilient Fallback | `http-settlement-client.test.ts` | **PASS (6/6)** | ISettlementService HTTP client, journal postings, adjustments, payouts, and fallback verified |
-| 2026-10-11 | Settlement & Ledger Double-Entry Concurrency Suite | `settlement-and-ledger.test.ts` | **PASS (29/29)** | Invariant SUM(DEBIT) = SUM(CREDIT), idempotency, and payouts verified |
-| 2026-10-11 | Microservices Configuration Schema (Settlement added) | `config.test.ts` | **PASS (19/19)** | Added `SETTLEMENT_SERVICE_MODE`, URL validation, and defaults verified |
-| 2026-10-11 | Event Broker & Transport HTTP Adapter & Resilient Fallback | `http-event-transport-client.test.ts` | **PASS (11/11)** | HttpEventTransport & HttpOutboxClient, envelope headers, admin replay, and fallback verified |
-| 2026-10-11 | AI Orchestrator & RAG HTTP Client & Resilient Fallback | `http-ai-client.test.ts` | **PASS (10/10)** | IAiService HTTP client, chat dispatch, RAG query, doc ingestion, and fallback verified |
-| 2026-10-11 | Microservices Configuration Schema (AI added) | `config.test.ts` | **PASS (21/21)** | Added `AI_SERVICE_MODE`, URL validation, and defaults verified |
-| 2026-10-11 | Full Repository Regression Suite (All 21 Domains Complete) | `apps/api`: `vitest run` | **PASS (68/68 files, 942/942 tests)** | 100% test pass rate across all 21 bounded domains with zero regressions |
-| 2026-10-11 | Cross-Domain Architecture Boundary Rules | `architecture.test.ts` | **PASS (38/38)** | Strict decoupled module boundaries with zero illegal imports verified across all 21 domains |
-| 2026-10-11 | Monolith API TypeScript Check | `apps/api`: `tsc -p tsconfig.json` | **PASS (0 errors)** | Full typecheck across all 21 modules passes |
-| 2026-10-11 | Monolith API Compilation | `apps/api`: `npm run build` | **PASS** | Complete production build successful |
-| 2026-10-10 | Notifications Service Compilation | `apps/notifications-service`: `npm run build` | **PASS** | Standalone microservice build successful |
-| 2026-10-11 | Notifications Standalone Test Suite | `apps/notifications-service`: `npm test` | **PASS (6/6 files, 68/68 tests)** | Ingestion, claim fencing, retries, rate limits, Resend/WhatsApp verified |
-| 2026-10-11 | Analytics-ML Standalone Test Suite | `apps/ml-service`: `pytest tests` | **PASS (15/15 tests)** | FastAPI inference endpoints, status checks, error handlers verified |
-
-
-
-
+| Date       | Scope                                                      | Tests Run                                                                                  | Result                                | Evidence / Logs                                                                                   |
+| ---------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 2026-10-10 | Price Alert State Reconciliation                           | `price-alerts.test.ts`, `notification-client.test.ts`                                      | **PASS (25/25)**                      | Full delivery reconciliation, concurrent sweep safety verified                                    |
+| 2026-10-10 | Notification Event Forwarding                              | `notification-event-forwarder.test.ts`                                                     | **PASS (33/33)**                      | Monolith HTTP event forwarder verified with claim fencing & retry                                 |
+| 2026-10-10 | Notifications Microservice                                 | `apps/notifications-service` full test suite                                               | **PASS (68/68)**                      | Auth boundary, channel providers, event ingestion, and claim fencing verified                     |
+| 2026-10-10 | ML Inference & Composite Execution Provider                | `http-ml-execution-provider.test.ts`                                                       | **PASS (17/17)**                      | Contract preservation, composite provider decoupling, error mapping verified                      |
+| 2026-10-10 | Identity Microservice Decoupling                           | `stateless-token-actor-resolver.test.ts`                                                   | **PASS (13/13)**                      | Zero-DB token resolution and gateway header propagation verified                                  |
+| 2026-10-10 | Identity Engine & RBAC Regression                          | `identity-auth.test.ts`, `identity-http.test.ts`, `rbac.test.ts`, `token-rotation.test.ts` | **PASS (44/44)**                      | Full registration, password hashing, token rotation, and RBAC verified                            |
+| 2026-10-10 | Microservices Configuration Schema                         | `config.test.ts`                                                                           | **PASS (6/6)**                        | `AUTH_VERIFICATION_MODE`, `ML_EXECUTION_MODE`, and `NOTIFICATION_CLIENT_MODE` verified            |
+| 2026-10-10 | Architecture Boundary Rules                                | `architecture.test.ts`                                                                     | **PASS (38/38)**                      | Clean cross-module import boundaries verified with zero violations                                |
+| 2026-10-10 | Security & Audit Decoupling                                | `security-audit.test.ts`                                                                   | **PASS (7/7)**                        | ISecurityAuditService, in-memory buffer, and cross-domain injection verified                      |
+| 2026-10-10 | Search HTTP Adapter & Resilient Fallback                   | `http-search-store.test.ts`                                                                | **PASS (10/10)**                      | ISearchStore HTTP delegation, normalization, and fail-safe local fallback verified                |
+| 2026-10-10 | Search Read-Model Regression Suite                         | `search.test.ts`, `sql-search-store.test.ts`                                               | **PASS (24/24)**                      | Multi-vendor projection, facet aggregation, and stale-write safeguards verified                   |
+| 2026-10-10 | Recommendations HTTP Adapter & Fallback                    | `http-recommendation-store.test.ts`                                                        | **PASS (12/12)**                      | IRecommendationStore in-memory store, remote HTTP client, and fallback verified                   |
+| 2026-10-10 | Recommendations Bounded Context Regression                 | `recommendations.test.ts`                                                                  | **PASS (20/20)**                      | Candidate ranking, tenant isolation, and administrative rebuild verified                          |
+| 2026-10-10 | Analytics HTTP Client & Fallback Readers                   | `http-analytics-client.test.ts`                                                            | **PASS (9/9)**                        | Recommendation/ML signal reader HTTP delegation and zero-DB fallback verified                     |
+| 2026-10-10 | Analytics Bounded Context Regression Suite                 | `analytics.test.ts`                                                                        | **PASS (21/21)**                      | Multi-channel event ingestion, quarantine tables, and aggregate calculation verified              |
+| 2026-10-10 | Customer Address HTTP Client & Decoupled Reader            | `http-customer-address-client.test.ts`                                                     | **PASS (6/6)**                        | ICustomerAddressReader HTTP client, snapshot converter, and fallback verified                     |
+| 2026-10-10 | Promotion Pricing HTTP Client & Fallback Engine            | `http-promotion-client.test.ts`                                                            | **PASS (8/8)**                        | IPromotionPricingEngine HTTP client, CRUD, discount preview, and fallback verified                |
+| 2026-10-11 | Merchant Management HTTP Client & Resilient Fallback       | `http-merchant-client.test.ts`                                                             | **PASS (10/10)**                      | IMerchantService HTTP client, headers propagation, error mapping, and fallback verified           |
+| 2026-10-11 | Merchant & Listing Regression Suite                        | `merchant-flow-isolation.test.ts`, `listings.test.ts`                                      | **PASS (27/27)**                      | Multi-vendor listings, onboarding lifecycle, tenant isolation, and RBAC verified                  |
+| 2026-10-11 | Catalog HTTP Client & Resilient Fallback                   | `http-catalog-client.test.ts`                                                              | **PASS (9/9)**                        | ICatalogService HTTP client, categories, products, SKUs, and fallback verified                    |
+| 2026-10-11 | Catalog, Recommendations & Search Regression Suite         | `catalog.test.ts`, `recommendations.test.ts`, `search.test.ts`                             | **PASS (53/53)**                      | Master catalog lifecycle, derived projections, candidate sources verified                         |
+| 2026-10-11 | Microservices Configuration Schema (Catalog added)         | `config.test.ts`                                                                           | **PASS (11/11)**                      | Added `CATALOG_SERVICE_MODE`, URL validation, and defaults verified                               |
+| 2026-10-11 | Marketplace HTTP Client & Resilient Fallback               | `http-marketplace-client.test.ts`                                                          | **PASS (10/10)**                      | IMarketplaceService HTTP client, CRUD, status state machine, error mapping, and fallback verified |
+| 2026-10-11 | Marketplace Multi-Vendor & Lifecycle Suite                 | `listings.test.ts`                                                                         | **PASS (15/15)**                      | Multi-vendor offers, tenant isolation, SKU validation, price constraints, and suspension verified |
+| 2026-10-11 | Inventory Management HTTP Client & Resilient Fallback      | `http-inventory-client.test.ts`                                                            | **PASS (10/10)**                      | IInventoryService HTTP client, CAS reservations, stock movements, and fallback verified           |
+| 2026-10-11 | Inventory Concurrency & State Machine Suite                | `inventory.test.ts`, `inventory-concurrency.test.ts`                                       | **PASS (22/22)**                      | Optimistic locking, double-release protection, expiration worker, and overselling guards verified |
+| 2026-10-11 | Cart & Checkout HTTP Clients & Resilient Fallback          | `http-cart-checkout-client.test.ts`                                                        | **PASS (8/8)**                        | ICartService and ICheckoutService HTTP clients, multi-item reservations, and fallback verified    |
+| 2026-10-11 | Checkout Concurrency & Hardening Suite                     | `checkout.test.ts`, `checkout-hardening.test.ts`, `checkout-concurrency.test.ts`           | **PASS (37/37)**                      | Multi-item compensation, idempotency fingerprinting, crash recovery, and race protection verified |
+| 2026-10-11 | Microservices Configuration Schema (Cart & Checkout added) | `config.test.ts`                                                                           | **PASS (15/15)**                      | Added `CART_SERVICE_MODE` and `CHECKOUT_SERVICE_MODE`, URL validation, and defaults verified      |
+| 2026-10-11 | Orders & Orchestration HTTP Client & Resilient Fallback    | `http-order-client.test.ts`                                                                | **PASS (9/9)**                        | IOrderService HTTP client, multi-vendor seller orders, status updates, and fallback verified      |
+| 2026-10-11 | Orders & Payments Concurrency & State Machine Suite        | `orders-and-payments.test.ts`                                                              | **PASS (32/32)**                      | Outbox crash recovery, immutable snapshots, idempotency deduplication verified                    |
+| 2026-10-11 | Microservices Configuration Schema (Orders added)          | `config.test.ts`                                                                           | **PASS (16/16)**                      | Added `ORDER_SERVICE_MODE`, URL validation, and defaults verified                                 |
+| 2026-10-11 | Payment HTTP Client & Resilient Fallback                   | `http-payment-client.test.ts`                                                              | **PASS (7/7)**                        | IPaymentService HTTP client, attempts, refunds, webhooks, and fallback verified                   |
+| 2026-10-11 | Microservices Configuration Schema (Payments added)        | `config.test.ts`                                                                           | **PASS (17/17)**                      | Added `PAYMENT_SERVICE_MODE`, URL validation, and defaults verified                               |
+| 2026-10-11 | Fulfillment HTTP Client & Resilient Fallback               | `http-fulfillment-client.test.ts`                                                          | **PASS (7/7)**                        | IFulfillmentService HTTP client, tracking, returns, callbacks, and fallback verified              |
+| 2026-10-11 | Fulfillment & Returns Concurrency & Gateway Suite          | `fulfillment-and-returns.test.ts`, `real-shipping-gateway.test.ts`                         | **PASS (60/60)**                      | Shippo provider, state machines, partial fulfillment, and recovery verified                       |
+| 2026-10-11 | Microservices Configuration Schema (Fulfillment added)     | `config.test.ts`                                                                           | **PASS (18/18)**                      | Added `FULFILLMENT_SERVICE_MODE`, URL validation, and defaults verified                           |
+| 2026-10-11 | Settlement & Ledger HTTP Client & Resilient Fallback       | `http-settlement-client.test.ts`                                                           | **PASS (6/6)**                        | ISettlementService HTTP client, journal postings, adjustments, payouts, and fallback verified     |
+| 2026-10-11 | Settlement & Ledger Double-Entry Concurrency Suite         | `settlement-and-ledger.test.ts`                                                            | **PASS (29/29)**                      | Invariant SUM(DEBIT) = SUM(CREDIT), idempotency, and payouts verified                             |
+| 2026-10-11 | Microservices Configuration Schema (Settlement added)      | `config.test.ts`                                                                           | **PASS (19/19)**                      | Added `SETTLEMENT_SERVICE_MODE`, URL validation, and defaults verified                            |
+| 2026-10-11 | Event Broker & Transport HTTP Adapter & Resilient Fallback | `http-event-transport-client.test.ts`                                                      | **PASS (11/11)**                      | HttpEventTransport & HttpOutboxClient, envelope headers, admin replay, and fallback verified      |
+| 2026-10-11 | AI Orchestrator & RAG HTTP Client & Resilient Fallback     | `http-ai-client.test.ts`                                                                   | **PASS (10/10)**                      | IAiService HTTP client, chat dispatch, RAG query, doc ingestion, and fallback verified            |
+| 2026-10-11 | Microservices Configuration Schema (AI added)              | `config.test.ts`                                                                           | **PASS (21/21)**                      | Added `AI_SERVICE_MODE`, URL validation, and defaults verified                                    |
+| 2026-10-11 | Full Repository Regression Suite (All 21 Domains Complete) | `apps/api`: `vitest run`                                                                   | **PASS (68/68 files, 942/942 tests)** | 100% test pass rate across all 21 bounded domains with zero regressions                           |
+| 2026-10-11 | Cross-Domain Architecture Boundary Rules                   | `architecture.test.ts`                                                                     | **PASS (38/38)**                      | Strict decoupled module boundaries with zero illegal imports verified across all 21 domains       |
+| 2026-10-11 | Monolith API TypeScript Check                              | `apps/api`: `tsc -p tsconfig.json`                                                         | **PASS (0 errors)**                   | Full typecheck across all 21 modules passes                                                       |
+| 2026-10-11 | Monolith API Compilation                                   | `apps/api`: `npm run build`                                                                | **PASS**                              | Complete production build successful                                                              |
+| 2026-10-10 | Notifications Service Compilation                          | `apps/notifications-service`: `npm run build`                                              | **PASS**                              | Standalone microservice build successful                                                          |
+| 2026-10-11 | Notifications Standalone Test Suite                        | `apps/notifications-service`: `npm test`                                                   | **PASS (6/6 files, 68/68 tests)**     | Ingestion, claim fencing, retries, rate limits, Resend/WhatsApp verified                          |
+| 2026-10-11 | Analytics-ML Standalone Test Suite                         | `apps/ml-service`: `pytest tests`                                                          | **PASS (15/15 tests)**                | FastAPI inference endpoints, status checks, error handlers verified                               |

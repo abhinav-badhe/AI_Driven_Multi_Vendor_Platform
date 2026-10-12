@@ -34,7 +34,16 @@ export class NotificationService implements INotificationClient {
    * Enforces customer preferences, tenant isolation, and strict database-level idempotency.
    */
   async requestNotification(input: RequestNotificationInput): Promise<NotificationResultDto> {
-    const { tenantId, customerId, eventId, notificationType, channel, recipient, templateId, payload } = input;
+    const {
+      tenantId,
+      customerId,
+      eventId,
+      notificationType,
+      channel,
+      recipient,
+      templateId,
+      payload,
+    } = input;
 
     if (!tenantId || !eventId || !notificationType || !channel || !recipient || !templateId) {
       throw new ValidationError('All notification request fields are mandatory');
@@ -250,7 +259,8 @@ export class NotificationService implements INotificationClient {
   }
 
   private async dispatchToChannel(record: NotificationRecord): Promise<void> {
-    const subject = (record.payload.subject as string) || `Notification: ${record.notificationType}`;
+    const subject =
+      (record.payload.subject as string) || `Notification: ${record.notificationType}`;
     const body = (record.payload.body as string) || JSON.stringify(record.payload);
 
     switch (record.channel) {
@@ -338,10 +348,7 @@ export class NotificationService implements INotificationClient {
     return this.repo.listNotifications(this.db, filter);
   }
 
-  async getNotificationById(
-    actor: AuthorizedActor,
-    id: string,
-  ): Promise<NotificationRecord> {
+  async getNotificationById(actor: AuthorizedActor, id: string): Promise<NotificationRecord> {
     if (actor.role !== 'ADMINISTRATOR') {
       throw new ForbiddenError('Only platform administrators can inspect notification records');
     }
@@ -353,10 +360,7 @@ export class NotificationService implements INotificationClient {
     return n;
   }
 
-  async retryNotification(
-    actor: AuthorizedActor,
-    id: string,
-  ): Promise<{ retried: boolean }> {
+  async retryNotification(actor: AuthorizedActor, id: string): Promise<{ retried: boolean }> {
     if (actor.role !== 'ADMINISTRATOR') {
       throw new ForbiddenError('Only platform administrators can retry failed notifications');
     }

@@ -5,6 +5,7 @@
 This document provides a **read-only, source-code-verified integration boundary audit** between the Node.js API analytics/ML domain (`apps/api`) and the standalone Python ML inference microservice (`apps/ml-service`).
 
 The objective is to establish with mathematical and architectural certainty whether the HTTP inference seam introduced via `HttpMlExecutionProvider` can replace `LocalPythonMlExecutionProvider` in a future migration step without:
+
 1. Changing prediction semantics or numerical outputs.
 2. Breaking batching, entity mapping, or idempotency keys.
 3. Violating input schema constraints on either side of the transport boundary.
@@ -15,6 +16,7 @@ The objective is to establish with mathematical and architectural certainty whet
 ## 2. Node-Side Request Contract
 
 ### 2.1 Caller Source: `MlService.generatePredictions`
+
 - **Location**: `apps/api/src/modules/analytics-ml/internal/ml-service.ts` (lines 508–602)
 - **Invocation**: `await this.executionProvider.runPrediction(payload)`
 - **Payload Construction**:
@@ -30,6 +32,7 @@ The objective is to establish with mathematical and architectural certainty whet
   ```
 
 ### 2.2 Client Transport: `HttpMlExecutionProvider.runPrediction`
+
 - **Location**: `apps/api/src/modules/analytics-ml/internal/http-ml-execution-provider.ts` (lines 66–96)
 - **HTTP Method**: `POST`
 - **Endpoint**: `${this.baseUrl}/v1/predict`
@@ -44,6 +47,7 @@ The objective is to establish with mathematical and architectural certainty whet
 ## 3. ML-Service Request Contract
 
 ### 3.1 Receiver Schema: `apps/ml-service/app/api/routes.py`
+
 - **Location**: `apps/ml-service/app/api/routes.py` (lines 24–33, 92–104)
 - **Pydantic Models**:
   ```python
@@ -58,19 +62,21 @@ The objective is to establish with mathematical and architectural certainty whet
   ```
 
 ### 3.2 Property-by-Property Schema Alignment
-| Field | Node Type (`apps/api`) | Python Schema (`apps/ml-service`) | Status | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| `modelType` | `string` (`ModelType` union) | `str` (validated against set) | `[VERIFIED]` | Identical keys and value enums across both codebases. |
-| `artifactPath` | `string` | `str` | `[VERIFIED]` | String passed directly to path resolver. |
-| `features` | `Array<FeatureItem>` | `List[FeatureItem]` | `[VERIFIED]` | Exact array of objects. |
-| `features[i].entityId` | `string` | `str` (`min_length=1`) | `[VERIFIED]` | Non-empty string preserved. |
-| `features[i].featureVector` | `number[]` | `List[float]` | `[VERIFIED]` | Dense array of 64-bit IEEE floats. |
+
+| Field                       | Node Type (`apps/api`)       | Python Schema (`apps/ml-service`) | Status       | Notes                                                 |
+| :-------------------------- | :--------------------------- | :-------------------------------- | :----------- | :---------------------------------------------------- |
+| `modelType`                 | `string` (`ModelType` union) | `str` (validated against set)     | `[VERIFIED]` | Identical keys and value enums across both codebases. |
+| `artifactPath`              | `string`                     | `str`                             | `[VERIFIED]` | String passed directly to path resolver.              |
+| `features`                  | `Array<FeatureItem>`         | `List[FeatureItem]`               | `[VERIFIED]` | Exact array of objects.                               |
+| `features[i].entityId`      | `string`                     | `str` (`min_length=1`)            | `[VERIFIED]` | Non-empty string preserved.                           |
+| `features[i].featureVector` | `number[]`                   | `List[float]`                     | `[VERIFIED]` | Dense array of 64-bit IEEE floats.                    |
 
 ---
 
 ## 4. Response Contract Comparison
 
 ### 4.1 ML-Service Response Schema: `/v1/predict`
+
 - **Location**: `apps/ml-service/app/api/routes.py` (lines 35–45)
   ```python
   class PredictionItem(BaseModel):
@@ -85,6 +91,7 @@ The objective is to establish with mathematical and architectural certainty whet
   ```
 
 ### 4.2 Client Deserialization: `HttpMlExecutionProvider.runPrediction`
+
 - **Location**: `apps/api/src/modules/analytics-ml/internal/http-ml-execution-provider.ts` (lines 161–174)
   ```typescript
   const predictions = (resObj.predictions as Array<Record<string, unknown>>).map((item) => ({
@@ -97,6 +104,7 @@ The objective is to establish with mathematical and architectural certainty whet
   ```
 
 ### 4.3 Node `MlService` Consumption
+
 - **Location**: `apps/api/src/modules/analytics-ml/internal/ml-service.ts` (lines 620–647)
   ```typescript
   for (const pred of predResult.predictions) {
@@ -120,14 +128,15 @@ The objective is to establish with mathematical and architectural certainty whet
   ```
 
 ### 4.4 Field Compatibility Assessment
-| Response Field | ML Service Emitted Type | Provider Mapped Type | MlService Consumed Field | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| `success` | `bool` (`True`) | `boolean` (`true`) | Checked via `!predResult.success` | `[VERIFIED]` |
-| `predictions` | `List[PredictionItem]` | `Array<PredictionItem>` | Iterated via `for (const pred of ...)` | `[VERIFIED]` |
-| `entityId` | `str` | `string` | Used in `scopeKey` and `entityId` | `[VERIFIED]` |
-| `predictionValue` | `float` | `number` | Persisted as `predictionValue` | `[VERIFIED]` |
-| `probability` | `float \| None` | `number \| null` | Persisted as `probability` | `[VERIFIED]` |
-| `confidence` | `float \| None` | `number \| null` | Persisted as `confidence` | `[VERIFIED]` |
+
+| Response Field    | ML Service Emitted Type | Provider Mapped Type    | MlService Consumed Field               | Status       |
+| :---------------- | :---------------------- | :---------------------- | :------------------------------------- | :----------- |
+| `success`         | `bool` (`True`)         | `boolean` (`true`)      | Checked via `!predResult.success`      | `[VERIFIED]` |
+| `predictions`     | `List[PredictionItem]`  | `Array<PredictionItem>` | Iterated via `for (const pred of ...)` | `[VERIFIED]` |
+| `entityId`        | `str`                   | `string`                | Used in `scopeKey` and `entityId`      | `[VERIFIED]` |
+| `predictionValue` | `float`                 | `number`                | Persisted as `predictionValue`         | `[VERIFIED]` |
+| `probability`     | `float \| None`         | `number \| null`        | Persisted as `probability`             | `[VERIFIED]` |
+| `confidence`      | `float \| None`         | `number \| null`        | Persisted as `confidence`              | `[VERIFIED]` |
 
 ---
 
@@ -135,12 +144,12 @@ The objective is to establish with mathematical and architectural certainty whet
 
 Both the Node feature extraction pipeline (`apps/api/src/modules/analytics-ml/internal/ml-service.ts`) and the shared inference engine (`ml/inference/engine.py`) were inspected across all four models:
 
-| Model Type | Node Feature Vector Extracted (Length) | Python Training Feature Names (`ml/data/features.py`) | Python Scoring Method (`InferenceEngine`) | Output Semantics | Status |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **`DEMAND_FORECASTING`** | 8 features: `[lag1, lag7, mean7, mean14, 1.5, price, dow, isWeekend]` | 8 features: `[lag_1, lag_7, rolling_mean_7, rolling_mean_14, promo_multiplier, base_price, day_of_week, is_weekend]` | `model.predict(X)` (Regressor) | `predictionValue: round(val, 2)`<br>`probability: null`<br>`confidence: 0.85` | `[VERIFIED]` |
-| **`STOCKOUT_RISK`** | 7 features: `[onHand, reserved, v7, v14, daysOfSupply, runoutRate, leadTimeDays]` | 7 features: `[current_on_hand, reserved_quantity, velocity_7d, velocity_14d, days_of_supply, runout_rate, lead_time_days]` | `model.predict_proba(X)` (Binary Classifier) | `predictionValue: round(p, 4)`<br>`probability: round(p, 4)`<br>`confidence: round(abs(p - 0.5) * 2, 4)` | `[VERIFIED]` |
-| **`PURCHASE_PROPENSITY`** | 6 features: `[recencyDays, frequency30d, frequency90d, totalOrders, monetaryTotal, aov]` | 6 features: `[recency_days, frequency_30d, frequency_90d, total_orders, monetary_total, aov]` | `model.predict_proba(X)` (Binary Classifier) | `predictionValue: round(p, 4)`<br>`probability: round(p, 4)`<br>`confidence: round(abs(p - 0.5) * 2, 4)` | `[VERIFIED]` |
-| **`ANOMALY_DETECTION`** | 6 features: `[logTotal, lineCount, qty, avgItemPrice, hourOfDay, isNightOrder]` | 6 features: `[log_total_amount, line_count, total_quantity, avg_item_price, hour_of_day, is_night_order]` | `model.predict_proba(X)` (Binary Classifier) | `predictionValue: round(p, 4)`<br>`probability: round(p, 4)`<br>`confidence: round(abs(p - 0.5) * 2, 4)` | `[VERIFIED]` |
+| Model Type                | Node Feature Vector Extracted (Length)                                                   | Python Training Feature Names (`ml/data/features.py`)                                                                      | Python Scoring Method (`InferenceEngine`)    | Output Semantics                                                                                         | Status       |
+| :------------------------ | :--------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------- | :------------------------------------------------------------------------------------------------------- | :----------- |
+| **`DEMAND_FORECASTING`**  | 8 features: `[lag1, lag7, mean7, mean14, 1.5, price, dow, isWeekend]`                    | 8 features: `[lag_1, lag_7, rolling_mean_7, rolling_mean_14, promo_multiplier, base_price, day_of_week, is_weekend]`       | `model.predict(X)` (Regressor)               | `predictionValue: round(val, 2)`<br>`probability: null`<br>`confidence: 0.85`                            | `[VERIFIED]` |
+| **`STOCKOUT_RISK`**       | 7 features: `[onHand, reserved, v7, v14, daysOfSupply, runoutRate, leadTimeDays]`        | 7 features: `[current_on_hand, reserved_quantity, velocity_7d, velocity_14d, days_of_supply, runout_rate, lead_time_days]` | `model.predict_proba(X)` (Binary Classifier) | `predictionValue: round(p, 4)`<br>`probability: round(p, 4)`<br>`confidence: round(abs(p - 0.5) * 2, 4)` | `[VERIFIED]` |
+| **`PURCHASE_PROPENSITY`** | 6 features: `[recencyDays, frequency30d, frequency90d, totalOrders, monetaryTotal, aov]` | 6 features: `[recency_days, frequency_30d, frequency_90d, total_orders, monetary_total, aov]`                              | `model.predict_proba(X)` (Binary Classifier) | `predictionValue: round(p, 4)`<br>`probability: round(p, 4)`<br>`confidence: round(abs(p - 0.5) * 2, 4)` | `[VERIFIED]` |
+| **`ANOMALY_DETECTION`**   | 6 features: `[logTotal, lineCount, qty, avgItemPrice, hourOfDay, isNightOrder]`          | 6 features: `[log_total_amount, line_count, total_quantity, avg_item_price, hour_of_day, is_night_order]`                  | `model.predict_proba(X)` (Binary Classifier) | `predictionValue: round(p, 4)`<br>`probability: round(p, 4)`<br>`confidence: round(abs(p - 0.5) * 2, 4)` | `[VERIFIED]` |
 
 ---
 
@@ -148,27 +157,32 @@ Both the Node feature extraction pipeline (`apps/api/src/modules/analytics-ml/in
 
 Comparison of error propagation between `LocalPythonMlExecutionProvider` and `HttpMlExecutionProvider`:
 
-| Failure Scenario | Standalone Service Emitted Response | `HttpMlExecutionProvider` Client Behavior | `LocalPythonMlExecutionProvider` Baseline Behavior | `MlService.generatePredictions` Final Outcome | Status |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Invalid Model Type** | HTTP 400 Bad Request `{"success": false, "error": "Unknown model type: ..."}` | Throws `HttpMlProviderError` (400, `ML_SERVICE_HTTP_ERROR`) | Returns `{ success: false, error: "..." }` | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
-| **Missing Model Artifact** | HTTP 404 Not Found `{"success": false, "error": "Artifact not found: ..."}` | Throws `HttpMlProviderError` (404, `ML_SERVICE_HTTP_ERROR`) | Returns `{ success: false, error: "..." }` | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
-| **Invalid Feature Vector Dimension** | HTTP 500 Internal Error `{"success": false, "error": "X has N features, but..."}` | Throws `HttpMlProviderError` (500, `ML_SERVICE_HTTP_ERROR`) | Returns `{ success: false, error: "..." }` | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
-| **Invalid Feature Data Type** | HTTP 422 Unprocessable Entity `{"success": false, "error": "Validation failed..."}` | Throws `HttpMlProviderError` (422, `ML_SERVICE_HTTP_ERROR`) | Fails in Python parsing, returns `{ success: false }` | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
-| **ML Service Down / Connection Refused** | Network Connection Refused (`ECONNREFUSED`) | Throws `HttpMlProviderError` (502, `ML_SERVICE_NETWORK_ERROR`) | N/A (runs in-process child process) | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
-| **Request Timeout** | Server processing exceeds configured `timeoutMs` | Aborts request, throws `HttpMlProviderError` (504, `ML_SERVICE_TIMEOUT`) | Child process killed after 30s timeout | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
-| **Malformed / Truncated JSON Response** | HTTP 200 with invalid JSON body | Throws `HttpMlProviderError` (502, `ML_SERVICE_MALFORMED_RESPONSE`) | JSON.parse fails, returns `{ success: false }` | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
+| Failure Scenario                         | Standalone Service Emitted Response                                                 | `HttpMlExecutionProvider` Client Behavior                                | `LocalPythonMlExecutionProvider` Baseline Behavior    | `MlService.generatePredictions` Final Outcome               | Status       |
+| :--------------------------------------- | :---------------------------------------------------------------------------------- | :----------------------------------------------------------------------- | :---------------------------------------------------- | :---------------------------------------------------------- | :----------- |
+| **Invalid Model Type**                   | HTTP 400 Bad Request `{"success": false, "error": "Unknown model type: ..."}`       | Throws `HttpMlProviderError` (400, `ML_SERVICE_HTTP_ERROR`)              | Returns `{ success: false, error: "..." }`            | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
+| **Missing Model Artifact**               | HTTP 404 Not Found `{"success": false, "error": "Artifact not found: ..."}`         | Throws `HttpMlProviderError` (404, `ML_SERVICE_HTTP_ERROR`)              | Returns `{ success: false, error: "..." }`            | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
+| **Invalid Feature Vector Dimension**     | HTTP 500 Internal Error `{"success": false, "error": "X has N features, but..."}`   | Throws `HttpMlProviderError` (500, `ML_SERVICE_HTTP_ERROR`)              | Returns `{ success: false, error: "..." }`            | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
+| **Invalid Feature Data Type**            | HTTP 422 Unprocessable Entity `{"success": false, "error": "Validation failed..."}` | Throws `HttpMlProviderError` (422, `ML_SERVICE_HTTP_ERROR`)              | Fails in Python parsing, returns `{ success: false }` | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
+| **ML Service Down / Connection Refused** | Network Connection Refused (`ECONNREFUSED`)                                         | Throws `HttpMlProviderError` (502, `ML_SERVICE_NETWORK_ERROR`)           | N/A (runs in-process child process)                   | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
+| **Request Timeout**                      | Server processing exceeds configured `timeoutMs`                                    | Aborts request, throws `HttpMlProviderError` (504, `ML_SERVICE_TIMEOUT`) | Child process killed after 30s timeout                | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
+| **Malformed / Truncated JSON Response**  | HTTP 200 with invalid JSON body                                                     | Throws `HttpMlProviderError` (502, `ML_SERVICE_MALFORMED_RESPONSE`)      | JSON.parse fails, returns `{ success: false }`        | Catches error, logs warning, returns `{ count: 0 }` safely. | `[VERIFIED]` |
 
 ### Invariant Verification: Monolith Resilience
+
 In all failure cases, `MlService.generatePredictions` wraps provider execution in a top-level `try/catch` block (lines 509, 651–655):
+
 ```typescript
 try {
   // ... runPrediction ...
 } catch (err: unknown) {
   const msg = err instanceof Error ? err.message : String(err);
-  this.logger.warn('Safe prediction generation caught error and returned empty count', { error: msg });
+  this.logger.warn('Safe prediction generation caught error and returned empty count', {
+    error: msg,
+  });
   return { count: 0 };
 }
 ```
+
 **Conclusion**: `[VERIFIED]` Switching from local return-based error objects to HTTP exceptions does **not** crash callers, abort database transactions, or expose internal ML errors to frontend users.
 
 ---
@@ -208,7 +222,9 @@ Batching guarantees were inspected across the pipeline:
 ## 8. Artifact-Path and Security Compatibility
 
 ### 8.1 Security Validation in `apps/ml-service`
+
 `apps/ml-service/app/config.py` enforces path traversal protection via `resolve_safe_artifact_path`:
+
 ```python
 def resolve_safe_artifact_path(artifact_path: str, artifact_root: str = None) -> str:
     root = os.path.realpath(os.path.abspath(artifact_root or settings.artifact_root))
@@ -229,6 +245,7 @@ def resolve_safe_artifact_path(artifact_path: str, artifact_root: str = None) ->
 ```
 
 ### 8.2 Path Compatibility Analysis
+
 1. **Bare Filename**:
    - Input: `tenant-1_DEMAND_FORECASTING_v1.joblib`
    - Resolution: `${artifact_root}/tenant-1_DEMAND_FORECASTING_v1.joblib`
@@ -247,12 +264,14 @@ def resolve_safe_artifact_path(artifact_path: str, artifact_root: str = None) ->
 ## 9. Identified Mismatches and Risks
 
 ### 9.1 `[RISK]` Absolute Path Portability in Disaggregated Deployments
+
 - **Current Behavior**: `ml/train.py` outputs `artifact_path = os.path.join(artifact_dir, artifact_filename)`. When run by `PythonRunner`, this writes an **absolute filesystem path** to the database (e.g. `C:\Users\...\.ml_artifacts\model.joblib` on Windows or `/home/user/.../.ml_artifacts/model.joblib` on Linux).
 - **Risk in Distributed Architecture**: If `apps/api` runs in Container A (e.g. `/workspace/api`) and `apps/ml-service` runs in Container B (e.g. `/app/ml-service` with a shared volume mounted at `/var/ml_artifacts`), `candidate` will be an absolute path from Container A that does **not** reside within Container B's `artifact_root`.
 - **Mitigation Requirement Before Production Cutover**:
   Model training metadata should store relative artifact paths or bare filenames (e.g. `tenant-1_DEMAND_FORECASTING_v1.joblib`), OR an artifact key/URI abstraction (e.g., `s3://...` or `relative:.ml_artifacts/...`) should be introduced when persistent shared storage is provisioned.
 
 ### 9.2 `[MISMATCH]` Training Is Unsupported by the HTTP Inference Provider
+
 - **Current Behavior**:
   - `LocalPythonMlExecutionProvider.runTraining(...)` executes training pipelines via `PythonRunner`.
   - `HttpMlExecutionProvider.runTraining(...)` explicitly rejects training with `HttpMlProviderError` (HTTP 501, `ML_TRAINING_NOT_SUPPORTED`).
@@ -263,6 +282,7 @@ def resolve_safe_artifact_path(artifact_path: str, artifact_root: str = None) ->
   2. Or maintain `LocalPythonMlExecutionProvider` for asynchronous training jobs while routing `runPrediction` calls to `HttpMlExecutionProvider`.
 
 ### 9.3 `[NOT VERIFIED]` End-to-End Live HTTP Socket Latency Under High Load
+
 - **Status**: `[NOT VERIFIED]`
 - **Detail**: Unit tests verified the mock fetch boundary, and Python unit tests verified FastAPI route handlers. However, live network latency, serialization overhead for large batch vectors (e.g. 5,000 entities), and connection pooling under sustained concurrent HTTP traffic have not yet been load-tested against a live running server (strictly deferred per read-only safety rules).
 
@@ -271,6 +291,7 @@ def resolve_safe_artifact_path(artifact_path: str, artifact_root: str = None) ->
 ## 10. Cutover Readiness Assessment
 
 ### 10.1 Readiness Checklist
+
 - [x] **Schema Equivalence**: Exact parity on input payloads and output predictions `[VERIFIED]`.
 - [x] **Algorithm Fidelity**: Identical scoring math and Scikit-learn models across all 4 model types `[VERIFIED]`.
 - [x] **Batch Cardinality**: Strict 1-to-1 preserving entityId and index order `[VERIFIED]`.
@@ -279,7 +300,9 @@ def resolve_safe_artifact_path(artifact_path: str, artifact_root: str = None) ->
 - [ ] **Training vs Inference Separation**: Monolith must retain local training capability while delegating inference `[MISMATCH]`.
 
 ### 10.2 Final Verdict: **CONDITIONALLY READY FOR SHADOW / DUAL-RUN**
+
 The prediction boundary is **100% contract-compatible**. The monolith can safely utilize `HttpMlExecutionProvider` for prediction scoring as soon as:
+
 1. Training execution remains separated on the local runner.
 2. The ML service base URL is provided via environment configuration.
 3. Artifact paths are ensured to be relative or shared across environments.

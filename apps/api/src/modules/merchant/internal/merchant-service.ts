@@ -1,7 +1,11 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
-import { RbacPolicy, SecurityAuditService, type ISecurityAuditService } from '../../identity/index.js';
+import {
+  RbacPolicy,
+  SecurityAuditService,
+  type ISecurityAuditService,
+} from '../../identity/index.js';
 import { MerchantRepository } from './merchant-repository.js';
 import type { MerchantVerificationStatus } from './merchant-repository.js';
 import {
@@ -33,11 +37,7 @@ export class MerchantService implements IMerchantService {
   private readonly repo: MerchantRepository;
   private readonly audit: ISecurityAuditService;
 
-  constructor(
-    db: DatabaseConnection,
-    logger: Logger,
-    audit?: ISecurityAuditService,
-  ) {
+  constructor(db: DatabaseConnection, logger: Logger, audit?: ISecurityAuditService) {
     this.repo = new MerchantRepository(db);
     this.audit = audit ?? new SecurityAuditService(db, logger);
   }
@@ -47,7 +47,8 @@ export class MerchantService implements IMerchantService {
 
     if (!input.businessName?.trim()) throw new ValidationError('Business name is required');
     if (!input.legalName?.trim()) throw new ValidationError('Legal name is required');
-    if (!input.contactEmail?.includes('@')) throw new ValidationError('Valid contact email is required');
+    if (!input.contactEmail?.includes('@'))
+      throw new ValidationError('Valid contact email is required');
 
     const existing = await this.repo.findByTenantId(actor.tenantId);
     if (existing) {
@@ -232,4 +233,3 @@ export class MerchantService implements IMerchantService {
     return rows.map((r) => this.toDto(r));
   }
 }
-

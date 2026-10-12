@@ -229,7 +229,11 @@ export class HttpOrderClient implements IOrderService {
       if (!response.ok) {
         let errorData: { error?: unknown; message?: string; name?: string } = {};
         try {
-          errorData = (await response.json()) as { error?: unknown; message?: string; name?: string };
+          errorData = (await response.json()) as {
+            error?: unknown;
+            message?: string;
+            name?: string;
+          };
         } catch {
           // Non-JSON response
         }
@@ -266,7 +270,9 @@ export class HttpOrderClient implements IOrderService {
         if (response.status >= 500) {
           throw new ExternalServiceError(`Order service HTTP error ${response.status}: ${msg}`);
         }
-        throw new ExternalServiceError(`Order service unexpected status ${response.status}: ${msg}`);
+        throw new ExternalServiceError(
+          `Order service unexpected status ${response.status}: ${msg}`,
+        );
       }
 
       return (await response.json()) as T;

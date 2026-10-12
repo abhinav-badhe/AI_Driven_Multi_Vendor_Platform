@@ -39,7 +39,9 @@ export async function registerVerifiedUser(
     },
   });
   if (reg.statusCode !== 201) {
-    throw new Error(`Test registration failed for ${input.email}: ${reg.statusCode} ${reg.payload}`);
+    throw new Error(
+      `Test registration failed for ${input.email}: ${reg.statusCode} ${reg.payload}`,
+    );
   }
   await db.query(`UPDATE users SET email_verified_at = CURRENT_TIMESTAMP WHERE email = $1`, [
     input.email.toLowerCase(),

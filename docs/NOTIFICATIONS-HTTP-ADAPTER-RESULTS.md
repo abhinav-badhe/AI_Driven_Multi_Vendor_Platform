@@ -5,6 +5,7 @@
 As part of the phased migration of the monolithic modular commerce platform into independently deployable microservices, this phase implemented the monolith-side HTTP adapter (`HttpNotificationClient`) targeting the standalone Notifications Service (`apps/notifications-service`).
 
 The implementation adheres to the following principles:
+
 - **Adapter-Only Implementation**: Implements the preexisting `INotificationClient` abstraction without changing caller signatures or business contracts.
 - **Strict Default Preservation**: `LocalNotificationClient` remains the active, default runtime in development, testing, and production. The HTTP adapter is gated behind explicit configuration (`NOTIFICATION_CLIENT_MODE=http`).
 - **Isolation & Safety**: No live HTTP requests were dispatched to any running service; tests run in complete isolation with mocked HTTP transport. No silent fallback to local execution on failure (preventing duplicate sends and hidden outages).
@@ -14,15 +15,15 @@ The implementation adheres to the following principles:
 
 ## 2. Files Changed
 
-| File Path | Action | Description |
-|---|---|---|
-| `apps/api/src/modules/notifications/internal/http-notification-client.ts` | Created | HTTP adapter implementing `INotificationClient`, encapsulating authenticated internal calls, timeout control, input validation, response verification, and typed error handling. |
-| `apps/api/src/modules/notifications/index.ts` | Modified | Exported `HttpNotificationClient`, `HttpNotificationClientError`, config types, and factory helper `createHttpClient` on `notificationModule`. |
-| `apps/api/src/config/schema.ts` | Modified | Added `NOTIFICATION_CLIENT_MODE` (defaults to `'local'`), `NOTIFICATION_SERVICE_URL`, `NOTIFICATION_SERVICE_KEY`, and `NOTIFICATION_SERVICE_TIMEOUT_MS` (defaults to 5000ms), with Zod `.superRefine` ensuring URL and 16+ char secret key are provided when HTTP mode is active. |
-| `apps/api/src/config/index.ts` | Modified | Mapped notification client settings into `AppConfig.notifications`. |
-| `apps/api/src/app.ts` | Modified | Minimal dependency injection wiring: instantiates `HttpNotificationClient` when `clientMode === 'http'`, otherwise instantiates `LocalNotificationClient` by default. |
-| `apps/api/test/http-notification-client.test.ts` | Created | 29 isolated unit tests covering all 3 endpoints, authentication, response mapping, timeout, network error translation, malformed payloads, retry absence, and configuration validation. |
-| `docs/NOTIFICATIONS-HTTP-ADAPTER-RESULTS.md` | Created | This architectural documentation and verification deliverable. |
+| File Path                                                                 | Action   | Description                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/api/src/modules/notifications/internal/http-notification-client.ts` | Created  | HTTP adapter implementing `INotificationClient`, encapsulating authenticated internal calls, timeout control, input validation, response verification, and typed error handling.                                                                                                  |
+| `apps/api/src/modules/notifications/index.ts`                             | Modified | Exported `HttpNotificationClient`, `HttpNotificationClientError`, config types, and factory helper `createHttpClient` on `notificationModule`.                                                                                                                                    |
+| `apps/api/src/config/schema.ts`                                           | Modified | Added `NOTIFICATION_CLIENT_MODE` (defaults to `'local'`), `NOTIFICATION_SERVICE_URL`, `NOTIFICATION_SERVICE_KEY`, and `NOTIFICATION_SERVICE_TIMEOUT_MS` (defaults to 5000ms), with Zod `.superRefine` ensuring URL and 16+ char secret key are provided when HTTP mode is active. |
+| `apps/api/src/config/index.ts`                                            | Modified | Mapped notification client settings into `AppConfig.notifications`.                                                                                                                                                                                                               |
+| `apps/api/src/app.ts`                                                     | Modified | Minimal dependency injection wiring: instantiates `HttpNotificationClient` when `clientMode === 'http'`, otherwise instantiates `LocalNotificationClient` by default.                                                                                                             |
+| `apps/api/test/http-notification-client.test.ts`                          | Created  | 29 isolated unit tests covering all 3 endpoints, authentication, response mapping, timeout, network error translation, malformed payloads, retry absence, and configuration validation.                                                                                           |
+| `docs/NOTIFICATIONS-HTTP-ADAPTER-RESULTS.md`                              | Created  | This architectural documentation and verification deliverable.                                                                                                                                                                                                                    |
 
 ---
 
@@ -31,6 +32,7 @@ The implementation adheres to the following principles:
 The adapter implements all three methods of `INotificationClient` conforming to the exact signatures and response types:
 
 ### A. `requestNotification(input: RequestNotificationInput): Promise<NotificationResultDto>`
+
 - **Endpoint**: `POST /v1/internal/notifications/request`
 - **Request Headers**:
   - `Content-Type: application/json`
@@ -53,6 +55,7 @@ The adapter implements all three methods of `INotificationClient` conforming to 
 - **Return Type**: `NotificationResultDto` (including optional `skipped` flag and `reason`).
 
 ### B. `sendTransactionalEmail(to: string, subject: string, body: string): Promise<string>`
+
 - **Endpoint**: `POST /v1/internal/notifications/transactional-email`
 - **Request Headers**: Same authenticated headers.
 - **Payload**:
@@ -67,6 +70,7 @@ The adapter implements all three methods of `INotificationClient` conforming to 
 - **Response Translation**: The standalone service returns `{ "providerMessageId": "..." }`. The adapter verifies `providerMessageId` is a non-empty string and extracts it to satisfy the existing `Promise<string>` contract expected by Identity/Auth and customer services.
 
 ### C. `processPendingNotifications(options?: { batchSize?: number; baseRetryDelayMs?: number }): Promise<{ claimed: number; sent: number; failed: number; deadLettered: number }>`
+
 - **Endpoint**: `POST /v1/internal/notifications/process`
 - **Request Headers**: Same authenticated headers.
 - **Payload**:
@@ -135,6 +139,7 @@ Configuration is integrated directly into the monolith's standard Zod-based conf
 All tests execute in complete isolation without live external network dependencies or running servers.
 
 ### Monolith Adapter Unit Tests (`apps/api/test/http-notification-client.test.ts`)
+
 ```
 ✓ test/http-notification-client.test.ts (29 tests)
   - 1. Configuration & Instantiation (6 tests)
@@ -150,6 +155,7 @@ Duration    577ms
 ```
 
 ### Preexisting Monolith Tests
+
 ```
 ✓ test/notification-client.test.ts (6 tests passed)
 ✓ test/config.test.ts (3 tests passed)
@@ -159,12 +165,14 @@ Duration    577ms
 ```
 
 ### Typecheck and Production Build
+
 ```
 > @commerce/api@0.1.0 typecheck (tsc --noEmit -p tsconfig.test.json) -> Exit Code 0 (clean)
 > @commerce/api@0.1.0 build (tsc -p tsconfig.json)                   -> Exit Code 0 (clean)
 ```
 
 ### Standalone Notifications Service Baseline
+
 ```
 > @commerce/notifications-service@0.1.0 test (vitest run)
 Test Files  6 passed (6)
@@ -186,6 +194,7 @@ Duration    1.29s
 ## 8. Remaining Blockers Before End-to-End Live Integration
 
 Prior to switching traffic or running live end-to-end integration tests between the running monolith and running notifications service:
+
 1. **Shared Event Bus / Outbox Transport Alignment**: In local mode, the monolith dispatches notifications via direct database outbox polling and domain service method calls. In microservice mode, both applications must either share an event transport (e.g., Redis Streams, RabbitMQ) or rely on HTTP delegation.
 2. **Database Data Migration & Baseline Synchronization**: Moving customer notification preferences and notification logs from the monolith database to the notifications service database requires a dual-write or migration strategy.
 3. **Environment Deployment Configuration**: Deployment manifests (Docker Compose or Kubernetes) need environment variable provisioning for `NOTIFICATION_CLIENT_MODE=http`, `NOTIFICATION_SERVICE_URL`, and a synchronized `NOTIFICATION_SERVICE_KEY` secret.

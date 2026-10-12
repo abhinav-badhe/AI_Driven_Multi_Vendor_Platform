@@ -1,6 +1,6 @@
-import * as React from "react";
-import { Card, CardContent } from "./card";
-import { Button } from "./button";
+import * as React from 'react';
+import { Card, CardContent } from './card';
+import { Button } from './button';
 
 // Last-resort guard: a single malformed record must never blank a whole
 // screen. Wrap tab panels / sections with this; on error it shows a
@@ -16,7 +16,7 @@ export class ErrorBoundary extends React.Component<
   }
 
   override componentDidCatch(error: unknown): void {
-    console.error("[ui] section failed to render", error);
+    console.error('[ui] section failed to render', error);
   }
 
   override render(): React.ReactNode {
@@ -24,10 +24,10 @@ export class ErrorBoundary extends React.Component<
       return (
         <Card>
           <CardContent className="flex flex-col items-start gap-2 p-4">
-            <p className="text-sm font-semibold">{this.props.title ?? "Something went wrong"}</p>
+            <p className="text-sm font-semibold">{this.props.title ?? 'Something went wrong'}</p>
             <p className="max-w-[60ch] text-[13px] text-muted-foreground">
-              This section could not be displayed. Reloading usually fixes it; if it
-              persists, the underlying data needs attention.
+              This section could not be displayed. Reloading usually fixes it; if it persists, the
+              underlying data needs attention.
             </p>
             <Button
               size="sm"

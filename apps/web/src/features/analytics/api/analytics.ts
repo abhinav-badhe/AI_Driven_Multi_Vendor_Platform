@@ -65,7 +65,8 @@ export interface MlModelDto {
   createdAt: string;
 }
 
-export type MlModelType = 'DEMAND_FORECASTING' | 'STOCKOUT_RISK' | 'PURCHASE_PROPENSITY' | 'ANOMALY_DETECTION';
+export type MlModelType =
+  'DEMAND_FORECASTING' | 'STOCKOUT_RISK' | 'PURCHASE_PROPENSITY' | 'ANOMALY_DETECTION';
 
 export interface MlTrainingJobDto {
   id: string;
@@ -133,13 +134,15 @@ export interface TrainingJobHistoryDto {
 }
 
 export const analyticsApi = {
-  getSalesAnalytics: async (granularity: 'day' | 'week' | 'month' = 'day'): Promise<SalesAnalyticsDto> => {
+  getSalesAnalytics: async (
+    granularity: 'day' | 'week' | 'month' = 'day',
+  ): Promise<SalesAnalyticsDto> => {
     return apiClient<SalesAnalyticsDto>(`/analytics/sales?granularity=${granularity}`);
   },
 
   getProductAnalytics: async (limit = 10): Promise<ProductAnalyticsItemDto[]> => {
     const res = await apiClient<{ products?: ProductAnalyticsItemDto[] }>(
-      `/analytics/products?limit=${limit}`
+      `/analytics/products?limit=${limit}`,
     );
     return Array.isArray(res.products) ? res.products : [];
   },
@@ -204,7 +207,10 @@ export const analyticsApi = {
     }
   },
 
-  saveRetrainingPolicy: async (modelType: MlModelType, policy: Partial<RetrainingPolicyDto>): Promise<RetrainingPolicyDto> => {
+  saveRetrainingPolicy: async (
+    modelType: MlModelType,
+    policy: Partial<RetrainingPolicyDto>,
+  ): Promise<RetrainingPolicyDto> => {
     return apiClient<RetrainingPolicyDto>(`/ml/policies/${modelType}`, {
       method: 'PUT',
       body: JSON.stringify(policy),
@@ -212,7 +218,9 @@ export const analyticsApi = {
   },
 
   // Retrain trigger
-  retrainModel: async (modelType: MlModelType): Promise<{ retrained: boolean; jobId?: string; reason: string }> => {
+  retrainModel: async (
+    modelType: MlModelType,
+  ): Promise<{ retrained: boolean; jobId?: string; reason: string }> => {
     return apiClient('/ml/retrain', {
       method: 'POST',
       body: JSON.stringify({ modelType }),

@@ -1,21 +1,10 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { AuthorizedActor } from '../../identity/rbac/policy.js';
 import type { DomainEvent } from './event-envelope.js';
-import type {
-  OutboxEventRecord,
-  ConsumerReceiptRecord,
-} from './outbox-repository.js';
-import type {
-  PublishOptions,
-  PublishResult,
-} from './outbox-service.js';
+import type { OutboxEventRecord, ConsumerReceiptRecord } from './outbox-repository.js';
+import type { PublishOptions, PublishResult } from './outbox-service.js';
 
-export type {
-  OutboxEventRecord,
-  ConsumerReceiptRecord,
-  PublishOptions,
-  PublishResult,
-};
+export type { OutboxEventRecord, ConsumerReceiptRecord, PublishOptions, PublishResult };
 
 export interface ListOutboxEventsFilter {
   status?: string | undefined;

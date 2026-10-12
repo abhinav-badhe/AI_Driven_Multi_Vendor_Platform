@@ -164,7 +164,12 @@ export async function seedDummyCatalog(
       `INSERT INTO merchant_profiles (id, tenant_id, business_name, legal_name, contact_email, verification_status)
        VALUES ($1, $2, $3, $4, 'merchant@example.com', 'VERIFIED')
        ON CONFLICT (tenant_id) DO NOTHING`,
-      [`mp-${merchantTenantId}`, merchantTenantId, MERCHANT_NAME, `${MERCHANT_NAME} Retail Pvt Ltd`],
+      [
+        `mp-${merchantTenantId}`,
+        merchantTenantId,
+        MERCHANT_NAME,
+        `${MERCHANT_NAME} Retail Pvt Ltd`,
+      ],
     );
   }
 
@@ -240,7 +245,9 @@ export async function seedDummyCatalog(
     const categoryId = categoryIdFor(p);
     const priceMinor = Math.round(p.price * 100);
     const compareAtMinor =
-      p.discountPercentage > 0 ? Math.round((p.price / (1 - p.discountPercentage / 100)) * 100) : null;
+      p.discountPercentage > 0
+        ? Math.round((p.price / (1 - p.discountPercentage / 100)) * 100)
+        : null;
     const reviewCount = p.reviews?.length ?? 0;
 
     const productAttributes = {
@@ -342,7 +349,9 @@ export async function seedDummyCatalog(
     );
     const priceMinor = Math.round(p.price * 100);
     const compareAtMinor =
-      p.discountPercentage > 0 ? Math.round((p.price / (1 - p.discountPercentage / 100)) * 100) : null;
+      p.discountPercentage > 0
+        ? Math.round((p.price / (1 - p.discountPercentage / 100)) * 100)
+        : null;
     const skuId = `sku-dummy-${p.id}`;
     const listingId = `list-dummy-${p.id}`;
     const inStock = (p.stock ?? 0) > 0;

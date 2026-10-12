@@ -109,7 +109,12 @@ export class HttpMarketplaceClient implements IMarketplaceService {
 
   async getMyListingDetails(actor: AuthorizedActor): Promise<MerchantListingDetailDto[]> {
     try {
-      return await this.request<MerchantListingDetailDto[]>('/listings/me/detail', 'GET', undefined, actor);
+      return await this.request<MerchantListingDetailDto[]>(
+        '/listings/me/detail',
+        'GET',
+        undefined,
+        actor,
+      );
     } catch (err) {
       if (err instanceof ForbiddenError || err instanceof ValidationError) {
         throw err;
@@ -124,10 +129,7 @@ export class HttpMarketplaceClient implements IMarketplaceService {
     }
   }
 
-  async getListingById(
-    actor: AuthorizedActor | null,
-    id: string,
-  ): Promise<MerchantListingDto> {
+  async getListingById(actor: AuthorizedActor | null, id: string): Promise<MerchantListingDto> {
     try {
       return await this.request<MerchantListingDto>(
         `/listings/${encodeURIComponent(id)}`,
@@ -242,7 +244,12 @@ export class HttpMarketplaceClient implements IMarketplaceService {
       if (filter?.limit != null) q.set('limit', String(filter.limit));
       if (filter?.offset != null) q.set('offset', String(filter.offset));
       const qs = q.toString() ? `?${q.toString()}` : '';
-      return await this.request<MerchantListingDto[]>(`/admin/listings${qs}`, 'GET', undefined, actor);
+      return await this.request<MerchantListingDto[]>(
+        `/admin/listings${qs}`,
+        'GET',
+        undefined,
+        actor,
+      );
     } catch (err) {
       if (this.fallbackService) {
         this.logger?.warn('HttpMarketplaceClient: listAllListings failed, falling back', {

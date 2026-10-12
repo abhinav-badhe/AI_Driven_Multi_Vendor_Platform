@@ -18,13 +18,19 @@ describe('NotificationRepository (Isolated Persistence Layer)', () => {
 
   it('proves that repository only requires service-owned tables and no foreign monolith tables', async () => {
     // 1. Service-owned tables exist and can be queried
-    const notifCount = await db.query<{ count: string | number }>('SELECT count(*) FROM notifications');
+    const notifCount = await db.query<{ count: string | number }>(
+      'SELECT count(*) FROM notifications',
+    );
     expect(Number(notifCount.rows[0]?.count)).toBe(0);
 
-    const prefCount = await db.query<{ count: string | number }>('SELECT count(*) FROM customer_notification_preferences');
+    const prefCount = await db.query<{ count: string | number }>(
+      'SELECT count(*) FROM customer_notification_preferences',
+    );
     expect(Number(prefCount.rows[0]?.count)).toBe(0);
 
-    const receiptCount = await db.query<{ count: string | number }>('SELECT count(*) FROM notification_consumer_receipts');
+    const receiptCount = await db.query<{ count: string | number }>(
+      'SELECT count(*) FROM notification_consumer_receipts',
+    );
     expect(Number(receiptCount.rows[0]?.count)).toBe(0);
 
     // 2. Foreign monolith tables DO NOT exist in isolated service database

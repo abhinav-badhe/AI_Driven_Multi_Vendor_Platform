@@ -74,17 +74,28 @@ export const wishlistApi = {
     return apiClient<WishlistCheckResult>(`/customer/wishlist/check/${productId}`);
   },
 
-  saveForLater: async (cartItemId: string): Promise<{ wishlistItem: WishlistItem; cart: CartDto }> => {
-    return apiClient<{ wishlistItem: WishlistItem; cart: CartDto }>('/customer/wishlist/save-for-later', {
-      method: 'POST',
-      body: JSON.stringify({ cartItemId }),
-    });
+  saveForLater: async (
+    cartItemId: string,
+  ): Promise<{ wishlistItem: WishlistItem; cart: CartDto }> => {
+    return apiClient<{ wishlistItem: WishlistItem; cart: CartDto }>(
+      '/customer/wishlist/save-for-later',
+      {
+        method: 'POST',
+        body: JSON.stringify({ cartItemId }),
+      },
+    );
   },
 
-  moveToCart: async (productId: string, listingId?: string): Promise<{ cart: CartDto; message: string }> => {
-    return apiClient<{ cart: CartDto; message: string }>(`/customer/wishlist/${productId}/move-to-cart`, {
-      method: 'POST',
-      body: JSON.stringify({ listingId }),
-    });
+  moveToCart: async (
+    productId: string,
+    listingId?: string,
+  ): Promise<{ cart: CartDto; message: string }> => {
+    return apiClient<{ cart: CartDto; message: string }>(
+      `/customer/wishlist/${productId}/move-to-cart`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ listingId }),
+      },
+    );
   },
 };

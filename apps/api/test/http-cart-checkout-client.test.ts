@@ -256,14 +256,20 @@ describe('HttpCheckoutClient', () => {
     const fetchFn = vi
       .fn()
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ name: 'EmptyCartError', message: 'Cannot checkout an empty cart' }), {
-          status: 400,
-        }),
+        new Response(
+          JSON.stringify({ name: 'EmptyCartError', message: 'Cannot checkout an empty cart' }),
+          {
+            status: 400,
+          },
+        ),
       )
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ name: 'CheckoutExpiredError', message: 'Checkout session has expired' }), {
-          status: 400,
-        }),
+        new Response(
+          JSON.stringify({ name: 'CheckoutExpiredError', message: 'Checkout session has expired' }),
+          {
+            status: 400,
+          },
+        ),
       )
       .mockResolvedValueOnce(
         new Response(

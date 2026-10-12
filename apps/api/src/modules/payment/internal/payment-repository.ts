@@ -1,14 +1,10 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 
 export type PaymentIntentStatus =
-  | 'CREATED'
-  | 'PROCESSING'
-  | 'SUCCEEDED'
-  | 'FAILED'
-  | 'CANCELLED'
-  | 'REQUIRES_PAYMENT_METHOD';
+  'CREATED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'REQUIRES_PAYMENT_METHOD';
 
-export type PaymentAttemptStatus = 'INITIATED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'REQUIRES_ACTION';
+export type PaymentAttemptStatus =
+  'INITIATED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'REQUIRES_ACTION';
 
 export type WebhookProcessStatus = 'PROCESSED' | 'FAILED' | 'IGNORED';
 
@@ -166,10 +162,12 @@ export class PaymentRepository {
     id: string,
     expectedStatus: PaymentIntentStatus | PaymentIntentStatus[],
     newStatus: PaymentIntentStatus,
-    extra?: {
-      orderId?: string | undefined;
-      metadata?: Record<string, unknown> | undefined;
-    } | undefined,
+    extra?:
+      | {
+          orderId?: string | undefined;
+          metadata?: Record<string, unknown> | undefined;
+        }
+      | undefined,
   ): Promise<PaymentIntentRow | null> {
     const allowed = Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];
     const params: unknown[] = [id, newStatus];
@@ -185,10 +183,12 @@ export class PaymentRepository {
       query += `, metadata = $${params.length}`;
     }
 
-    const placeholders = allowed.map((s) => {
-      params.push(s);
-      return `$${params.length}`;
-    }).join(', ');
+    const placeholders = allowed
+      .map((s) => {
+        params.push(s);
+        return `$${params.length}`;
+      })
+      .join(', ');
 
     query += ` WHERE id = $1 AND status IN (${placeholders})
       RETURNING id, customer_tenant_id, checkout_session_id, order_id, amount, currency,
@@ -359,9 +359,7 @@ export class PaymentRepository {
     return res.rows[0] ?? null;
   }
 
-  async findRefundByIdempotencyKey(
-    idempotencyKey: string,
-  ): Promise<PaymentRefundRow | null> {
+  async findRefundByIdempotencyKey(idempotencyKey: string): Promise<PaymentRefundRow | null> {
     const res = await this.db.query<PaymentRefundRow>(
       `SELECT id, payment_intent_id, payment_attempt_id, amount, currency,
               status, provider_refund_id, reason, idempotency_key, created_at, updated_at
@@ -396,4 +394,3 @@ export class PaymentRepository {
     return res.rows;
   }
 }
-

@@ -6,10 +6,7 @@ import type { InventoryService, IInventoryService } from '../inventory/index.js'
 import type { PaymentService, IPaymentReader } from '../payment/index.js';
 import { OrderService } from './internal/order-service.js';
 import { InMemoryOrderStore } from './internal/in-memory-order-store.js';
-import {
-  HttpOrderClient,
-  type HttpOrderClientOptions,
-} from './internal/http-order-client.js';
+import { HttpOrderClient, type HttpOrderClientOptions } from './internal/http-order-client.js';
 import type { OutboxService } from '../events/index.js';
 import type {
   IOrderReader,
@@ -38,12 +35,7 @@ export type {
   HttpOrderClientOptions,
 };
 
-export {
-  OrderService,
-  OrderEventConsumer,
-  InMemoryOrderStore,
-  HttpOrderClient,
-};
+export { OrderService, OrderEventConsumer, InMemoryOrderStore, HttpOrderClient };
 
 export interface OrdersModule {
   readonly contextName: 'orders';

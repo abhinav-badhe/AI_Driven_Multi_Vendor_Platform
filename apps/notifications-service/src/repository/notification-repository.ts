@@ -80,9 +80,7 @@ export class NotificationRepository {
     const row = res.rows[0];
     if (!row) return null;
 
-    const disabledTypes = row.disabled_types
-      ? row.disabled_types.split(',').filter(Boolean)
-      : [];
+    const disabledTypes = row.disabled_types ? row.disabled_types.split(',').filter(Boolean) : [];
 
     return {
       id: row.id,
@@ -118,14 +116,29 @@ export class NotificationRepository {
              disabled_types = $4,
              updated_at = NOW()
          WHERE tenant_id = $5 AND customer_id = $6`,
-        [pref.emailEnabled, pref.smsEnabled, pref.pushEnabled, disabledStr, pref.tenantId, pref.customerId],
+        [
+          pref.emailEnabled,
+          pref.smsEnabled,
+          pref.pushEnabled,
+          disabledStr,
+          pref.tenantId,
+          pref.customerId,
+        ],
       );
     } else {
       await this.db.query(
         `INSERT INTO customer_notification_preferences (
           id, tenant_id, customer_id, email_enabled, sms_enabled, push_enabled, disabled_types, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-        [pref.id, pref.tenantId, pref.customerId, pref.emailEnabled, pref.smsEnabled, pref.pushEnabled, disabledStr],
+        [
+          pref.id,
+          pref.tenantId,
+          pref.customerId,
+          pref.emailEnabled,
+          pref.smsEnabled,
+          pref.pushEnabled,
+          disabledStr,
+        ],
       );
     }
   }
@@ -326,10 +339,7 @@ export class NotificationRepository {
 
   // --- Consumer Deduplication Receipts (notification_consumer_receipts) ---
 
-  async findReceipt(
-    consumerName: string,
-    eventId: string,
-  ): Promise<ConsumerReceiptRecord | null> {
+  async findReceipt(consumerName: string, eventId: string): Promise<ConsumerReceiptRecord | null> {
     const res = await this.db.query<{
       id: string;
       consumer_name: string;
@@ -338,18 +348,16 @@ export class NotificationRepository {
       processed_at: string | Date;
       status: string;
       error_metadata: string | Record<string, unknown> | null;
-    }>(
-      `SELECT * FROM notification_consumer_receipts WHERE consumer_name = $1 AND event_id = $2`,
-      [consumerName, eventId],
-    );
+    }>(`SELECT * FROM notification_consumer_receipts WHERE consumer_name = $1 AND event_id = $2`, [
+      consumerName,
+      eventId,
+    ]);
 
     const row = res.rows[0];
     if (!row) return null;
 
     const errorMetadata =
-      typeof row.error_metadata === 'string'
-        ? JSON.parse(row.error_metadata)
-        : row.error_metadata;
+      typeof row.error_metadata === 'string' ? JSON.parse(row.error_metadata) : row.error_metadata;
 
     return {
       id: row.id,
@@ -552,5 +560,3 @@ export class NotificationRepository {
 export type EventClaimResult =
   | { claimed: true; claimToken: string }
   | { claimed: false; reason: 'ALREADY_COMPLETED' | 'CURRENTLY_PROCESSING' };
-
-

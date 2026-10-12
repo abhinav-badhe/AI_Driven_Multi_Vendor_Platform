@@ -48,24 +48,14 @@ export class BackInStockService {
 
     // 2. Validate SKU if supplied
     if (skuId) {
-      const skuValid = await this.repo.validateSkuBelongsToProduct(
-        this.db,
-        productId,
-        skuId,
-      );
+      const skuValid = await this.repo.validateSkuBelongsToProduct(this.db, productId, skuId);
       if (!skuValid) {
-        throw new ValidationError(
-          `SKU '${skuId}' does not belong to product '${productId}'`,
-        );
+        throw new ValidationError(`SKU '${skuId}' does not belong to product '${productId}'`);
       }
     }
 
     // 3. Eligibility Check: Cannot subscribe if product/SKU is currently in stock
-    const availability = await this.repo.checkAvailability(
-      this.db,
-      productId,
-      skuId,
-    );
+    const availability = await this.repo.checkAvailability(this.db, productId, skuId);
     if (availability.isAvailable) {
       throw new ValidationError(
         'Product is currently in stock. Notification subscription is unnecessary.',
@@ -205,24 +195,14 @@ export class BackInStockService {
     };
   }
 
-  async listSubscriptions(
-    actor: AuthorizedActor,
-  ): Promise<BackInStockSubscriptionDto[]> {
+  async listSubscriptions(actor: AuthorizedActor): Promise<BackInStockSubscriptionDto[]> {
     RbacPolicy.requirePermission(actor, 'back-in-stock:read-own');
 
-    const rows = await this.repo.listSubscriptions(
-      this.db,
-      actor.userId,
-      actor.tenantId,
-    );
+    const rows = await this.repo.listSubscriptions(this.db, actor.userId, actor.tenantId);
 
     const results: BackInStockSubscriptionDto[] = [];
     for (const r of rows) {
-      const availability = await this.repo.checkAvailability(
-        this.db,
-        r.product_id,
-        r.sku_id,
-      );
+      const availability = await this.repo.checkAvailability(this.db, r.product_id, r.sku_id);
 
       results.push({
         id: r.id,

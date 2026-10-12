@@ -72,7 +72,10 @@ describe('Two-Factor Authentication (2FA) Service & HTTP Contract', () => {
 
   it('2. POST /auth/2fa/setup generates secret, otpauthUri, and 10 recovery codes', async () => {
     const user = await registerAndVerify('user2@example.com', 'password123');
-    const loginRes = (await service.login({ email: 'user2@example.com', password: 'password123' })) as any;
+    const loginRes = (await service.login({
+      email: 'user2@example.com',
+      password: 'password123',
+    })) as any;
 
     const res = await app.inject({
       method: 'POST',
@@ -96,7 +99,10 @@ describe('Two-Factor Authentication (2FA) Service & HTTP Contract', () => {
 
   it('3. POST /auth/2fa/enable activates 2FA with valid TOTP code and rejects invalid code', async () => {
     const user = await registerAndVerify('user3@example.com', 'password123');
-    const loginRes = (await service.login({ email: 'user3@example.com', password: 'password123' })) as any;
+    const loginRes = (await service.login({
+      email: 'user3@example.com',
+      password: 'password123',
+    })) as any;
 
     const setupData = await service.setup2FA(user.userId);
 
@@ -210,7 +216,10 @@ describe('Two-Factor Authentication (2FA) Service & HTTP Contract', () => {
     await service.enable2FA(user.userId, validCode);
 
     // Initial login via 2FA
-    const challengeRes = await service.login({ email: 'user6@example.com', password: 'password123' });
+    const challengeRes = await service.login({
+      email: 'user6@example.com',
+      password: 'password123',
+    });
     expect('requires2FA' in challengeRes).toBe(true);
     const tempToken = (challengeRes as any).tempToken;
     const tokens = await service.verify2FALogin(tempToken, generateTotpCode(setupData.secret));

@@ -34,7 +34,9 @@ describe('Database Migrations (PostgreSQL Engine)', () => {
     expect(initialStatus.pending[10]).toContain('0011_recommendations_schema.sql');
     expect(initialStatus.pending[11]).toContain('0012_predictive_ml_schema.sql');
     expect(initialStatus.pending[12]).toContain('0013_ai_and_rag_schema.sql');
-    expect(initialStatus.pending[13]).toContain('0014_financial_transactions_and_account_types.sql');
+    expect(initialStatus.pending[13]).toContain(
+      '0014_financial_transactions_and_account_types.sql',
+    );
     expect(initialStatus.pending[14]).toContain('0015_search_projections_schema.sql');
     expect(initialStatus.pending[15]).toContain('0016_product_content_and_reviews_schema.sql');
     expect(initialStatus.pending[16]).toContain('0017_email_verification_schema.sql');
@@ -545,5 +547,3 @@ describe('Database Migrations (PostgreSQL Engine)', () => {
     ).rejects.toThrow();
   });
 });
-
-

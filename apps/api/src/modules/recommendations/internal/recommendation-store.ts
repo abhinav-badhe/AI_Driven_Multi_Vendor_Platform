@@ -184,10 +184,9 @@ export class SqlRecommendationStore implements IRecommendationStore {
   }
 
   async clearTenantRecommendations(tenantId: string): Promise<number> {
-    const res = await this.db.query(
-      'DELETE FROM derived_recommendations WHERE tenant_id = $1',
-      [tenantId],
-    );
+    const res = await this.db.query('DELETE FROM derived_recommendations WHERE tenant_id = $1', [
+      tenantId,
+    ]);
     return res.rowCount ?? 0;
   }
 

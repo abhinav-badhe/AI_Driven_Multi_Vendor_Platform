@@ -21,10 +21,14 @@ function stubRedisService(available: boolean): RedisService {
 
 describe('RedisRateLimiter', () => {
   it('allows requests within the threshold and rejects past it', async () => {
-    const limiter = new RedisRateLimiter(stubRedisService(true), {
-      windowMs: 60_000,
-      maxRequests: 2,
-    }, new InMemoryCacheClient());
+    const limiter = new RedisRateLimiter(
+      stubRedisService(true),
+      {
+        windowMs: 60_000,
+        maxRequests: 2,
+      },
+      new InMemoryCacheClient(),
+    );
 
     expect(await limiter.check('ip-1:/auth/login')).toBe(true);
     expect(await limiter.check('ip-1:/auth/login')).toBe(true);
@@ -32,10 +36,14 @@ describe('RedisRateLimiter', () => {
   });
 
   it('tracks keys independently', async () => {
-    const limiter = new RedisRateLimiter(stubRedisService(true), {
-      windowMs: 60_000,
-      maxRequests: 1,
-    }, new InMemoryCacheClient());
+    const limiter = new RedisRateLimiter(
+      stubRedisService(true),
+      {
+        windowMs: 60_000,
+        maxRequests: 1,
+      },
+      new InMemoryCacheClient(),
+    );
 
     expect(await limiter.check('a')).toBe(true);
     expect(await limiter.check('a')).toBe(false);
@@ -57,10 +65,14 @@ describe('RedisRateLimiter', () => {
       smembers: async () => [],
       expire: async () => 0,
     };
-    const limiter = new RedisRateLimiter(stubRedisService(true), {
-      windowMs: 60_000,
-      maxRequests: 1,
-    }, broken);
+    const limiter = new RedisRateLimiter(
+      stubRedisService(true),
+      {
+        windowMs: 60_000,
+        maxRequests: 1,
+      },
+      broken,
+    );
 
     // Must never 500 the request because the cache is down.
     expect(await limiter.check('any')).toBe(true);
@@ -68,10 +80,14 @@ describe('RedisRateLimiter', () => {
   });
 
   it('middleware rejects over-limit requests with 429', async () => {
-    const limiter = new RedisRateLimiter(stubRedisService(true), {
-      windowMs: 60_000,
-      maxRequests: 1,
-    }, new InMemoryCacheClient());
+    const limiter = new RedisRateLimiter(
+      stubRedisService(true),
+      {
+        windowMs: 60_000,
+        maxRequests: 1,
+      },
+      new InMemoryCacheClient(),
+    );
     const middleware = limiter.middleware();
     const fakeReq = { ip: '10.0.0.1', routerPath: '/auth/login' } as unknown as FastifyRequest;
     const fakeReply = {} as FastifyReply;

@@ -4,10 +4,7 @@
  */
 
 export type RecommendationType =
-  | 'PERSONALIZED'
-  | 'SIMILAR'
-  | 'TRENDING'
-  | 'FREQUENTLY_BOUGHT_TOGETHER';
+  'PERSONALIZED' | 'SIMILAR' | 'TRENDING' | 'FREQUENTLY_BOUGHT_TOGETHER';
 
 export type RecommendationReasonCode =
   | 'TRENDING'

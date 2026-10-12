@@ -1,9 +1,5 @@
 import type { AuthorizedActor } from '../../identity/rbac/policy.js';
-import type {
-  ProductStatus,
-  SkuStatus,
-  ListProductsFilter,
-} from './catalog-repository.js';
+import type { ProductStatus, SkuStatus, ListProductsFilter } from './catalog-repository.js';
 import type {
   CategoryDto,
   ProductDto,
@@ -67,14 +63,6 @@ export interface ICatalogService extends ICatalogReader {
     productId: string,
     input: CreateSkuInput,
   ): Promise<ProductSkuDto>;
-  updateSku(
-    actor: AuthorizedActor,
-    id: string,
-    updates: UpdateSkuInput,
-  ): Promise<ProductSkuDto>;
-  setSkuStatus(
-    actor: AuthorizedActor,
-    id: string,
-    newStatus: SkuStatus,
-  ): Promise<ProductSkuDto>;
+  updateSku(actor: AuthorizedActor, id: string, updates: UpdateSkuInput): Promise<ProductSkuDto>;
+  setSkuStatus(actor: AuthorizedActor, id: string, newStatus: SkuStatus): Promise<ProductSkuDto>;
 }

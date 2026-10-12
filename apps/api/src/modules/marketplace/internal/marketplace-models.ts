@@ -1,8 +1,5 @@
 import type { AuthorizedActor } from '../../identity/rbac/policy.js';
-import type {
-  ListingStatus,
-  ListListingsFilter,
-} from './listing-repository.js';
+import type { ListingStatus, ListListingsFilter } from './listing-repository.js';
 import type {
   MerchantListingDto,
   CreateListingInput,
@@ -24,10 +21,7 @@ export type {
  * Consumed by Cart/Checkout, Search, Recommendations, and Inventory domains.
  */
 export interface IMarketplaceReader {
-  getListingById(
-    actor: AuthorizedActor | null,
-    id: string,
-  ): Promise<MerchantListingDto>;
+  getListingById(actor: AuthorizedActor | null, id: string): Promise<MerchantListingDto>;
   getActiveListingsForSku(skuId: string): Promise<MerchantListingDto[]>;
 }
 
@@ -36,14 +30,8 @@ export interface IMarketplaceReader {
  * Implemented by local SQL ListingService, InMemoryMarketplaceStore, and HttpMarketplaceClient.
  */
 export interface IMarketplaceService extends IMarketplaceReader {
-  createListing(
-    actor: AuthorizedActor,
-    input: CreateListingInput,
-  ): Promise<MerchantListingDto>;
-  getMyListings(
-    actor: AuthorizedActor,
-    filter?: ListListingsFilter,
-  ): Promise<MerchantListingDto[]>;
+  createListing(actor: AuthorizedActor, input: CreateListingInput): Promise<MerchantListingDto>;
+  getMyListings(actor: AuthorizedActor, filter?: ListListingsFilter): Promise<MerchantListingDto[]>;
   getMyListingDetails(actor: AuthorizedActor): Promise<MerchantListingDetailDto[]>;
   updateListing(
     actor: AuthorizedActor,
@@ -60,6 +48,5 @@ export interface IMarketplaceService extends IMarketplaceReader {
     filter?: ListListingsFilter,
   ): Promise<MerchantListingDto[]>;
 }
-
 
 export type IListingService = IMarketplaceService;

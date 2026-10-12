@@ -193,16 +193,22 @@ export function parseConfig(envSource: Record<string, string | undefined>): AppC
         (raw.RAZORPAY_KEY_ID
           ? 'razorpay'
           : raw.STRIPE_SECRET_KEY && raw.STRIPE_SECRET_KEY.startsWith('sk_')
-          ? 'stripe'
-          : 'mock'),
+            ? 'stripe'
+            : 'mock'),
       secretKey: raw.STRIPE_SECRET_KEY || undefined,
-      webhookSecret: raw.STRIPE_WEBHOOK_SECRET || raw.RAZORPAY_WEBHOOK_SECRET || 'whsec_mock_default_secret_for_tests',
+      webhookSecret:
+        raw.STRIPE_WEBHOOK_SECRET ||
+        raw.RAZORPAY_WEBHOOK_SECRET ||
+        'whsec_mock_default_secret_for_tests',
       publishableKey: raw.STRIPE_PUBLISHABLE_KEY || undefined,
       apiVersion: raw.STRIPE_API_VERSION || undefined,
       webhookToleranceSeconds: raw.STRIPE_WEBHOOK_TOLERANCE_SECONDS ?? 300,
-      razorpayKeyId: raw.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || 'rzp_test_Tma2xqRvNkQNEy',
-      razorpayKeySecret: raw.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET || 'BxHIvtzmpFGg5BcI0Hmyuwpu',
-      razorpayWebhookSecret: raw.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_WEBHOOK_SECRET || undefined,
+      razorpayKeyId:
+        raw.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || 'rzp_test_Tma2xqRvNkQNEy',
+      razorpayKeySecret:
+        raw.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET || 'BxHIvtzmpFGg5BcI0Hmyuwpu',
+      razorpayWebhookSecret:
+        raw.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_WEBHOOK_SECRET || undefined,
     },
     fulfillment: {
       mode: raw.FULFILLMENT_SERVICE_MODE ?? 'local',

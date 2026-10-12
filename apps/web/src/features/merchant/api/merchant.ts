@@ -135,37 +135,54 @@ export const merchantApi = {
     });
   },
 
-  updateListingStatus: async (listingId: string, status: 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'): Promise<MerchantListingDto> => {
+  updateListingStatus: async (
+    listingId: string,
+    status: 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED',
+  ): Promise<MerchantListingDto> => {
     return apiClient<MerchantListingDto>(`/listings/${listingId}/status`, {
       method: 'POST',
       body: JSON.stringify({ status }),
     });
   },
 
-  updateListingPrice: async (listingId: string, input: { priceAmount?: number; compareAtPrice?: number | null }): Promise<MerchantListingDto> => {
+  updateListingPrice: async (
+    listingId: string,
+    input: { priceAmount?: number; compareAtPrice?: number | null },
+  ): Promise<MerchantListingDto> => {
     return apiClient<MerchantListingDto>(`/listings/${listingId}`, {
       method: 'PATCH',
       body: JSON.stringify(input),
     });
   },
 
-  initInventory: async (input: { listingId: string; initialOnHandQuantity: number }): Promise<InventoryItemDto> => {
+  initInventory: async (input: {
+    listingId: string;
+    initialOnHandQuantity: number;
+  }): Promise<InventoryItemDto> => {
     return apiClient<InventoryItemDto>('/inventory', {
       method: 'POST',
       body: JSON.stringify(input),
     });
   },
 
-  getCatalogProducts: async (): Promise<Array<{ id: string; title: string; brand?: string; categoryId?: string }>> => {
-    return apiClient<Array<{ id: string; title: string; brand?: string; categoryId?: string }>>('/products');
+  getCatalogProducts: async (): Promise<
+    Array<{ id: string; title: string; brand?: string; categoryId?: string }>
+  > => {
+    return apiClient<Array<{ id: string; title: string; brand?: string; categoryId?: string }>>(
+      '/products',
+    );
   },
 
   getCategories: async (): Promise<Array<{ id: string; name: string }>> => {
     return apiClient<Array<{ id: string; name: string }>>('/categories');
   },
 
-  getProductSkus: async (productId: string): Promise<Array<{ id: string; skuCode: string; attributes?: Record<string, unknown> }>> => {
-    return apiClient<Array<{ id: string; skuCode: string; attributes?: Record<string, unknown> }>>(`/products/${productId}/skus`);
+  getProductSkus: async (
+    productId: string,
+  ): Promise<Array<{ id: string; skuCode: string; attributes?: Record<string, unknown> }>> => {
+    return apiClient<Array<{ id: string; skuCode: string; attributes?: Record<string, unknown> }>>(
+      `/products/${productId}/skus`,
+    );
   },
 
   createProduct: async (input: {
@@ -184,28 +201,36 @@ export const merchantApi = {
     });
   },
 
-  createSku: async (productId: string, input: { skuCode: string; barcode?: string; attributes?: Record<string, unknown> }): Promise<{ id: string; skuCode: string }> => {
+  createSku: async (
+    productId: string,
+    input: { skuCode: string; barcode?: string; attributes?: Record<string, unknown> },
+  ): Promise<{ id: string; skuCode: string }> => {
     return apiClient<{ id: string; skuCode: string }>(`/products/${productId}/skus`, {
       method: 'POST',
       body: JSON.stringify(input),
     });
   },
 
-  updateSkuStatus: async (skuId: string, status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'): Promise<{ id: string; status: string }> => {
+  updateSkuStatus: async (
+    skuId: string,
+    status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
+  ): Promise<{ id: string; status: string }> => {
     return apiClient<{ id: string; status: string }>(`/skus/${skuId}/status`, {
       method: 'POST',
       body: JSON.stringify({ status }),
     });
   },
 
-  updateProductStatus: async (productId: string, status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'): Promise<{ id: string; status: string }> => {
+  updateProductStatus: async (
+    productId: string,
+    status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
+  ): Promise<{ id: string; status: string }> => {
     return apiClient<{ id: string; status: string }>(`/products/${productId}/status`, {
       method: 'POST',
       body: JSON.stringify({ status }),
     });
   },
 };
-
 
 export interface FinancialSummaryDto {
   tenantId: string;

@@ -110,14 +110,16 @@ describe('Phase C Frontend-Backend E2E Integration', () => {
 
   it('1. Home -> GET categories -> actual Fastify -> DB -> actual response -> renders', async () => {
     // Seed DB directly
-    await db.query(`INSERT INTO categories (id, name, slug) VALUES ('cat-1', 'Electronics', 'electronics')`);
+    await db.query(
+      `INSERT INTO categories (id, name, slug) VALUES ('cat-1', 'Electronics', 'electronics')`,
+    );
 
     render(
       <BrowserRouter>
         <AuthProvider>
           <Home />
         </AuthProvider>
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
     // Wait for actual response to render (name appears in filter + list)
@@ -130,31 +132,49 @@ describe('Phase C Frontend-Backend E2E Integration', () => {
     currentProductId = 'test-product-id';
 
     // Seed Product
-    await db.query(`INSERT INTO products (id, title, slug, status) VALUES ('test-product-id', 'Test Laptop', 'test-laptop', 'ACTIVE')`);
-    
+    await db.query(
+      `INSERT INTO products (id, title, slug, status) VALUES ('test-product-id', 'Test Laptop', 'test-laptop', 'ACTIVE')`,
+    );
+
     // Seed SKUs (One ACTIVE, One DRAFT to prove visibility filtering works end-to-end)
-    await db.query(`INSERT INTO product_skus (id, product_id, sku_code, status) VALUES ('sku-1', 'test-product-id', 'LAPTOP-WHT', 'ACTIVE')`);
-    await db.query(`INSERT INTO product_skus (id, product_id, sku_code, status) VALUES ('sku-2', 'test-product-id', 'LAPTOP-BLK', 'DRAFT')`);
+    await db.query(
+      `INSERT INTO product_skus (id, product_id, sku_code, status) VALUES ('sku-1', 'test-product-id', 'LAPTOP-WHT', 'ACTIVE')`,
+    );
+    await db.query(
+      `INSERT INTO product_skus (id, product_id, sku_code, status) VALUES ('sku-2', 'test-product-id', 'LAPTOP-BLK', 'DRAFT')`,
+    );
 
     // Seed Merchants
-    await db.query(`INSERT INTO tenants (id, name, type, created_at, updated_at) VALUES ('tenant-1', 'BestBuy', 'MERCHANT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
-    await db.query(`INSERT INTO tenants (id, name, type, created_at, updated_at) VALUES ('tenant-2', 'Amazon', 'MERCHANT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
-    await db.query(`INSERT INTO tenants (id, name, type, created_at, updated_at) VALUES ('tenant-3', 'InactiveSeller', 'MERCHANT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
+    await db.query(
+      `INSERT INTO tenants (id, name, type, created_at, updated_at) VALUES ('tenant-1', 'BestBuy', 'MERCHANT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    );
+    await db.query(
+      `INSERT INTO tenants (id, name, type, created_at, updated_at) VALUES ('tenant-2', 'Amazon', 'MERCHANT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    );
+    await db.query(
+      `INSERT INTO tenants (id, name, type, created_at, updated_at) VALUES ('tenant-3', 'InactiveSeller', 'MERCHANT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    );
 
     // Seed Listings for ACTIVE SKU:
     // Listing A = ACTIVE ($999.00)
-    await db.query(`INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status, created_at, updated_at) VALUES ('list-1', 'tenant-1', 'sku-1', 99900, 'USD', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
+    await db.query(
+      `INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status, created_at, updated_at) VALUES ('list-1', 'tenant-1', 'sku-1', 99900, 'USD', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    );
     // Listing B = ACTIVE ($950.00)
-    await db.query(`INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status, created_at, updated_at) VALUES ('list-2', 'tenant-2', 'sku-1', 95000, 'USD', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
+    await db.query(
+      `INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status, created_at, updated_at) VALUES ('list-2', 'tenant-2', 'sku-1', 95000, 'USD', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    );
     // Listing C = INACTIVE ($750.00) - MUST be excluded by backend
-    await db.query(`INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status, created_at, updated_at) VALUES ('list-3', 'tenant-3', 'sku-1', 75000, 'USD', 'INACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
+    await db.query(
+      `INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status, created_at, updated_at) VALUES ('list-3', 'tenant-3', 'sku-1', 75000, 'USD', 'INACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    );
 
     render(
       <BrowserRouter>
         <AuthProvider>
           <ProductPage />
         </AuthProvider>
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
     // Wait for Product title
@@ -175,7 +195,7 @@ describe('Phase C Frontend-Backend E2E Integration', () => {
     });
 
     // CRITICAL: Prove backend response itself excluded the INACTIVE listing (Listing C: 75000.00)
-    const listingApiCall = interceptedResponses.find(r => r.url === '/skus/sku-1/listings');
+    const listingApiCall = interceptedResponses.find((r) => r.url === '/skus/sku-1/listings');
     expect(listingApiCall).toBeDefined();
     expect(listingApiCall?.status).toBe(200);
     // Backend response has exactly 2 listings
@@ -195,23 +215,31 @@ describe('Phase C Frontend-Backend E2E Integration', () => {
     currentProductId = 'product-no-active-listings';
 
     // Seed Product
-    await db.query(`INSERT INTO products (id, title, slug, status) VALUES ('product-no-active-listings', 'Unlisted Item', 'unlisted-item', 'ACTIVE')`);
-    
+    await db.query(
+      `INSERT INTO products (id, title, slug, status) VALUES ('product-no-active-listings', 'Unlisted Item', 'unlisted-item', 'ACTIVE')`,
+    );
+
     // Seed SKU
-    await db.query(`INSERT INTO product_skus (id, product_id, sku_code, status) VALUES ('sku-empty', 'product-no-active-listings', 'EMPTY-SKU', 'ACTIVE')`);
+    await db.query(
+      `INSERT INTO product_skus (id, product_id, sku_code, status) VALUES ('sku-empty', 'product-no-active-listings', 'EMPTY-SKU', 'ACTIVE')`,
+    );
 
     // Seed Merchant
-    await db.query(`INSERT INTO tenants (id, name, type, created_at, updated_at) VALUES ('tenant-ghost', 'GhostMerchant', 'MERCHANT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
+    await db.query(
+      `INSERT INTO tenants (id, name, type, created_at, updated_at) VALUES ('tenant-ghost', 'GhostMerchant', 'MERCHANT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    );
 
     // Seed only an INACTIVE listing for this SKU (so active listings count is ZERO)
-    await db.query(`INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status, created_at, updated_at) VALUES ('list-inactive-only', 'tenant-ghost', 'sku-empty', 49900, 'USD', 'INACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
+    await db.query(
+      `INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status, created_at, updated_at) VALUES ('list-inactive-only', 'tenant-ghost', 'sku-empty', 49900, 'USD', 'INACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    );
 
     render(
       <BrowserRouter>
         <AuthProvider>
           <ProductPage />
         </AuthProvider>
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
     // Wait for Product title and SKU variant
@@ -227,7 +255,7 @@ describe('Phase C Frontend-Backend E2E Integration', () => {
     });
 
     // CRITICAL: Prove backend response itself returned an empty collection []
-    const listingApiCall = interceptedResponses.find(r => r.url === '/skus/sku-empty/listings');
+    const listingApiCall = interceptedResponses.find((r) => r.url === '/skus/sku-empty/listings');
     expect(listingApiCall).toBeDefined();
     expect(listingApiCall?.status).toBe(200);
     expect(listingApiCall?.data).toEqual([]);
@@ -237,4 +265,3 @@ describe('Phase C Frontend-Backend E2E Integration', () => {
     expect(screen.queryByText(/Add to Cart/)).toBeNull();
   });
 });
-

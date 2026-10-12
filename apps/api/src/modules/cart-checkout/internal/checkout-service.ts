@@ -110,7 +110,9 @@ export class CheckoutService implements ICheckoutService {
       if (existing) {
         const existingItems = await this.checkoutRepo.getCheckoutItems(existing.id);
         const currentCart = await this.cartRepo.findCartByTenantId(actor.tenantId);
-        const currentCartItems = currentCart ? await this.cartRepo.getCartItems(currentCart.id) : [];
+        const currentCartItems = currentCart
+          ? await this.cartRepo.getCartItems(currentCart.id)
+          : [];
 
         // Verify that the request has not materially changed
         const matches =
@@ -246,9 +248,9 @@ export class CheckoutService implements ICheckoutService {
     } catch (err: unknown) {
       if (
         input?.idempotencyKey &&
-        (err instanceof Error &&
-          (err.message.includes('uq_checkout_idempotency') ||
-            (err as { code?: string }).code === '23505'))
+        err instanceof Error &&
+        (err.message.includes('uq_checkout_idempotency') ||
+          (err as { code?: string }).code === '23505')
       ) {
         const existing = await this.checkoutRepo.findSessionByIdempotency(
           actor.tenantId,
@@ -611,12 +613,10 @@ export class CheckoutService implements ICheckoutService {
         failureReason = `${baseReason} [CRITICAL: Compensation partially failed for reservations: ${uncompensatedReservations.join(', ')}]`;
       }
 
-      await this.checkoutRepo.updateSessionStatus(
-        sessionId,
-        'VALIDATING',
-        'FAILED',
-        { failureReason, failedAt: new Date() },
-      );
+      await this.checkoutRepo.updateSessionStatus(sessionId, 'VALIDATING', 'FAILED', {
+        failureReason,
+        failedAt: new Date(),
+      });
 
       throw err;
     }
@@ -678,10 +678,7 @@ export class CheckoutService implements ICheckoutService {
     return null;
   }
 
-  async getCheckoutSession(
-    actor: AuthorizedActor,
-    sessionId: string,
-  ): Promise<CheckoutSessionDto> {
+  async getCheckoutSession(actor: AuthorizedActor, sessionId: string): Promise<CheckoutSessionDto> {
     const session = await this.checkoutRepo.findSessionById(sessionId);
     if (!session) {
       throw new NotFoundError(`Checkout session '${sessionId}' not found`);
@@ -755,9 +752,12 @@ export class CheckoutService implements ICheckoutService {
           );
           await this.checkoutRepo.setCheckoutItemReservation(item.id, null);
         } catch (err) {
-          this.logger.warn(`Notice while releasing reservation on expired session: ${item.inventory_reservation_id}`, {
-            error: err instanceof Error ? err.message : String(err),
-          });
+          this.logger.warn(
+            `Notice while releasing reservation on expired session: ${item.inventory_reservation_id}`,
+            {
+              error: err instanceof Error ? err.message : String(err),
+            },
+          );
         }
       }
     }
@@ -824,9 +824,12 @@ export class CheckoutService implements ICheckoutService {
           );
           await this.checkoutRepo.setCheckoutItemReservation(item.id, null);
         } catch (err) {
-          this.logger.warn(`Notice while releasing reservation on cancelled session: ${item.inventory_reservation_id}`, {
-            error: err instanceof Error ? err.message : String(err),
-          });
+          this.logger.warn(
+            `Notice while releasing reservation on cancelled session: ${item.inventory_reservation_id}`,
+            {
+              error: err instanceof Error ? err.message : String(err),
+            },
+          );
         }
       }
     }
@@ -854,8 +857,14 @@ export class CheckoutService implements ICheckoutService {
       throw new NotFoundError(`Checkout session '${sessionId}' not found`);
     }
 
-    if (session.status === 'CANCELLED' || session.status === 'EXPIRED' || session.status === 'FAILED') {
-      throw new InvalidStateTransitionError(`Cannot update address on session with status '${session.status}'`);
+    if (
+      session.status === 'CANCELLED' ||
+      session.status === 'EXPIRED' ||
+      session.status === 'FAILED'
+    ) {
+      throw new InvalidStateTransitionError(
+        `Cannot update address on session with status '${session.status}'`,
+      );
     }
 
     const snapshot = await this.resolveShippingAddress(actor, input);
@@ -936,7 +945,8 @@ export class CheckoutService implements ICheckoutService {
       throw new CheckoutValidationError('postalCode exceeds maximum length of 20');
     }
 
-    const country = typeof input.country === 'string' && input.country.trim() ? input.country.trim() : 'US';
+    const country =
+      typeof input.country === 'string' && input.country.trim() ? input.country.trim() : 'US';
     if (country.length > 50) {
       throw new CheckoutValidationError('country exceeds maximum length of 50');
     }
@@ -959,8 +969,10 @@ export class CheckoutService implements ICheckoutService {
       longitude = lngNum;
     }
 
-    const googlePlaceId = typeof input.googlePlaceId === 'string' ? input.googlePlaceId.trim() : null;
-    const formattedAddress = typeof input.formattedAddress === 'string' ? input.formattedAddress.trim() : null;
+    const googlePlaceId =
+      typeof input.googlePlaceId === 'string' ? input.googlePlaceId.trim() : null;
+    const formattedAddress =
+      typeof input.formattedAddress === 'string' ? input.formattedAddress.trim() : null;
 
     // Strict security rule: Manual entry CANNOT claim an existing addressId or another customer's data
     return {
@@ -984,10 +996,12 @@ export class CheckoutService implements ICheckoutService {
 
   private async resolveShippingAddress(
     actor: AuthorizedActor,
-    input?: {
-      addressId?: string | null | undefined;
-      shippingAddress?: AddressSnapshot | Record<string, unknown> | null | undefined;
-    } | undefined,
+    input?:
+      | {
+          addressId?: string | null | undefined;
+          shippingAddress?: AddressSnapshot | Record<string, unknown> | null | undefined;
+        }
+      | undefined,
   ): Promise<AddressSnapshot | null> {
     // 1. Preferred secure flow: addressId -> authenticated ownership check -> PostgreSQL lookup -> server snapshot
     if (input?.addressId) {

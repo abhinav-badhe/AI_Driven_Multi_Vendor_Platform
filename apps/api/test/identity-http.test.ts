@@ -24,7 +24,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     app = Fastify();
     app.register(fastifyCookie);
     app.register(fastifyCors, { origin: ['http://localhost:3000'], credentials: true });
-    
+
     // Simulate Request ID hooks for middleware
     app.addHook('onRequest', async (req) => {
       req.correlationId = 'test-corr-id';
@@ -52,23 +52,23 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.payload);
-    
+
     // 1. Returns access token
     expect(body.accessToken).toBeDefined();
-    
+
     // 2. Response does NOT contain refreshToken in JSON
     expect(body.refreshToken).toBeUndefined();
 
     // 3. Response sets HttpOnly refresh cookie
     const cookies = response.cookies;
-    const refreshCookie = cookies.find(c => c.name === 'auth_refresh');
+    const refreshCookie = cookies.find((c) => c.name === 'auth_refresh');
     expect(refreshCookie).toBeDefined();
     expect(refreshCookie?.httpOnly).toBe(true);
-    
+
     // 4. cookie expiration matches refresh-token lifetime
     expect(refreshCookie?.maxAge).toBeDefined();
     expect(refreshCookie?.maxAge).toBeGreaterThan(0);
-    
+
     // 5. secure/samesite/path configuration is correct
     expect(refreshCookie?.path).toBe('/api/auth');
     expect(refreshCookie?.sameSite).toBe('Strict');
@@ -82,8 +82,8 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
       url: '/auth/login',
       payload: { email: 'refresh@example.com', password: 'password123' },
     });
-    
-    const refreshCookie = loginRes.cookies.find(c => c.name === 'auth_refresh');
+
+    const refreshCookie = loginRes.cookies.find((c) => c.name === 'auth_refresh');
     expect(refreshCookie).toBeDefined();
 
     const refreshRes = await app.inject({
@@ -94,13 +94,13 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
 
     expect(refreshRes.statusCode).toBe(200);
     const refreshBody = JSON.parse(refreshRes.payload);
-    
+
     // 8. response does NOT expose refreshToken
     expect(refreshBody.refreshToken).toBeUndefined();
     expect(refreshBody.accessToken).toBeDefined();
 
     // 9. successful refresh rotates the refresh cookie
-    const newCookie = refreshRes.cookies.find(c => c.name === 'auth_refresh');
+    const newCookie = refreshRes.cookies.find((c) => c.name === 'auth_refresh');
     expect(newCookie).toBeDefined();
     expect(newCookie?.value).not.toBe(refreshCookie!.value);
 
@@ -124,7 +124,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
       url: '/auth/login',
       payload: { email: 'logout@example.com', password: 'password123' },
     });
-    const refreshCookie = loginRes.cookies.find(c => c.name === 'auth_refresh');
+    const refreshCookie = loginRes.cookies.find((c) => c.name === 'auth_refresh');
     const accessToken = JSON.parse(loginRes.payload).accessToken;
 
     const logoutRes = await app.inject({
@@ -135,9 +135,9 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     });
 
     expect(logoutRes.statusCode).toBe(204);
-    
+
     // 16. logout clears the refresh cookie
-    const clearedCookie = logoutRes.cookies.find(c => c.name === 'auth_refresh');
+    const clearedCookie = logoutRes.cookies.find((c) => c.name === 'auth_refresh');
     expect(clearedCookie).toBeDefined();
     expect(clearedCookie?.value).toBe('');
     expect(clearedCookie?.maxAge).toBe(0);
@@ -150,12 +150,17 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     });
     expect(refreshRes.statusCode).toBe(401);
   });
-  
+
   it('18. registration creates an unverified account without session cookies and 19. login is blocked until verification', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/auth/register',
-      payload: { email: 'reg@example.com', password: 'password123', tenantName: 'Tenant', role: 'MERCHANT' },
+      payload: {
+        email: 'reg@example.com',
+        password: 'password123',
+        tenantName: 'Tenant',
+        role: 'MERCHANT',
+      },
     });
 
     expect(response.statusCode).toBe(201);
@@ -167,7 +172,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     expect(body.refreshToken).toBeUndefined();
 
     const cookies = response.cookies;
-    expect(cookies.find(c => c.name === 'auth_refresh')).toBeUndefined();
+    expect(cookies.find((c) => c.name === 'auth_refresh')).toBeUndefined();
 
     // Login is blocked before verification (403 from the route;
     // the full error envelope with EMAIL_NOT_VERIFIED is asserted in
@@ -181,7 +186,9 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     expect(blocked.payload).toContain('verified');
 
     // ... and succeeds after the emailed link is consumed.
-    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = 'reg@example.com'`);
+    const userRes = await db.query<{ id: string }>(
+      `SELECT id FROM users WHERE email = 'reg@example.com'`,
+    );
     const rawToken = await service.createEmailVerificationToken(userRes.rows[0]!.id);
     const verifyRes = await app.inject({
       method: 'POST',
@@ -196,7 +203,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
       payload: { email: 'reg@example.com', password: 'password123' },
     });
     expect(loginRes.statusCode).toBe(200);
-    const refreshCookie = loginRes.cookies.find(c => c.name === 'auth_refresh');
+    const refreshCookie = loginRes.cookies.find((c) => c.name === 'auth_refresh');
     expect(refreshCookie).toBeDefined();
     expect(refreshCookie?.httpOnly).toBe(true);
   });
@@ -209,7 +216,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     });
     expect(res.statusCode).toBe(200);
   });
-  
+
   it('20. trusted frontend origin can perform credentialed authentication', async () => {
     const response = await app.inject({
       method: 'OPTIONS',
@@ -217,20 +224,20 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
       headers: {
         origin: 'http://localhost:3000',
         'access-control-request-method': 'POST',
-      }
+      },
     });
-    
+
     expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
     expect(response.headers['access-control-allow-credentials']).toBe('true');
   });
-  
+
   it('22. logs/errors do not expose refresh token', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/auth/refresh',
       cookies: { auth_refresh: 'fake-token-that-should-not-be-in-output' },
     });
-    
+
     expect(response.statusCode).toBe(401);
     expect(response.payload).not.toContain('fake-token');
   });
@@ -238,22 +245,27 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
   // ── Cookie-authoritative logout – security boundary tests ──────────────────
 
   async function registerVerified(email: string, password = 'password123!') {
-    const account = await service.register({ email, password, tenantName: 'Tenant', role: 'MERCHANT' });
+    const account = await service.register({
+      email,
+      password,
+      tenantName: 'Tenant',
+      role: 'MERCHANT',
+    });
     await service.verifyEmail(await service.createEmailVerificationToken(account.userId));
   }
 
   describe('Logout: cookie-authoritative security boundary', () => {
-  async function loginUser(email: string) {
-    await registerVerified(email);
-    const res = await app.inject({
-      method: 'POST',
-      url: '/auth/login',
-      payload: { email, password: 'password123!' },
-    });
-    const accessToken = JSON.parse(res.payload).accessToken as string;
-    const refreshCookie = res.cookies.find(c => c.name === 'auth_refresh')!;
-    return { accessToken, refreshCookieValue: refreshCookie.value };
-  }
+    async function loginUser(email: string) {
+      await registerVerified(email);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email, password: 'password123!' },
+      });
+      const accessToken = JSON.parse(res.payload).accessToken as string;
+      const refreshCookie = res.cookies.find((c) => c.name === 'auth_refresh')!;
+      return { accessToken, refreshCookieValue: refreshCookie.value };
+    }
 
     it('L1. valid access token + valid refresh cookie → logout 204, refresh afterward fails', async () => {
       const { accessToken, refreshCookieValue } = await loginUser('l1@example.com');
@@ -267,7 +279,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
       expect(logoutRes.statusCode).toBe(204);
 
       // cookie is cleared
-      const cleared = logoutRes.cookies.find(c => c.name === 'auth_refresh');
+      const cleared = logoutRes.cookies.find((c) => c.name === 'auth_refresh');
       expect(cleared?.value).toBe('');
       expect(cleared?.maxAge).toBe(0);
 
@@ -282,11 +294,17 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
 
     it('L2. EXPIRED access token + valid refresh cookie → logout 204, refresh-family revoked', async () => {
       // Login at service level so we get the raw refresh token before HTTP layer
-      const account = await service.register({ email: 'l2@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' });
+      const account = await service.register({
+        email: 'l2@example.com',
+        password: 'password123!',
+        tenantName: 'T',
+        role: 'MERCHANT',
+      });
       await service.verifyEmail(await service.createEmailVerificationToken(account.userId));
-      const loginTokens = await service.login(
-        { email: 'l2@example.com', password: 'password123!' },
-      );
+      const loginTokens = await service.login({
+        email: 'l2@example.com',
+        password: 'password123!',
+      });
 
       // Construct a structurally valid but expired access token by mutating the exp claim.
       // We forge the exp to the past so verifyAccessToken returns null.
@@ -308,7 +326,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
       expect(logoutRes.statusCode).toBe(204);
 
       // Cookie must be cleared
-      const cleared = logoutRes.cookies.find(c => c.name === 'auth_refresh');
+      const cleared = logoutRes.cookies.find((c) => c.name === 'auth_refresh');
       expect(cleared?.value).toBe('');
       expect(cleared?.maxAge).toBe(0);
 
@@ -322,11 +340,17 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     });
 
     it('L3. NO access token at all + valid refresh cookie → logout 204, family revoked', async () => {
-      const l3 = await service.register({ email: 'l3@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' });
+      const l3 = await service.register({
+        email: 'l3@example.com',
+        password: 'password123!',
+        tenantName: 'T',
+        role: 'MERCHANT',
+      });
       await service.verifyEmail(await service.createEmailVerificationToken(l3.userId));
-      const loginTokens = await service.login(
-        { email: 'l3@example.com', password: 'password123!' },
-      );
+      const loginTokens = await service.login({
+        email: 'l3@example.com',
+        password: 'password123!',
+      });
 
       const logoutRes = await app.inject({
         method: 'POST',
@@ -346,11 +370,17 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     });
 
     it('L4. INVALID access token signature + valid refresh cookie → logout 204, family revoked', async () => {
-      const l4 = await service.register({ email: 'l4@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' });
+      const l4 = await service.register({
+        email: 'l4@example.com',
+        password: 'password123!',
+        tenantName: 'T',
+        role: 'MERCHANT',
+      });
       await service.verifyEmail(await service.createEmailVerificationToken(l4.userId));
-      const loginTokens = await service.login(
-        { email: 'l4@example.com', password: 'password123!' },
-      );
+      const loginTokens = await service.login({
+        email: 'l4@example.com',
+        password: 'password123!',
+      });
 
       const logoutRes = await app.inject({
         method: 'POST',
@@ -381,7 +411,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
       // Should be safe/idempotent – returns 204
       expect(logoutRes.statusCode).toBe(204);
       // Cookie is cleared (even if it didn't exist)
-      const cleared = logoutRes.cookies.find(c => c.name === 'auth_refresh');
+      const cleared = logoutRes.cookies.find((c) => c.name === 'auth_refresh');
       expect(cleared?.value).toBe('');
     });
 
@@ -421,7 +451,7 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
         headers: { authorization: `Bearer ${accessToken}` },
         cookies: { auth_refresh: refreshCookieValue },
       });
-      const cleared = res.cookies.find(c => c.name === 'auth_refresh');
+      const cleared = res.cookies.find((c) => c.name === 'auth_refresh');
       expect(cleared).toBeDefined();
       expect(cleared?.path).toBe('/api/auth');
       expect(cleared?.value).toBe('');
@@ -443,11 +473,17 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
 
     it('L10. subsequent /auth/refresh with old cookie fails after any logout variant', async () => {
       // Proven by L1, L2, L3, L4 individually; this test consolidates with no-header variant
-      const l10 = await service.register({ email: 'l10@example.com', password: 'password123!', tenantName: 'T', role: 'MERCHANT' });
+      const l10 = await service.register({
+        email: 'l10@example.com',
+        password: 'password123!',
+        tenantName: 'T',
+        role: 'MERCHANT',
+      });
       await service.verifyEmail(await service.createEmailVerificationToken(l10.userId));
-      const loginTokens = await service.login(
-        { email: 'l10@example.com', password: 'password123!' },
-      );
+      const loginTokens = await service.login({
+        email: 'l10@example.com',
+        password: 'password123!',
+      });
 
       await app.inject({
         method: 'POST',
@@ -546,4 +582,3 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
     });
   });
 });
-

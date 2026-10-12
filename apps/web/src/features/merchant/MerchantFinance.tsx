@@ -1,16 +1,22 @@
-import { useState, useEffect } from "react";
-import { ReceiptText, Search } from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { apiClient } from "../../api/client";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { Input } from "../../components/ui/input";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { formatMoney } from "../../lib/format";
+import { useState, useEffect } from 'react';
+import { ReceiptText, Search } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { apiClient } from '../../api/client';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { Input } from '../../components/ui/input';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { formatMoney } from '../../lib/format';
 
 export interface MerchantFinancialSummaryDto {
   merchantId: string;
@@ -28,8 +34,8 @@ export interface MerchantFinancialSummaryDto {
 export interface LedgerEntryDto {
   id: string;
   merchantId: string;
-  entryType: "EARNING" | "COMMISSION" | "FEE" | "REFUND" | "ADJUSTMENT" | "PAYOUT";
-  direction: "CREDIT" | "DEBIT";
+  entryType: 'EARNING' | 'COMMISSION' | 'FEE' | 'REFUND' | 'ADJUSTMENT' | 'PAYOUT';
+  direction: 'CREDIT' | 'DEBIT';
   amountMinor: number;
   currency: string;
   sourceType: string;
@@ -38,18 +44,20 @@ export interface LedgerEntryDto {
   createdAt: string;
 }
 
-const typeVariant = (t: LedgerEntryDto["entryType"]) =>
-  t === "EARNING" ? ("success" as const)
-  : t === "REFUND" ? ("destructive" as const)
-  : ("outline" as const);
+const typeVariant = (t: LedgerEntryDto['entryType']) =>
+  t === 'EARNING'
+    ? ('success' as const)
+    : t === 'REFUND'
+      ? ('destructive' as const)
+      : ('outline' as const);
 
-const TYPE_FILTERS: Array<{ label: string; value: LedgerEntryDto["entryType"] | "ALL" }> = [
-  { label: "All", value: "ALL" },
-  { label: "Earnings", value: "EARNING" },
-  { label: "Commissions", value: "COMMISSION" },
-  { label: "Fees", value: "FEE" },
-  { label: "Refunds", value: "REFUND" },
-  { label: "Payouts", value: "PAYOUT" },
+const TYPE_FILTERS: Array<{ label: string; value: LedgerEntryDto['entryType'] | 'ALL' }> = [
+  { label: 'All', value: 'ALL' },
+  { label: 'Earnings', value: 'EARNING' },
+  { label: 'Commissions', value: 'COMMISSION' },
+  { label: 'Fees', value: 'FEE' },
+  { label: 'Refunds', value: 'REFUND' },
+  { label: 'Payouts', value: 'PAYOUT' },
 ];
 
 export const MerchantFinance = () => {
@@ -58,8 +66,8 @@ export const MerchantFinance = () => {
   const [entries, setEntries] = useState<LedgerEntryDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<LedgerEntryDto["entryType"] | "ALL">("ALL");
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<LedgerEntryDto['entryType'] | 'ALL'>('ALL');
 
   const loadFinance = async () => {
     if (!user) return;
@@ -68,15 +76,19 @@ export const MerchantFinance = () => {
     try {
       const merchantId = user.tenantId;
       const [sumData, ledgerData] = await Promise.all([
-        apiClient<MerchantFinancialSummaryDto>(`/settlement/merchants/${merchantId}/summary`).catch(() => null),
-        apiClient<{ entries: LedgerEntryDto[] }>(`/settlement/merchants/${merchantId}/ledger`).catch(() => ({
+        apiClient<MerchantFinancialSummaryDto>(`/settlement/merchants/${merchantId}/summary`).catch(
+          () => null,
+        ),
+        apiClient<{ entries: LedgerEntryDto[] }>(
+          `/settlement/merchants/${merchantId}/ledger`,
+        ).catch(() => ({
           entries: [],
         })),
       ]);
       setSummary(sumData);
       setEntries(Array.isArray(ledgerData.entries) ? ledgerData.entries : []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not load finance data.");
+      setError(err instanceof Error ? err.message : 'Could not load finance data.');
     } finally {
       setIsLoading(false);
     }
@@ -99,15 +111,15 @@ export const MerchantFinance = () => {
     );
   }
 
-  const currency = summary?.currency ?? "INR";
+  const currency = summary?.currency ?? 'INR';
 
   const filteredEntries = entries.filter((entry) => {
-    if (typeFilter !== "ALL" && entry.entryType !== typeFilter) return false;
+    if (typeFilter !== 'ALL' && entry.entryType !== typeFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       const matchId = entry.id.toLowerCase().includes(q);
       const matchSource = `${entry.sourceType} ${entry.sourceId}`.toLowerCase().includes(q);
-      const matchDesc = (entry.description || "").toLowerCase().includes(q);
+      const matchDesc = (entry.description || '').toLowerCase().includes(q);
       if (!matchId && !matchSource && !matchDesc) return false;
     }
     return true;
@@ -117,7 +129,9 @@ export const MerchantFinance = () => {
     <div className="space-y-4 p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Finance & Settlement ({entries.length})</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Finance & Settlement ({entries.length})
+          </h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
             Earnings, commissions, payouts, and the settlement ledger.
           </p>
@@ -174,7 +188,7 @@ export const MerchantFinance = () => {
               {TYPE_FILTERS.map((t) => (
                 <Button
                   key={t.value}
-                  variant={typeFilter === t.value ? "default" : "outline"}
+                  variant={typeFilter === t.value ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setTypeFilter(t.value)}
                 >
@@ -187,11 +201,11 @@ export const MerchantFinance = () => {
           {filteredEntries.length === 0 ? (
             <EmptyState
               icon={ReceiptText}
-              title={entries.length === 0 ? "No ledger entries yet" : "No matching ledger entries"}
+              title={entries.length === 0 ? 'No ledger entries yet' : 'No matching ledger entries'}
               description={
                 entries.length === 0
-                  ? "Confirmed orders will append journals here automatically."
-                  : "Try adjusting your search query or type filter."
+                  ? 'Confirmed orders will append journals here automatically.'
+                  : 'Try adjusting your search query or type filter.'
               }
             />
           ) : (
@@ -215,14 +229,21 @@ export const MerchantFinance = () => {
                       <Badge variant={typeVariant(entry.entryType)}>{entry.entryType}</Badge>
                     </TD>
                     <TD>
-                      <span className={entry.direction === "CREDIT" ? "text-success" : "text-destructive"}>
-                        {entry.direction === "CREDIT" ? "+ Credit" : "− Debit"}
+                      <span
+                        className={
+                          entry.direction === 'CREDIT' ? 'text-success' : 'text-destructive'
+                        }
+                      >
+                        {entry.direction === 'CREDIT' ? '+ Credit' : '− Debit'}
                       </span>
                     </TD>
                     <TD className="tnum text-right font-medium">
                       {formatMoney(entry.amountMinor / 100, entry.currency)}
                     </TD>
-                    <TD className="max-w-48 truncate font-mono text-xs text-muted-foreground" title={entry.description || `${entry.sourceType} ${entry.sourceId}`}>
+                    <TD
+                      className="max-w-48 truncate font-mono text-xs text-muted-foreground"
+                      title={entry.description || `${entry.sourceType} ${entry.sourceId}`}
+                    >
                       {entry.sourceType} {entry.sourceId.slice(0, 8)}
                     </TD>
                   </tr>

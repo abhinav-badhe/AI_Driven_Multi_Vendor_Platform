@@ -5,10 +5,7 @@ import type {
   SellerOrderDto,
   OrderItemDto,
 } from './order-service.js';
-import type {
-  CustomerOrderStatus,
-  SellerOrderStatus,
-} from './order-repository.js';
+import type { CustomerOrderStatus, SellerOrderStatus } from './order-repository.js';
 
 export type {
   CreateOrderInput,

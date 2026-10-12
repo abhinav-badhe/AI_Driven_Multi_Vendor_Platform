@@ -17,5 +17,5 @@ export type Listing = {
 export const marketplaceApi = {
   getSkuListings: async (skuId: string): Promise<Listing[]> => {
     return apiClient<Listing[]>(`/skus/${skuId}/listings`);
-  }
+  },
 };

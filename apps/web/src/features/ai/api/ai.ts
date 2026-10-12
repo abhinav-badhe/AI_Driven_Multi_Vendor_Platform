@@ -41,7 +41,9 @@ export const aiApi = {
     });
   },
 
-  getConversationHistory: async (conversationId: string): Promise<AiConversationHistoryResponse> => {
+  getConversationHistory: async (
+    conversationId: string,
+  ): Promise<AiConversationHistoryResponse> => {
     return apiClient<AiConversationHistoryResponse>(`/ai/conversations/${conversationId}`);
   },
 };

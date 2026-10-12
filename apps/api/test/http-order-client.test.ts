@@ -200,11 +200,7 @@ describe('HttpOrderClient', () => {
     );
 
     const client = new HttpOrderClient('http://order-service:4120', { fetchFn });
-    const result = await client.updateCustomerOrderStatus(
-      mockCustomerActor,
-      'order-123',
-      'PAID',
-    );
+    const result = await client.updateCustomerOrderStatus(mockCustomerActor, 'order-123', 'PAID');
 
     expect(result.status).toBe('PAID');
     const [url, init] = fetchFn.mock.calls[0] as [string, RequestInit];
@@ -238,14 +234,16 @@ describe('HttpOrderClient', () => {
   });
 
   it('maps error codes correctly from HTTP response', async () => {
-    const validationFetch = vi.fn().mockImplementation(() =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Missing fields' } }),
-          { status: 400, headers: { 'content-type': 'application/json' } },
+    const validationFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Missing fields' } }),
+            { status: 400, headers: { 'content-type': 'application/json' } },
+          ),
         ),
-      ),
-    );
+      );
     const client = new HttpOrderClient('http://order-service:4120', { fetchFn: validationFetch });
     await expect(
       client.createOrderFromCheckout(mockCustomerActor, {
@@ -256,10 +254,10 @@ describe('HttpOrderClient', () => {
 
     const notFoundFetch = vi.fn().mockImplementation(() =>
       Promise.resolve(
-        new Response(
-          JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Order missing' } }),
-          { status: 404, headers: { 'content-type': 'application/json' } },
-        ),
+        new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Order missing' } }), {
+          status: 404,
+          headers: { 'content-type': 'application/json' },
+        }),
       ),
     );
     const notFoundClient = new HttpOrderClient('http://order-service:4120', {
@@ -291,9 +289,11 @@ describe('HttpOrderClient', () => {
     const memoryStore = new InMemoryOrderStore();
     memoryStore.seedCustomerOrder(mockCustomerOrder);
 
-    const failingFetch = vi.fn().mockImplementation(() =>
-      Promise.reject(new Error('ECONNREFUSED connect to order-service:4120')),
-    );
+    const failingFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.reject(new Error('ECONNREFUSED connect to order-service:4120')),
+      );
 
     const client = new HttpOrderClient('http://order-service:4120', {
       fetchFn: failingFetch,

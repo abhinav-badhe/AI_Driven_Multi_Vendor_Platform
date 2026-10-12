@@ -24,7 +24,15 @@ import type {
 export class InMemoryPromotionStore implements IPromotionPricingEngine {
   private readonly promotions = new Map<string, PromotionDto>();
   private readonly codeIndex = new Map<string, string>(); // UPPERCASE CODE -> ID
-  private readonly checkoutApplied = new Map<string, { couponCode: string; discountAmount: number; totalAmount: number; appliedPromotions: AppliedPromotionSnapshot[] }>();
+  private readonly checkoutApplied = new Map<
+    string,
+    {
+      couponCode: string;
+      discountAmount: number;
+      totalAmount: number;
+      appliedPromotions: AppliedPromotionSnapshot[];
+    }
+  >();
 
   seedPromotions(promos: PromotionDto[]): void {
     for (const p of promos) {
@@ -35,7 +43,10 @@ export class InMemoryPromotionStore implements IPromotionPricingEngine {
     }
   }
 
-  async createPromotion(actor: AuthorizedActor, input: CreatePromotionInput): Promise<PromotionDto> {
+  async createPromotion(
+    actor: AuthorizedActor,
+    input: CreatePromotionInput,
+  ): Promise<PromotionDto> {
     let merchantTenantId: string | null = null;
     if (actor.role === 'ADMINISTRATOR') {
       RbacPolicy.requirePermission(actor, 'promotion:create-own');
@@ -70,8 +81,13 @@ export class InMemoryPromotionStore implements IPromotionPricingEngine {
 
     const id = randomUUID();
     const nowIso = new Date().toISOString();
-    const startsAt = typeof input.startsAt === 'string' ? input.startsAt : input.startsAt.toISOString();
-    const expiresAt = input.expiresAt ? (typeof input.expiresAt === 'string' ? input.expiresAt : input.expiresAt.toISOString()) : null;
+    const startsAt =
+      typeof input.startsAt === 'string' ? input.startsAt : input.startsAt.toISOString();
+    const expiresAt = input.expiresAt
+      ? typeof input.expiresAt === 'string'
+        ? input.expiresAt
+        : input.expiresAt.toISOString()
+      : null;
 
     const dto: PromotionDto = {
       id,
@@ -111,18 +127,27 @@ export class InMemoryPromotionStore implements IPromotionPricingEngine {
     if (!promo) {
       throw new NotFoundError(`Promotion '${id}' not found`);
     }
-    if (actor.role === 'MERCHANT' && promo.merchantTenantId && promo.merchantTenantId !== actor.tenantId) {
+    if (
+      actor.role === 'MERCHANT' &&
+      promo.merchantTenantId &&
+      promo.merchantTenantId !== actor.tenantId
+    ) {
       throw new ForbiddenError('Merchants can only view their own promotions');
     }
     return promo;
   }
 
-  async listPromotions(actor: AuthorizedActor, filter?: ListPromotionsFilter): Promise<PromotionDto[]> {
+  async listPromotions(
+    actor: AuthorizedActor,
+    filter?: ListPromotionsFilter,
+  ): Promise<PromotionDto[]> {
     let result = Array.from(this.promotions.values());
 
     if (actor.role === 'MERCHANT') {
       result = result.filter(
-        (p) => p.merchantTenantId === actor.tenantId || (filter?.includePlatform && p.merchantTenantId === null),
+        (p) =>
+          p.merchantTenantId === actor.tenantId ||
+          (filter?.includePlatform && p.merchantTenantId === null),
       );
     } else if (filter?.merchantTenantId) {
       result = result.filter((p) => p.merchantTenantId === filter.merchantTenantId);
@@ -137,7 +162,11 @@ export class InMemoryPromotionStore implements IPromotionPricingEngine {
     return result.slice(offset, offset + limit);
   }
 
-  async updatePromotion(actor: AuthorizedActor, id: string, input: UpdatePromotionInput): Promise<PromotionDto> {
+  async updatePromotion(
+    actor: AuthorizedActor,
+    id: string,
+    input: UpdatePromotionInput,
+  ): Promise<PromotionDto> {
     const promo = await this.getPromotion(actor, id);
     if (actor.role === 'MERCHANT') {
       RbacPolicy.requirePermission(actor, 'promotion:create-own');
@@ -159,7 +188,9 @@ export class InMemoryPromotionStore implements IPromotionPricingEngine {
       ...(input.maxDiscountAmount !== undefined && { maxDiscountAmount: input.maxDiscountAmount }),
       ...(input.status !== undefined && { status: input.status }),
       ...(input.usageLimitTotal !== undefined && { usageLimitTotal: input.usageLimitTotal }),
-      ...(input.usageLimitPerCustomer !== undefined && { usageLimitPerCustomer: input.usageLimitPerCustomer }),
+      ...(input.usageLimitPerCustomer !== undefined && {
+        usageLimitPerCustomer: input.usageLimitPerCustomer,
+      }),
       ...(input.firstOrderOnly !== undefined && { firstOrderOnly: input.firstOrderOnly }),
       ...(input.stackable !== undefined && { stackable: input.stackable }),
       ...(input.metadata !== undefined && { metadata: input.metadata }),
@@ -170,7 +201,10 @@ export class InMemoryPromotionStore implements IPromotionPricingEngine {
     return updated;
   }
 
-  async previewDiscounts(actor: AuthorizedActor, input: PreviewDiscountsInput): Promise<DiscountCalculationResult> {
+  async previewDiscounts(
+    actor: AuthorizedActor,
+    input: PreviewDiscountsInput,
+  ): Promise<DiscountCalculationResult> {
     const currency = input.currency ?? 'USD';
 
     let candidatePromos: PromotionDto[] = [];

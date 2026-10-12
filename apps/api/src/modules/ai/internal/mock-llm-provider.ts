@@ -22,7 +22,17 @@ export class MockLLMProvider implements ILLMProvider {
     q = q.replace(/\s+below\s+[₹$€£]?\s*\d+.*$/i, '');
     q = q.replace(/[?!.,;]+$/g, '').trim();
 
-    const stopWords = ['is', 'are', 'products', 'items', 'stuff', 'stock', 'store', 'all', 'anything'];
+    const stopWords = [
+      'is',
+      'are',
+      'products',
+      'items',
+      'stuff',
+      'stock',
+      'store',
+      'all',
+      'anything',
+    ];
     if (!q || stopWords.includes(q.toLowerCase())) {
       return 'all';
     }
@@ -35,10 +45,11 @@ export class MockLLMProvider implements ILLMProvider {
     _options?: LLMOptions,
   ): Promise<LLMResponse> {
     const lastMessage = messages[messages.length - 1];
-    const userMessage = messages
-      .filter((m) => m.role === 'USER')
-      .map((m) => m.content)
-      .pop() ?? '';
+    const userMessage =
+      messages
+        .filter((m) => m.role === 'USER')
+        .map((m) => m.content)
+        .pop() ?? '';
 
     const lower = userMessage.toLowerCase();
 
@@ -77,7 +88,11 @@ export class MockLLMProvider implements ILLMProvider {
       // Handle Tool Execution Errors Gracefully
       if (typeof out === 'object' && out !== null && 'error' in out) {
         const errStr = String((out as Record<string, unknown>).error);
-        if (errStr.includes('Permission') || errStr.includes('Forbidden') || errStr.includes('denied')) {
+        if (
+          errStr.includes('Permission') ||
+          errStr.includes('Forbidden') ||
+          errStr.includes('denied')
+        ) {
           return {
             content:
               'You do not have permission to access those specific records. Please log in with the appropriate account or ask about public store items.',
@@ -112,9 +127,17 @@ export class MockLLMProvider implements ILLMProvider {
       }
 
       // Format Product Search Results
-      if (Array.isArray(out) && out.length > 0 && 'title' in (out[0] ?? {}) && 'id' in (out[0] ?? {})) {
+      if (
+        Array.isArray(out) &&
+        out.length > 0 &&
+        'title' in (out[0] ?? {}) &&
+        'id' in (out[0] ?? {})
+      ) {
         const productList = (out as Array<Record<string, unknown>>)
-          .map((p, idx) => `${idx + 1}. ${p.title} (${p.id})${p.minPrice != null && Number(p.minPrice) > 0 ? ` - from $${p.minPrice}` : ''}`)
+          .map(
+            (p, idx) =>
+              `${idx + 1}. ${p.title} (${p.id})${p.minPrice != null && Number(p.minPrice) > 0 ? ` - from $${p.minPrice}` : ''}`,
+          )
           .join('\n');
         return {
           content: `Here are the matching products in stock:\n${productList}\n\nWould you like to see available merchant offers or add one to your cart?`,
@@ -124,9 +147,17 @@ export class MockLLMProvider implements ILLMProvider {
       }
 
       // Format Customer Orders List
-      if (Array.isArray(out) && out.length > 0 && 'orderId' in (out[0] ?? {}) && 'totalAmount' in (out[0] ?? {})) {
+      if (
+        Array.isArray(out) &&
+        out.length > 0 &&
+        'orderId' in (out[0] ?? {}) &&
+        'totalAmount' in (out[0] ?? {})
+      ) {
         const ordersList = (out as Array<Record<string, unknown>>)
-          .map((o) => `• Order #${o.orderId}: Status: ${o.status}. Total: $${o.totalAmount} ${o.currency}`)
+          .map(
+            (o) =>
+              `• Order #${o.orderId}: Status: ${o.status}. Total: $${o.totalAmount} ${o.currency}`,
+          )
           .join('\n');
         return {
           content: `Here are your recent orders:\n${ordersList}\n\nLet me know which order you would like to track or inspect in detail!`,
@@ -136,7 +167,12 @@ export class MockLLMProvider implements ILLMProvider {
       }
 
       // Format Recommendations
-      if (Array.isArray(out) && out.length > 0 && 'productId' in (out[0] ?? {}) && 'reason' in (out[0] ?? {})) {
+      if (
+        Array.isArray(out) &&
+        out.length > 0 &&
+        'productId' in (out[0] ?? {}) &&
+        'reason' in (out[0] ?? {})
+      ) {
         const recList = (out as Array<Record<string, unknown>>)
           .map((r, idx) => `${idx + 1}. Product ${r.productId}: ${r.reason}`)
           .join('\n');
@@ -148,7 +184,12 @@ export class MockLLMProvider implements ILLMProvider {
       }
 
       // Format Categories List
-      if (Array.isArray(out) && out.length > 0 && 'slug' in (out[0] ?? {}) && 'name' in (out[0] ?? {})) {
+      if (
+        Array.isArray(out) &&
+        out.length > 0 &&
+        'slug' in (out[0] ?? {}) &&
+        'name' in (out[0] ?? {})
+      ) {
         const catList = (out as Array<Record<string, unknown>>)
           .map((c) => `• ${c.name} (${c.slug})`)
           .join('\n');
@@ -160,9 +201,17 @@ export class MockLLMProvider implements ILLMProvider {
       }
 
       // Format Merchant Offers
-      if (Array.isArray(out) && out.length > 0 && 'listingId' in (out[0] ?? {}) && 'priceAmount' in (out[0] ?? {})) {
+      if (
+        Array.isArray(out) &&
+        out.length > 0 &&
+        'listingId' in (out[0] ?? {}) &&
+        'priceAmount' in (out[0] ?? {})
+      ) {
         const offersList = (out as Array<Record<string, unknown>>)
-          .map((o) => `• Offer ${o.listingId}: $${o.priceAmount} (${o.currency}) by seller ${o.merchantTenantId}`)
+          .map(
+            (o) =>
+              `• Offer ${o.listingId}: $${o.priceAmount} (${o.currency}) by seller ${o.merchantTenantId}`,
+          )
           .join('\n');
         return {
           content: `Here are the available merchant offers:\n${offersList}\n\nLet me know which listing you'd like to add to your cart!`,
@@ -172,7 +221,12 @@ export class MockLLMProvider implements ILLMProvider {
       }
 
       // Format Stock / Inventory Availability
-      if (typeof out === 'object' && out !== null && 'availableQuantity' in out && 'isAvailable' in out) {
+      if (
+        typeof out === 'object' &&
+        out !== null &&
+        'availableQuantity' in out &&
+        'isAvailable' in out
+      ) {
         return {
           content: out.isAvailable
             ? `Listing ${out.listingId} is in stock with ${out.availableQuantity} unit(s) available!`
@@ -183,7 +237,12 @@ export class MockLLMProvider implements ILLMProvider {
       }
 
       // Format Add to Cart
-      if (typeof out === 'object' && out !== null && 'addedListingId' in out && 'quantityAdded' in out) {
+      if (
+        typeof out === 'object' &&
+        out !== null &&
+        'addedListingId' in out &&
+        'quantityAdded' in out
+      ) {
         return {
           content: `Added ${out.quantityAdded} item(s) to your cart! Your cart now has ${out.itemCount} item(s) with a subtotal of $${out.subtotalAmount}. Say "checkout" whenever you are ready!`,
           modelId: this.modelId,
@@ -195,13 +254,17 @@ export class MockLLMProvider implements ILLMProvider {
       if (typeof out === 'object' && out !== null && 'items' in out && Array.isArray(out.items)) {
         if (out.items.length === 0) {
           return {
-            content: 'Your cart is currently empty. Tell me what product you are looking for to get started!',
+            content:
+              'Your cart is currently empty. Tell me what product you are looking for to get started!',
             modelId: this.modelId,
             tokenUsage: { promptTokens: 40, completionTokens: 20, totalTokens: 60 },
           };
         }
         const itemsSummary = (out.items as Array<Record<string, unknown>>)
-          .map((it) => `• ${it.productTitle ?? it.listingId}: ${it.quantity}x @ $${it.unitPriceAmount} = $${it.lineTotalAmount}`)
+          .map(
+            (it) =>
+              `• ${it.productTitle ?? it.listingId}: ${it.quantity}x @ $${it.unitPriceAmount} = $${it.lineTotalAmount}`,
+          )
           .join('\n');
         return {
           content: `Here is your current cart:\n${itemsSummary}\n\nTotal: $${out.subtotalAmount} (${out.itemCount} items). Say "checkout" to place your order!`,
@@ -211,7 +274,13 @@ export class MockLLMProvider implements ILLMProvider {
       }
 
       // Format Checkout Session
-      if (typeof out === 'object' && out !== null && 'checkoutSessionId' in out && 'status' in out && !('orderId' in out)) {
+      if (
+        typeof out === 'object' &&
+        out !== null &&
+        'checkoutSessionId' in out &&
+        'status' in out &&
+        !('orderId' in out)
+      ) {
         return {
           content: `Checkout session started! Session ID: ${out.checkoutSessionId}. Status: ${out.status}. Reserved total: $${out.totalAmount} ${out.currency}. Say "pay" or "confirm order" to complete your purchase!`,
           modelId: this.modelId,
@@ -229,7 +298,12 @@ export class MockLLMProvider implements ILLMProvider {
       }
 
       // Format Order Status
-      if (typeof out === 'object' && out !== null && 'orderId' in out && 'sellerOrderCount' in out) {
+      if (
+        typeof out === 'object' &&
+        out !== null &&
+        'orderId' in out &&
+        'sellerOrderCount' in out
+      ) {
         return {
           content: `Order ${out.orderId} is currently ${out.status}. Total amount: $${out.totalAmount} ${out.currency} across ${out.sellerOrderCount} merchant package(s).`,
           modelId: this.modelId,
@@ -248,7 +322,9 @@ export class MockLLMProvider implements ILLMProvider {
 
       // Format Return Policy
       if (typeof out === 'object' && out !== null && 'windowDays' in out && 'conditions' in out) {
-        const condList = Array.isArray(out.conditions) ? out.conditions.map((c) => `• ${c}`).join('\n') : '';
+        const condList = Array.isArray(out.conditions)
+          ? out.conditions.map((c) => `• ${c}`).join('\n')
+          : '';
         return {
           content: `Our return policy allows returns within ${out.windowDays} days of delivery.\n\nConditions:\n${condList}\n\n${out.instructions}`,
           modelId: this.modelId,
@@ -287,7 +363,8 @@ export class MockLLMProvider implements ILLMProvider {
     }
 
     // 4. Tool Routing Rules (Authoritative Tool Calling over Domain Services)
-    const listingOrSkuMatch = userMessage.match(/list-[a-zA-Z0-9-]+/i) ?? userMessage.match(/sku-[a-zA-Z0-9-]+/i);
+    const listingOrSkuMatch =
+      userMessage.match(/list-[a-zA-Z0-9-]+/i) ?? userMessage.match(/sku-[a-zA-Z0-9-]+/i);
     const orderMatch =
       userMessage.match(/ord-[a-zA-Z0-9-]+/i) ??
       userMessage.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) ??
@@ -336,7 +413,10 @@ export class MockLLMProvider implements ILLMProvider {
       lower.includes('watch') ||
       lower.includes('shoes') ||
       lower.includes('audio') ||
-      ((lower.includes('in stock') || lower.includes('available') || lower.includes('do you have')) && !listingOrSkuMatch);
+      ((lower.includes('in stock') ||
+        lower.includes('available') ||
+        lower.includes('do you have')) &&
+        !listingOrSkuMatch);
 
     if (
       isSearchQuery &&
@@ -415,7 +495,11 @@ export class MockLLMProvider implements ILLMProvider {
     }
 
     // E. View Canonical Product Details
-    if (lower.includes('details') || lower.includes('product info') || (lower.includes('view product') && userMessage.includes('prod-'))) {
+    if (
+      lower.includes('details') ||
+      lower.includes('product info') ||
+      (lower.includes('view product') && userMessage.includes('prod-'))
+    ) {
       const tool = tools?.find((t) => t.name === 'get_product');
       if (tool) {
         const productId = prodMatch ? prodMatch[0] : 'prod-sample';
@@ -435,12 +519,19 @@ export class MockLLMProvider implements ILLMProvider {
     }
 
     // F. Add Product to Cart
-    if (lower.includes('add to cart') || lower.includes('add') && lower.includes('cart') || lower.includes('buy listing') || lower.includes('add listing')) {
+    if (
+      lower.includes('add to cart') ||
+      (lower.includes('add') && lower.includes('cart')) ||
+      lower.includes('buy listing') ||
+      lower.includes('add listing')
+    ) {
       const tool = tools?.find((t) => t.name === 'add_to_cart');
       if (tool) {
         const match = userMessage.match(/list-[a-zA-Z0-9-]+/i);
         const listingId = match ? match[0] : 'list-sample';
-        const qtyMatch = userMessage.match(/(?:quantity|qty|count)\s*[:=]?\s*(\d+)/i) ?? userMessage.match(/(\d+)\s*(?:unit|item|pack)/i);
+        const qtyMatch =
+          userMessage.match(/(?:quantity|qty|count)\s*[:=]?\s*(\d+)/i) ??
+          userMessage.match(/(\d+)\s*(?:unit|item|pack)/i);
         const quantity = qtyMatch ? Number(qtyMatch[1]) : 1;
 
         return {
@@ -459,7 +550,12 @@ export class MockLLMProvider implements ILLMProvider {
     }
 
     // G. View Shopping Cart
-    if (lower.includes('view cart') || lower.includes('show cart') || lower.includes('my cart') || lower.includes('what is in my cart')) {
+    if (
+      lower.includes('view cart') ||
+      lower.includes('show cart') ||
+      lower.includes('my cart') ||
+      lower.includes('what is in my cart')
+    ) {
       const tool = tools?.find((t) => t.name === 'get_cart');
       if (tool) {
         return {
@@ -478,7 +574,11 @@ export class MockLLMProvider implements ILLMProvider {
     }
 
     // H. Start Checkout & Reserve Inventory
-    if (lower.includes('start checkout') || lower.includes('proceed to checkout') || lower === 'checkout') {
+    if (
+      lower.includes('start checkout') ||
+      lower.includes('proceed to checkout') ||
+      lower === 'checkout'
+    ) {
       const tool = tools?.find((t) => t.name === 'start_checkout');
       if (tool) {
         return {
@@ -511,8 +611,14 @@ export class MockLLMProvider implements ILLMProvider {
           userMessage.match(/chk-[a-zA-Z0-9-]+/i) ??
           userMessage.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) ??
           userMessage.match(/pay\s+([a-zA-Z0-9-]+)/i) ??
-          messages.map((m) => m.content).join(' ').match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) ??
-          messages.map((m) => m.content).join(' ').match(/chk-[a-zA-Z0-9-]+/i);
+          messages
+            .map((m) => m.content)
+            .join(' ')
+            .match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) ??
+          messages
+            .map((m) => m.content)
+            .join(' ')
+            .match(/chk-[a-zA-Z0-9-]+/i);
         const checkoutSessionId = chkMatch ? (chkMatch[1] ?? chkMatch[0]) : 'chk-active';
 
         return {
@@ -531,7 +637,10 @@ export class MockLLMProvider implements ILLMProvider {
     }
 
     // J. Check Specific Order Status (when order ID is provided)
-    if (orderMatch && (lower.includes('order') || lower.includes('status') || lower.includes('where is'))) {
+    if (
+      orderMatch &&
+      (lower.includes('order') || lower.includes('status') || lower.includes('where is'))
+    ) {
       const tool = tools?.find((t) => t.name === 'get_order_status');
       if (tool) {
         const orderId = orderMatch[1] ?? orderMatch[0];
@@ -581,7 +690,12 @@ export class MockLLMProvider implements ILLMProvider {
     }
 
     // L. Track Shipment
-    if (lower.includes('track shipment') || lower.includes('track ship-') || lower.includes('tracking') || lower.includes('ship-')) {
+    if (
+      lower.includes('track shipment') ||
+      lower.includes('track ship-') ||
+      lower.includes('tracking') ||
+      lower.includes('ship-')
+    ) {
       const tool = tools?.find((t) => t.name === 'get_shipment_status');
       if (tool) {
         const match = userMessage.match(/ship-[a-zA-Z0-9-]+/i);
@@ -602,7 +716,12 @@ export class MockLLMProvider implements ILLMProvider {
     }
 
     // M. Returns and Refund Policy
-    if (lower.includes('return policy') || lower.includes('refund policy') || lower.includes('how to return') || lower.includes('can i return')) {
+    if (
+      lower.includes('return policy') ||
+      lower.includes('refund policy') ||
+      lower.includes('how to return') ||
+      lower.includes('can i return')
+    ) {
       const tool = tools?.find((t) => t.name === 'get_return_policy');
       if (tool) {
         return {
@@ -621,7 +740,11 @@ export class MockLLMProvider implements ILLMProvider {
     }
 
     // N. Recommendations
-    if (lower.includes('recommend') || lower.includes('what should i buy') || lower.includes('similar')) {
+    if (
+      lower.includes('recommend') ||
+      lower.includes('what should i buy') ||
+      lower.includes('similar')
+    ) {
       const tool = tools?.find((t) => t.name === 'get_recommendations');
       if (tool) {
         return {

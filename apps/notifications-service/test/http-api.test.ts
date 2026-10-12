@@ -182,7 +182,9 @@ describe('HTTP API Endpoints', () => {
       });
       expect(resMissing.statusCode).toBe(400);
       expect(resMissing.json().error.code).toBe('VALIDATION_FAILED');
-      expect(resMissing.json().error.message).toContain('eventId is required and must be a non-empty string');
+      expect(resMissing.json().error.message).toContain(
+        'eventId is required and must be a non-empty string',
+      );
 
       // 2. Empty string eventId
       const resEmpty = await app.inject({
@@ -200,7 +202,9 @@ describe('HTTP API Endpoints', () => {
       });
       expect(resEmpty.statusCode).toBe(400);
       expect(resEmpty.json().error.code).toBe('VALIDATION_FAILED');
-      expect(resEmpty.json().error.message).toContain('eventId is required and must be a non-empty string');
+      expect(resEmpty.json().error.message).toContain(
+        'eventId is required and must be a non-empty string',
+      );
 
       // 3. Whitespace-only eventId
       const resWhitespace = await app.inject({
@@ -218,7 +222,9 @@ describe('HTTP API Endpoints', () => {
       });
       expect(resWhitespace.statusCode).toBe(400);
       expect(resWhitespace.json().error.code).toBe('VALIDATION_FAILED');
-      expect(resWhitespace.json().error.message).toContain('eventId is required and must be a non-empty string');
+      expect(resWhitespace.json().error.message).toContain(
+        'eventId is required and must be a non-empty string',
+      );
     });
 
     it('POST /v1/internal/notifications/request also accepts Authorization Bearer with internal key', async () => {
@@ -487,7 +493,9 @@ describe('HTTP API Endpoints', () => {
       expect(res.statusCode).toBe(400);
       const json = res.json();
       expect(json.error.code).toBe('VALIDATION_FAILED');
-      expect(json.error.message).toContain("Unsupported event version 2 for event type 'order.created.v1'");
+      expect(json.error.message).toContain(
+        "Unsupported event version 2 for event type 'order.created.v1'",
+      );
     });
 
     it('POST /v1/internal/events/ingest rejects sensitive keys in payload before processing', async () => {
@@ -512,7 +520,9 @@ describe('HTTP API Endpoints', () => {
         },
       });
       expect(resPassword.statusCode).toBe(400);
-      expect(resPassword.json().error.message).toContain("Prohibited sensitive key 'password' detected");
+      expect(resPassword.json().error.message).toContain(
+        "Prohibited sensitive key 'password' detected",
+      );
 
       // 2. Nested sensitive key
       const resNestedToken = await app.inject({
@@ -537,7 +547,9 @@ describe('HTTP API Endpoints', () => {
         },
       });
       expect(resNestedToken.statusCode).toBe(400);
-      expect(resNestedToken.json().error.message).toContain("Prohibited sensitive key 'authDetails.refresh_token' detected");
+      expect(resNestedToken.json().error.message).toContain(
+        "Prohibited sensitive key 'authDetails.refresh_token' detected",
+      );
 
       // 3. Credit card sensitive key
       const resCard = await app.inject({
@@ -562,7 +574,9 @@ describe('HTTP API Endpoints', () => {
         },
       });
       expect(resCard.statusCode).toBe(400);
-      expect(resCard.json().error.message).toContain("Prohibited sensitive key 'payment.card_number' detected");
+      expect(resCard.json().error.message).toContain(
+        "Prohibited sensitive key 'payment.card_number' detected",
+      );
     });
 
     it('POST /v1/internal/events/ingest requires metadata and validates metadata fields', async () => {
@@ -585,7 +599,9 @@ describe('HTTP API Endpoints', () => {
         payload: basePayload,
       });
       expect(resMissing.statusCode).toBe(400);
-      expect(resMissing.json().error.message).toContain('metadata is required and must be an object');
+      expect(resMissing.json().error.message).toContain(
+        'metadata is required and must be an object',
+      );
 
       // 2. Non-object metadata
       const resNonObject = await app.inject({
@@ -595,7 +611,9 @@ describe('HTTP API Endpoints', () => {
         payload: { ...basePayload, metadata: 'invalid-string' },
       });
       expect(resNonObject.statusCode).toBe(400);
-      expect(resNonObject.json().error.message).toContain('metadata is required and must be an object');
+      expect(resNonObject.json().error.message).toContain(
+        'metadata is required and must be an object',
+      );
 
       // 3. Non-string metadata.correlationId
       const resBadCorrelation = await app.inject({
@@ -605,7 +623,9 @@ describe('HTTP API Endpoints', () => {
         payload: { ...basePayload, metadata: { correlationId: 12345 } },
       });
       expect(resBadCorrelation.statusCode).toBe(400);
-      expect(resBadCorrelation.json().error.message).toContain('metadata.correlationId must be a string if provided');
+      expect(resBadCorrelation.json().error.message).toContain(
+        'metadata.correlationId must be a string if provided',
+      );
     });
 
     it('POST /v1/internal/events/ingest processes newly processed event and preserves metadata', async () => {
@@ -969,7 +989,9 @@ describe('HTTP API Endpoints', () => {
       expect(resA.statusCode).toBe(500);
       const jsonA = resA.json();
       expect(jsonA.status).toBe('FAILED');
-      expect(jsonA.error.message).toContain('Event processing claim was superseded by another worker');
+      expect(jsonA.error.message).toContain(
+        'Event processing claim was superseded by another worker',
+      );
 
       // Receipt must remain COMPLETED by Worker B
       const receipt = await repo.findReceipt('notification-dispatcher', eventId);
@@ -1037,7 +1059,9 @@ describe('HTTP API Endpoints', () => {
       expect(processRes.json().processed).toBe(1);
 
       // Update status to DEAD_LETTERED so it is eligible for retry
-      await db.query(`UPDATE notifications SET status = 'DEAD_LETTERED' WHERE id = $1`, [notificationId]);
+      await db.query(`UPDATE notifications SET status = 'DEAD_LETTERED' WHERE id = $1`, [
+        notificationId,
+      ]);
 
       // POST /notifications/:id/retry
       const retryRes = await app.inject({

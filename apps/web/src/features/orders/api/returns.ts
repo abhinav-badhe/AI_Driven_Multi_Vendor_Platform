@@ -39,7 +39,10 @@ export const returnsApi = {
     });
   },
 
-  listReturns: async (query?: { customerOrderId?: string; sellerOrderId?: string }): Promise<ReturnDto[]> => {
+  listReturns: async (query?: {
+    customerOrderId?: string;
+    sellerOrderId?: string;
+  }): Promise<ReturnDto[]> => {
     const params = new URLSearchParams();
     if (query?.customerOrderId) params.append('customerOrderId', query.customerOrderId);
     if (query?.sellerOrderId) params.append('sellerOrderId', query.sellerOrderId);

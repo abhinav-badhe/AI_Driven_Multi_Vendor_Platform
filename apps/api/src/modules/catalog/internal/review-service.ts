@@ -292,9 +292,14 @@ export class ReviewService {
     // Merchant vs Admin authorization
     if (actor.role === 'MERCHANT') {
       RbacPolicy.requirePermission(actor, 'review:moderate-own');
-      const isOwner = await this.repo.isMerchantAuthorizedForProduct(actor.tenantId, existing.product_id);
+      const isOwner = await this.repo.isMerchantAuthorizedForProduct(
+        actor.tenantId,
+        existing.product_id,
+      );
       if (!isOwner) {
-        throw new ForbiddenError('Merchants may only moderate reviews for products they list and sell');
+        throw new ForbiddenError(
+          'Merchants may only moderate reviews for products they list and sell',
+        );
       }
     } else if (actor.role === 'ADMINISTRATOR') {
       RbacPolicy.requirePermission(actor, 'review:moderate-any');
@@ -363,9 +368,14 @@ export class ReviewService {
     // Merchant vs Admin authorization
     if (actor.role === 'MERCHANT') {
       RbacPolicy.requirePermission(actor, 'review:moderate-own');
-      const isOwner = await this.repo.isMerchantAuthorizedForProduct(actor.tenantId, existing.product_id);
+      const isOwner = await this.repo.isMerchantAuthorizedForProduct(
+        actor.tenantId,
+        existing.product_id,
+      );
       if (!isOwner) {
-        throw new ForbiddenError('Merchants may only moderate reviews for products they list and sell');
+        throw new ForbiddenError(
+          'Merchants may only moderate reviews for products they list and sell',
+        );
       }
     } else if (actor.role === 'ADMINISTRATOR') {
       RbacPolicy.requirePermission(actor, 'review:moderate-any');
@@ -438,7 +448,10 @@ export class ReviewService {
     }
 
     if (actor && actor.role === 'MERCHANT') {
-      const isOwner = await this.repo.isMerchantAuthorizedForProduct(actor.tenantId, review.product_id);
+      const isOwner = await this.repo.isMerchantAuthorizedForProduct(
+        actor.tenantId,
+        review.product_id,
+      );
       if (isOwner) {
         return this.toDto(review);
       }
@@ -451,18 +464,14 @@ export class ReviewService {
     productId: string,
     actor?: AuthorizedActor | null | undefined,
   ): Promise<ProductReviewDto[]> {
-    const prodRes = await this.db.query<{ id: string }>(
-      `SELECT id FROM products WHERE id = $1`,
-      [productId],
-    );
+    const prodRes = await this.db.query<{ id: string }>(`SELECT id FROM products WHERE id = $1`, [
+      productId,
+    ]);
     if (prodRes.rows.length === 0) {
       throw new NotFoundError(`Product '${productId}' not found`);
     }
 
-    const rows = await this.repo.listApprovedReviewsByProductId(
-      productId,
-      actor?.userId ?? null,
-    );
+    const rows = await this.repo.listApprovedReviewsByProductId(productId, actor?.userId ?? null);
     return rows.map((r) => this.toDto(r));
   }
 

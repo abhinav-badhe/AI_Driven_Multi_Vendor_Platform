@@ -3,7 +3,11 @@ import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -55,10 +59,9 @@ describe('Product Reviews & Moderation', () => {
       tenantName: `Customer ${email}`,
       role: 'CUSTOMER',
     });
-    const userRes = await db.query<{ id: string }>(
-      `SELECT id FROM users WHERE email = $1`,
-      [email],
-    );
+    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = $1`, [
+      email,
+    ]);
     const membershipRes = await db.query<{ tenant_id: string }>(
       `SELECT tenant_id FROM tenant_memberships WHERE user_id = $1`,
       [userRes.rows[0]!.id],
@@ -146,7 +149,11 @@ describe('Product Reviews & Moderation', () => {
         method: 'POST',
         url: '/products',
         headers: { authorization: `Bearer ${adminToken}` },
-        payload: { title: 'Noise Cancelling Headphones', slug: `nc-headphones-${Date.now()}`, categoryId: cat.id },
+        payload: {
+          title: 'Noise Cancelling Headphones',
+          slug: `nc-headphones-${Date.now()}`,
+          categoryId: cat.id,
+        },
       })
     ).json();
     await app.inject({
@@ -186,7 +193,11 @@ describe('Product Reviews & Moderation', () => {
         method: 'POST',
         url: '/products',
         headers: { authorization: `Bearer ${adminToken}` },
-        payload: { title: 'Bluetooth Speaker', slug: `bt-speaker-${Date.now()}`, categoryId: cat.id },
+        payload: {
+          title: 'Bluetooth Speaker',
+          slug: `bt-speaker-${Date.now()}`,
+          categoryId: cat.id,
+        },
       })
     ).json();
     await app.inject({
@@ -580,8 +591,22 @@ describe('Product Reviews & Moderation', () => {
     const customer1 = await registerCustomer('vis_cust1@test.com');
     const customer2 = await registerCustomer('vis_cust2@test.com');
 
-    await createCompletedOrder(customer1.tenantId, setup.merchantA.tenantId, setup.product1.id, setup.product1.skuId, setup.product1.listingId, 'COMPLETED');
-    await createCompletedOrder(customer2.tenantId, setup.merchantA.tenantId, setup.product1.id, setup.product1.skuId, setup.product1.listingId, 'COMPLETED');
+    await createCompletedOrder(
+      customer1.tenantId,
+      setup.merchantA.tenantId,
+      setup.product1.id,
+      setup.product1.skuId,
+      setup.product1.listingId,
+      'COMPLETED',
+    );
+    await createCompletedOrder(
+      customer2.tenantId,
+      setup.merchantA.tenantId,
+      setup.product1.id,
+      setup.product1.skuId,
+      setup.product1.listingId,
+      'COMPLETED',
+    );
 
     const rev1 = (
       await app.inject({
@@ -657,7 +682,14 @@ describe('Product Reviews & Moderation', () => {
     const customer = await registerCustomer('merchant_auth_test@test.com');
 
     // Customer orders Product 2 (sold by Merchant B)
-    await createCompletedOrder(customer.tenantId, setup.merchantB.tenantId, setup.product2.id, setup.product2.skuId, setup.product2.listingId, 'COMPLETED');
+    await createCompletedOrder(
+      customer.tenantId,
+      setup.merchantB.tenantId,
+      setup.product2.id,
+      setup.product2.skuId,
+      setup.product2.listingId,
+      'COMPLETED',
+    );
 
     const revRes = await app.inject({
       method: 'POST',
@@ -696,18 +728,48 @@ describe('Product Reviews & Moderation', () => {
     const cust3 = await registerCustomer('rate3@test.com');
     const cust4 = await registerCustomer('rate4@test.com');
 
-    await createCompletedOrder(cust1.tenantId, setup.merchantA.tenantId, setup.product1.id, setup.product1.skuId, setup.product1.listingId, 'COMPLETED');
-    await createCompletedOrder(cust2.tenantId, setup.merchantA.tenantId, setup.product1.id, setup.product1.skuId, setup.product1.listingId, 'COMPLETED');
-    await createCompletedOrder(cust3.tenantId, setup.merchantA.tenantId, setup.product1.id, setup.product1.skuId, setup.product1.listingId, 'COMPLETED');
-    await createCompletedOrder(cust4.tenantId, setup.merchantA.tenantId, setup.product1.id, setup.product1.skuId, setup.product1.listingId, 'COMPLETED');
+    await createCompletedOrder(
+      cust1.tenantId,
+      setup.merchantA.tenantId,
+      setup.product1.id,
+      setup.product1.skuId,
+      setup.product1.listingId,
+      'COMPLETED',
+    );
+    await createCompletedOrder(
+      cust2.tenantId,
+      setup.merchantA.tenantId,
+      setup.product1.id,
+      setup.product1.skuId,
+      setup.product1.listingId,
+      'COMPLETED',
+    );
+    await createCompletedOrder(
+      cust3.tenantId,
+      setup.merchantA.tenantId,
+      setup.product1.id,
+      setup.product1.skuId,
+      setup.product1.listingId,
+      'COMPLETED',
+    );
+    await createCompletedOrder(
+      cust4.tenantId,
+      setup.merchantA.tenantId,
+      setup.product1.id,
+      setup.product1.skuId,
+      setup.product1.listingId,
+      'COMPLETED',
+    );
 
     // Cust 1: 5 stars (approved)
-    const r1 = (await app.inject({
-      method: 'POST',
-      url: `/api/v1/products/${setup.product1.id}/reviews`,
-      headers: { authorization: `Bearer ${cust1.token}` },
-      payload: { rating: 5, comment: '5 stars review' },
-    })).json();
+    const r1 = (
+      await app.inject({
+        method: 'POST',
+        url: `/api/v1/products/${setup.product1.id}/reviews`,
+        headers: { authorization: `Bearer ${cust1.token}` },
+        payload: { rating: 5, comment: '5 stars review' },
+      })
+    ).json();
     await app.inject({
       method: 'POST',
       url: `/api/v1/admin/reviews/${r1.id}/approve`,
@@ -715,12 +777,14 @@ describe('Product Reviews & Moderation', () => {
     });
 
     // Cust 2: 4 stars (approved)
-    const r2 = (await app.inject({
-      method: 'POST',
-      url: `/api/v1/products/${setup.product1.id}/reviews`,
-      headers: { authorization: `Bearer ${cust2.token}` },
-      payload: { rating: 4, comment: '4 stars review' },
-    })).json();
+    const r2 = (
+      await app.inject({
+        method: 'POST',
+        url: `/api/v1/products/${setup.product1.id}/reviews`,
+        headers: { authorization: `Bearer ${cust2.token}` },
+        payload: { rating: 4, comment: '4 stars review' },
+      })
+    ).json();
     await app.inject({
       method: 'POST',
       url: `/api/v1/admin/reviews/${r2.id}/approve`,
@@ -728,12 +792,14 @@ describe('Product Reviews & Moderation', () => {
     });
 
     // Cust 3: 1 star (rejected - must not affect rating)
-    const r3 = (await app.inject({
-      method: 'POST',
-      url: `/api/v1/products/${setup.product1.id}/reviews`,
-      headers: { authorization: `Bearer ${cust3.token}` },
-      payload: { rating: 1, comment: 'Spam review' },
-    })).json();
+    const r3 = (
+      await app.inject({
+        method: 'POST',
+        url: `/api/v1/products/${setup.product1.id}/reviews`,
+        headers: { authorization: `Bearer ${cust3.token}` },
+        payload: { rating: 1, comment: 'Spam review' },
+      })
+    ).json();
     await app.inject({
       method: 'POST',
       url: `/api/v1/admin/reviews/${r3.id}/reject`,
@@ -785,7 +851,14 @@ describe('Product Reviews & Moderation', () => {
     });
 
     // After purchase: hasPurchased = true, isEligible = true
-    await createCompletedOrder(customer.tenantId, setup.merchantA.tenantId, setup.product1.id, setup.product1.skuId, setup.product1.listingId, 'COMPLETED');
+    await createCompletedOrder(
+      customer.tenantId,
+      setup.merchantA.tenantId,
+      setup.product1.id,
+      setup.product1.skuId,
+      setup.product1.listingId,
+      'COMPLETED',
+    );
     const checkAfterPurchase = (
       await app.inject({
         method: 'GET',
@@ -824,7 +897,14 @@ describe('Product Reviews & Moderation', () => {
     const setup = await setupCatalogAndSellers();
     const customer = await registerCustomer('my_reviews@test.com');
 
-    await createCompletedOrder(customer.tenantId, setup.merchantA.tenantId, setup.product1.id, setup.product1.skuId, setup.product1.listingId, 'COMPLETED');
+    await createCompletedOrder(
+      customer.tenantId,
+      setup.merchantA.tenantId,
+      setup.product1.id,
+      setup.product1.skuId,
+      setup.product1.listingId,
+      'COMPLETED',
+    );
 
     await app.inject({
       method: 'POST',
@@ -903,7 +983,14 @@ describe('Product Reviews & Moderation', () => {
     const customer = await registerCustomer('buyer_audit@test.com');
 
     // Customer purchases Product 1 (Merchant A)
-    await createCompletedOrder(customer.tenantId, setup.merchantA.tenantId, setup.product1.id, setup.product1.skuId, setup.product1.listingId, 'COMPLETED');
+    await createCompletedOrder(
+      customer.tenantId,
+      setup.merchantA.tenantId,
+      setup.product1.id,
+      setup.product1.skuId,
+      setup.product1.listingId,
+      'COMPLETED',
+    );
 
     const revRes = await app.inject({
       method: 'POST',

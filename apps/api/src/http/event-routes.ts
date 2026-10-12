@@ -3,7 +3,11 @@ import type { IdentityService } from '../modules/identity/index.js';
 import type { OutboxService, IOutboxService } from '../modules/events/index.js';
 import type { NotificationService, INotificationClient } from '../modules/notifications/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
-import { ForbiddenError, ValidationError, NotificationsExternallyManagedError } from '../errors/app-error.js';
+import {
+  ForbiddenError,
+  ValidationError,
+  NotificationsExternallyManagedError,
+} from '../errors/app-error.js';
 
 export function registerEventAndNotificationRoutes(
   app: FastifyInstance,
@@ -16,46 +20,38 @@ export function registerEventAndNotificationRoutes(
   const authenticate = createAuthMiddleware(identityService);
 
   // 1. GET /events/outbox (Admin Outbox Listing)
-  app.get(
-    '/events/outbox',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      if (actor.role !== 'ADMINISTRATOR') {
-        throw new ForbiddenError('Only platform administrators can inspect outbox events');
-      }
+  app.get('/events/outbox', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    if (actor.role !== 'ADMINISTRATOR') {
+      throw new ForbiddenError('Only platform administrators can inspect outbox events');
+    }
 
-      const query = request.query as Record<string, string | undefined>;
-      const limit = query.limit ? Number(query.limit) : undefined;
-      const offset = query.offset ? Number(query.offset) : undefined;
+    const query = request.query as Record<string, string | undefined>;
+    const limit = query.limit ? Number(query.limit) : undefined;
+    const offset = query.offset ? Number(query.offset) : undefined;
 
-      const result = await outboxService.listEvents(actor, {
-        status: query.status,
-        tenantId: query.tenantId,
-        eventType: query.eventType,
-        limit,
-        offset,
-      });
+    const result = await outboxService.listEvents(actor, {
+      status: query.status,
+      tenantId: query.tenantId,
+      eventType: query.eventType,
+      limit,
+      offset,
+    });
 
-      return reply.status(200).send(result);
-    },
-  );
+    return reply.status(200).send(result);
+  });
 
   // 2. GET /events/outbox/:eventId (Admin Outbox Details)
-  app.get(
-    '/events/outbox/:eventId',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      if (actor.role !== 'ADMINISTRATOR') {
-        throw new ForbiddenError('Only platform administrators can inspect outbox events');
-      }
+  app.get('/events/outbox/:eventId', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    if (actor.role !== 'ADMINISTRATOR') {
+      throw new ForbiddenError('Only platform administrators can inspect outbox events');
+    }
 
-      const { eventId } = request.params as { eventId: string };
-      const event = await outboxService.getEventById(actor, eventId);
-      return reply.status(200).send(event);
-    },
-  );
+    const { eventId } = request.params as { eventId: string };
+    const event = await outboxService.getEventById(actor, eventId);
+    return reply.status(200).send(event);
+  });
 
   // 3. POST /events/outbox/:eventId/replay (Admin Replay)
   app.post(
@@ -74,122 +70,102 @@ export function registerEventAndNotificationRoutes(
   );
 
   // 4. POST /events/outbox/process (Admin Process Trigger)
-  app.post(
-    '/events/outbox/process',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      if (actor.role !== 'ADMINISTRATOR') {
-        throw new ForbiddenError('Only platform administrators can trigger outbox processing');
-      }
+  app.post('/events/outbox/process', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    if (actor.role !== 'ADMINISTRATOR') {
+      throw new ForbiddenError('Only platform administrators can trigger outbox processing');
+    }
 
-      const body = (request.body as Record<string, unknown>) || {};
-      const batchSize = typeof body.batchSize === 'number' ? body.batchSize : 50;
+    const body = (request.body as Record<string, unknown>) || {};
+    const batchSize = typeof body.batchSize === 'number' ? body.batchSize : 50;
 
-      const result = await outboxService.publishPendingEvents({ batchSize });
-      return reply.status(200).send(result);
-    },
-  );
+    const result = await outboxService.publishPendingEvents({ batchSize });
+    return reply.status(200).send(result);
+  });
 
   // 5. GET /notifications (Admin Notification Listing)
-  app.get(
-    '/notifications',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      if (actor.role !== 'ADMINISTRATOR') {
-        throw new ForbiddenError('Only platform administrators can list notifications');
-      }
+  app.get('/notifications', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    if (actor.role !== 'ADMINISTRATOR') {
+      throw new ForbiddenError('Only platform administrators can list notifications');
+    }
 
-      if (clientMode === 'http' || !notificationService) {
-        throw new NotificationsExternallyManagedError('GET /notifications');
-      }
+    if (clientMode === 'http' || !notificationService) {
+      throw new NotificationsExternallyManagedError('GET /notifications');
+    }
 
-      const query = request.query as Record<string, string | undefined>;
-      const limit = query.limit ? Number(query.limit) : undefined;
-      const offset = query.offset ? Number(query.offset) : undefined;
+    const query = request.query as Record<string, string | undefined>;
+    const limit = query.limit ? Number(query.limit) : undefined;
+    const offset = query.offset ? Number(query.offset) : undefined;
 
-      const result = await notificationService.listNotifications(actor, {
-        tenantId: query.tenantId,
-        status: query.status,
-        channel: query.channel,
-        limit,
-        offset,
-      });
+    const result = await notificationService.listNotifications(actor, {
+      tenantId: query.tenantId,
+      status: query.status,
+      channel: query.channel,
+      limit,
+      offset,
+    });
 
-      return reply.status(200).send(result);
-    },
-  );
+    return reply.status(200).send(result);
+  });
 
   // 6. GET /notifications/:id (Admin Notification Details)
-  app.get(
-    '/notifications/:id',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      if (actor.role !== 'ADMINISTRATOR') {
-        throw new ForbiddenError('Only platform administrators can inspect notification records');
-      }
+  app.get('/notifications/:id', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    if (actor.role !== 'ADMINISTRATOR') {
+      throw new ForbiddenError('Only platform administrators can inspect notification records');
+    }
 
-      if (clientMode === 'http' || !notificationService) {
-        throw new NotificationsExternallyManagedError('GET /notifications/:id');
-      }
+    if (clientMode === 'http' || !notificationService) {
+      throw new NotificationsExternallyManagedError('GET /notifications/:id');
+    }
 
-      const { id } = request.params as { id: string };
-      const n = await notificationService.getNotificationById(actor, id);
-      return reply.status(200).send(n);
-    },
-  );
+    const { id } = request.params as { id: string };
+    const n = await notificationService.getNotificationById(actor, id);
+    return reply.status(200).send(n);
+  });
 
   // 7. POST /notifications/:id/retry (Admin Notification Retry)
-  app.post(
-    '/notifications/:id/retry',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      if (actor.role !== 'ADMINISTRATOR') {
-        throw new ForbiddenError('Only platform administrators can retry notifications');
-      }
+  app.post('/notifications/:id/retry', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    if (actor.role !== 'ADMINISTRATOR') {
+      throw new ForbiddenError('Only platform administrators can retry notifications');
+    }
 
-      if (clientMode === 'http' || !notificationService) {
-        throw new NotificationsExternallyManagedError('POST /notifications/:id/retry');
-      }
+    if (clientMode === 'http' || !notificationService) {
+      throw new NotificationsExternallyManagedError('POST /notifications/:id/retry');
+    }
 
-      const { id } = request.params as { id: string };
-      const result = await notificationService.retryNotification(actor, id);
-      return reply.status(200).send(result);
-    },
-  );
+    const { id } = request.params as { id: string };
+    const result = await notificationService.retryNotification(actor, id);
+    return reply.status(200).send(result);
+  });
 
   // 8. POST /notifications/process (Admin Notification Process Trigger)
-  app.post(
-    '/notifications/process',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      if (actor.role !== 'ADMINISTRATOR') {
-        throw new ForbiddenError('Only platform administrators can trigger notification processing');
-      }
+  app.post('/notifications/process', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    if (actor.role !== 'ADMINISTRATOR') {
+      throw new ForbiddenError('Only platform administrators can trigger notification processing');
+    }
 
-      const body = (request.body as Record<string, unknown>) || {};
-      const batchSize = typeof body.batchSize === 'number' ? body.batchSize : 50;
+    const body = (request.body as Record<string, unknown>) || {};
+    const batchSize = typeof body.batchSize === 'number' ? body.batchSize : 50;
 
-      if (clientMode === 'http') {
-        if (!notificationClient) {
-          throw new NotificationsExternallyManagedError('POST /notifications/process');
-        }
-        const result = await notificationClient.processPendingNotifications({ batchSize });
-        return reply.status(200).send(result);
-      }
-
-      if (!notificationService) {
+    if (clientMode === 'http') {
+      if (!notificationClient) {
         throw new NotificationsExternallyManagedError('POST /notifications/process');
       }
-
-      const result = await notificationService.processPendingNotifications({ batchSize });
+      const result = await notificationClient.processPendingNotifications({ batchSize });
       return reply.status(200).send(result);
-    },
-  );
+    }
+
+    if (!notificationService) {
+      throw new NotificationsExternallyManagedError('POST /notifications/process');
+    }
+
+    const result = await notificationService.processPendingNotifications({ batchSize });
+    return reply.status(200).send(result);
+  });
 
   // 9. GET /customers/me/notification-preferences
   app.get(
@@ -276,4 +252,3 @@ export function registerEventAndNotificationRoutes(
     },
   );
 }
-

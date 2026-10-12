@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -240,7 +244,11 @@ describe('Phase 3: Marketplace Listings (Multi-Vendor, Lifecycle & Tenant Isolat
         method: 'POST',
         url: '/listings',
         headers: { authorization: `Bearer ${alphaToken}` },
-        payload: { skuId: '00000000-0000-0000-0000-000000000000', priceAmount: 1000, currency: 'USD' },
+        payload: {
+          skuId: '00000000-0000-0000-0000-000000000000',
+          priceAmount: 1000,
+          currency: 'USD',
+        },
       });
       expect(res.statusCode).toBe(404);
     });
@@ -691,9 +699,23 @@ describe('Phase 3: Marketplace Listings (Multi-Vendor, Lifecycle & Tenant Isolat
         headers: { authorization: `Bearer ${alphaToken}` },
         payload: { businessName: 'Alpha', legalName: 'Alpha LLC', contactEmail: 'a@a.com' },
       });
-      await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${alphaToken}` } });
-      const profA = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${alphaToken}` } })).json();
-      await app.inject({ method: 'POST', url: `/merchants/${profA.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+      await app.inject({
+        method: 'POST',
+        url: '/merchants/me/submit',
+        headers: { authorization: `Bearer ${alphaToken}` },
+      });
+      const profA = (
+        await app.inject({
+          method: 'GET',
+          url: '/merchants/me',
+          headers: { authorization: `Bearer ${alphaToken}` },
+        })
+      ).json();
+      await app.inject({
+        method: 'POST',
+        url: `/merchants/${profA.tenantId}/approve`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
 
       // Verify Merchant Beta
       await app.inject({
@@ -702,9 +724,23 @@ describe('Phase 3: Marketplace Listings (Multi-Vendor, Lifecycle & Tenant Isolat
         headers: { authorization: `Bearer ${betaToken}` },
         payload: { businessName: 'Beta', legalName: 'Beta LLC', contactEmail: 'b@b.com' },
       });
-      await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${betaToken}` } });
-      const profB = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${betaToken}` } })).json();
-      await app.inject({ method: 'POST', url: `/merchants/${profB.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+      await app.inject({
+        method: 'POST',
+        url: '/merchants/me/submit',
+        headers: { authorization: `Bearer ${betaToken}` },
+      });
+      const profB = (
+        await app.inject({
+          method: 'GET',
+          url: '/merchants/me',
+          headers: { authorization: `Bearer ${betaToken}` },
+        })
+      ).json();
+      await app.inject({
+        method: 'POST',
+        url: `/merchants/${profB.tenantId}/approve`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
 
       // Merchant Alpha creates listing at ₹9,000 and activates
       const listA = (

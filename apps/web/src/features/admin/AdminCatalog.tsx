@@ -1,17 +1,23 @@
-import { useState, useEffect, useMemo } from "react";
-import { Navigate } from "react-router-dom";
-import { BookOpen, RefreshCw, Search } from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { apiClient } from "../../api/client";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { Input } from "../../components/ui/input";
-import { cn } from "../../lib/utils";
+import { useState, useEffect, useMemo } from 'react';
+import { Navigate } from 'react-router-dom';
+import { BookOpen, RefreshCw, Search } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { apiClient } from '../../api/client';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { Input } from '../../components/ui/input';
+import { cn } from '../../lib/utils';
 
 interface Product {
   id: string;
@@ -27,32 +33,32 @@ export const AdminCatalog = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadCatalog = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await apiClient<unknown>("/products?limit=100");
+      const res = await apiClient<unknown>('/products?limit=100');
       const list = Array.isArray(res)
         ? (res as Product[])
         : ((res as { products?: Product[]; data?: Product[] }).products ??
-           (res as { products?: Product[]; data?: Product[] }).data ??
-           []);
+          (res as { products?: Product[]; data?: Product[] }).data ??
+          []);
       setProducts(list);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Error loading catalog");
+      setError(e instanceof Error ? e.message : 'Error loading catalog');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user?.role !== "ADMINISTRATOR") return;
+    if (user?.role !== 'ADMINISTRATOR') return;
     loadCatalog();
   }, [user]);
 
-  if (user?.role !== "ADMINISTRATOR") return <Navigate to="/account" replace />;
+  if (user?.role !== 'ADMINISTRATOR') return <Navigate to="/account" replace />;
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -61,11 +67,11 @@ export const AdminCatalog = () => {
       (p) =>
         (p.title && p.title.toLowerCase().includes(q)) ||
         (p.brand && p.brand.toLowerCase().includes(q)) ||
-        p.id.toLowerCase().includes(q)
+        p.id.toLowerCase().includes(q),
     );
   }, [products, searchQuery]);
 
-  const activeCount = products.filter((p) => p.status === "ACTIVE" || !p.status).length;
+  const activeCount = products.filter((p) => p.status === 'ACTIVE' || !p.status).length;
   const uniqueBrands = new Set(products.map((p) => p.brand).filter(Boolean)).size;
 
   return (
@@ -79,7 +85,7 @@ export const AdminCatalog = () => {
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={loadCatalog} disabled={isLoading}>
-          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isLoading && "animate-spin")} />
+          <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isLoading && 'animate-spin')} />
           Refresh
         </Button>
       </div>
@@ -98,13 +104,15 @@ export const AdminCatalog = () => {
             <p className="tnum mt-1 text-2xl font-semibold tracking-tight">
               {products.length} products
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">Standardized product identities with shared SKU variants</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Standardized product identities with shared SKU variants
+            </p>
           </CardContent>
         </Card>
         <div className="grid gap-3 sm:grid-cols-3 lg:col-span-2">
           <KpiCard label="Total products" value={String(products.length)} hint="in database" />
           <KpiCard label="Active products" value={String(activeCount)} hint="published" />
-          <KpiCard label="Verified brands" value={String(uniqueBrands || "—")} hint="in catalog" />
+          <KpiCard label="Verified brands" value={String(uniqueBrands || '—')} hint="in catalog" />
         </div>
       </div>
 
@@ -139,8 +147,8 @@ export const AdminCatalog = () => {
               icon={BookOpen}
               title="No products found"
               description="No canonical products match the search query."
-              actionLabel={searchQuery ? "Clear search" : undefined}
-              onAction={() => setSearchQuery("")}
+              actionLabel={searchQuery ? 'Clear search' : undefined}
+              onAction={() => setSearchQuery('')}
             />
           ) : (
             <Table>
@@ -160,17 +168,17 @@ export const AdminCatalog = () => {
                       <div className="font-medium text-xs">{p.title}</div>
                       <div className="font-mono text-[11px] text-muted-foreground">{p.id}</div>
                     </TD>
-                    <TD className="text-xs text-muted-foreground">{p.brand || "Generic"}</TD>
+                    <TD className="text-xs text-muted-foreground">{p.brand || 'Generic'}</TD>
                     <TD className="font-mono text-xs text-muted-foreground">
-                      {p.categoryId ? p.categoryId.slice(0, 12) : "General"}
+                      {p.categoryId ? p.categoryId.slice(0, 12) : 'General'}
                     </TD>
                     <TD>
-                      <Badge variant={p.status === "INACTIVE" ? "destructive" : "success"}>
-                        {p.status || "ACTIVE"}
+                      <Badge variant={p.status === 'INACTIVE' ? 'destructive' : 'success'}>
+                        {p.status || 'ACTIVE'}
                       </Badge>
                     </TD>
                     <TD className="text-right text-xs text-muted-foreground">
-                      {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—"}
+                      {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}
                     </TD>
                   </tr>
                 ))}

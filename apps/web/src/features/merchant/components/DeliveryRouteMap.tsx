@@ -1,10 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  MapPin,
-  Truck,
-  ExternalLink,
-  Compass
-} from 'lucide-react';
+import { MapPin, Truck, ExternalLink, Compass } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
@@ -43,12 +38,14 @@ interface DeliveryRouteMapProps {
   carrier?: string | undefined;
   status: string;
   deliveryAddress?: DeliveryAddressCoords | null | undefined;
-  originHub?: {
-    name: string;
-    city: string;
-    lat: number;
-    lng: number;
-  } | undefined;
+  originHub?:
+    | {
+        name: string;
+        city: string;
+        lat: number;
+        lng: number;
+      }
+    | undefined;
   onAdvanceStatus?: (() => void) | undefined;
   isUpdating?: boolean | undefined;
 }
@@ -57,20 +54,25 @@ interface DeliveryRouteMapProps {
 const KNOWN_GEO_COORDINATES: Record<string, { lat: number; lng: number }> = {
   pune: { lat: 18.5204, lng: 73.8567 },
   alandi: { lat: 18.6755, lng: 73.8967 },
-  mumbai: { lat: 19.0760, lng: 72.8777 },
-  delhi: { lat: 28.6139, lng: 77.2090 },
+  mumbai: { lat: 19.076, lng: 72.8777 },
+  delhi: { lat: 28.6139, lng: 77.209 },
   bangalore: { lat: 12.9716, lng: 77.5946 },
   bengaluru: { lat: 12.9716, lng: 77.5946 },
-  hyderabad: { lat: 17.3850, lng: 78.4867 },
+  hyderabad: { lat: 17.385, lng: 78.4867 },
   chennai: { lat: 13.0827, lng: 80.2707 },
   kolkata: { lat: 22.5726, lng: 88.3639 },
   'san francisco': { lat: 37.7749, lng: -122.4194 },
-  'new york': { lat: 40.7128, lng: -74.0060 },
+  'new york': { lat: 40.7128, lng: -74.006 },
   austin: { lat: 30.2672, lng: -97.7431 },
 };
 
 function resolveCoordinates(address?: DeliveryAddressCoords | null): { lat: number; lng: number } {
-  if (address?.latitude && address?.longitude && !isNaN(address.latitude) && !isNaN(address.longitude)) {
+  if (
+    address?.latitude &&
+    address?.longitude &&
+    !isNaN(address.latitude) &&
+    !isNaN(address.longitude)
+  ) {
     return { lat: Number(address.latitude), lng: Number(address.longitude) };
   }
 
@@ -122,7 +124,9 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
-  const [mapMode, setMapMode] = useState<'interactive' | 'google_satellite' | 'google_roadmap'>('interactive');
+  const [mapMode, setMapMode] = useState<'interactive' | 'google_satellite' | 'google_roadmap'>(
+    'interactive',
+  );
 
   const destCoords = resolveCoordinates(deliveryAddress);
   const originCoords = { lat: originHub.lat, lng: originHub.lng };
@@ -184,16 +188,20 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
       location: `${deliveryAddress?.city || 'Local'} Distribution Hub`,
       lat: originCoords.lat + (destCoords.lat - originCoords.lat) * 0.7,
       lng: originCoords.lng + (destCoords.lng - originCoords.lng) * 0.7,
-      status: progressPercent >= 0.65 ? 'COMPLETED' : progressPercent >= 0.35 ? 'IN_TRANSIT' : 'PENDING',
+      status:
+        progressPercent >= 0.65 ? 'COMPLETED' : progressPercent >= 0.35 ? 'IN_TRANSIT' : 'PENDING',
       timestamp: progressPercent >= 0.65 ? '01:45 PM' : 'Scheduled',
       details: 'Assigned to delivery route courier.',
     },
     {
       step: '4. Customer Doorstep Delivery',
-      location: deliveryAddress?.formattedAddress || `${deliveryAddress?.addressLine1 || 'Customer Address'}, ${deliveryAddress?.city || ''}`,
+      location:
+        deliveryAddress?.formattedAddress ||
+        `${deliveryAddress?.addressLine1 || 'Customer Address'}, ${deliveryAddress?.city || ''}`,
       lat: destCoords.lat,
       lng: destCoords.lng,
-      status: status === 'DELIVERED' ? 'COMPLETED' : progressPercent >= 0.85 ? 'IN_TRANSIT' : 'PENDING',
+      status:
+        status === 'DELIVERED' ? 'COMPLETED' : progressPercent >= 0.85 ? 'IN_TRANSIT' : 'PENDING',
       timestamp: status === 'DELIVERED' ? 'Delivered' : `Estimated in ${estimatedMins} mins`,
       details: `Delivery for ${deliveryAddress?.recipientName || 'Customer'}.`,
     },
@@ -266,23 +274,35 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
     // Place Markers
     L.marker([originCoords.lat, originCoords.lng], { icon: originIcon })
       .addTo(map)
-      .bindPopup(`<b>Origin Hub:</b><br/>${originHub.name}<br/>Lat: ${originCoords.lat.toFixed(4)}, Lng: ${originCoords.lng.toFixed(4)}`);
+      .bindPopup(
+        `<b>Origin Hub:</b><br/>${originHub.name}<br/>Lat: ${originCoords.lat.toFixed(4)}, Lng: ${originCoords.lng.toFixed(4)}`,
+      );
 
     L.marker([destCoords.lat, destCoords.lng], { icon: destIcon })
       .addTo(map)
-      .bindPopup(`<b>Customer Destination:</b><br/>${deliveryAddress?.recipientName || 'Customer'}<br/>${deliveryAddress?.addressLine1 || ''}, ${deliveryAddress?.city || ''}<br/>Lat: ${destCoords.lat.toFixed(4)}, Lng: ${destCoords.lng.toFixed(4)}`);
+      .bindPopup(
+        `<b>Customer Destination:</b><br/>${deliveryAddress?.recipientName || 'Customer'}<br/>${deliveryAddress?.addressLine1 || ''}, ${deliveryAddress?.city || ''}<br/>Lat: ${destCoords.lat.toFixed(4)}, Lng: ${destCoords.lng.toFixed(4)}`,
+      );
 
     if (status !== 'DELIVERED') {
       L.marker([vehicleLat, vehicleLng], { icon: vehicleIcon })
         .addTo(map)
-        .bindPopup(`<b>Live Courier Position:</b><br/>${carrier} Fleet<br/>Status: ${status}<br/>Distance to destination: ${(distanceKm * (1 - progressPercent)).toFixed(1)} km`);
+        .bindPopup(
+          `<b>Live Courier Position:</b><br/>${carrier} Fleet<br/>Status: ${status}<br/>Distance to destination: ${(distanceKm * (1 - progressPercent)).toFixed(1)} km`,
+        );
     }
 
     // Draw Curving Route Polyline between origin and destination
     const routePoints: L.LatLngExpression[] = [
       [originCoords.lat, originCoords.lng],
-      [originCoords.lat + (destCoords.lat - originCoords.lat) * 0.35 + 0.008, originCoords.lng + (destCoords.lng - originCoords.lng) * 0.35 - 0.005],
-      [originCoords.lat + (destCoords.lat - originCoords.lat) * 0.7 - 0.005, originCoords.lng + (destCoords.lng - originCoords.lng) * 0.7 + 0.008],
+      [
+        originCoords.lat + (destCoords.lat - originCoords.lat) * 0.35 + 0.008,
+        originCoords.lng + (destCoords.lng - originCoords.lng) * 0.35 - 0.005,
+      ],
+      [
+        originCoords.lat + (destCoords.lat - originCoords.lat) * 0.7 - 0.005,
+        originCoords.lng + (destCoords.lng - originCoords.lng) * 0.7 + 0.008,
+      ],
       [destCoords.lat, destCoords.lng],
     ];
 
@@ -328,8 +348,13 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-semibold">Live Fulfillment Route & Delivery Telemetry</CardTitle>
-                <Badge variant={status === 'DELIVERED' ? 'success' : 'default'} className="text-[11px]">
+                <CardTitle className="text-base font-semibold">
+                  Live Fulfillment Route & Delivery Telemetry
+                </CardTitle>
+                <Badge
+                  variant={status === 'DELIVERED' ? 'success' : 'default'}
+                  className="text-[11px]"
+                >
                   {status.replace(/_/g, ' ')}
                 </Badge>
               </div>
@@ -345,7 +370,9 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
                 type="button"
                 onClick={() => setMapMode('interactive')}
                 className={`rounded px-2.5 py-1 font-medium transition ${
-                  mapMode === 'interactive' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  mapMode === 'interactive'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Live Radar Route
@@ -354,7 +381,9 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
                 type="button"
                 onClick={() => setMapMode('google_roadmap')}
                 className={`rounded px-2.5 py-1 font-medium transition ${
-                  mapMode === 'google_roadmap' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  mapMode === 'google_roadmap'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Google Maps Road
@@ -363,7 +392,9 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
                 type="button"
                 onClick={() => setMapMode('google_satellite')}
                 className={`rounded px-2.5 py-1 font-medium transition ${
-                  mapMode === 'google_satellite' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  mapMode === 'google_satellite'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Google Satellite
@@ -391,7 +422,11 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
             ) : (
               <iframe
                 title="Google Maps Embed View"
-                src={mapMode === 'google_satellite' ? googleMapsSatelliteEmbedUrl : googleMapsRoadmapEmbedUrl}
+                src={
+                  mapMode === 'google_satellite'
+                    ? googleMapsSatelliteEmbedUrl
+                    : googleMapsRoadmapEmbedUrl
+                }
                 className="h-full min-h-[420px] w-full border-0"
                 loading="lazy"
               />
@@ -407,10 +442,13 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
                   <div className="flex items-center gap-1.5 text-xs font-semibold">
                     <span>{distanceKm} km transit distance</span>
                     <span className="text-muted-foreground">•</span>
-                    <span className="text-emerald-600 dark:text-emerald-400">~{estimatedMins} mins travel</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      ~{estimatedMins} mins travel
+                    </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Carrier: <span className="font-medium text-foreground">{carrier}</span> (Tracking: {trackingNumber || 'Pending'})
+                    Carrier: <span className="font-medium text-foreground">{carrier}</span>{' '}
+                    (Tracking: {trackingNumber || 'Pending'})
                   </p>
                 </div>
               </div>
@@ -455,7 +493,9 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
                     `${deliveryAddress?.addressLine1 || 'Alandi'}, ${deliveryAddress?.city || 'Pune'}, ${deliveryAddress?.state || 'Maharashtra'} ${deliveryAddress?.postalCode || '412105'}`}
                 </p>
                 <div className="mt-1 flex items-center gap-2 font-mono text-[11px] text-primary">
-                  <span>📍 {destCoords.lat.toFixed(4)}° N, {destCoords.lng.toFixed(4)}° E</span>
+                  <span>
+                    📍 {destCoords.lat.toFixed(4)}° N, {destCoords.lng.toFixed(4)}° E
+                  </span>
                 </div>
               </div>
             </div>

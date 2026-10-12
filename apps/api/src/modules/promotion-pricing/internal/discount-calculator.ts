@@ -51,7 +51,8 @@ export class DiscountCalculator {
       tenant_id: String(record.tenant_id ?? record.tenantId ?? ''),
       name: String(record.name ?? ''),
       code: (record.code as string | null | undefined) ?? null,
-      discount_type: ((record.discount_type ?? record.discountType ?? 'PERCENTAGE') as 'PERCENTAGE' | 'FIXED_AMOUNT'),
+      discount_type: (record.discount_type ?? record.discountType ?? 'PERCENTAGE') as
+        'PERCENTAGE' | 'FIXED_AMOUNT',
       discount_value: Number(record.discount_value ?? record.discountValue ?? 0),
       max_discount_amount:
         record.max_discount_amount !== undefined
@@ -61,8 +62,9 @@ export class DiscountCalculator {
             : null,
       min_order_amount: Number(record.min_order_amount ?? record.minOrderAmount ?? 0),
       scope: (record.scope as 'ORDER' | 'PRODUCT' | 'CATEGORY') ?? 'ORDER',
-      target_ids: ((record.target_ids ?? record.targetIds ?? null) as string[] | null),
-      merchant_tenant_id: ((record.merchant_tenant_id ?? record.merchantTenantId ?? null) as string | null),
+      target_ids: (record.target_ids ?? record.targetIds ?? null) as string[] | null,
+      merchant_tenant_id: (record.merchant_tenant_id ?? record.merchantTenantId ?? null) as
+        string | null,
       usage_limit_total:
         record.usage_limit_total !== undefined
           ? (record.usage_limit_total as number | null)
@@ -106,7 +108,10 @@ export class DiscountCalculator {
 
     // 1. Status
     if (promo.status !== 'ACTIVE') {
-      return { eligible: false, reason: `Promotion '${promo.name}' is ${promo.status.toLowerCase()}` };
+      return {
+        eligible: false,
+        reason: `Promotion '${promo.name}' is ${promo.status.toLowerCase()}`,
+      };
     }
 
     // 2. Date window
@@ -123,39 +128,57 @@ export class DiscountCalculator {
 
     // 3. Currency matching
     if (promo.currency.toUpperCase() !== context.currency.toUpperCase()) {
-      return { eligible: false, reason: `Currency mismatch: promotion is in ${promo.currency}, cart is in ${context.currency}` };
+      return {
+        eligible: false,
+        reason: `Currency mismatch: promotion is in ${promo.currency}, cart is in ${context.currency}`,
+      };
     }
 
     // 4. Global usage limit
     if (promo.usage_limit_total !== null && promo.current_usage_count >= promo.usage_limit_total) {
-      return { eligible: false, reason: `Promotion '${promo.name}' has reached its global usage limit` };
+      return {
+        eligible: false,
+        reason: `Promotion '${promo.name}' has reached its global usage limit`,
+      };
     }
 
     // 5. Per-customer usage limit
     if (promo.usage_limit_per_customer !== null) {
       const customerCount = context.customerUsageCounts?.get(promo.id) ?? 0;
       if (customerCount >= promo.usage_limit_per_customer) {
-        return { eligible: false, reason: `Customer has reached usage limit for promotion '${promo.name}'` };
+        return {
+          eligible: false,
+          reason: `Customer has reached usage limit for promotion '${promo.name}'`,
+        };
       }
     }
 
     // 6. First order only
     if (promo.first_order_only && context.isFirstOrder === false) {
-      return { eligible: false, reason: `Promotion '${promo.name}' is only valid for first-time orders` };
+      return {
+        eligible: false,
+        reason: `Promotion '${promo.name}' is only valid for first-time orders`,
+      };
     }
 
     // 7. Merchant isolation
     if (promo.merchant_tenant_id) {
       const hasMerchantItems = items.some((it) => it.merchantTenantId === promo.merchant_tenant_id);
       if (!hasMerchantItems) {
-        return { eligible: false, reason: `Promotion is only valid for products from merchant '${promo.merchant_tenant_id}'` };
+        return {
+          eligible: false,
+          reason: `Promotion is only valid for products from merchant '${promo.merchant_tenant_id}'`,
+        };
       }
     }
 
     // 8. Scope items matching & minimum order amount
     const eligibleItems = this.getEligibleItems(promo, items);
     if (eligibleItems.length === 0) {
-      return { eligible: false, reason: `No qualifying items in cart for promotion '${promo.name}'` };
+      return {
+        eligible: false,
+        reason: `No qualifying items in cart for promotion '${promo.name}'`,
+      };
     }
 
     const eligibleSubtotal = eligibleItems.reduce((sum, it) => sum + it.lineTotalAmount, 0);
@@ -172,7 +195,10 @@ export class DiscountCalculator {
   /**
    * Filter items matching promotion scope and merchant restriction.
    */
-  static getEligibleItems(promoInput: PromotionInput, items: CalculateDiscountItem[]): CalculateDiscountItem[] {
+  static getEligibleItems(
+    promoInput: PromotionInput,
+    items: CalculateDiscountItem[],
+  ): CalculateDiscountItem[] {
     const promo = this.normalize(promoInput);
     return items.filter((item) => {
       // If merchant-specific, merchant must match
@@ -267,7 +293,10 @@ export class DiscountCalculator {
         );
       }
       itemShare = Math.max(0, itemShare);
-      itemDeductions.set(entry.item.listingId, (itemDeductions.get(entry.item.listingId) ?? 0) + itemShare);
+      itemDeductions.set(
+        entry.item.listingId,
+        (itemDeductions.get(entry.item.listingId) ?? 0) + itemShare,
+      );
       allocated += itemShare;
     }
 
@@ -311,7 +340,9 @@ export class DiscountCalculator {
     const normalizedPromos = promotions.map((p) => this.normalize(p));
 
     // 1. Filter eligible promotions
-    const eligiblePromos = normalizedPromos.filter((p) => this.isEligible(p, items, context).eligible);
+    const eligiblePromos = normalizedPromos.filter(
+      (p) => this.isEligible(p, items, context).eligible,
+    );
     if (eligiblePromos.length === 0) {
       return {
         appliedPromotions: [],
@@ -423,7 +454,10 @@ export class DiscountCalculator {
     let totalDiscount = 0;
 
     for (const promo of promos) {
-      const { discountAmount, itemDeductions } = this.calculateSingleDiscount(promo, remainingByItem);
+      const { discountAmount, itemDeductions } = this.calculateSingleDiscount(
+        promo,
+        remainingByItem,
+      );
       if (discountAmount > 0) {
         totalDiscount += discountAmount;
         for (const [listingId, ded] of itemDeductions.entries()) {

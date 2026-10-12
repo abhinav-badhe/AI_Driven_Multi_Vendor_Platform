@@ -1,5 +1,5 @@
-import { TrendingDown, TrendingUp, Minus } from "lucide-react";
-import { Card, CardContent } from "./card";
+import { TrendingDown, TrendingUp, Minus } from 'lucide-react';
+import { Card, CardContent } from './card';
 
 // KPI card: label (small, muted) → value (large, one weight heavier) →
 // delta (small, semantic color only). No gradient/shadow treatment.
@@ -13,16 +13,16 @@ export function KpiCard({
   label: string;
   value: string;
   delta?: string;
-  direction?: "up" | "down" | "flat";
+  direction?: 'up' | 'down' | 'flat';
   hint?: string;
 }) {
-  const Icon = direction === "up" ? TrendingUp : direction === "down" ? TrendingDown : Minus;
+  const Icon = direction === 'up' ? TrendingUp : direction === 'down' ? TrendingDown : Minus;
   const tone =
-    direction === "up"
-      ? "text-success"
-      : direction === "down"
-        ? "text-destructive"
-        : "text-muted-foreground";
+    direction === 'up'
+      ? 'text-success'
+      : direction === 'down'
+        ? 'text-destructive'
+        : 'text-muted-foreground';
   return (
     <Card>
       <CardContent className="p-4">

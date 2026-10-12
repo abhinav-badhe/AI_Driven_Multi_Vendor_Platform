@@ -40,8 +40,12 @@ export const AddressFormModal: React.FC<AddressFormModalProps> = ({
   const [country, setCountry] = useState(initialData?.country || 'US');
   const [latitude, setLatitude] = useState<number | null>(initialData?.latitude ?? null);
   const [longitude, setLongitude] = useState<number | null>(initialData?.longitude ?? null);
-  const [googlePlaceId, setGooglePlaceId] = useState<string | null>(initialData?.googlePlaceId ?? null);
-  const [formattedAddress, setFormattedAddress] = useState<string | null>(initialData?.formattedAddress ?? null);
+  const [googlePlaceId, setGooglePlaceId] = useState<string | null>(
+    initialData?.googlePlaceId ?? null,
+  );
+  const [formattedAddress, setFormattedAddress] = useState<string | null>(
+    initialData?.formattedAddress ?? null,
+  );
   const [isDefault, setIsDefault] = useState<boolean>(initialData?.isDefault ?? false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -337,7 +341,13 @@ export const AddressFormModal: React.FC<AddressFormModalProps> = ({
 
           {/* Modal Actions */}
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="submit" size="sm" disabled={isSubmitting}>

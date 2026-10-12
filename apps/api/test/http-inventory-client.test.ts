@@ -11,7 +11,6 @@ import {
 } from '../src/errors/app-error.js';
 
 describe('HttpInventoryClient', () => {
-
   const merchantActor: AuthorizedActor = {
     userId: 'merchant-1',
     role: 'MERCHANT',
@@ -232,9 +231,9 @@ describe('HttpInventoryClient', () => {
       fetchFn: mockFetch as unknown as typeof fetch,
     });
 
-    await expect(
-      client.increaseStock(merchantActor, 'inv-123', -5),
-    ).rejects.toThrowError(ValidationError);
+    await expect(client.increaseStock(merchantActor, 'inv-123', -5)).rejects.toThrowError(
+      ValidationError,
+    );
 
     mockFetch.mockResolvedValueOnce({
       ok: false,
@@ -242,9 +241,9 @@ describe('HttpInventoryClient', () => {
       json: async () => ({ message: 'Tenant mismatch' }),
     });
 
-    await expect(
-      client.decreaseStock(merchantActor, 'inv-123', 5),
-    ).rejects.toThrowError(ForbiddenError);
+    await expect(client.decreaseStock(merchantActor, 'inv-123', 5)).rejects.toThrowError(
+      ForbiddenError,
+    );
   });
 
   it('translates 409 insufficient stock to InsufficientInventoryError and 422 to InvalidStateTransitionError', async () => {
@@ -256,7 +255,9 @@ describe('HttpInventoryClient', () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 409,
-      json: async () => ({ message: 'Insufficient inventory available: requested 50, available 10' }),
+      json: async () => ({
+        message: 'Insufficient inventory available: requested 50, available 10',
+      }),
     });
     await expect(
       client.createReservation(merchantActor, { inventoryId: 'inv-123', quantity: 50 }),
@@ -267,9 +268,9 @@ describe('HttpInventoryClient', () => {
       status: 422,
       json: async () => ({ message: 'Cannot release non-active reservation' }),
     });
-    await expect(
-      client.releaseReservation(merchantActor, 'res-101'),
-    ).rejects.toThrowError(InvalidStateTransitionError);
+    await expect(client.releaseReservation(merchantActor, 'res-101')).rejects.toThrowError(
+      InvalidStateTransitionError,
+    );
   });
 
   it('falls back to local InMemoryInventoryStore on 500 server error', async () => {
@@ -325,9 +326,9 @@ describe('HttpInventoryClient', () => {
       fetchFn: mockFetch as unknown as typeof fetch,
     });
 
-    await expect(
-      client.getAvailabilityByListingId('lst-1'),
-    ).rejects.toThrowError(ExternalServiceError);
+    await expect(client.getAvailabilityByListingId('lst-1')).rejects.toThrowError(
+      ExternalServiceError,
+    );
   });
 
   it('throws ExternalServiceError on request timeout', async () => {
@@ -343,8 +344,8 @@ describe('HttpInventoryClient', () => {
       timeoutMs: 10,
     });
 
-    await expect(
-      client.getAvailabilityByListingId('lst-1'),
-    ).rejects.toThrowError(ExternalServiceError);
+    await expect(client.getAvailabilityByListingId('lst-1')).rejects.toThrowError(
+      ExternalServiceError,
+    );
   });
 });

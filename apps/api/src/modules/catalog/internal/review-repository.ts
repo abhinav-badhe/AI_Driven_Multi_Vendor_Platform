@@ -58,10 +58,9 @@ export class ReviewRepository {
 
   async findReviewById(id: string, client?: DatabaseConnection): Promise<ProductReviewRow | null> {
     const conn = client ?? this.db;
-    const res = await conn.query<ProductReviewRow>(
-      `SELECT * FROM product_reviews WHERE id = $1`,
-      [id],
-    );
+    const res = await conn.query<ProductReviewRow>(`SELECT * FROM product_reviews WHERE id = $1`, [
+      id,
+    ]);
     return res.rows[0] ?? null;
   }
 
@@ -195,10 +194,7 @@ export class ReviewRepository {
 
   async deleteReview(id: string, client?: DatabaseConnection): Promise<boolean> {
     const conn = client ?? this.db;
-    const res = await conn.query(
-      `DELETE FROM product_reviews WHERE id = $1`,
-      [id],
-    );
+    const res = await conn.query(`DELETE FROM product_reviews WHERE id = $1`, [id]);
     return (res.rowCount ?? 0) > 0;
   }
 

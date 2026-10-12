@@ -124,10 +124,7 @@ export class InMemoryMarketplaceStore implements IMarketplaceService {
     }));
   }
 
-  async getListingById(
-    actor: AuthorizedActor | null,
-    id: string,
-  ): Promise<MerchantListingDto> {
+  async getListingById(actor: AuthorizedActor | null, id: string): Promise<MerchantListingDto> {
     const listing = this.listings.get(id);
     if (!listing) throw new NotFoundError(`Listing '${id}' not found`);
 
@@ -262,7 +259,7 @@ export class InMemoryMarketplaceStore implements IMarketplaceService {
       RbacPolicy.requirePermission(actor, 'listing:read-any');
     }
     let all = Array.from(this.listings.values());
-    if (filter?.status && filter.status !== 'all' as any) {
+    if (filter?.status && filter.status !== ('all' as any)) {
       all = all.filter((l) => l.status === filter.status);
     }
     const offset = filter?.offset ?? 0;
@@ -272,4 +269,3 @@ export class InMemoryMarketplaceStore implements IMarketplaceService {
       .slice(offset, offset + limit);
   }
 }
-

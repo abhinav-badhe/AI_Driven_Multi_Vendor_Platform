@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { PackageSearch } from "lucide-react";
-import { catalogApi, type Category, type Product } from "./api/catalog";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { Rating } from "../../components/product/display";
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { PackageSearch } from 'lucide-react';
+import { catalogApi, type Category, type Product } from './api/catalog';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { Rating } from '../../components/product/display';
 
 export const CategoryPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,12 +21,12 @@ export const CategoryPage = () => {
       try {
         const [categoryData, productsData] = await Promise.all([
           catalogApi.getCategory(id),
-          catalogApi.getProducts({ categoryId: id, status: "ACTIVE" }),
+          catalogApi.getProducts({ categoryId: id, status: 'ACTIVE' }),
         ]);
         setCategory(categoryData);
         setProducts(productsData);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load category data");
+        setError(err instanceof Error ? err.message : 'Failed to load category data');
       } finally {
         setIsLoading(false);
       }
@@ -79,7 +79,7 @@ export const CategoryPage = () => {
       <div className="mt-1 flex items-end justify-between gap-3">
         <h1 className="text-xl font-semibold tracking-tight">{category.name}</h1>
         <p className="text-[13px] text-muted-foreground">
-          {products.length} {products.length === 1 ? "product" : "products"}
+          {products.length} {products.length === 1 ? 'product' : 'products'}
         </p>
       </div>
 
@@ -115,7 +115,9 @@ export const CategoryPage = () => {
                 <Rating rating={product.rating} reviewCount={product.reviewCount} />
               </div>
               {product.description && (
-                <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">{product.description}</p>
+                <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">
+                  {product.description}
+                </p>
               )}
             </Link>
           ))}

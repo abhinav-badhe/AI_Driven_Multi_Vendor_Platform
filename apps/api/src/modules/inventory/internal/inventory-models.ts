@@ -7,10 +7,7 @@ import type {
   InitializeInventoryInput,
   CreateReservationInput,
 } from './inventory-service.js';
-import type {
-  ReservationStatus,
-  MovementType,
-} from './inventory-repository.js';
+import type { ReservationStatus, MovementType } from './inventory-repository.js';
 
 export type {
   InventoryItemDto,
@@ -95,4 +92,3 @@ export interface IInventoryService extends IInventoryReader {
   startExpirationWorker?(intervalMs?: number): void;
   stopExpirationWorker?(): void;
 }
-

@@ -147,8 +147,8 @@ describe('RedisService disabled mode', () => {
   it('rejects unapproved usage categories', () => {
     const service = disabledRedisService();
     expect(() => service.assertUsageAllowed('cache')).not.toThrow();
-    expect(() =>
-      service.assertUsageAllowed('transactional-truth' as never),
-    ).toThrow(/Architectural violation/);
+    expect(() => service.assertUsageAllowed('transactional-truth' as never)).toThrow(
+      /Architectural violation/,
+    );
   });
 });

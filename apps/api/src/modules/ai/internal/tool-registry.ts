@@ -1,12 +1,7 @@
 import { z } from 'zod';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../../errors/app-error.js';
 import { RbacPolicy } from '../../identity/index.js';
-import type {
-  AiTool,
-  ToolCallResult,
-  ToolDefinition,
-  ToolExecutionContext,
-} from './ai-types.js';
+import type { AiTool, ToolCallResult, ToolDefinition, ToolExecutionContext } from './ai-types.js';
 import type { OrderService, IOrderService } from '../../orders/index.js';
 import type { CatalogService, ICatalogReader } from '../../catalog/index.js';
 import type { ListingService, IMarketplaceReader } from '../../marketplace/index.js';
@@ -90,7 +85,9 @@ export class ToolRegistry {
     // 1. Validate Input Schema
     const parseResult = tool.inputSchema.safeParse(rawArgs);
     if (!parseResult.success) {
-      throw new ValidationError(`Invalid arguments for tool '${toolName}': ${parseResult.error.message}`);
+      throw new ValidationError(
+        `Invalid arguments for tool '${toolName}': ${parseResult.error.message}`,
+      );
     }
 
     // 2. Pre-execution Authorization Check
@@ -108,7 +105,11 @@ export class ToolRegistry {
       };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (err instanceof ForbiddenError || err instanceof NotFoundError || err instanceof ValidationError) {
+      if (
+        err instanceof ForbiddenError ||
+        err instanceof NotFoundError ||
+        err instanceof ValidationError
+      ) {
         throw err;
       }
       return {
@@ -138,7 +139,10 @@ export class ToolRegistry {
     RbacPolicy.requirePermission(actor, tool.requiredPermission);
 
     // Rule 3: Customer scoping for customer-specific tools
-    const recordInput = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+    const recordInput = (input && typeof input === 'object' ? input : {}) as Record<
+      string,
+      unknown
+    >;
     if (tool.name === 'get_customer_orders' || tool.name === 'get_customer_profile') {
       const targetCustomerId = recordInput['customerId'] as string | undefined;
       if (
@@ -349,9 +353,13 @@ export class ToolRegistry {
         if (!this.deps.recommendationsService) return [];
         let res;
         if (input.productId) {
-          res = await this.deps.recommendationsService.getSimilarProducts(ctx.actor, input.productId, {
-            limit: input.limit,
-          });
+          res = await this.deps.recommendationsService.getSimilarProducts(
+            ctx.actor,
+            input.productId,
+            {
+              limit: input.limit,
+            },
+          );
         } else if (ctx.actor.role === 'CUSTOMER') {
           res = await this.deps.recommendationsService.getPersonalizedRecommendations(ctx.actor, {
             limit: input.limit,
@@ -389,7 +397,10 @@ export class ToolRegistry {
         if (!this.deps.mlSignalReader) {
           return { productId: input.productId, forecastUnits: null };
         }
-        const forecast = await this.deps.mlSignalReader.getDemandForecast(ctx.tenantId, input.productId);
+        const forecast = await this.deps.mlSignalReader.getDemandForecast(
+          ctx.tenantId,
+          input.productId,
+        );
         const units =
           typeof forecast === 'object' && forecast !== null && 'forecastDemandUnits' in forecast
             ? Number((forecast as Record<string, unknown>).forecastDemandUnits)
@@ -450,7 +461,10 @@ export class ToolRegistry {
         if (!this.deps.fulfillmentService) {
           throw new NotFoundError(`Shipment '${input.shipmentId}' not found`);
         }
-        const shipment = await this.deps.fulfillmentService.getShipment(ctx.actor, input.shipmentId);
+        const shipment = await this.deps.fulfillmentService.getShipment(
+          ctx.actor,
+          input.shipmentId,
+        );
         return {
           shipmentId: shipment.id,
           status: shipment.status,
@@ -483,7 +497,10 @@ export class ToolRegistry {
         if (!this.deps.paymentService) {
           throw new NotFoundError(`Payment intent '${input.paymentIntentId}' not found`);
         }
-        const intent = await this.deps.paymentService.getPaymentIntent(ctx.actor, input.paymentIntentId);
+        const intent = await this.deps.paymentService.getPaymentIntent(
+          ctx.actor,
+          input.paymentIntentId,
+        );
         // Strips clientSecret, token credentials, and raw metadata
         return {
           paymentIntentId: intent.id,
@@ -536,7 +553,8 @@ export class ToolRegistry {
 
     this.registerTool({
       name: 'browse_categories',
-      description: 'Lists all canonical product categories and departments available on the platform',
+      description:
+        'Lists all canonical product categories and departments available on the platform',
       inputSchema: z.object({
         parentId: z.string().nullable().optional(),
       }),
@@ -565,7 +583,8 @@ export class ToolRegistry {
 
     this.registerTool({
       name: 'get_product_offers',
-      description: 'Retrieves all available merchant listing offers, prices, and stock for a product',
+      description:
+        'Retrieves all available merchant listing offers, prices, and stock for a product',
       inputSchema: z.object({
         productId: z.string(),
       }),
@@ -658,7 +677,8 @@ export class ToolRegistry {
 
     this.registerTool({
       name: 'get_cart',
-      description: 'Retrieves current items, quantities, and subtotal in the customer shopping cart',
+      description:
+        'Retrieves current items, quantities, and subtotal in the customer shopping cart',
       inputSchema: z.object({}),
       outputSchema: z.object({
         cartId: z.string(),
@@ -740,7 +760,8 @@ export class ToolRegistry {
 
     this.registerTool({
       name: 'complete_payment',
-      description: 'Processes payment and finalizes the customer order from a reserved checkout session',
+      description:
+        'Processes payment and finalizes the customer order from a reserved checkout session',
       inputSchema: z.object({
         checkoutSessionId: z.string(),
         paymentMethod: z.string().optional().default('pm_card_visa'),
@@ -760,21 +781,20 @@ export class ToolRegistry {
         if (!this.deps.checkoutService || !this.deps.paymentService || !this.deps.orderService) {
           throw new NotFoundError('Order or Payment service unavailable');
         }
-        const session = await this.deps.checkoutService.getCheckoutSession(ctx.actor, input.checkoutSessionId);
+        const session = await this.deps.checkoutService.getCheckoutSession(
+          ctx.actor,
+          input.checkoutSessionId,
+        );
 
         const intent = await this.deps.paymentService.createPaymentIntent(ctx.actor, {
           checkoutSessionId: session.id,
           idempotencyKey: `wa-pi-${session.id}`,
         });
 
-        const attempt = await this.deps.paymentService.createPaymentAttempt(
-          ctx.actor,
-          intent.id,
-          {
-            paymentMethod: input.paymentMethod,
-            idempotencyKey: `wa-att-${session.id}`,
-          },
-        );
+        const attempt = await this.deps.paymentService.createPaymentAttempt(ctx.actor, intent.id, {
+          paymentMethod: input.paymentMethod,
+          idempotencyKey: `wa-att-${session.id}`,
+        });
 
         if (attempt.status !== 'SUCCEEDED') {
           throw new Error(`Payment declined: ${attempt.failureMessage ?? 'Card was declined'}`);

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   PackageSearch,
   Store,
@@ -9,18 +9,24 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
-} from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { apiClient } from "../../api/client";
-import { Button, buttonVariants } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { formatMoney } from "../../lib/format";
-import { cn } from "../../lib/utils";
+} from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { apiClient } from '../../api/client';
+import { Button, buttonVariants } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { formatMoney } from '../../lib/format';
+import { cn } from '../../lib/utils';
 
 interface PlatformOrder {
   id: string;
@@ -38,7 +44,7 @@ interface MerchantItem {
   businessName: string;
   legalName: string;
   contactEmail: string;
-  verificationStatus: "DRAFT" | "SUBMITTED" | "VERIFIED" | "REJECTED" | "SUSPENDED";
+  verificationStatus: 'DRAFT' | 'SUBMITTED' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
   createdAt: string;
 }
 
@@ -93,24 +99,24 @@ export const AdminDashboard = () => {
   const [recsMsg, setRecsMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.role !== "ADMINISTRATOR") return;
+    if (user?.role !== 'ADMINISTRATOR') return;
 
     const loadPlatformData = async () => {
       setIsLoading(true);
       setError(null);
       try {
         const [ordersRes, merchantsRes, listingsRes, usersRes, healthRes] = await Promise.all([
-          apiClient<unknown>("/admin/orders")
-            .catch(() => apiClient<unknown>("/orders?limit=100"))
+          apiClient<unknown>('/admin/orders')
+            .catch(() => apiClient<unknown>('/orders?limit=100'))
             .catch(() => ({ orders: [] })),
-          apiClient<MerchantItem[]>("/merchants").catch(() => []),
-          apiClient<unknown>("/admin/listings")
-            .catch(() => apiClient<unknown>("/listings?limit=100"))
+          apiClient<MerchantItem[]>('/merchants').catch(() => []),
+          apiClient<unknown>('/admin/listings')
+            .catch(() => apiClient<unknown>('/listings?limit=100'))
             .catch(() => ({ listings: [] })),
-          apiClient<unknown>("/admin/users")
-            .catch(() => apiClient<unknown>("/users"))
+          apiClient<unknown>('/admin/users')
+            .catch(() => apiClient<unknown>('/users'))
             .catch(() => ({ users: [] })),
-          apiClient<HealthResponse>("/health").catch(() => null),
+          apiClient<HealthResponse>('/health').catch(() => null),
         ]);
 
         const orderList = Array.isArray(ordersRes)
@@ -132,7 +138,7 @@ export const AdminDashboard = () => {
 
         setHealth(healthRes);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load platform data");
+        setError(err instanceof Error ? err.message : 'Failed to load platform data');
       } finally {
         setIsLoading(false);
       }
@@ -145,13 +151,16 @@ export const AdminDashboard = () => {
     setIsRebuildingSearch(true);
     setSearchMsg(null);
     try {
-      const res = await apiClient<{ generation: number; productsIndexed: number; offersIndexed: number }>(
-        "/search/rebuild",
-        { method: "POST", body: JSON.stringify({}) }
+      const res = await apiClient<{
+        generation: number;
+        productsIndexed: number;
+        offersIndexed: number;
+      }>('/search/rebuild', { method: 'POST', body: JSON.stringify({}) });
+      setSearchMsg(
+        `Search index synchronized: ${res.productsIndexed ?? 0} products, ${res.offersIndexed ?? 0} offers indexed.`,
       );
-      setSearchMsg(`Search index synchronized: ${res.productsIndexed ?? 0} products, ${res.offersIndexed ?? 0} offers indexed.`);
     } catch (err: unknown) {
-      setSearchMsg(err instanceof Error ? err.message : "Index rebuild failed");
+      setSearchMsg(err instanceof Error ? err.message : 'Index rebuild failed');
     } finally {
       setIsRebuildingSearch(false);
     }
@@ -161,13 +170,16 @@ export const AdminDashboard = () => {
     setIsSweepingAlerts(true);
     setSweepMsg(null);
     try {
-      const res = await apiClient<{ success: boolean; triggeredCount: number }>("/price-alerts/sweep", {
-        method: "POST",
-        body: JSON.stringify({ sinceDays: 90 }),
-      });
+      const res = await apiClient<{ success: boolean; triggeredCount: number }>(
+        '/price-alerts/sweep',
+        {
+          method: 'POST',
+          body: JSON.stringify({ sinceDays: 90 }),
+        },
+      );
       setSweepMsg(`Price drop scan complete: ${res.triggeredCount ?? 0} notifications dispatched.`);
     } catch (err: unknown) {
-      setSweepMsg(err instanceof Error ? err.message : "Sweep failed");
+      setSweepMsg(err instanceof Error ? err.message : 'Sweep failed');
     } finally {
       setIsSweepingAlerts(false);
     }
@@ -177,35 +189,42 @@ export const AdminDashboard = () => {
     setIsRebuildingRecs(true);
     setRecsMsg(null);
     try {
-      const res = await apiClient<{ rebuiltCount: number }>("/recommendations/rebuild", {
-        method: "POST",
+      const res = await apiClient<{ rebuiltCount: number }>('/recommendations/rebuild', {
+        method: 'POST',
         body: JSON.stringify({ tenantId: user?.tenantId }),
       });
-      setRecsMsg(`Personalization recommendations refreshed (${res.rebuiltCount ?? 0} items updated).`);
+      setRecsMsg(
+        `Personalization recommendations refreshed (${res.rebuiltCount ?? 0} items updated).`,
+      );
     } catch (err: unknown) {
-      setRecsMsg(err instanceof Error ? err.message : "Recs rebuild failed");
+      setRecsMsg(err instanceof Error ? err.message : 'Recs rebuild failed');
     } finally {
       setIsRebuildingRecs(false);
     }
   };
 
-  if (user?.role !== "ADMINISTRATOR") {
+  if (user?.role !== 'ADMINISTRATOR') {
     return (
       <div className="mx-auto w-full max-w-xl p-4">
         <Card>
           <CardHeader>
             <CardTitle>Platform Administration</CardTitle>
-            <CardDescription>Sign in with an administrator account to access platform governance.</CardDescription>
+            <CardDescription>
+              Sign in with an administrator account to access platform governance.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2.5">
             <Button
               onClick={async () => {
-                await login({ email: "leonsintegration@gmail.com", password: "Password@2163" });
+                await login({ email: 'leonsintegration@gmail.com', password: 'Password@2163' });
               }}
             >
               Sign in as Admin
             </Button>
-            <Link to="/account" className={cn(buttonVariants({ variant: "outline", size: "default" }))}>
+            <Link
+              to="/account"
+              className={cn(buttonVariants({ variant: 'outline', size: 'default' }))}
+            >
               Sign in with Other Account
             </Link>
           </CardContent>
@@ -229,42 +248,47 @@ export const AdminDashboard = () => {
 
   const totalGmv = orders.reduce((sum, ord) => sum + (ord.totalAmount || 0), 0) / 100;
   const totalCommission = totalGmv * 0.1; // Standard 10% platform take-rate
-  const displayCurrency = orders.find((o) => o.currency)?.currency ?? "INR";
+  const displayCurrency = orders.find((o) => o.currency)?.currency ?? 'INR';
 
-  const verifiedMerchantsCount = merchants.filter((m) => m.verificationStatus === "VERIFIED").length;
-  const pendingMerchantsCount = merchants.filter((m) => m.verificationStatus === "SUBMITTED" || m.verificationStatus === "DRAFT").length;
-  const activeListingsCount = listings.filter((l) => l.status === "ACTIVE").length || listings.length;
-  const customerCount = usersList.filter((u) => u.role === "CUSTOMER").length;
-  const merchantUserCount = usersList.filter((u) => u.role === "MERCHANT").length;
+  const verifiedMerchantsCount = merchants.filter(
+    (m) => m.verificationStatus === 'VERIFIED',
+  ).length;
+  const pendingMerchantsCount = merchants.filter(
+    (m) => m.verificationStatus === 'SUBMITTED' || m.verificationStatus === 'DRAFT',
+  ).length;
+  const activeListingsCount =
+    listings.filter((l) => l.status === 'ACTIVE').length || listings.length;
+  const customerCount = usersList.filter((u) => u.role === 'CUSTOMER').length;
+  const merchantUserCount = usersList.filter((u) => u.role === 'MERCHANT').length;
 
   const orderStatusVariant = (s: string) => {
     switch (s) {
-      case "DELIVERED":
-      case "COMPLETED":
-        return "success" as const;
-      case "PENDING":
-      case "PENDING_PAYMENT":
-      case "PROCESSING":
-      case "SHIPPED":
-        return "warning" as const;
-      case "CANCELLED":
-        return "destructive" as const;
+      case 'DELIVERED':
+      case 'COMPLETED':
+        return 'success' as const;
+      case 'PENDING':
+      case 'PENDING_PAYMENT':
+      case 'PROCESSING':
+      case 'SHIPPED':
+        return 'warning' as const;
+      case 'CANCELLED':
+        return 'destructive' as const;
       default:
-        return "outline" as const;
+        return 'outline' as const;
     }
   };
 
   const merchantStatusVariant = (s: string) => {
     switch (s) {
-      case "VERIFIED":
-        return "success" as const;
-      case "SUBMITTED":
-        return "warning" as const;
-      case "REJECTED":
-      case "SUSPENDED":
-        return "destructive" as const;
+      case 'VERIFIED':
+        return 'success' as const;
+      case 'SUBMITTED':
+        return 'warning' as const;
+      case 'REJECTED':
+      case 'SUSPENDED':
+        return 'destructive' as const;
       default:
-        return "outline" as const;
+        return 'outline' as const;
     }
   };
 
@@ -286,10 +310,13 @@ export const AdminDashboard = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          <Link to="/admin/merchants" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+          <Link
+            to="/admin/merchants"
+            className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+          >
             Merchants ({merchants.length})
           </Link>
-          <Link to="/admin/orders" className={cn(buttonVariants({ size: "sm" }))}>
+          <Link to="/admin/orders" className={cn(buttonVariants({ size: 'sm' }))}>
             Platform orders ({orders.length})
           </Link>
         </div>
@@ -310,7 +337,7 @@ export const AdminDashboard = () => {
               {formatMoney(totalGmv, displayCurrency)}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Est. platform commission:{" "}
+              Est. platform commission:{' '}
               <span className="font-semibold text-foreground">
                 {formatMoney(totalCommission, displayCurrency)}
               </span>
@@ -321,7 +348,9 @@ export const AdminDashboard = () => {
           <KpiCard
             label="Active merchants"
             value={String(verifiedMerchantsCount || merchants.length)}
-            hint={pendingMerchantsCount > 0 ? `${pendingMerchantsCount} pending review` : "all verified"}
+            hint={
+              pendingMerchantsCount > 0 ? `${pendingMerchantsCount} pending review` : 'all verified'
+            }
           />
           <KpiCard
             label="Platform orders"
@@ -342,7 +371,9 @@ export const AdminDashboard = () => {
           <div className="flex items-center justify-between gap-2">
             <div>
               <CardTitle>Platform ledger &amp; settlement overview</CardTitle>
-              <CardDescription>Multi-vendor funds flow and double-entry ledger invariant</CardDescription>
+              <CardDescription>
+                Multi-vendor funds flow and double-entry ledger invariant
+              </CardDescription>
             </div>
             <Badge variant="success">Balanced (Σ Debits = Σ Credits)</Badge>
           </div>
@@ -350,10 +381,14 @@ export const AdminDashboard = () => {
         <CardContent>
           <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: "Total marketplace sales", value: totalGmv },
-              { label: "Estimated merchant payouts", value: totalGmv * 0.9 },
-              { label: "Platform net commission", value: totalCommission },
-              { label: "Registered accounts", value: null, text: `${usersList.length || 0} (${customerCount || 0} buyers, ${merchantUserCount || 0} sellers)` },
+              { label: 'Total marketplace sales', value: totalGmv },
+              { label: 'Estimated merchant payouts', value: totalGmv * 0.9 },
+              { label: 'Platform net commission', value: totalCommission },
+              {
+                label: 'Registered accounts',
+                value: null,
+                text: `${usersList.length || 0} (${customerCount || 0} buyers, ${merchantUserCount || 0} sellers)`,
+              },
             ].map((row) => (
               <div key={row.label} className="rounded-md bg-muted px-3 py-2">
                 <dt className="text-xs text-muted-foreground">{row.label}</dt>
@@ -376,7 +411,10 @@ export const AdminDashboard = () => {
                 <CardTitle>Recent marketplace orders</CardTitle>
                 <CardDescription>Live customer purchases across all vendors</CardDescription>
               </div>
-              <Link to="/admin/orders" className="text-[13px] font-medium text-primary hover:underline">
+              <Link
+                to="/admin/orders"
+                className="text-[13px] font-medium text-primary hover:underline"
+              >
                 View all ({orders.length})
               </Link>
             </div>
@@ -403,7 +441,7 @@ export const AdminDashboard = () => {
                     <tr key={ord.id}>
                       <TD className="font-mono text-xs">#{ord.id.slice(0, 8)}</TD>
                       <TD className="text-muted-foreground">
-                        {ord.createdAt ? new Date(ord.createdAt).toLocaleDateString() : "—"}
+                        {ord.createdAt ? new Date(ord.createdAt).toLocaleDateString() : '—'}
                       </TD>
                       <TD className="tnum text-right font-medium">
                         {formatMoney((ord.totalAmount || 0) / 100, ord.currency || displayCurrency)}
@@ -425,9 +463,14 @@ export const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Merchant partners</CardTitle>
-                <CardDescription>Seller onboarding, KYC status, and store approvals</CardDescription>
+                <CardDescription>
+                  Seller onboarding, KYC status, and store approvals
+                </CardDescription>
               </div>
-              <Link to="/admin/merchants" className="text-[13px] font-medium text-primary hover:underline">
+              <Link
+                to="/admin/merchants"
+                className="text-[13px] font-medium text-primary hover:underline"
+              >
                 Manage ({merchants.length})
               </Link>
             </div>
@@ -439,7 +482,7 @@ export const AdminDashboard = () => {
                 title="No merchants onboarded"
                 description="Registered sellers and their KYC verification requests will appear here."
                 actionLabel="Inspect sellers"
-                onAction={() => navigate("/admin/merchants")}
+                onAction={() => navigate('/admin/merchants')}
               />
             ) : (
               <Table>
@@ -456,7 +499,9 @@ export const AdminDashboard = () => {
                     <tr key={m.id || m.tenantId}>
                       <TD>
                         <div className="font-medium">{m.businessName}</div>
-                        <div className="font-mono text-[11px] text-muted-foreground">{m.tenantId}</div>
+                        <div className="font-mono text-[11px] text-muted-foreground">
+                          {m.tenantId}
+                        </div>
                       </TD>
                       <TD className="text-muted-foreground text-xs">{m.contactEmail}</TD>
                       <TD>
@@ -467,7 +512,10 @@ export const AdminDashboard = () => {
                       <TD className="text-right">
                         <Link
                           to="/admin/merchants"
-                          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-7 text-xs px-2")}
+                          className={cn(
+                            buttonVariants({ variant: 'outline', size: 'sm' }),
+                            'h-7 text-xs px-2',
+                          )}
                         >
                           Review
                         </Link>
@@ -486,11 +534,17 @@ export const AdminDashboard = () => {
         <CardHeader className="cursor-pointer" onClick={() => setShowOps(!showOps)}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <RefreshCw className={cn("h-4 w-4 text-muted-foreground transition-transform", showOps && "rotate-180")} />
+              <RefreshCw
+                className={cn(
+                  'h-4 w-4 text-muted-foreground transition-transform',
+                  showOps && 'rotate-180',
+                )}
+              />
               <div>
                 <CardTitle className="text-sm">Platform Engine &amp; Search Operations</CardTitle>
                 <CardDescription className="text-xs">
-                  Dual-generation search reindexer, price alert background scanner, and AI recommendation cache
+                  Dual-generation search reindexer, price alert background scanner, and AI
+                  recommendation cache
                 </CardDescription>
               </div>
             </div>
@@ -516,9 +570,11 @@ export const AdminDashboard = () => {
                   disabled={isRebuildingSearch}
                   onClick={handleRebuildSearch}
                 >
-                  {isRebuildingSearch ? "Rebuilding…" : "Rebuild index"}
+                  {isRebuildingSearch ? 'Rebuilding…' : 'Rebuild index'}
                 </Button>
-                {searchMsg && <p className="mt-1.5 text-[11px] text-muted-foreground">{searchMsg}</p>}
+                {searchMsg && (
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">{searchMsg}</p>
+                )}
               </div>
 
               <div className="rounded-md border p-3">
@@ -536,7 +592,7 @@ export const AdminDashboard = () => {
                   disabled={isSweepingAlerts}
                   onClick={handleSweepPriceAlerts}
                 >
-                  {isSweepingAlerts ? "Scanning…" : "Run price sweep"}
+                  {isSweepingAlerts ? 'Scanning…' : 'Run price sweep'}
                 </Button>
                 {sweepMsg && <p className="mt-1.5 text-[11px] text-muted-foreground">{sweepMsg}</p>}
               </div>
@@ -556,7 +612,7 @@ export const AdminDashboard = () => {
                   disabled={isRebuildingRecs}
                   onClick={handleRebuildRecs}
                 >
-                  {isRebuildingRecs ? "Recalculating…" : "Recalculate recs"}
+                  {isRebuildingRecs ? 'Recalculating…' : 'Recalculate recs'}
                 </Button>
                 {recsMsg && <p className="mt-1.5 text-[11px] text-muted-foreground">{recsMsg}</p>}
               </div>

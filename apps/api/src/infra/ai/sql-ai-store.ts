@@ -282,7 +282,10 @@ export class SqlAiStore implements IAiStore {
     return this.mapDocRow(res.rows[0]!);
   }
 
-  async listDocuments(tenantId: string, category?: DocumentCategory): Promise<KnowledgeDocumentRecord[]> {
+  async listDocuments(
+    tenantId: string,
+    category?: DocumentCategory,
+  ): Promise<KnowledgeDocumentRecord[]> {
     let sql = 'SELECT * FROM ai_knowledge_documents WHERE tenant_id = $1';
     const params: unknown[] = [tenantId];
     if (category) {
@@ -341,14 +344,16 @@ export class SqlAiStore implements IAiStore {
   }
 
   async getVersion(documentId: string, version: number): Promise<KnowledgeVersionRecord | null> {
-    const sql = 'SELECT * FROM ai_knowledge_document_versions WHERE document_id = $1 AND version = $2';
+    const sql =
+      'SELECT * FROM ai_knowledge_document_versions WHERE document_id = $1 AND version = $2';
     const res = await this.db.query<RawVersionRow>(sql, [documentId, version]);
     if (res.rows.length === 0) return null;
     return this.mapVersionRow(res.rows[0]!);
   }
 
   async listVersions(documentId: string): Promise<KnowledgeVersionRecord[]> {
-    const sql = 'SELECT * FROM ai_knowledge_document_versions WHERE document_id = $1 ORDER BY version DESC';
+    const sql =
+      'SELECT * FROM ai_knowledge_document_versions WHERE document_id = $1 ORDER BY version DESC';
     const res = await this.db.query<RawVersionRow>(sql, [documentId]);
     return res.rows.map((row) => this.mapVersionRow(row));
   }
@@ -475,7 +480,8 @@ export class SqlAiStore implements IAiStore {
       phoneNumber: r.phone_number,
       status: r.status,
       payloadHash: r.payload_hash,
-      processedAt: typeof r.processed_at === 'string' ? r.processed_at : r.processed_at.toISOString(),
+      processedAt:
+        typeof r.processed_at === 'string' ? r.processed_at : r.processed_at.toISOString(),
     };
   }
 
@@ -494,7 +500,8 @@ export class SqlAiStore implements IAiStore {
       phoneNumber: r.phone_number,
       status: r.status,
       payloadHash: r.payload_hash,
-      processedAt: typeof r.processed_at === 'string' ? r.processed_at : r.processed_at.toISOString(),
+      processedAt:
+        typeof r.processed_at === 'string' ? r.processed_at : r.processed_at.toISOString(),
     }));
   }
 
@@ -632,7 +639,11 @@ export class SqlAiStore implements IAiStore {
       customerId: r.customer_id,
       isVerified: r.is_verified,
       verificationCode: r.verification_code,
-      verifiedAt: r.verified_at ? (typeof r.verified_at === 'string' ? r.verified_at : r.verified_at.toISOString()) : null,
+      verifiedAt: r.verified_at
+        ? typeof r.verified_at === 'string'
+          ? r.verified_at
+          : r.verified_at.toISOString()
+        : null,
       metadata: r.metadata ?? {},
       createdAt: typeof r.created_at === 'string' ? r.created_at : r.created_at.toISOString(),
       updatedAt: typeof r.updated_at === 'string' ? r.updated_at : r.updated_at.toISOString(),

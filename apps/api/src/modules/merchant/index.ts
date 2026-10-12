@@ -29,14 +29,22 @@ import type { ISecurityAuditService } from '../identity/index.js';
 
 export interface MerchantModule {
   readonly contextName: 'merchant';
-  createService(db: DatabaseConnection, logger: Logger, audit?: ISecurityAuditService): MerchantService;
+  createService(
+    db: DatabaseConnection,
+    logger: Logger,
+    audit?: ISecurityAuditService,
+  ): MerchantService;
   createInMemoryStore(): InMemoryMerchantStore;
   createHttpClient(serviceUrl: string, options?: HttpMerchantClientOptions): HttpMerchantClient;
 }
 
 export const merchantModule: MerchantModule = {
   contextName: 'merchant',
-  createService(db: DatabaseConnection, logger: Logger, audit?: ISecurityAuditService): MerchantService {
+  createService(
+    db: DatabaseConnection,
+    logger: Logger,
+    audit?: ISecurityAuditService,
+  ): MerchantService {
     return new MerchantService(db, logger, audit);
   },
   createInMemoryStore(): InMemoryMerchantStore {
@@ -49,4 +57,3 @@ export const merchantModule: MerchantModule = {
 
 // Re-export implementations
 export { MerchantService, InMemoryMerchantStore, HttpMerchantClient };
-

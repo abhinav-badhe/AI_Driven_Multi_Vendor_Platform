@@ -65,7 +65,10 @@ describe('Authentication: Identity Service', () => {
     const result = await service.verifyEmail(rawToken);
     expect(result.userId).toBe(account.userId);
 
-    const tokens = await service.login({ email: 'verified@example.com', password: 'secure-password-123' });
+    const tokens = await service.login({
+      email: 'verified@example.com',
+      password: 'secure-password-123',
+    });
     expect(tokens.accessToken).toBeDefined();
     expect(tokens.refreshToken).toBeDefined();
   });
@@ -133,18 +136,21 @@ describe('Authentication: Identity Service', () => {
     });
     await service.verifyEmail(await service.createEmailVerificationToken(account.userId));
 
-    const tokens = await service.login({ email: 'login@example.com', password: 'loginPassword123' });
+    const tokens = await service.login({
+      email: 'login@example.com',
+      password: 'loginPassword123',
+    });
     expect(tokens.accessToken).toBeDefined();
     expect(tokens.refreshToken).toBeDefined();
   });
 
   it('invalid credentials fail generically (no account enumeration)', async () => {
-    await expect(service.login({ email: 'nonexistent@example.com', password: 'anything' })).rejects.toThrow(
-      'Invalid credentials',
-    );
-    await expect(service.login({ email: 'login@example.com', password: 'wrongpassword' })).rejects.toThrow(
-      'Invalid credentials',
-    );
+    await expect(
+      service.login({ email: 'nonexistent@example.com', password: 'anything' }),
+    ).rejects.toThrow('Invalid credentials');
+    await expect(
+      service.login({ email: 'login@example.com', password: 'wrongpassword' }),
+    ).rejects.toThrow('Invalid credentials');
   });
 
   it('access token verification succeeds with valid token', async () => {
@@ -155,7 +161,10 @@ describe('Authentication: Identity Service', () => {
       role: 'MERCHANT',
     });
     await service.verifyEmail(await service.createEmailVerificationToken(account.userId));
-    const tokens = await service.login({ email: 'verify@example.com', password: 'verifyPassword123' });
+    const tokens = await service.login({
+      email: 'verify@example.com',
+      password: 'verifyPassword123',
+    });
     const actor = service.verifyAccessToken(tokens.accessToken);
     expect(actor).not.toBeNull();
     expect(actor?.role).toBe('MERCHANT');
@@ -173,8 +182,15 @@ describe('Authentication: Identity Service', () => {
     // Manually forge: the token-service generates a token with exp = now (expired)
     // We verify that a token issued by a service with negative TTL is invalid
     const { HmacTokenService } = await import('../src/modules/identity/internal/token-service.js');
-    const expiredSvc = new HmacTokenService({ accessTokenSecret: TOKEN_SECRET, accessTokenTtlSeconds: -1 });
-    const expiredToken = expiredSvc.generateAccessToken({ userId: 'u-1', tenantId: 't-1', role: 'MERCHANT' });
+    const expiredSvc = new HmacTokenService({
+      accessTokenSecret: TOKEN_SECRET,
+      accessTokenTtlSeconds: -1,
+    });
+    const expiredToken = expiredSvc.generateAccessToken({
+      userId: 'u-1',
+      tenantId: 't-1',
+      role: 'MERCHANT',
+    });
     expect(shortLivedService.verifyAccessToken(expiredToken.token)).toBeNull();
   });
 });

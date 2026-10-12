@@ -29,7 +29,6 @@ export function formatMoney(val: number | string | null | undefined): string {
   return isNaN(num) ? '0.0000' : num.toFixed(4);
 }
 
-
 interface RawMetricRow {
   id: string;
   tenant_id: string;
@@ -149,7 +148,10 @@ export class AnalyticsRepository {
   /**
    * Idempotently record a fulfillment fact.
    */
-  async recordFulfillmentFact(db: DatabaseConnection, fact: AnalyticsFulfillmentFact): Promise<void> {
+  async recordFulfillmentFact(
+    db: DatabaseConnection,
+    fact: AnalyticsFulfillmentFact,
+  ): Promise<void> {
     await db.query(
       `INSERT INTO analytics_fulfillment_facts (
         fact_id, event_id, tenant_id, shipment_id, return_id, seller_order_id,
@@ -509,7 +511,9 @@ export class AnalyticsRepository {
       values.push(`${params.startDate}T00:00:00.000Z`);
     }
     if (params.endDate) {
-      const nextDay = new Date(Date.parse(`${params.endDate}T00:00:00.000Z`) + 86400000).toISOString();
+      const nextDay = new Date(
+        Date.parse(`${params.endDate}T00:00:00.000Z`) + 86400000,
+      ).toISOString();
       conditions.push(`occurred_at < $${idx++}`);
       values.push(nextDay);
     }
@@ -558,7 +562,9 @@ export class AnalyticsRepository {
       values.push(`${params.startDate}T00:00:00.000Z`);
     }
     if (params.endDate) {
-      const nextDay = new Date(Date.parse(`${params.endDate}T00:00:00.000Z`) + 86400000).toISOString();
+      const nextDay = new Date(
+        Date.parse(`${params.endDate}T00:00:00.000Z`) + 86400000,
+      ).toISOString();
       conditions.push(`occurred_at < $${idx++}`);
       values.push(nextDay);
     }
@@ -588,7 +594,11 @@ export class AnalyticsRepository {
 
     if (productIds.length > 0 && params.tenantId) {
       const placeholders = productIds.map((_, i) => `$${i + 2}`).join(', ');
-      const catRes = await db.query<{ product_id: string; title: string | null; category: string | null }>(
+      const catRes = await db.query<{
+        product_id: string;
+        title: string | null;
+        category: string | null;
+      }>(
         `SELECT product_id, title, category
          FROM analytics_catalog_facts
          WHERE tenant_id = $1 AND product_id IN (${placeholders})
@@ -1011,10 +1021,7 @@ export class AnalyticsRepository {
   /**
    * Record promotion redemption fact.
    */
-  async recordPromotionFact(
-    db: DatabaseConnection,
-    fact: AnalyticsPromotionFact,
-  ): Promise<void> {
+  async recordPromotionFact(db: DatabaseConnection, fact: AnalyticsPromotionFact): Promise<void> {
     const sql = `
       INSERT INTO analytics_promotion_facts (
         fact_id, event_id, tenant_id, merchant_id, promotion_id,
@@ -1039,10 +1046,7 @@ export class AnalyticsRepository {
   /**
    * Delete promotion fact by event (e.g., reversal).
    */
-  async deletePromotionFactByEvent(
-    db: DatabaseConnection,
-    eventId: string,
-  ): Promise<void> {
+  async deletePromotionFactByEvent(db: DatabaseConnection, eventId: string): Promise<void> {
     await db.query(`DELETE FROM analytics_promotion_facts WHERE event_id = $1`, [eventId]);
   }
 
@@ -1121,5 +1125,3 @@ export class AnalyticsRepository {
     };
   }
 }
-
-

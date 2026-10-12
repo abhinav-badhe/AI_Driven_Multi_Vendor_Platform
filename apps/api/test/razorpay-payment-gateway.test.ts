@@ -14,11 +14,11 @@ describe('Razorpay Real Payment Gateway Provider', () => {
   const webhookSecret = 'sampleWebhookSecret999';
 
   it('1. Currency value scaling: accurately converts INR to paise and vice versa', () => {
-    expect(toRazorpayAmount(299.50)).toBe(29950);
-    expect(toRazorpayAmount(10.50)).toBe(1050);
+    expect(toRazorpayAmount(299.5)).toBe(29950);
+    expect(toRazorpayAmount(10.5)).toBe(1050);
     expect(toRazorpayAmount(9997)).toBe(9997);
-    expect(fromRazorpayAmount(29950)).toBe(299.50);
-    expect(fromRazorpayAmount(1050)).toBe(10.50);
+    expect(fromRazorpayAmount(29950)).toBe(299.5);
+    expect(fromRazorpayAmount(1050)).toBe(10.5);
   });
 
   it('2. createIntent: creates a valid Razorpay order with amount in paise', async () => {
@@ -57,10 +57,7 @@ describe('Razorpay Real Payment Gateway Provider', () => {
   });
 
   it('3. createAttempt: validates genuine HMAC-SHA256 signature', async () => {
-    const provider = new RazorpayPaymentProvider(
-      { keyId, keySecret, webhookSecret },
-      logger,
-    );
+    const provider = new RazorpayPaymentProvider({ keyId, keySecret, webhookSecret }, logger);
 
     const orderId = 'order_test_123456';
     const paymentId = 'pay_test_789012';
@@ -70,7 +67,7 @@ describe('Razorpay Real Payment Gateway Provider', () => {
 
     const result = await provider.createAttempt({
       providerTransactionId: orderId,
-      amount: 499.00,
+      amount: 499.0,
       currency: 'INR',
       paymentMethod: JSON.stringify({
         razorpay_order_id: orderId,
@@ -84,10 +81,7 @@ describe('Razorpay Real Payment Gateway Provider', () => {
   });
 
   it('4. createAttempt: rejects forged signature with failure status', async () => {
-    const provider = new RazorpayPaymentProvider(
-      { keyId, keySecret, webhookSecret },
-      logger,
-    );
+    const provider = new RazorpayPaymentProvider({ keyId, keySecret, webhookSecret }, logger);
 
     const orderId = 'order_test_123456';
     const paymentId = 'pay_test_789012';
@@ -95,7 +89,7 @@ describe('Razorpay Real Payment Gateway Provider', () => {
 
     const result = await provider.createAttempt({
       providerTransactionId: orderId,
-      amount: 499.00,
+      amount: 499.0,
       currency: 'INR',
       paymentMethod: JSON.stringify({
         razorpay_order_id: orderId,
@@ -109,10 +103,7 @@ describe('Razorpay Real Payment Gateway Provider', () => {
   });
 
   it('5. verifyWebhookSignature: validates official X-Razorpay-Signature', () => {
-    const provider = new RazorpayPaymentProvider(
-      { keyId, keySecret, webhookSecret },
-      logger,
-    );
+    const provider = new RazorpayPaymentProvider({ keyId, keySecret, webhookSecret }, logger);
 
     const payload = JSON.stringify({
       event: 'payment.captured',
@@ -125,10 +116,7 @@ describe('Razorpay Real Payment Gateway Provider', () => {
   });
 
   it('6. parseWebhookEvent: extracts payment.captured details', () => {
-    const provider = new RazorpayPaymentProvider(
-      { keyId, keySecret, webhookSecret },
-      logger,
-    );
+    const provider = new RazorpayPaymentProvider({ keyId, keySecret, webhookSecret }, logger);
 
     const payload = JSON.stringify({
       event: 'payment.captured',
@@ -150,7 +138,7 @@ describe('Razorpay Real Payment Gateway Provider', () => {
     expect(parsed.eventType).toBe('payment.captured');
     expect(parsed.providerTransactionId).toBe('pay_12345');
     expect(parsed.paymentIntentId).toBe('order_54321');
-    expect(parsed.amount).toBe(799.00);
+    expect(parsed.amount).toBe(799.0);
     expect(parsed.currency).toBe('INR');
     expect(parsed.status).toBe('SUCCEEDED');
   });

@@ -40,7 +40,9 @@ describe('RBAC Policy', () => {
 
   it('requireTenantMatch throws on cross-tenant access', () => {
     const actor: AuthorizedActor = { userId: 'u-1', tenantId: 'tenant-A', role: 'MERCHANT' };
-    expect(() => RbacPolicy.requireTenantMatch(actor, 'tenant-B')).toThrow('Tenant isolation violation');
+    expect(() => RbacPolicy.requireTenantMatch(actor, 'tenant-B')).toThrow(
+      'Tenant isolation violation',
+    );
   });
 });
 
@@ -72,7 +74,10 @@ describe('RBAC Integration: Authorization via IdentityService & MerchantService'
       role: 'MERCHANT',
     });
     await identitySvc.verifyEmail(await identitySvc.createEmailVerificationToken(account.userId));
-    const tokens = await identitySvc.login({ email: 'merchant-rbac@example.com', password: 'securepassword123' });
+    const tokens = await identitySvc.login({
+      email: 'merchant-rbac@example.com',
+      password: 'securepassword123',
+    });
     const actor = identitySvc.verifyAccessToken(tokens.accessToken);
     expect(actor).not.toBeNull();
 

@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -85,11 +89,29 @@ describe('Phase 5: Checkout Concurrency & Overselling Prevention', () => {
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${merchantToken}` },
-      payload: { businessName: 'Flash Corp', legalName: 'Flash Corp Legal', contactEmail: 'flash@corp.com' },
+      payload: {
+        businessName: 'Flash Corp',
+        legalName: 'Flash Corp Legal',
+        contactEmail: 'flash@corp.com',
+      },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${merchantToken}` } });
-    const prof = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${merchantToken}` } })).json();
-    await app.inject({ method: 'POST', url: `/merchants/${prof.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${merchantToken}` },
+    });
+    const prof = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${merchantToken}` },
+      })
+    ).json();
+    await app.inject({
+      method: 'POST',
+      url: `/merchants/${prof.tenantId}/approve`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
 
     // 3. Catalog setup: Category, Product, SKU
     const cat = (
@@ -109,7 +131,12 @@ describe('Phase 5: Checkout Concurrency & Overselling Prevention', () => {
         payload: { title: 'Limited Edition Device', slug: 'limited-device', categoryId: cat.id },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/products/${prod.id}/status`, headers: { authorization: `Bearer ${adminToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/products/${prod.id}/status`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     const sku = (
       await app.inject({
@@ -119,7 +146,12 @@ describe('Phase 5: Checkout Concurrency & Overselling Prevention', () => {
         payload: { skuCode: 'LTD-DEV-01' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/skus/${sku.id}/status`, headers: { authorization: `Bearer ${adminToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/skus/${sku.id}/status`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     // 4. Listing: ₹10,000
     const listing = (
@@ -130,7 +162,12 @@ describe('Phase 5: Checkout Concurrency & Overselling Prevention', () => {
         payload: { skuId: sku.id, priceAmount: 1000000, currency: 'INR' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/listings/${listing.id}/status`, headers: { authorization: `Bearer ${merchantToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/listings/${listing.id}/status`,
+      headers: { authorization: `Bearer ${merchantToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     // 5. Inventory: Exactly 10 on-hand units
     const inv = (

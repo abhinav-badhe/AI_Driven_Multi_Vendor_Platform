@@ -90,7 +90,10 @@ export const ShipmentTracker = () => {
 
   if (error || !shipment) {
     return (
-      <div className="container" style={{ padding: '3rem 1rem', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
+      <div
+        className="container"
+        style={{ padding: '3rem 1rem', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}
+      >
         <div className="card" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Tracking Unavailable</h2>
           <p className="text-muted" style={{ marginBottom: '1.5rem' }}>
@@ -105,8 +108,18 @@ export const ShipmentTracker = () => {
   }
 
   return (
-    <div className="container" style={{ padding: '2rem 1rem 4rem', maxWidth: '750px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <div
+      className="container"
+      style={{ padding: '2rem 1rem 4rem', maxWidth: '750px', margin: '0 auto' }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '2rem',
+        }}
+      >
         <div>
           <h1 className="font-display" style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>
             Shipment Live Tracking
@@ -133,9 +146,20 @@ export const ShipmentTracker = () => {
 
       {/* Main Status Card */}
       <div className="card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid var(--border)',
+            paddingBottom: '1rem',
+            marginBottom: '1.5rem',
+          }}
+        >
           <div>
-            <span className="text-muted" style={{ fontSize: '0.8rem' }}>Shipment ID:</span>
+            <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+              Shipment ID:
+            </span>
             <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>#{shipment.id.slice(0, 8)}</div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -165,19 +189,38 @@ export const ShipmentTracker = () => {
         </div>
 
         {/* Carrier Info Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '1rem',
+            marginBottom: '2rem',
+          }}
+        >
           <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '8px' }}>
-            <span className="text-muted" style={{ fontSize: '0.75rem' }}>Carrier / Partner</span>
-            <div style={{ fontWeight: 600, marginTop: '0.25rem' }}>{shipment.carrier || 'Standard Shipping'}</div>
+            <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+              Carrier / Partner
+            </span>
+            <div style={{ fontWeight: 600, marginTop: '0.25rem' }}>
+              {shipment.carrier || 'Standard Shipping'}
+            </div>
           </div>
           <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '8px' }}>
-            <span className="text-muted" style={{ fontSize: '0.75rem' }}>Tracking Number</span>
-            <div style={{ fontWeight: 600, marginTop: '0.25rem' }}>{shipment.trackingNumber || 'Pending assignment'}</div>
+            <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+              Tracking Number
+            </span>
+            <div style={{ fontWeight: 600, marginTop: '0.25rem' }}>
+              {shipment.trackingNumber || 'Pending assignment'}
+            </div>
           </div>
           {shipment.carrierShipmentId && (
             <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '8px' }}>
-              <span className="text-muted" style={{ fontSize: '0.75rem' }}>Carrier Shipment ID</span>
-              <div style={{ fontWeight: 600, marginTop: '0.25rem' }}>{shipment.carrierShipmentId.slice(0, 16)}</div>
+              <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                Carrier Shipment ID
+              </span>
+              <div style={{ fontWeight: 600, marginTop: '0.25rem' }}>
+                {shipment.carrierShipmentId.slice(0, 16)}
+              </div>
             </div>
           )}
         </div>
@@ -191,7 +234,12 @@ export const ShipmentTracker = () => {
                 target="_blank"
                 rel="noreferrer noopener"
                 className="btn btn-secondary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.85rem',
+                }}
               >
                 <ExternalLink size={14} /> Open Carrier Tracking
               </a>
@@ -202,7 +250,12 @@ export const ShipmentTracker = () => {
                 target="_blank"
                 rel="noreferrer noopener"
                 className="btn btn-secondary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.85rem',
+                }}
               >
                 <Printer size={14} /> View Shipping Label
               </a>
@@ -211,27 +264,51 @@ export const ShipmentTracker = () => {
         )}
 
         {/* Milestone Progression */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', marginTop: '1.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            position: 'relative',
+            marginTop: '1.5rem',
+          }}
+        >
           {milestones.map((m, idx) => {
             const state = getStepStatus(m.key, shipment.status);
             return (
-              <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: 1 }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  background: state === 'completed' ? 'var(--brand)' : 'var(--border)',
-                  color: '#ffffff',
+              <div
+                key={idx}
+                style={{
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  marginBottom: '0.5rem',
-                }}>
+                  textAlign: 'center',
+                  flex: 1,
+                }}
+              >
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: state === 'completed' ? 'var(--brand)' : 'var(--border)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    marginBottom: '0.5rem',
+                  }}
+                >
                   {state === 'completed' ? <Check size={14} strokeWidth={3} /> : idx + 1}
                 </div>
-                <div style={{ fontSize: '0.8rem', fontWeight: state === 'completed' ? 600 : 400, color: state === 'completed' ? 'var(--text-main)' : 'var(--primary-muted)' }}>
+                <div
+                  style={{
+                    fontSize: '0.8rem',
+                    fontWeight: state === 'completed' ? 600 : 400,
+                    color: state === 'completed' ? 'var(--text-main)' : 'var(--primary-muted)',
+                  }}
+                >
                   {m.label}
                 </div>
               </div>

@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { EventTypes } from '../src/modules/events/index.js';
 import {
@@ -92,11 +96,29 @@ describe('Customer Back-in-Stock Alerts & Subscriptions', () => {
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${alphaToken}` },
-      payload: { businessName: 'Alpha LLC', legalName: 'Alpha Legal', contactEmail: 'alpha@biz.com' },
+      payload: {
+        businessName: 'Alpha LLC',
+        legalName: 'Alpha Legal',
+        contactEmail: 'alpha@biz.com',
+      },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${alphaToken}` } });
-    const profA = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${alphaToken}` } })).json();
-    await app.inject({ method: 'POST', url: `/merchants/${profA.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${alphaToken}` },
+    });
+    const profA = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${alphaToken}` },
+      })
+    ).json();
+    await app.inject({
+      method: 'POST',
+      url: `/merchants/${profA.tenantId}/approve`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
 
     // 3. Customers
     const customer1Token = await registerVerifiedUser(app, db, {
@@ -458,8 +480,12 @@ describe('Customer Back-in-Stock Alerts & Subscriptions', () => {
       [EventTypes.INVENTORY_STOCK_CHANGED, EventTypes.INVENTORY_STOCK_AVAILABLE],
     );
 
-    expect(outboxEvents.rows.some((e) => e.event_type === EventTypes.INVENTORY_STOCK_AVAILABLE)).toBe(true);
-    const availableEvent = outboxEvents.rows.find((e) => e.event_type === EventTypes.INVENTORY_STOCK_AVAILABLE);
+    expect(
+      outboxEvents.rows.some((e) => e.event_type === EventTypes.INVENTORY_STOCK_AVAILABLE),
+    ).toBe(true);
+    const availableEvent = outboxEvents.rows.find(
+      (e) => e.event_type === EventTypes.INVENTORY_STOCK_AVAILABLE,
+    );
     expect(availableEvent?.payload.isAvailable).toBe(true);
     expect(availableEvent?.payload.availableQuantity).toBe(5);
   });
@@ -778,9 +804,14 @@ describe('Customer Back-in-Stock Alerts & Subscriptions', () => {
     // Mock the repository's markSubscriptionNotified to fail on the first run to simulate crash right after notification dispatch
     const originalMark = (service as any).repo.markSubscriptionNotified.bind((service as any).repo);
     let simulateCrash = true;
-    vi.spyOn((service as any).repo as { markSubscriptionNotified: any }, 'markSubscriptionNotified').mockImplementation(async (tx: any, id: any) => {
+    vi.spyOn(
+      (service as any).repo as { markSubscriptionNotified: any },
+      'markSubscriptionNotified',
+    ).mockImplementation(async (tx: any, id: any) => {
       if (simulateCrash) {
-        throw new Error('SIMULATED CRASH: Database connection dropped before subscription update committed');
+        throw new Error(
+          'SIMULATED CRASH: Database connection dropped before subscription update committed',
+        );
       }
       return originalMark(tx, id);
     });

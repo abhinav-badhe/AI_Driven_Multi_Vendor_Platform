@@ -1,12 +1,5 @@
-import type {
-  ISearchStore,
-  SearchStoreQueryResult,
-} from './search-store.js';
-import type {
-  SearchProductDocument,
-  SearchQueryParams,
-  SearchFacets,
-} from './search-models.js';
+import type { ISearchStore, SearchStoreQueryResult } from './search-store.js';
+import type { SearchProductDocument, SearchQueryParams, SearchFacets } from './search-models.js';
 import type { Logger } from '../../../observability/logger.js';
 import { ExternalServiceError } from '../../../errors/app-error.js';
 
@@ -225,7 +218,7 @@ export class HttpSearchStoreAdapter implements ISearchStore {
       return await this.request<{ status: string; count: number; engine: string }>('/health', {
         method: 'GET',
       });
-    } catch (err) {
+    } catch {
       if (this.fallbackStore) {
         const fallbackHealth = await this.fallbackStore.healthCheck();
         return {

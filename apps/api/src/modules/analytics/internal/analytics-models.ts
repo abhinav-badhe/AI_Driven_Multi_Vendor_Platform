@@ -293,9 +293,19 @@ export interface CoPurchaseSignal {
  * Read-only, typed, tenant-aware Analytics interface for recommendation signals.
  */
 export interface IAnalyticsRecommendationReader {
-  getTrendingProducts(tenantId: string, limit?: number | undefined): Promise<TrendingProductSignal[]>;
-  getCustomerPurchaseHistory(tenantId: string, customerId: string): Promise<CustomerPurchaseHistorySignal[]>;
-  getCoPurchasedProducts(tenantId: string, sourceProductId: string, limit?: number | undefined): Promise<CoPurchaseSignal[]>;
+  getTrendingProducts(
+    tenantId: string,
+    limit?: number | undefined,
+  ): Promise<TrendingProductSignal[]>;
+  getCustomerPurchaseHistory(
+    tenantId: string,
+    customerId: string,
+  ): Promise<CustomerPurchaseHistorySignal[]>;
+  getCoPurchasedProducts(
+    tenantId: string,
+    sourceProductId: string,
+    limit?: number | undefined,
+  ): Promise<CoPurchaseSignal[]>;
 }
 
 /**
@@ -346,9 +356,11 @@ export interface OrderAnomalySignal {
  * Read-only, typed, tenant-aware Analytics interface for Predictive ML feature extraction.
  */
 export interface IAnalyticsMlFeatureReader {
-  getProductDailyDemandHistory(tenantId: string, lookbackDays?: number): Promise<ProductDailyDemandRecord[]>;
+  getProductDailyDemandHistory(
+    tenantId: string,
+    lookbackDays?: number,
+  ): Promise<ProductDailyDemandRecord[]>;
   getInventoryVelocitySignals(tenantId: string): Promise<InventoryVelocitySignal[]>;
   getCustomerActivitySignals(tenantId: string): Promise<CustomerActivitySignal[]>;
   getOrderAnomalySignals(tenantId: string): Promise<OrderAnomalySignal[]>;
 }
-

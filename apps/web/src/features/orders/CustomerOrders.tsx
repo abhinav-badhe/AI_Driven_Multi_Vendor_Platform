@@ -1,18 +1,24 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { PackageSearch, RotateCcw, Truck } from "lucide-react";
-import { apiClient } from "../../api/client";
-import { ordersApi, type CustomerOrderDto, type OrderItemDto } from "./api/orders";
-import { returnsApi, type ReturnDto } from "./api/returns";
-import { useAuth } from "../auth/AuthContext";
-import { Button, buttonVariants } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, TableSkeleton } from "../../components/ui/empty";
-import { Input, Label } from "../../components/ui/input";
-import { formatPrice } from "../../lib/format";
-import { cn } from "../../lib/utils";
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { PackageSearch, RotateCcw, Truck } from 'lucide-react';
+import { apiClient } from '../../api/client';
+import { ordersApi, type CustomerOrderDto, type OrderItemDto } from './api/orders';
+import { returnsApi, type ReturnDto } from './api/returns';
+import { useAuth } from '../auth/AuthContext';
+import { Button, buttonVariants } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, TableSkeleton } from '../../components/ui/empty';
+import { Input, Label } from '../../components/ui/input';
+import { formatPrice } from '../../lib/format';
+import { cn } from '../../lib/utils';
 
 export interface CustomerShipmentDto {
   id: string;
@@ -38,7 +44,7 @@ export const CustomerOrders = () => {
     sellerOrderId: string;
     item: OrderItemDto;
   } | null>(null);
-  const [returnReason, setReturnReason] = useState("Defective or not working properly");
+  const [returnReason, setReturnReason] = useState('Defective or not working properly');
   const [returnQty, setReturnQty] = useState(1);
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
   const [returnSuccessMsg, setReturnSuccessMsg] = useState<string | null>(null);
@@ -63,7 +69,7 @@ export const CustomerOrders = () => {
       const nestedShipments = await Promise.all(shipmentPromises);
       setShipments(nestedShipments.flat());
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load orders");
+      setError(err instanceof Error ? err.message : 'Failed to load orders');
     } finally {
       setIsLoading(false);
     }
@@ -96,11 +102,11 @@ export const CustomerOrders = () => {
         ],
       });
 
-      setReturnSuccessMsg(`Return requested for ${activeReturnItem.item.productName || "item"}.`);
+      setReturnSuccessMsg(`Return requested for ${activeReturnItem.item.productName || 'item'}.`);
       setActiveReturnItem(null);
       await loadData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to submit return request.");
+      setError(err instanceof Error ? err.message : 'Failed to submit return request.');
     } finally {
       setIsSubmittingReturn(false);
     }
@@ -113,19 +119,20 @@ export const CustomerOrders = () => {
           <CardHeader>
             <CardTitle>My Orders</CardTitle>
             <CardDescription>
-              Please log in to review your order history, delivery tracking, and seller fulfillments.
+              Please log in to review your order history, delivery tracking, and seller
+              fulfillments.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2.5">
             <Button
               size="sm"
               onClick={async () => {
-                await login({ email: "customer@example.com", password: "password123" });
+                await login({ email: 'customer@example.com', password: 'password123' });
               }}
             >
               Sign in as Demo Customer
             </Button>
-            <Link to="/account" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            <Link to="/account" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
               Sign in with Other Account
             </Link>
           </CardContent>
@@ -151,7 +158,7 @@ export const CustomerOrders = () => {
             Order history with per-seller fulfillment status.
           </p>
         </div>
-        <Link to="/search" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+        <Link to="/search" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
           Continue shopping
         </Link>
       </div>
@@ -174,7 +181,7 @@ export const CustomerOrders = () => {
           title="No orders placed yet"
           description="When you complete a purchase, your order history and seller tracking will appear here."
           actionLabel="Browse products"
-          onAction={() => navigate("/")}
+          onAction={() => navigate('/')}
         />
       ) : (
         <div className="flex flex-col gap-3">
@@ -189,9 +196,12 @@ export const CustomerOrders = () => {
                       <p className="text-sm font-semibold">Order #{order.orderNumber}</p>
                       <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                         <span>
-                          Placed {new Date(order.createdAt).toLocaleDateString(undefined, { dateStyle: "long" })}
+                          Placed{' '}
+                          {new Date(order.createdAt).toLocaleDateString(undefined, {
+                            dateStyle: 'long',
+                          })}
                         </span>
-                        {order.paymentMethod === "COD" && (
+                        {order.paymentMethod === 'COD' && (
                           <Badge variant="outline">Cash on delivery</Badge>
                         )}
                       </p>
@@ -208,8 +218,13 @@ export const CustomerOrders = () => {
                     <div className="mt-3 rounded-md border border-warning/30 bg-warning/5 px-3 py-2">
                       <p className="text-[13px] font-medium">Returns on this order</p>
                       {orderReturns.map((ret) => (
-                        <p key={ret.id} className="mt-0.5 flex justify-between gap-2 text-xs text-muted-foreground">
-                          <span className="font-mono">{ret.id.slice(0, 8)} · {ret.reason}</span>
+                        <p
+                          key={ret.id}
+                          className="mt-0.5 flex justify-between gap-2 text-xs text-muted-foreground"
+                        >
+                          <span className="font-mono">
+                            {ret.id.slice(0, 8)} · {ret.reason}
+                          </span>
                           <span>{ret.status}</span>
                         </p>
                       ))}
@@ -238,14 +253,18 @@ export const CustomerOrders = () => {
                                       className="size-9 shrink-0 rounded border border-border object-cover"
                                     />
                                   ) : (
-                                    <span className="size-9 shrink-0 rounded border border-border bg-muted" aria-hidden />
+                                    <span
+                                      className="size-9 shrink-0 rounded border border-border bg-muted"
+                                      aria-hidden
+                                    />
                                   )}
                                   <div className="min-w-0 flex-1">
                                     <p className="truncate text-[13px] font-medium">
                                       {item.productName || item.skuCode}
                                     </p>
                                     <p className="tnum text-xs text-muted-foreground">
-                                      Qty {item.quantity} · {formatPrice(item.unitPriceAmount, item.currency, 2)} each
+                                      Qty {item.quantity} ·{' '}
+                                      {formatPrice(item.unitPriceAmount, item.currency, 2)} each
                                     </p>
                                   </div>
                                   <div className="flex shrink-0 items-center gap-2">
@@ -262,7 +281,7 @@ export const CustomerOrders = () => {
                                           item,
                                         });
                                         setReturnQty(item.quantity);
-                                        setReturnReason("Defective or not working properly");
+                                        setReturnReason('Defective or not working properly');
                                       }}
                                     >
                                       <RotateCcw aria-hidden />
@@ -284,19 +303,21 @@ export const CustomerOrders = () => {
                                 <div className="flex items-center gap-2">
                                   <Truck size={14} className="text-primary" />
                                   <span>
-                                    <strong className="text-foreground">{shipment.carrier || "Carrier"}</strong>:{" "}
-                                    {shipment.trackingNumber || "Assigned"}
+                                    <strong className="text-foreground">
+                                      {shipment.carrier || 'Carrier'}
+                                    </strong>
+                                    : {shipment.trackingNumber || 'Assigned'}
                                   </span>
                                   <Badge
                                     variant={
-                                      shipment.status === "DELIVERED"
-                                        ? "success"
-                                        : shipment.status === "CANCELLED"
-                                          ? "destructive"
-                                          : "outline"
+                                      shipment.status === 'DELIVERED'
+                                        ? 'success'
+                                        : shipment.status === 'CANCELLED'
+                                          ? 'destructive'
+                                          : 'outline'
                                     }
                                   >
-                                    {shipment.status.replace(/_/g, " ")}
+                                    {shipment.status.replace(/_/g, ' ')}
                                   </Badge>
                                 </div>
                                 <Link
@@ -344,10 +365,16 @@ export const CustomerOrders = () => {
                   onChange={(e) => setReturnReason(e.target.value)}
                   className="h-8 rounded-md border border-input bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring"
                 >
-                  <option value="Defective or not working properly">Defective or not working properly</option>
+                  <option value="Defective or not working properly">
+                    Defective or not working properly
+                  </option>
                   <option value="Damaged in transit">Damaged in transit</option>
-                  <option value="Incorrect item or variant delivered">Incorrect item or variant delivered</option>
-                  <option value="Changed mind / No longer needed">Changed mind / No longer needed</option>
+                  <option value="Incorrect item or variant delivered">
+                    Incorrect item or variant delivered
+                  </option>
+                  <option value="Changed mind / No longer needed">
+                    Changed mind / No longer needed
+                  </option>
                 </select>
               </div>
               <div className="flex flex-col gap-1">
@@ -359,7 +386,9 @@ export const CustomerOrders = () => {
                   max={activeReturnItem.item.quantity}
                   value={returnQty}
                   onChange={(e) =>
-                    setReturnQty(Math.max(1, Math.min(activeReturnItem.item.quantity, Number(e.target.value))))
+                    setReturnQty(
+                      Math.max(1, Math.min(activeReturnItem.item.quantity, Number(e.target.value))),
+                    )
                   }
                 />
               </div>
@@ -374,7 +403,7 @@ export const CustomerOrders = () => {
                   Cancel
                 </Button>
                 <Button type="submit" size="sm" disabled={isSubmittingReturn}>
-                  {isSubmittingReturn ? "Submitting…" : "Confirm return"}
+                  {isSubmittingReturn ? 'Submitting…' : 'Confirm return'}
                 </Button>
               </div>
             </form>

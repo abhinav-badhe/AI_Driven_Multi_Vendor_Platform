@@ -55,10 +55,7 @@ export class HttpFulfillmentClient implements IFulfillmentService {
     return this.fallbackService;
   }
 
-  async createShipment(
-    actor: AuthorizedActor,
-    input: CreateShipmentInput,
-  ): Promise<ShipmentDto> {
+  async createShipment(actor: AuthorizedActor, input: CreateShipmentInput): Promise<ShipmentDto> {
     try {
       return await this.request<ShipmentDto>('POST', '/fulfillment/shipments', actor, input);
     } catch (err) {
@@ -92,7 +89,8 @@ export class HttpFulfillmentClient implements IFulfillmentService {
 
   async listShipments(
     actor: AuthorizedActor,
-    filter?: { sellerOrderId?: string | undefined; customerOrderId?: string | undefined } | undefined,
+    filter?:
+      { sellerOrderId?: string | undefined; customerOrderId?: string | undefined } | undefined,
   ): Promise<ShipmentDto[]> {
     const params = new URLSearchParams();
     if (filter?.sellerOrderId) params.set('sellerOrderId', filter.sellerOrderId);
@@ -197,10 +195,7 @@ export class HttpFulfillmentClient implements IFulfillmentService {
     }
   }
 
-  async createReturnRequest(
-    actor: AuthorizedActor,
-    input: CreateReturnInput,
-  ): Promise<ReturnDto> {
+  async createReturnRequest(actor: AuthorizedActor, input: CreateReturnInput): Promise<ReturnDto> {
     try {
       return await this.request<ReturnDto>('POST', '/fulfillment/returns', actor, input);
     } catch (err) {
@@ -234,7 +229,8 @@ export class HttpFulfillmentClient implements IFulfillmentService {
 
   async listReturns(
     actor: AuthorizedActor,
-    filter?: { customerOrderId?: string | undefined; sellerOrderId?: string | undefined } | undefined,
+    filter?:
+      { customerOrderId?: string | undefined; sellerOrderId?: string | undefined } | undefined,
   ): Promise<ReturnDto[]> {
     const params = new URLSearchParams();
     if (filter?.customerOrderId) params.set('customerOrderId', filter.customerOrderId);
@@ -308,9 +304,12 @@ export class HttpFulfillmentClient implements IFulfillmentService {
       return (await response.json()) as CarrierCallbackResultDto;
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
-        this.logger?.warn('Remote fulfillment service failed for callback; falling back to local service', {
-          error: (err as Error).message,
-        });
+        this.logger?.warn(
+          'Remote fulfillment service failed for callback; falling back to local service',
+          {
+            error: (err as Error).message,
+          },
+        );
         return this.fallbackService.handleCarrierCallback(rawBody, signatureHeader);
       }
       throw err;

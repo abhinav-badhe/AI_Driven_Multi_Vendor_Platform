@@ -1,19 +1,19 @@
-import { useState, type FormEvent } from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
-import { Heart, Search, ShoppingCart, User } from "lucide-react";
-import { useCart } from "../features/cart/CartContext";
-import { useAuth } from "../features/auth/AuthContext";
-import { AiAssistant } from "../features/ai/AiAssistant";
-import { Button, buttonVariants } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Badge } from "../components/ui/badge";
-import { cn } from "../lib/utils";
+import { useState, type FormEvent } from 'react';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Heart, Search, ShoppingCart, User } from 'lucide-react';
+import { useCart } from '../features/cart/CartContext';
+import { useAuth } from '../features/auth/AuthContext';
+import { AiAssistant } from '../features/ai/AiAssistant';
+import { Button, buttonVariants } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Badge } from '../components/ui/badge';
+import { cn } from '../lib/utils';
 
 // Compact storefront topbar: utilitarian, left-aligned, no hero nav.
 export const CustomerLayout = () => {
   const { itemCount } = useCart();
   const { isAuthenticated, user, logout, login } = useAuth();
-  const [navSearch, setNavSearch] = useState("");
+  const [navSearch, setNavSearch] = useState('');
   const navigate = useNavigate();
 
   const handleNavSearch = (e: FormEvent) => {
@@ -21,7 +21,7 @@ export const CustomerLayout = () => {
     if (navSearch.trim()) {
       navigate(`/search?q=${encodeURIComponent(navSearch.trim())}`);
     } else {
-      navigate("/search");
+      navigate('/search');
     }
   };
 
@@ -33,7 +33,11 @@ export const CustomerLayout = () => {
             Commerce
           </Link>
 
-          <form onSubmit={handleNavSearch} className="relative min-w-0 max-w-md flex-1" role="search">
+          <form
+            onSubmit={handleNavSearch}
+            className="relative min-w-0 max-w-md flex-1"
+            role="search"
+          >
             <Search
               className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
@@ -51,29 +55,32 @@ export const CustomerLayout = () => {
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             {isAuthenticated && (
               <>
-                <Link to="/orders" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+                <Link to="/orders" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
                   Orders
                 </Link>
-                <Link to="/returns" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+                <Link
+                  to="/returns"
+                  className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
+                >
                   Returns
                 </Link>
               </>
             )}
-            {user?.role === "MERCHANT" && (
-              <Link to="/merchant" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+            {user?.role === 'MERCHANT' && (
+              <Link to="/merchant" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
                 Seller hub
               </Link>
             )}
-            {user?.role === "ADMINISTRATOR" && (
-              <Link to="/admin" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+            {user?.role === 'ADMINISTRATOR' && (
+              <Link to="/admin" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
                 Admin
               </Link>
             )}
-            <Link to="/wishlist" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+            <Link to="/wishlist" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
               <Heart aria-hidden />
               Wishlist
             </Link>
-            <Link to="/cart" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            <Link to="/cart" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
               <ShoppingCart aria-hidden />
               Cart
               {itemCount > 0 && <Badge variant="default">{itemCount}</Badge>}
@@ -82,18 +89,24 @@ export const CustomerLayout = () => {
               <>
                 <Link
                   to="/account"
-                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "max-w-40")}
+                  className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'max-w-40')}
                 >
                   <User aria-hidden />
                   <span className="truncate">{user?.email}</span>
                 </Link>
-                {user?.role === "MERCHANT" && (
-                  <Link to="/merchant" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                {user?.role === 'MERCHANT' && (
+                  <Link
+                    to="/merchant"
+                    className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                  >
                     Merchant Portal
                   </Link>
                 )}
-                {user?.role === "ADMINISTRATOR" && (
-                  <Link to="/admin" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                {user?.role === 'ADMINISTRATOR' && (
+                  <Link
+                    to="/admin"
+                    className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                  >
                     Admin Console
                   </Link>
                 )}
@@ -109,7 +122,7 @@ export const CustomerLayout = () => {
                     size="sm"
                     className="text-xs h-7 px-2 border border-dashed border-border"
                     onClick={async () => {
-                      await login({ email: "customer@example.com", password: "password123" });
+                      await login({ email: 'customer@example.com', password: 'password123' });
                     }}
                   >
                     Demo Customer
@@ -119,8 +132,8 @@ export const CustomerLayout = () => {
                     size="sm"
                     className="text-xs h-7 px-2 border border-dashed border-border"
                     onClick={async () => {
-                      await login({ email: "merchant@example.com", password: "password123" });
-                      navigate("/merchant");
+                      await login({ email: 'merchant@example.com', password: 'password123' });
+                      navigate('/merchant');
                     }}
                   >
                     Demo Merchant
@@ -130,14 +143,17 @@ export const CustomerLayout = () => {
                     size="sm"
                     className="text-xs h-7 px-2 border border-dashed border-primary/40 text-primary font-medium"
                     onClick={async () => {
-                      await login({ email: "leonsintegration@gmail.com", password: "Password@2163" });
-                      navigate("/admin");
+                      await login({
+                        email: 'leonsintegration@gmail.com',
+                        password: 'Password@2163',
+                      });
+                      navigate('/admin');
                     }}
                   >
                     Demo Admin
                   </Button>
                 </div>
-                <Link to="/account" className={cn(buttonVariants({ size: "sm" }))}>
+                <Link to="/account" className={cn(buttonVariants({ size: 'sm' }))}>
                   Sign in
                 </Link>
               </>

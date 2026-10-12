@@ -207,9 +207,7 @@ export class ShippoCarrierProvider implements CarrierProvider {
     const rates = shipmentResp.rates ?? [];
     const selectedRate =
       (input.carrier
-        ? rates.find(
-            (r) => r.provider.toLowerCase() === input.carrier?.toLowerCase(),
-          )
+        ? rates.find((r) => r.provider.toLowerCase() === input.carrier?.toLowerCase())
         : null) ?? rates[0];
 
     // If no rates returned, fallback to mock sandbox transaction
@@ -412,8 +410,12 @@ export class ShippoCarrierProvider implements CarrierProvider {
       carrierShipmentId,
       carrier: carrierName,
       trackingNumber,
-      trackingUrl: transactionResp.tracking_url_provider ?? `https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}`,
-      labelUrl: transactionResp.label_url ?? `https://delivery.carrier.com/return-labels/${carrierShipmentId}.pdf`,
+      trackingUrl:
+        transactionResp.tracking_url_provider ??
+        `https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}`,
+      labelUrl:
+        transactionResp.label_url ??
+        `https://delivery.carrier.com/return-labels/${carrierShipmentId}.pdf`,
       status: 'READY_TO_SHIP',
       metadata: {
         provider: 'shippo',
@@ -458,11 +460,14 @@ export class ShippoCarrierProvider implements CarrierProvider {
 
         const nowSec = Math.floor(Date.now() / 1000);
         if (Math.abs(nowSec - timestamp) > effectiveTolerance) {
-          this.logger.warn('Shippo webhook signature timestamp expired or skewed outside tolerance', {
-            headerTimestamp: timestamp,
-            currentTimestamp: nowSec,
-            toleranceSeconds: effectiveTolerance,
-          });
+          this.logger.warn(
+            'Shippo webhook signature timestamp expired or skewed outside tolerance',
+            {
+              headerTimestamp: timestamp,
+              currentTimestamp: nowSec,
+              toleranceSeconds: effectiveTolerance,
+            },
+          );
           return false;
         }
 
@@ -506,9 +511,7 @@ export class ShippoCarrierProvider implements CarrierProvider {
         ? (data['tracking_status'] as Record<string, unknown>)
         : {};
 
-    const rawStatus = String(
-      trackingStatusObj['status'] ?? data['status'] ?? 'IN_TRANSIT',
-    );
+    const rawStatus = String(trackingStatusObj['status'] ?? data['status'] ?? 'IN_TRANSIT');
     const mappedStatus = mapShippoStatus(rawStatus);
 
     const eventId =
@@ -519,7 +522,10 @@ export class ShippoCarrierProvider implements CarrierProvider {
           : `${carrier}_${trackingNumber}_${rawStatus}`;
 
     let locationStr: string | undefined;
-    if (typeof trackingStatusObj['location'] === 'object' && trackingStatusObj['location'] !== null) {
+    if (
+      typeof trackingStatusObj['location'] === 'object' &&
+      trackingStatusObj['location'] !== null
+    ) {
       const loc = trackingStatusObj['location'] as Record<string, unknown>;
       locationStr = [loc['city'], loc['state'], loc['country']].filter(Boolean).join(', ');
     } else if (typeof data['location'] === 'string') {

@@ -64,9 +64,7 @@ export class InMemoryAiStore implements IAiStore {
         list.push({ ...conv });
       }
     }
-    return list
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-      .slice(0, limit);
+    return list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, limit);
   }
 
   async updateConversation(
@@ -96,9 +94,7 @@ export class InMemoryAiStore implements IAiStore {
         res.push({ ...msg });
       }
     }
-    return res
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      .slice(-limit);
+    return res.sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(-limit);
   }
 
   // --- Knowledge Documents ---
@@ -113,7 +109,10 @@ export class InMemoryAiStore implements IAiStore {
     return { ...doc };
   }
 
-  async listDocuments(tenantId: string, category?: DocumentCategory): Promise<KnowledgeDocumentRecord[]> {
+  async listDocuments(
+    tenantId: string,
+    category?: DocumentCategory,
+  ): Promise<KnowledgeDocumentRecord[]> {
     const res: KnowledgeDocumentRecord[] = [];
     for (const doc of this.documents.values()) {
       if (doc.tenantId === tenantId) {
@@ -225,9 +224,7 @@ export class InMemoryAiStore implements IAiStore {
         res.push({ ...wh });
       }
     }
-    return res
-      .sort((a, b) => b.processedAt.localeCompare(a.processedAt))
-      .slice(0, limit);
+    return res.sort((a, b) => b.processedAt.localeCompare(a.processedAt)).slice(0, limit);
   }
 
   async updateWebhookStatus(
@@ -250,8 +247,6 @@ export class InMemoryAiStore implements IAiStore {
   }
 
   async listAuditLogs(tenantId: string, limit = 100): Promise<AiAuditRecord[]> {
-    return this.auditLogs
-      .filter((a) => a.tenantId === tenantId)
-      .slice(-limit);
+    return this.auditLogs.filter((a) => a.tenantId === tenantId).slice(-limit);
   }
 }

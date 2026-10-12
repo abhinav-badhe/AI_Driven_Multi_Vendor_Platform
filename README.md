@@ -12,11 +12,12 @@ This README consolidates **two source documents**:
 1. **Original Proposal** – "AI-Driven Multi-Vendor Predictive Commerce Platform: Complete Project Proposal, End-to-End Workflow & Production Architecture" (43 sections, includes a WhatsApp reference implementation based on Node.js + Express + MongoDB + Meta WhatsApp Business Platform).
 2. **Corrected Production Architecture** – the revised version that preserves the same 43-section structure and project intent but adds architectural corrections. **This is the authoritative, synchronized architecture baseline.**
 
-**Precedence rule:** Where the two documents differ, the **Corrected Production Architecture wins**. The original's WhatsApp reference-implementation details (§19.1–19.9) are preserved in this README (see **Section 19 and Appendix A**) as *operational knowledge and platform constraints*, but any part of them that conflicts with the corrected baseline (e.g. MongoDB, boolean-only inventory, self-reported UPI payment as "truth", independent chat order schema) is **not** the target architecture. Those conflicts are listed explicitly in **Appendix B**.
+**Precedence rule:** Where the two documents differ, the **Corrected Production Architecture wins**. The original's WhatsApp reference-implementation details (§19.1–19.9) are preserved in this README (see **Section 19 and Appendix A**) as _operational knowledge and platform constraints_, but any part of them that conflicts with the corrected baseline (e.g. MongoDB, boolean-only inventory, self-reported UPI payment as "truth", independent chat order schema) is **not** the target architecture. Those conflicts are listed explicitly in **Appendix B**.
 
 **Rules for any implementation agent:**
+
 - Detailed DDL, OpenAPI contracts, event schemas, repository structure, environment configuration, deployment manifests and phase-specific prompts must be generated **from this baseline and must not contradict it**.
-- Items listed under **Open Production Decisions (Section 44)** are *controlled project decisions*. **Do not silently guess them.** Record them as configuration/ADR decisions once approved.
+- Items listed under **Open Production Decisions (Section 44)** are _controlled project decisions_. **Do not silently guess them.** Record them as configuration/ADR decisions once approved.
 - Build order matters: core commerce must be correct, observable and testable **before** advanced AI is introduced (Section 42).
 
 ---
@@ -67,6 +68,7 @@ This README consolidates **two source documents**:
 42. [Scope Governance](#42-scope-governance)
 43. [Conclusion](#43-conclusion)
 44. [Architectural Invariants & Open Production Decisions](#44-architectural-invariants--open-production-decisions)
+
 - [Appendix A – WhatsApp Reference Implementation Details (from Original Proposal)](#appendix-a--whatsapp-reference-implementation-details-from-original-proposal)
 - [Appendix B – Original vs. Corrected: What Changed](#appendix-b--original-vs-corrected-what-changed)
 - [Appendix C – Glossary](#appendix-c--glossary)
@@ -76,6 +78,7 @@ This README consolidates **two source documents**:
 ## 1. Executive Summary
 
 The system is a **multi-vendor commerce platform** where:
+
 - **Merchants** register, manage stores and listings, maintain inventory, fulfill seller orders, and receive operational intelligence.
 - **Customers** discover products, compare merchant listings, purchase, manage post-order workflows, and interact through **web and WhatsApp**.
 - A **separate intelligence layer** captures business events and uses analytics, predictive models and recommendation systems to improve discovery, inventory planning and customer engagement.
@@ -119,7 +122,7 @@ Traditional e-commerce systems often separate catalog, inventory, customer engag
 ## 3. Project Objectives
 
 1. Build a **complete multi-vendor commerce workflow**: merchant onboarding → catalog → listing → inventory → cart → checkout → payment → seller order → fulfillment → return/refund → settlement (plus post-order lifecycle).
-2. Define **explicit bounded contexts, ownership rules, module dependency rules and transactional boundaries** *before* implementation.
+2. Define **explicit bounded contexts, ownership rules, module dependency rules and transactional boundaries** _before_ implementation.
 3. Design a **normalized, transactionally consistent PostgreSQL** data model with **immutable financial and inventory history**.
 4. Implement **secure customer, merchant and administrator access** with tenant isolation and object-level authorization.
 5. Provide **search and discovery as derived read models** with authoritative transactional filtering (fast discovery via structured filters and progressively enhanced semantic search).
@@ -133,26 +136,26 @@ Traditional e-commerce systems often separate catalog, inventory, customer engag
 
 ## 4. Users and Actors
 
-| Actor | Responsibilities |
-|---|---|
-| **Customer** | Browse/search, compare listings, cart, checkout, payment, orders, returns, reviews, preferences, and conversational assistance (web + WhatsApp). |
-| **Merchant** | Registration/verification, store management, listings, prices/offers, inventory, seller orders, fulfillment, returns, and merchant analytics. |
-| **Administrator** | Merchant approval, catalog governance, moderation, disputes, refunds where authorized, platform configuration, security, audit, and analytics. |
+| Actor             | Responsibilities                                                                                                                                           |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Customer**      | Browse/search, compare listings, cart, checkout, payment, orders, returns, reviews, preferences, and conversational assistance (web + WhatsApp).           |
+| **Merchant**      | Registration/verification, store management, listings, prices/offers, inventory, seller orders, fulfillment, returns, and merchant analytics.              |
+| **Administrator** | Merchant approval, catalog governance, moderation, disputes, refunds where authorized, platform configuration, security, audit, and analytics.             |
 | **AI/Automation** | Interpret requests, retrieve authorized facts, propose or execute **explicitly permitted** tools, generate grounded responses, trigger eligible workflows. |
-| **System/Worker** | Process events, notifications, search indexing, analytics ingestion, reconciliation, scheduled jobs and ML pipelines. |
+| **System/Worker** | Process events, notifications, search indexing, analytics ingestion, reconciliation, scheduled jobs and ML pipelines.                                      |
 
 ---
 
 ## 5. High-Level Product Scope
 
-| Layer | Core capabilities |
-|---|---|
-| **Core Commerce** | Identity, merchants, catalog, variants/SKUs, listings, inventory, cart, checkout, orders, payments, fulfillment, returns and refunds. |
-| **Marketplace** | Seller orders, commissions, seller earnings, settlement eligibility, payouts and financial ledger. |
-| **Discovery** | Search, autocomplete, filters, vendor comparison, similar products, progressively enhanced semantic retrieval. |
-| **Intelligence** | Analytics, dashboards, recommendations, demand forecasting, stockout prediction, propensity and anomaly detection. |
+| Layer                 | Core capabilities                                                                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Core Commerce**     | Identity, merchants, catalog, variants/SKUs, listings, inventory, cart, checkout, orders, payments, fulfillment, returns and refunds.        |
+| **Marketplace**       | Seller orders, commissions, seller earnings, settlement eligibility, payouts and financial ledger.                                           |
+| **Discovery**         | Search, autocomplete, filters, vendor comparison, similar products, progressively enhanced semantic retrieval.                               |
+| **Intelligence**      | Analytics, dashboards, recommendations, demand forecasting, stockout prediction, propensity and anomaly detection.                           |
 | **Conversational AI** | WhatsApp webhook, conversation management, intent understanding, policy-controlled tools, RAG where appropriate, grounded responses, alerts. |
-| **Platform** | Security, observability, CI/CD, resilience, audit, backup/recovery, configuration and feature flags. |
+| **Platform**          | Security, observability, CI/CD, resilience, audit, backup/recovery, configuration and feature flags.                                         |
 
 ---
 
@@ -201,19 +204,22 @@ Grounded Response / Action
 
 **Service extraction is not assumed.** The initial implementation is a modular monolith with strict module boundaries. Independent services are an **evolution option, not a default deployment requirement**.
 
-*(The original proposal's diagram showed: Node.js Backend → Catalog / Search / Inventory / Cart / Orders → PostgreSQL → Transactional Outbox → Event Bus → Analytics / ML / Notifications → Dashboards / Predictions / WhatsApp → Recommendation/Forecast → AI Orchestrator (LLM + RAG + Tools) → Authorized Commerce APIs. The corrected diagram above supersedes it.)*
+_(The original proposal's diagram showed: Node.js Backend → Catalog / Search / Inventory / Cart / Orders → PostgreSQL → Transactional Outbox → Event Bus → Analytics / ML / Notifications → Dashboards / Predictions / WhatsApp → Recommendation/Forecast → AI Orchestrator (LLM + RAG + Tools) → Authorized Commerce APIs. The corrected diagram above supersedes it.)_
 
 ---
 
 ## 7. Customer Workflow
 
 ### 7.1 Registration and discovery
+
 Customer → Register/Login → Session → Home/Categories/Search → **search read model** → filters + **authorization-aware availability** + ranking → product/listing results.
 
 ### 7.2 Product selection
+
 Canonical Product → Variant/SKU → Eligible Merchant Listings → compare price/stock/fulfillment → select listing → add to cart → **server-side cart validation**.
 
 ### 7.3 Checkout
+
 ```
 Cart
  → Checkout Session
@@ -229,7 +235,9 @@ Cart
  → fulfillment
  → notification
 ```
+
 **Failure handling is explicit:**
+
 - Payment failure → **releases reservations**.
 - Payment success with order-creation uncertainty → enters **reconciliation** (never charges again).
 - Expired checkout sessions → **release reservations**.
@@ -237,10 +245,12 @@ Cart
 - Checkout must be idempotent and concurrency-safe. Payment and order state transitions are validated by the backend, **never trusted from the client**.
 
 ### 7.4 Order lifecycle
+
 - **Customer Order:** `CREATED → PAYMENT_PENDING → PAID → PARTIALLY_FULFILLED / FULFILLED → COMPLETED`, with `CANCELLED` / `RETURNED` / `REFUNDED` transitions constrained by policy.
 - **Seller Orders** independently progress through seller fulfillment states (original doc's simple view: Created → Payment Confirmed → Processing → Packed → Shipped → Delivered → Review/Return/Refund where applicable).
 
 ### 7.5 Out-of-stock workflow
+
 Requested listing unavailable
 → check **eligible merchant listings for the same SKU** (same canonical product at other merchants)
 → check **eligible variants**
@@ -291,17 +301,21 @@ Inventory is associated with a **sellable merchant listing/SKU** and, where appl
 ```
 Available = On Hand − Reserved − NonSellable
 ```
+
 (Original definitions: **On Hand** = physical sellable quantity after stock adjustments; **Reserved** = quantity temporarily held for active checkout/order workflows; **Available** = On Hand − Reserved − other non-sellable quantity; **Incoming** = expected replenishment quantity.)
 
 **Lifecycle / state flow**
+
 ```
 On Hand → Reserved → Allocated → Picked → Packed → Shipped → Delivered
 Reserved → Released
 Returned → Inspection → Restocked / Damaged
 ```
+
 **Explicit inventory states** (where applicable): `AVAILABLE, RESERVED, ALLOCATED, PICKED, PACKED, SHIPPED, DELIVERED, RELEASED, RETURNED, INSPECTION, DAMAGED`.
 
 **Rules**
+
 - Maintain an **immutable inventory movement ledger**.
 - Use **DB transactions with row/version locking** (or equivalent **atomic conditional updates**) for reservations.
 - **Reservation expiry is mandatory** for abandoned checkout sessions.
@@ -313,27 +327,27 @@ Returned → Inspection → Restocked / Damaged
 
 ## 11. Database Architecture
 
-| Bounded context | Representative entities |
-|---|---|
-| **Identity & Access** | users, roles, permissions, user_roles, sessions, refresh_tokens, authentication_events |
-| **Merchant** | merchants, stores, merchant_users, verification_records, merchant_settings |
-| **Catalog** | categories, products, variants, attributes, brands, catalog_approvals |
-| **Marketplace** | merchant_listings, listing_prices, listing_offers, listing_publications |
-| **Inventory** | inventory_locations, inventory_balances, inventory_reservations, inventory_movements, stock_adjustments |
-| **Cart & Checkout** | carts, cart_items, checkout_sessions, checkout_items, checkout_attempts |
-| **Orders** | customer_orders, seller_orders, order_items, order_status_history, seller_order_status_history |
-| **Fulfillment** | shipments, shipment_items, carriers, tracking_events, delivery_events |
-| **Payment** | payment_intents, payment_attempts, payment_transactions, payment_webhooks, refunds, reconciliation_records |
-| **Settlement** | seller_accounts, commission_rules, seller_earnings, settlement_batches, payouts, payout_transactions, financial_ledger |
-| **Customer** | addresses, preferences, wishlists, reviews, consents |
-| **Promotion & Pricing** | offers, coupons, campaigns, promotion_rules, eligibility, pricing_snapshots, tax_snapshots, shipping_fee_snapshots |
-| **Events** | outbox_events, event_consumption, webhook_deliveries, event_replay_records |
-| **Search** | index_jobs, index_versions, search_audit where required (the search engine itself remains **derived**) |
-| **AI** | conversations, messages, tool_calls, ai_runs, ai_feedback, policy_decisions |
-| **ML & Analytics** | features, datasets, model_versions, predictions, candidates, outcomes, fact/dimension stores |
-| **Security & Audit** | audit_logs, login_events, security_events, access_decisions |
+| Bounded context         | Representative entities                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Identity & Access**   | users, roles, permissions, user_roles, sessions, refresh_tokens, authentication_events                                 |
+| **Merchant**            | merchants, stores, merchant_users, verification_records, merchant_settings                                             |
+| **Catalog**             | categories, products, variants, attributes, brands, catalog_approvals                                                  |
+| **Marketplace**         | merchant_listings, listing_prices, listing_offers, listing_publications                                                |
+| **Inventory**           | inventory_locations, inventory_balances, inventory_reservations, inventory_movements, stock_adjustments                |
+| **Cart & Checkout**     | carts, cart_items, checkout_sessions, checkout_items, checkout_attempts                                                |
+| **Orders**              | customer_orders, seller_orders, order_items, order_status_history, seller_order_status_history                         |
+| **Fulfillment**         | shipments, shipment_items, carriers, tracking_events, delivery_events                                                  |
+| **Payment**             | payment_intents, payment_attempts, payment_transactions, payment_webhooks, refunds, reconciliation_records             |
+| **Settlement**          | seller_accounts, commission_rules, seller_earnings, settlement_batches, payouts, payout_transactions, financial_ledger |
+| **Customer**            | addresses, preferences, wishlists, reviews, consents                                                                   |
+| **Promotion & Pricing** | offers, coupons, campaigns, promotion_rules, eligibility, pricing_snapshots, tax_snapshots, shipping_fee_snapshots     |
+| **Events**              | outbox_events, event_consumption, webhook_deliveries, event_replay_records                                             |
+| **Search**              | index_jobs, index_versions, search_audit where required (the search engine itself remains **derived**)                 |
+| **AI**                  | conversations, messages, tool_calls, ai_runs, ai_feedback, policy_decisions                                            |
+| **ML & Analytics**      | features, datasets, model_versions, predictions, candidates, outcomes, fact/dimension stores                           |
+| **Security & Audit**    | audit_logs, login_events, security_events, access_decisions                                                            |
 
-*(Original, simpler entity list for reference: Identity—users, roles, permissions, user_roles, sessions; Merchant—merchants, stores, merchant_users, verification_records; Catalog—categories, products, variants, attributes, brands; Marketplace—merchant_listings, listing_prices, listing_offers; Inventory—inventory, inventory_movements, reservations, stock_adjustments; Commerce—carts, cart_items, orders, order_items, shipments, returns; Payment—payment_intents, transactions, refunds, reconciliation; Customer—addresses, preferences, wishlists, reviews; Promotion—offers, coupons, campaigns, eligibility; Events—event_log, outbox_events, webhook_deliveries; AI—conversations, messages, tool_calls, ai_runs, ai_feedback; ML—features, model_versions, predictions, candidates, outcomes; Security—audit_logs, login_events, security_events.)*
+_(Original, simpler entity list for reference: Identity—users, roles, permissions, user_roles, sessions; Merchant—merchants, stores, merchant_users, verification_records; Catalog—categories, products, variants, attributes, brands; Marketplace—merchant_listings, listing_prices, listing_offers; Inventory—inventory, inventory_movements, reservations, stock_adjustments; Commerce—carts, cart_items, orders, order_items, shipments, returns; Payment—payment_intents, transactions, refunds, reconciliation; Customer—addresses, preferences, wishlists, reviews; Promotion—offers, coupons, campaigns, eligibility; Events—event_log, outbox_events, webhook_deliveries; AI—conversations, messages, tool_calls, ai_runs, ai_feedback; ML—features, model_versions, predictions, candidates, outcomes; Security—audit_logs, login_events, security_events.)_
 
 **Ownership rule:** Inventory truth → Inventory context; payment truth → Payment context; financial settlement truth → Settlement/Ledger context.
 
@@ -343,7 +357,7 @@ Returned → Inspection → Restocked / Damaged
 
 - Normalization and **controlled denormalization** with explicit ownership.
 - Primary/foreign keys, unique/check/not-null constraints, and **state-validating constraints**.
-- **Composite, partial, covering and expression indexes** based on *measured* query patterns.
+- **Composite, partial, covering and expression indexes** based on _measured_ query patterns.
 - Transactions and appropriate **isolation levels**; **optimistic versioning** (version columns) and **row locking** for contention points.
 - **Immutable** order financial snapshots, inventory movements, payment provider references and audit history (immutable order-price snapshots).
 - **Soft deletion** only where historical references must survive; **never use deletion to rewrite financial truth**.
@@ -356,16 +370,16 @@ Returned → Inspection → Restocked / Damaged
 
 ## 13. Transaction and Idempotency Design
 
-| Operation | Protection |
-|---|---|
-| **Checkout** | Idempotency key + checkout state machine + transactional validation. |
-| **Inventory reservation** | Atomic availability check + reservation row + expiry + idempotency. |
-| **Payment callback** | Provider signature verification + provider event ID + idempotent state transition. |
-| **Webhook** | Verified source + replay protection + durable event/message ID. |
-| **Order cancellation** | State-machine validation + compensating inventory/payment actions. |
-| **Order creation** | Unique checkout/idempotency reference; **never create a second order for the same successful checkout**. |
-| **Settlement** | Immutable ledger entries + settlement batch idempotency + provider reference. |
-| **Event publishing** | Transactional outbox; publish after commit; consumers remain idempotent. |
+| Operation                 | Protection                                                                                               |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Checkout**              | Idempotency key + checkout state machine + transactional validation.                                     |
+| **Inventory reservation** | Atomic availability check + reservation row + expiry + idempotency.                                      |
+| **Payment callback**      | Provider signature verification + provider event ID + idempotent state transition.                       |
+| **Webhook**               | Verified source + replay protection + durable event/message ID.                                          |
+| **Order cancellation**    | State-machine validation + compensating inventory/payment actions.                                       |
+| **Order creation**        | Unique checkout/idempotency reference; **never create a second order for the same successful checkout**. |
+| **Settlement**            | Immutable ledger entries + settlement batch idempotency + provider reference.                            |
+| **Event publishing**      | Transactional outbox; publish after commit; consumers remain idempotent.                                 |
 
 ---
 
@@ -402,15 +416,15 @@ Behavior/catalog data → candidate generation → hard eligibility filters
 
 ## 16. Predictive Analytics
 
-| Use case | Input signals | Output/action |
-|---|---|---|
-| Demand forecasting | Historical sales, seasonality, price, promotion, availability | Forecast → replenishment planning |
-| Stockout prediction | Inventory, reservations, sales/reservation velocity, forecast | Risk/time-to-stockout → alert |
-| Purchase propensity | Search, views, cart, purchase history | Intent score → personalization |
-| Customer inactivity | Purchase intervals, engagement | Risk segment → eligible retention workflow |
-| Offer response | Price/discount and historical response | Expected response → promotion analysis |
-| Trend detection | Search/view/purchase velocity | Trend signal → merchant insight |
-| Anomaly detection | Orders, payments, inventory and operational metrics | Anomaly score → review/alert |
+| Use case            | Input signals                                                 | Output/action                              |
+| ------------------- | ------------------------------------------------------------- | ------------------------------------------ |
+| Demand forecasting  | Historical sales, seasonality, price, promotion, availability | Forecast → replenishment planning          |
+| Stockout prediction | Inventory, reservations, sales/reservation velocity, forecast | Risk/time-to-stockout → alert              |
+| Purchase propensity | Search, views, cart, purchase history                         | Intent score → personalization             |
+| Customer inactivity | Purchase intervals, engagement                                | Risk segment → eligible retention workflow |
+| Offer response      | Price/discount and historical response                        | Expected response → promotion analysis     |
+| Trend detection     | Search/view/purchase velocity                                 | Trend signal → merchant insight            |
+| Anomaly detection   | Orders, payments, inventory and operational metrics           | Anomaly score → review/alert               |
 
 ---
 
@@ -423,6 +437,7 @@ Customer searches/views product → behavior event → feature generation
 → WhatsApp / email / push template
 → delivery / click / purchase outcome → analytics/ML feedback
 ```
+
 - **A search event alone must not automatically trigger a message.**
 - Every outbound workflow must verify: **consent, channel eligibility, suppression rules, frequency caps, quiet periods, business purpose, and provider requirements.**
 
@@ -435,6 +450,7 @@ Web/API/Merchant/WhatsApp events → event validation → durable event stream
 → analytical ingestion → facts + dimensions → dashboards and governed feature datasets
 → feature engineering → ML training/evaluation
 ```
+
 - **Example facts:** `fact_orders, fact_order_items, fact_product_views, fact_searches, fact_cart_events, fact_payments, fact_inventory_movements, fact_recommendation_impressions`.
 - **Example dimensions:** `dim_customer, dim_product, dim_variant, dim_merchant, dim_category, dim_date, dim_location`.
 - **Separate OLTP from heavy analytics.** Use an analytical store/warehouse where justified.
@@ -461,6 +477,7 @@ WhatsApp Provider → verified webhook → message normalization
 > Detailed Meta/WhatsApp platform constraints, flow-engine model, UPI workflow, field guide and go-live checklist from the original reference implementation are preserved in **Appendix A**.
 
 ### 19.1 WhatsApp Business Platform Fundamentals
+
 - WhatsApp Business Account (WABA) and phone number **identify the channel tenant**.
 - **Webhook** receives inbound messages, interactive selections, and delivery/status events.
 - **Catalog data is served from the authoritative commerce backend; chat is not a second catalog.**
@@ -469,6 +486,7 @@ WhatsApp Provider → verified webhook → message normalization
 - Provider constraints (message formats, template requirements, delivery windows, payload limits) are **configuration/adapter concerns** and must not leak into core domain logic.
 
 ### 19.2 Channel Payload and Interaction Rules
+
 - Interactive controls use **stable IDs, not merchant-editable display labels**.
 - Lists and buttons are **paginated and validated against provider constraints** before sending.
 - **Every interactive path has a text fallback** and an explicit error/recovery message.
@@ -477,30 +495,36 @@ WhatsApp Provider → verified webhook → message normalization
 - **Provider webhook verification, replay protection and durable event IDs are mandatory.**
 
 ### 19.3 Catalog Data Model for Conversational Commerce
+
 - Chat reads **canonical categories/products and eligible merchant listings through backend APIs**.
 - **Price and stock shown in conversation are fetched from current authorized commerce tools**; cached values are labeled/validated per freshness policy.
 - Portion/variant choices **map to real SKU/listing identifiers**.
 - Conversation product availability is **not a substitute for checkout-time inventory reservation**.
 
 ### 19.4 Conversational Commerce Flow
+
 - **Browse → Product → Variant/Listing → Cart → Checkout Session → payment/order workflow.**
 - Empty results, unavailable products, invalid inputs and failed dependencies produce **recoverable responses, not dead ends**.
 - Global commands (**STATUS, HELP, CANCEL**) are intercepted by a **controlled command layer**; **authorization is rechecked before action**.
 
 ### 19.5 Payments over WhatsApp
+
 - Where a gateway is not yet integrated, a **UPI intent link may be used only as an explicitly lower-assurance/manual verification workflow**. The chat layer **does not move money** and **does not mark payment successful merely because the customer says it was paid**.
 - For production automated payments, the **provider callback/webhook is the source of payment confirmation** after **signature verification, event deduplication and state validation**.
 - Manual verification is a **transitional operating mode**, not the definition of payment truth.
 
 ### 19.6 Order Lifecycle in Chat Commerce
+
 - Chat references the **core Customer Order / Seller Order model**. It does **not** create an independent order schema that can diverge from web checkout.
 - **Payment and order status are separate state machines.** Customer-visible status is **derived from authoritative states and permission-filtered data**.
 
 ### 19.7 Inventory Model
+
 - A lightweight availability flag may exist only as a **presentation optimization**. Production checkout uses **authoritative listing/SKU inventory balances and atomic reservations**. A boolean cannot guarantee stock correctness under concurrency.
 - All stock-affecting operations use the **inventory bounded context and ledger**.
 
 ### 19.8 Multi-Tenancy, Sessions and Webhook Reliability
+
 - Resolve tenant from **verified channel identity**; carry tenant context through **every** application/repository operation.
 - **Reject / fail closed** on missing tenant context for tenant-scoped operations.
 - Redis may hold short-lived session state, but **durable message/event IDs and important conversation records survive restarts**.
@@ -508,6 +532,7 @@ WhatsApp Provider → verified webhook → message normalization
 - **Delivery/read status events update message telemetry only and never trigger conversational business actions.**
 
 ### 19.9 Operational Field Guide and Go-Live Checklist
+
 - Webhook subscribed; signature/verification checks tested against the live endpoint.
 - Secrets/tokens stored outside source control and rotated per policy.
 - Interactive payloads validated against provider constraints and paginated.
@@ -517,7 +542,8 @@ WhatsApp Provider → verified webhook → message normalization
 - Provider outage, duplicate delivery, stale session and webhook replay tests have passed.
 
 ### 19.10 Example
-Customer: *"Is iPhone 15 available under my budget?"*
+
+Customer: _"Is iPhone 15 available under my budget?"_
 → LLM identifies intent/constraints
 → `search_products(query, filters)`
 → backend retrieves **eligible listings**
@@ -526,6 +552,7 @@ Customer: *"Is iPhone 15 available under my budget?"*
 → **grounded response**.
 
 ### 19.11 Tool Examples
+
 - `search_products(query, filters)`
 - `get_product(product_id)`
 - `compare_vendor_listings(product_id)`
@@ -568,6 +595,7 @@ Knowledge request → approved documents → parse/chunk → metadata/effective 
 Live commerce request → authorized backend tool → authoritative result
 Mixed request → policy-controlled document retrieval + live commerce tool → grounded response
 ```
+
 - **Vector retrieval never becomes the authoritative source** for current price, inventory, payment, order status, settlement or other mutable transactional facts.
 - Version documents; track source identifiers and **effective dates**.
 - Protect documents and retrieval against **prompt injection**.
@@ -578,26 +606,27 @@ Mixed request → policy-controlled document retrieval + live commerce tool → 
 
 ## 22. Security Architecture
 
-| Security domain | Controls |
-|---|---|
-| **Authentication** | Secure password hashing, secure sessions/tokens, refresh rotation, **MFA for privileged roles**, OTP where appropriate, session revocation. |
-| **Authorization** | RBAC + **object-level authorization**, tenant context, seller/customer ownership checks, **deny-by-default**. |
-| **Tenant isolation** | Application-layer enforcement + database **RLS** defense in depth where appropriate. |
-| **API security** | Validation, rate limits, timeouts, pagination/request-size limits, idempotency, standardized errors. |
-| **Web security** | CSP, XSS protections, secure cookies, CSRF where applicable, secure headers. |
-| **Database** | Parameterized queries, least privilege, TLS, restricted network access, encrypted backups, controlled migrations. |
-| **Webhook** | Signature verification, timestamp/replay protection, provider event ID deduplication, payload validation. |
-| **Payment** | Provider-hosted/tokenized payment where appropriate; minimize sensitive payment data storage. |
-| **AI** | Tool authorization, prompt-injection defenses, output validation, data minimization, tenant isolation. |
-| **Secrets** | Secret manager, rotation, short-lived credentials where possible; **no secrets in repo or logs**. |
-| **Audit** | Privileged actions, access decisions, configuration changes, payment/admin interventions, security events. |
-| **Privacy** | Consent, preferences, retention, access/deletion processes, purpose limitation as applicable. |
+| Security domain      | Controls                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Authentication**   | Secure password hashing, secure sessions/tokens, refresh rotation, **MFA for privileged roles**, OTP where appropriate, session revocation. |
+| **Authorization**    | RBAC + **object-level authorization**, tenant context, seller/customer ownership checks, **deny-by-default**.                               |
+| **Tenant isolation** | Application-layer enforcement + database **RLS** defense in depth where appropriate.                                                        |
+| **API security**     | Validation, rate limits, timeouts, pagination/request-size limits, idempotency, standardized errors.                                        |
+| **Web security**     | CSP, XSS protections, secure cookies, CSRF where applicable, secure headers.                                                                |
+| **Database**         | Parameterized queries, least privilege, TLS, restricted network access, encrypted backups, controlled migrations.                           |
+| **Webhook**          | Signature verification, timestamp/replay protection, provider event ID deduplication, payload validation.                                   |
+| **Payment**          | Provider-hosted/tokenized payment where appropriate; minimize sensitive payment data storage.                                               |
+| **AI**               | Tool authorization, prompt-injection defenses, output validation, data minimization, tenant isolation.                                      |
+| **Secrets**          | Secret manager, rotation, short-lived credentials where possible; **no secrets in repo or logs**.                                           |
+| **Audit**            | Privileged actions, access decisions, configuration changes, payment/admin interventions, security events.                                  |
+| **Privacy**          | Consent, preferences, retention, access/deletion processes, purpose limitation as applicable.                                               |
 
 ---
 
 ## 23. Threat Model
 
 Threats to cover:
+
 - Broken access control / **IDOR / BOLA**.
 - **Merchant-to-merchant data leakage**.
 - SQL injection and malicious input.
@@ -621,23 +650,23 @@ Threat modelling maps **assets, trust boundaries, attack paths, mitigations and 
 
 **Event naming convention:** single versioned format, e.g. `commerce.order.created.v1`. **Producers own event contracts; consumers validate versions and must remain idempotent.**
 
-| Event | Typical consumers |
-|---|---|
-| `commerce.order.created.v1` | Inventory, fulfillment, analytics, notification, seller-order workflows |
-| `commerce.payment.confirmed.v1` | Order confirmation, fulfillment, notification, analytics |
-| `inventory.stock.updated.v1` | Search indexing, alerts, analytics, recommendations |
-| `inventory.stock.low.v1` | Merchant alerts, forecasting, replenishment workflows |
-| `catalog.listing.changed.v1` | Search indexing, recommendation candidates, analytics |
-| `commerce.cart.item_added.v1` | Analytics, eligible abandonment workflows |
-| `customer.product.viewed.v1` | Analytics, recommendation candidates |
-| `commerce.return.requested.v1` | Returns workflow, seller operations, analytics |
-| `settlement.earning.created.v1` | Settlement, merchant analytics, finance |
-| `whatsapp.message.received.v1` | Conversation/AI channel |
-| `ml.prediction.created.v1` | Analytics, dashboards, eligible business workflows |
+| Event                           | Typical consumers                                                       |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| `commerce.order.created.v1`     | Inventory, fulfillment, analytics, notification, seller-order workflows |
+| `commerce.payment.confirmed.v1` | Order confirmation, fulfillment, notification, analytics                |
+| `inventory.stock.updated.v1`    | Search indexing, alerts, analytics, recommendations                     |
+| `inventory.stock.low.v1`        | Merchant alerts, forecasting, replenishment workflows                   |
+| `catalog.listing.changed.v1`    | Search indexing, recommendation candidates, analytics                   |
+| `commerce.cart.item_added.v1`   | Analytics, eligible abandonment workflows                               |
+| `customer.product.viewed.v1`    | Analytics, recommendation candidates                                    |
+| `commerce.return.requested.v1`  | Returns workflow, seller operations, analytics                          |
+| `settlement.earning.created.v1` | Settlement, merchant analytics, finance                                 |
+| `whatsapp.message.received.v1`  | Conversation/AI channel                                                 |
+| `ml.prediction.created.v1`      | Analytics, dashboards, eligible business workflows                      |
 
 **Standard event envelope:** `event_id, event_type, event_version, occurred_at, producer, tenant_id, actor_id (where applicable), aggregate_type, aggregate_id, correlation_id, causation_id, schema_version, payload`.
 
-*(Original, legacy flat event names — superseded by the versioned convention above: SEARCH_PERFORMED, PRODUCT_VIEWED, CART_ITEM_ADDED, ORDER_CREATED, PAYMENT_CONFIRMED, INVENTORY_UPDATED, STOCK_LOW, PRODUCT_OUT_OF_STOCK, PRICE_CHANGED, WHATSAPP_MESSAGE_RECEIVED, MODEL_PREDICTION_CREATED. Search-performed, product-out-of-stock and price-changed events should be given proper versioned names following the same convention when defined.)*
+_(Original, legacy flat event names — superseded by the versioned convention above: SEARCH_PERFORMED, PRODUCT_VIEWED, CART_ITEM_ADDED, ORDER_CREATED, PAYMENT_CONFIRMED, INVENTORY_UPDATED, STOCK_LOW, PRODUCT_OUT_OF_STOCK, PRICE_CHANGED, WHATSAPP_MESSAGE_RECEIVED, MODEL_PREDICTION_CREATED. Search-performed, product-out-of-stock and price-changed events should be given proper versioned names following the same convention when defined.)_
 
 ---
 
@@ -670,20 +699,20 @@ Threat modelling maps **assets, trust boundaries, attack paths, mitigations and 
 
 ## 27. Failure and Recovery Workflows
 
-| Failure | Expected behavior |
-|---|---|
-| LLM unavailable | Fallback to deterministic search/order workflows or a safe unavailable response. |
-| ML recommendation unavailable | Popularity/category/content fallback. |
-| Search index stale | Use transactional backend for critical validation; communicate/handle stale discovery safely. |
-| Queue consumer failure | Retry → DLQ → alert → operator/replay. |
-| Payment timeout | Persist attempt, reconcile by provider reference, **do not duplicate charge/order**. |
-| Payment success but order uncertain | Enter reconciliation workflow; **do not create a second charge**. |
-| Inventory conflict | Atomic rejection/adjustment; **never confirm unavailable quantity**. |
-| External API slow | Timeout + circuit breaker + fallback. |
-| WhatsApp provider outage | Queue eligible notifications/retries and expose delivery status. |
-| Bad model release | Evaluation gate + model version rollback. |
-| Database outage | Fail safely for writes; use HA/backup/restore strategy. |
-| Settlement provider failure | Preserve ledger state; retry payout **without duplicating financial entries**. |
+| Failure                             | Expected behavior                                                                             |
+| ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| LLM unavailable                     | Fallback to deterministic search/order workflows or a safe unavailable response.              |
+| ML recommendation unavailable       | Popularity/category/content fallback.                                                         |
+| Search index stale                  | Use transactional backend for critical validation; communicate/handle stale discovery safely. |
+| Queue consumer failure              | Retry → DLQ → alert → operator/replay.                                                        |
+| Payment timeout                     | Persist attempt, reconcile by provider reference, **do not duplicate charge/order**.          |
+| Payment success but order uncertain | Enter reconciliation workflow; **do not create a second charge**.                             |
+| Inventory conflict                  | Atomic rejection/adjustment; **never confirm unavailable quantity**.                          |
+| External API slow                   | Timeout + circuit breaker + fallback.                                                         |
+| WhatsApp provider outage            | Queue eligible notifications/retries and expose delivery status.                              |
+| Bad model release                   | Evaluation gate + model version rollback.                                                     |
+| Database outage                     | Fail safely for writes; use HA/backup/restore strategy.                                       |
+| Settlement provider failure         | Preserve ledger state; retry payout **without duplicating financial entries**.                |
 
 ---
 
@@ -704,14 +733,14 @@ Threat modelling maps **assets, trust boundaries, attack paths, mitigations and 
 
 ## 29. ML and Deep Learning Strategy
 
-| Problem | Baseline | Advanced |
-|---|---|---|
-| Demand forecast | Moving average / exponential smoothing | Gradient boosting or neural time-series where justified |
-| Purchase propensity | Logistic/tree model | Sequence/deep model where justified |
-| Recommendation | Popularity / collaborative filtering | Two-tower retrieval / neural ranking |
-| Product similarity | Structured attributes/rules | Transformer embeddings |
-| Intent classification | Rules/classifier | Transformer/LLM |
-| Catalog understanding | Structured metadata | Multimodal/vision embeddings if needed |
+| Problem               | Baseline                               | Advanced                                                |
+| --------------------- | -------------------------------------- | ------------------------------------------------------- |
+| Demand forecast       | Moving average / exponential smoothing | Gradient boosting or neural time-series where justified |
+| Purchase propensity   | Logistic/tree model                    | Sequence/deep model where justified                     |
+| Recommendation        | Popularity / collaborative filtering   | Two-tower retrieval / neural ranking                    |
+| Product similarity    | Structured attributes/rules            | Transformer embeddings                                  |
+| Intent classification | Rules/classifier                       | Transformer/LLM                                         |
+| Catalog understanding | Structured metadata                    | Multimodal/vision embeddings if needed                  |
 
 **Baseline-first engineering:** a complex model is promoted **only** when offline and, where safe, online evaluation demonstrates **meaningful improvement against a simpler baseline**.
 
@@ -721,16 +750,16 @@ Threat modelling maps **assets, trust boundaries, attack paths, mitigations and 
 
 ## 30. AI/ML Evaluation
 
-| Component | Example metrics |
-|---|---|
-| Intent | Accuracy, precision, recall, F1 |
-| Tool calling | Valid-tool rate, argument correctness, **authorization rejection rate**, execution success |
-| Grounding | Supported-answer rate, source correctness, hallucination/error rate |
-| Recommendations | CTR, add-to-cart, conversion, coverage, diversity |
-| Forecasting | MAE, RMSE, WAPE (or context-appropriate) |
-| Classification/prediction | Precision, recall, ROC-AUC/PR-AUC, calibration |
-| Operations | Latency, cost, error, escalation and fallback rate |
-| ML operations | Drift, data freshness, feature quality, model version health |
+| Component                 | Example metrics                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------ |
+| Intent                    | Accuracy, precision, recall, F1                                                            |
+| Tool calling              | Valid-tool rate, argument correctness, **authorization rejection rate**, execution success |
+| Grounding                 | Supported-answer rate, source correctness, hallucination/error rate                        |
+| Recommendations           | CTR, add-to-cart, conversion, coverage, diversity                                          |
+| Forecasting               | MAE, RMSE, WAPE (or context-appropriate)                                                   |
+| Classification/prediction | Precision, recall, ROC-AUC/PR-AUC, calibration                                             |
+| Operations                | Latency, cost, error, escalation and fallback rate                                         |
+| ML operations             | Drift, data freshness, feature quality, model version health                               |
 
 - **Version** models, prompts, retrieval configuration and datasets.
 - Maintain an **evaluation suite before changing production AI behavior**.
@@ -742,14 +771,14 @@ Threat modelling maps **assets, trust boundaries, attack paths, mitigations and 
 
 ## 31. Observability and SRE
 
-| Signal | Examples |
-|---|---|
-| Metrics | RPS, p95/p99 latency, error rate, DB latency, queue lag, cache hit rate, reservation conflicts, payment success rate |
-| Logs | Structured logs with `request_id, trace_id, correlation_id, tenant_id, actor_id, event_id`; **sensitive-data redaction** |
-| Traces | API → module → database → queue → provider → AI tool |
-| Business telemetry | Conversion, stockout, order success, payment reconciliation, seller fulfillment, recommendation outcomes |
-| AI telemetry | Intent, tool success, grounding, latency, fallback, token/cost usage |
-| Alerts | Availability, latency, error spikes, queue backlog, payment/reconciliation anomalies, security anomalies |
+| Signal             | Examples                                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Metrics            | RPS, p95/p99 latency, error rate, DB latency, queue lag, cache hit rate, reservation conflicts, payment success rate     |
+| Logs               | Structured logs with `request_id, trace_id, correlation_id, tenant_id, actor_id, event_id`; **sensitive-data redaction** |
+| Traces             | API → module → database → queue → provider → AI tool                                                                     |
+| Business telemetry | Conversion, stockout, order success, payment reconciliation, seller fulfillment, recommendation outcomes                 |
+| AI telemetry       | Intent, tool success, grounding, latency, fallback, token/cost usage                                                     |
+| Alerts             | Availability, latency, error spikes, queue backlog, payment/reconciliation anomalies, security anomalies                 |
 
 - Define **SLIs/SLOs** for critical APIs, checkout, payment callbacks, search, notification delivery.
 - Health/readiness checks and **operational runbooks**.
@@ -767,6 +796,7 @@ Developer → Pull Request → lint/typecheck → unit tests → integration tes
 → smoke / E2E / DAST as applicable → approval → production
 → monitor release health → rollback if required
 ```
+
 - Containerized builds and **reproducible artifacts**.
 - Secrets outside source control.
 - **Versioned DB migrations.**
@@ -778,37 +808,37 @@ Developer → Pull Request → lint/typecheck → unit tests → integration tes
 
 ## 33. Testing Strategy
 
-| Layer | Examples |
-|---|---|
-| Unit | Pricing, tax abstraction, promotion rules, validation, state transitions, domain rules, inventory calculations |
-| Integration | PostgreSQL repositories, transactions, outbox, queues, payment adapters, search indexing |
-| API | Authentication, authorization, tenant isolation, pagination, idempotency, standardized errors |
-| E2E | Search → listing → cart → checkout → payment → customer order → seller order → fulfillment |
-| Concurrency | Simultaneous reservation/checkout, duplicate payment callbacks, duplicate webhook delivery |
-| Security | IDOR/BOLA, injection, auth abuse, webhook replay, prompt injection, tenant leakage |
-| Performance | Load, stress, soak, queue backlog, dependency latency |
-| AI | Intent, tool selection, authorization rejection, grounding, prompt injection, fallback |
-| ML | Offline evaluation, drift, calibration, feature quality, rollback |
-| Resilience | Dependency failures, retries, circuit breakers, queue outages, DB failover and recovery |
+| Layer       | Examples                                                                                                       |
+| ----------- | -------------------------------------------------------------------------------------------------------------- |
+| Unit        | Pricing, tax abstraction, promotion rules, validation, state transitions, domain rules, inventory calculations |
+| Integration | PostgreSQL repositories, transactions, outbox, queues, payment adapters, search indexing                       |
+| API         | Authentication, authorization, tenant isolation, pagination, idempotency, standardized errors                  |
+| E2E         | Search → listing → cart → checkout → payment → customer order → seller order → fulfillment                     |
+| Concurrency | Simultaneous reservation/checkout, duplicate payment callbacks, duplicate webhook delivery                     |
+| Security    | IDOR/BOLA, injection, auth abuse, webhook replay, prompt injection, tenant leakage                             |
+| Performance | Load, stress, soak, queue backlog, dependency latency                                                          |
+| AI          | Intent, tool selection, authorization rejection, grounding, prompt injection, fallback                         |
+| ML          | Offline evaluation, drift, calibration, feature quality, rollback                                              |
+| Resilience  | Dependency failures, retries, circuit breakers, queue outages, DB failover and recovery                        |
 
 ---
 
 ## 34. System Design Trade-offs
 
-| Decision | Trade-off to document |
-|---|---|
-| Modular monolith vs microservices | Simplicity/operability vs independent scaling/deployment. **Initial default: modular monolith.** |
-| PostgreSQL vs additional datastore | Strong transactional model vs specialized access patterns |
-| Redis | Latency and scale vs consistency/staleness complexity |
-| Search engine | Relevance/scale vs operational complexity; **derived read model only** |
-| Real-time vs batch ML | Freshness vs cost/complexity |
-| RAG vs fine-tuning | Knowledge freshness vs training/maintenance cost |
-| LLM provider/model | Quality vs latency, cost, privacy, provider dependency |
-| Deep model vs baseline | Complexity vs measured improvement |
-| Strong vs eventual consistency | Correctness vs availability/throughput, per explicit domain |
-| Build vs managed service | Control vs engineering/operational effort |
-| Manual vs automated payment verification | Operational simplicity vs assurance/scale; **manual is transitional** |
-| Ledger vs mutable balance | Auditability/reconciliation vs simplicity; **immutable ledger is authoritative for financial history** |
+| Decision                                 | Trade-off to document                                                                                  |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Modular monolith vs microservices        | Simplicity/operability vs independent scaling/deployment. **Initial default: modular monolith.**       |
+| PostgreSQL vs additional datastore       | Strong transactional model vs specialized access patterns                                              |
+| Redis                                    | Latency and scale vs consistency/staleness complexity                                                  |
+| Search engine                            | Relevance/scale vs operational complexity; **derived read model only**                                 |
+| Real-time vs batch ML                    | Freshness vs cost/complexity                                                                           |
+| RAG vs fine-tuning                       | Knowledge freshness vs training/maintenance cost                                                       |
+| LLM provider/model                       | Quality vs latency, cost, privacy, provider dependency                                                 |
+| Deep model vs baseline                   | Complexity vs measured improvement                                                                     |
+| Strong vs eventual consistency           | Correctness vs availability/throughput, per explicit domain                                            |
+| Build vs managed service                 | Control vs engineering/operational effort                                                              |
+| Manual vs automated payment verification | Operational simplicity vs assurance/scale; **manual is transitional**                                  |
+| Ledger vs mutable balance                | Auditability/reconciliation vs simplicity; **immutable ledger is authoritative for financial history** |
 
 Architecture decisions are recorded as **ADRs**: context, options, decision, consequences, rejected alternatives, rollback/exit criteria.
 
@@ -816,20 +846,20 @@ Architecture decisions are recorded as **ADRs**: context, options, decision, con
 
 ## 35. Technology Stack and Responsibility
 
-| Technology | Role |
-|---|---|
-| **React.js** | Customer, merchant and admin web interfaces |
-| **Node.js** | Backend APIs, bounded-context application/domain logic, integrations |
-| **PostgreSQL** | Transactional source of truth; durable domain/audit records |
-| **Redis** | Cache, rate limiting, selected ephemeral session state |
-| **Queue/Event Bus** | Async event processing, workers, integration decoupling |
-| **Search Engine (as needed)** | High-scale/faceted/semantic discovery — derived read model |
-| **Object Storage/CDN** | Product/media assets and distribution |
-| **LLM** | NL understanding and response generation behind policy/tool boundaries |
-| **Embeddings/vector retrieval** | Semantic similarity and RAG **only** |
-| **ML/DL stack** | Forecasting, ranking, prediction, anomaly detection with MLOps controls |
-| **Docker/CI-CD** | Reproducible builds, deployment, release controls |
-| **Observability stack** | Metrics, logs, traces, alerts, business telemetry |
+| Technology                      | Role                                                                    |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| **React.js**                    | Customer, merchant and admin web interfaces                             |
+| **Node.js**                     | Backend APIs, bounded-context application/domain logic, integrations    |
+| **PostgreSQL**                  | Transactional source of truth; durable domain/audit records             |
+| **Redis**                       | Cache, rate limiting, selected ephemeral session state                  |
+| **Queue/Event Bus**             | Async event processing, workers, integration decoupling                 |
+| **Search Engine (as needed)**   | High-scale/faceted/semantic discovery — derived read model              |
+| **Object Storage/CDN**          | Product/media assets and distribution                                   |
+| **LLM**                         | NL understanding and response generation behind policy/tool boundaries  |
+| **Embeddings/vector retrieval** | Semantic similarity and RAG **only**                                    |
+| **ML/DL stack**                 | Forecasting, ranking, prediction, anomaly detection with MLOps controls |
+| **Docker/CI-CD**                | Reproducible builds, deployment, release controls                       |
+| **Observability stack**         | Metrics, logs, traces, alerts, business telemetry                       |
 
 ---
 
@@ -850,27 +880,27 @@ Architecture decisions are recorded as **ADRs**: context, options, decision, con
 
 ## 37. Implementation Roadmap
 
-| Phase | Scope | Exit condition |
-|---|---|---|
-| **1 — Architecture & Repository Foundation** | Monorepo/module conventions, environments, CI, coding standards, ADR process, base observability and configuration | Build/test pipeline works; module dependency rules enforced |
-| **2 — Identity & Merchant** | Authentication, sessions, RBAC, tenant context, merchant onboarding and verification | Authorization/tenant tests pass |
-| **3 — Catalog & Listings** | Categories, products, variants, canonical identity, merchant listings, media, publication | Catalog/listing invariants enforced |
-| **4 — Inventory** | Locations, balances, ledger, reservations, concurrency, reconciliation | Concurrent reservation tests cannot oversell |
-| **5 — Cart & Checkout** | Cart, checkout session, pricing/promotion/tax/shipping abstraction, idempotency | Checkout state machine and failure compensation pass |
-| **6 — Orders & Payments** | Customer/seller orders, payment intents/attempts/transactions, webhooks, refunds, reconciliation | Payment/order reconciliation is idempotent |
-| **7 — Fulfillment & Returns** | Shipments, tracking, delivery, return workflow, refund linkage | Partial seller fulfillment/returns work |
-| **8 — Marketplace Finance** | Commission, seller earnings, financial ledger, settlement eligibility, payouts | Settlement is auditable and idempotent |
-| **9 — Search** | Indexing, filters, autocomplete, relevance, derived read model | Search rebuild/replay works |
-| **10 — Events & Notifications** | Outbox, event bus, workers, DLQ, replay, notification module and templates | Event reliability/observability tests pass |
-| **11 — Analytics** | Facts, dimensions, ingestion, quality checks, dashboards | Data freshness/quality monitored |
-| **12 — Recommendations** | Candidate generation, eligibility, ranking, feedback, evaluation | Baseline measurable and reproducible |
-| **13 — Predictive ML** | Forecasting, stockout, propensity, anomaly detection, MLOps | Models versioned/evaluated/rollback-capable |
-| **14 — WhatsApp AI** | Verified webhook, conversation gateway, policy, tools, LLM, RAG, guardrails | AI cannot bypass authorization; live facts grounded |
-| **15 — Security & Production Hardening** | Threat model, security tests, load/resilience tests, observability, backup/restore, DR | Release gates and recovery drills pass |
-| **16 — Advanced Intelligence** | Semantic search, advanced ranking, deep learning, model monitoring where justified | Advanced capability demonstrates measurable benefit |
-| **17 — Controlled Service Extraction** | Extract only modules with proven scaling/ownership/deployment need | ADR, contract tests, observability and rollback exist per extraction |
+| Phase                                        | Scope                                                                                                              | Exit condition                                                       |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| **1 — Architecture & Repository Foundation** | Monorepo/module conventions, environments, CI, coding standards, ADR process, base observability and configuration | Build/test pipeline works; module dependency rules enforced          |
+| **2 — Identity & Merchant**                  | Authentication, sessions, RBAC, tenant context, merchant onboarding and verification                               | Authorization/tenant tests pass                                      |
+| **3 — Catalog & Listings**                   | Categories, products, variants, canonical identity, merchant listings, media, publication                          | Catalog/listing invariants enforced                                  |
+| **4 — Inventory**                            | Locations, balances, ledger, reservations, concurrency, reconciliation                                             | Concurrent reservation tests cannot oversell                         |
+| **5 — Cart & Checkout**                      | Cart, checkout session, pricing/promotion/tax/shipping abstraction, idempotency                                    | Checkout state machine and failure compensation pass                 |
+| **6 — Orders & Payments**                    | Customer/seller orders, payment intents/attempts/transactions, webhooks, refunds, reconciliation                   | Payment/order reconciliation is idempotent                           |
+| **7 — Fulfillment & Returns**                | Shipments, tracking, delivery, return workflow, refund linkage                                                     | Partial seller fulfillment/returns work                              |
+| **8 — Marketplace Finance**                  | Commission, seller earnings, financial ledger, settlement eligibility, payouts                                     | Settlement is auditable and idempotent                               |
+| **9 — Search**                               | Indexing, filters, autocomplete, relevance, derived read model                                                     | Search rebuild/replay works                                          |
+| **10 — Events & Notifications**              | Outbox, event bus, workers, DLQ, replay, notification module and templates                                         | Event reliability/observability tests pass                           |
+| **11 — Analytics**                           | Facts, dimensions, ingestion, quality checks, dashboards                                                           | Data freshness/quality monitored                                     |
+| **12 — Recommendations**                     | Candidate generation, eligibility, ranking, feedback, evaluation                                                   | Baseline measurable and reproducible                                 |
+| **13 — Predictive ML**                       | Forecasting, stockout, propensity, anomaly detection, MLOps                                                        | Models versioned/evaluated/rollback-capable                          |
+| **14 — WhatsApp AI**                         | Verified webhook, conversation gateway, policy, tools, LLM, RAG, guardrails                                        | AI cannot bypass authorization; live facts grounded                  |
+| **15 — Security & Production Hardening**     | Threat model, security tests, load/resilience tests, observability, backup/restore, DR                             | Release gates and recovery drills pass                               |
+| **16 — Advanced Intelligence**               | Semantic search, advanced ranking, deep learning, model monitoring where justified                                 | Advanced capability demonstrates measurable benefit                  |
+| **17 — Controlled Service Extraction**       | Extract only modules with proven scaling/ownership/deployment need                                                 | ADR, contract tests, observability and rollback exist per extraction |
 
-*(Original 14-phase roadmap, superseded: 1 Foundation; 2 Identity & Merchant; 3 Catalog; 4 Inventory; 5 Commerce (cart, checkout, payments, orders, returns); 6 Search; 7 Events; 8 Analytics; 9 Recommendations; 10 Predictive ML; 11 WhatsApp AI; 12 Security hardening; 13 Production hardening; 14 Advanced intelligence. The corrected roadmap splits Commerce into Cart/Checkout, Orders/Payments, Fulfillment/Returns, and Marketplace Finance, and adds Controlled Service Extraction.)*
+_(Original 14-phase roadmap, superseded: 1 Foundation; 2 Identity & Merchant; 3 Catalog; 4 Inventory; 5 Commerce (cart, checkout, payments, orders, returns); 6 Search; 7 Events; 8 Analytics; 9 Recommendations; 10 Predictive ML; 11 WhatsApp AI; 12 Security hardening; 13 Production hardening; 14 Advanced intelligence. The corrected roadmap splits Commerce into Cart/Checkout, Orders/Payments, Fulfillment/Returns, and Marketplace Finance, and adds Controlled Service Extraction.)_
 
 ---
 
@@ -917,13 +947,14 @@ Architecture decisions are recorded as **ADRs**: context, options, decision, con
 - **Payment and inventory reconciliation procedures have been tested.**
 - Major architecture decisions documented as **ADRs.**
 - **Open production decisions are explicitly recorded rather than silently assumed.**
-- *(Original also required: recommendations and predictions have measurable evaluation.)*
+- _(Original also required: recommendations and predictions have measurable evaluation.)_
 
 ---
 
 ## 40. Final Project Workflow — Manager View
 
 **MERCHANT SIDE**
+
 ```
 Merchant → Registration/Verification → Store
 → Canonical Product/SKU → Merchant Listing
@@ -932,7 +963,9 @@ Merchant → Registration/Verification → Store
 → Shipment → Delivery → Returns/Adjustments
 → Earnings → Settlement → Analytics/Predictions
 ```
+
 **CUSTOMER SIDE**
+
 ```
 Customer → Login → Search/Browse → Filters/Ranking
 → Product/Variant → Compare Vendors → Cart
@@ -941,14 +974,18 @@ Customer → Login → Search/Browse → Filters/Ranking
 → Verified Payment → Customer Order
 → Seller Order(s) → Fulfillment → Review/Return/Refund
 ```
+
 **INTELLIGENCE SIDE**
+
 ```
 Customer/Merchant Events → Transactional Outbox
 → Event Bus → Analytics
 → Recommendations / Forecasting / Propensity / Anomaly Detection
 → Business Rules → Personalization / Alerts / Merchant Insights
 ```
+
 **WHATSAPP AI SIDE**
+
 ```
 WhatsApp → Verified Webhook → Tenant Resolution
 → Conversation/Intent → Policy
@@ -957,7 +994,9 @@ WhatsApp → Verified Webhook → Tenant Resolution
 → Result Validation → Grounded Response
 → Outcome Event → Analytics/ML Feedback
 ```
+
 **SECURITY/PLATFORM SIDE**
+
 ```
 Every layer → Authentication → Authorization → Tenant Isolation
 → Validation → Rate Limiting → Audit → Encryption/Secrets
@@ -975,7 +1014,7 @@ Every layer → Authentication → Authorization → Tenant Isolation
 - Organization: **reusable APIs and versioned event contracts** for future integrations.
 - Foundation for additional channels, vendors and AI capabilities.
 - **Core commerce remains correct and testable even when search, AI, analytics, ML or third-party providers fail.**
-- *(Original: the implementation demonstrates practical application of database engineering, system design, cybersecurity, analytics, ML/DL, LLM engineering and product design.)*
+- _(Original: the implementation demonstrates practical application of database engineering, system design, cybersecurity, analytics, ML/DL, LLM engineering and product design.)_
 
 ---
 
@@ -983,15 +1022,15 @@ Every layer → Authentication → Authorization → Tenant Isolation
 
 Features are implemented in layers. **The core commerce system must become correct, observable and testable before advanced AI is introduced.** Advanced components are added only after underlying data, event contracts and security boundaries are stable.
 
-| Priority | Scope |
-|---|---|
-| **Must-have foundation** | Identity, merchant, catalog, listings, inventory, cart, checkout, orders, payments, fulfillment, returns, security, tenant isolation |
-| **Marketplace core** | Seller-order splitting, commissions, ledger, settlement, payouts |
-| **Core intelligence** | Events, analytics, search, recommendations, merchant dashboards |
-| **Advanced intelligence** | Forecasting, propensity, anomaly detection, semantic search |
-| **Conversational AI** | WhatsApp, LLM tools, RAG, guardrails, AI evaluation |
-| **Production hardening** | Observability, resilience, load testing, DR, security testing, backup/restore, release controls |
-| **Future expansion** | Advanced deep learning, multimodal catalog, additional channels — only after measurable business/technical justification |
+| Priority                  | Scope                                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Must-have foundation**  | Identity, merchant, catalog, listings, inventory, cart, checkout, orders, payments, fulfillment, returns, security, tenant isolation |
+| **Marketplace core**      | Seller-order splitting, commissions, ledger, settlement, payouts                                                                     |
+| **Core intelligence**     | Events, analytics, search, recommendations, merchant dashboards                                                                      |
+| **Advanced intelligence** | Forecasting, propensity, anomaly detection, semantic search                                                                          |
+| **Conversational AI**     | WhatsApp, LLM tools, RAG, guardrails, AI evaluation                                                                                  |
+| **Production hardening**  | Observability, resilience, load testing, DR, security testing, backup/restore, release controls                                      |
+| **Future expansion**      | Advanced deep learning, multimodal catalog, additional channels — only after measurable business/technical justification             |
 
 ---
 
@@ -1048,6 +1087,7 @@ This document is the **synchronized architecture baseline**. DDL, OpenAPI contra
 The original proposal grounded §19 in a **production-tested reference implementation** (Node.js + Express, MongoDB, Meta's WhatsApp Business Platform). Treat this appendix as **platform knowledge and operational behavior** the build must handle. **Do NOT adopt MongoDB, boolean-only inventory, a separate chat order store, or self-reported payment as truth** — see Appendix B.
 
 ### A.1 The six cooperating parts of a WhatsApp commerce integration
+
 1. **WABA + phone number:** Meta issues a `phone_number_id` per business number; every outbound message is sent to `POST /{phone_number_id}/messages`.
 2. **Webhook:** one endpoint receives every incoming text, button tap, list selection and delivery-status update. The number **must be subscribed** to this webhook, or replies are sent into a void and never returned.
 3. **Catalog:** categories, subcategories, products held in the database. **The chat is a window into the catalog, not the catalog itself.**
@@ -1056,6 +1096,7 @@ The original proposal grounded §19 in a **production-tested reference implement
 6. **Merchant dashboard:** human interface for confirming payments, advancing order status, toggling product availability and reading the inbox — the chat is only half of the product.
 
 ### A.2 Meta platform constraints (treat as functional requirements)
+
 - **Interactive buttons:** max **3 per message**, **20 characters** per title → portion/quantity choices capped at three, with paging or "more options" for the rest.
 - **Interactive lists:** max **10 rows per section**, **24 characters** per row title, **72** per description, **20** for the button label → truncate long names; **paginate large catalogs**.
 - Lists render as **body text plus a single button**; the customer must tap it to see rows. A **text fallback** (numbered list answered by typing) must always exist for rejected or un-tapped interactive payloads.
@@ -1064,6 +1105,7 @@ The original proposal grounded §19 in a **production-tested reference implement
 - **Product images** must be **public HTTPS URLs Meta's servers can fetch**; expiring signed URLs, localhost addresses and network-restricted hosts **fail silently** and must fall back to a text-only caption.
 
 ### A.3 Conversational catalog data model (reference)
+
 - Chat catalog is a **shallow tree**: category → subcategory → product → portion. Rule of thumb: **no single list should present more than ~8 rows**, even though 10 is allowed.
 - **Categories** carry: stable id, display name, display order, `is_active` (soft delete — hides from chat immediately without breaking historical orders), recursive subcategories.
 - **Products** carry pricing logic, not a flat price:
@@ -1071,13 +1113,14 @@ The original proposal grounded §19 in a **production-tested reference implement
   - `category_path` array (full leaf path, not just leaf id) disambiguates products when two branches share a leaf name.
   - `allow_custom_quantity` flag + `portion_presets` (**capped at three** per the button limit) drive quantity selection; products without presets fall back to generic quantity buttons rather than failing.
   - `is_available` boolean was the entire inventory signal in the reference build (see A.7 and Appendix B).
-- *Corrected-baseline mapping:* portion/variant choices must map to real SKU/listing identifiers, and price/stock come from live authorized backend tools.
+- _Corrected-baseline mapping:_ portion/variant choices must map to real SKU/listing identifiers, and price/stock come from live authorized backend tools.
 
 ### A.4 Conversation flow — five node types, in order
+
 1. **Browse:** shows category list, drills into subcategories, or at a leaf category shows available products. Matching is **case-insensitive** and accepts **either the tapped id or a typed name** (list taps return ids; typed replies return names).
 2. **Product:** filters available products by the selected category path, **paginates**, sends as a list; **empty result is a plain message** ("No products currently available") with a next step ("Reply MENU to browse") — not a dead end.
 3. **Portion:** sends the product **photo and description first**, then a **second message** with up to three portion buttons and computed prices (two sends read better on a phone than one crowded message).
-4. **Cart:** held in **session state** (ephemeral) rather than its own collection in the reference build. Renders a text preview (line items, subtotal) with **Add more items, Checkout, Remove item** actions via stable button ids. *(In the corrected baseline, cart/checkout use the core Cart & Checkout bounded context.)*
+4. **Cart:** held in **session state** (ephemeral) rather than its own collection in the reference build. Renders a text preview (line items, subtotal) with **Add more items, Checkout, Remove item** actions via stable button ids. _(In the corrected baseline, cart/checkout use the core Cart & Checkout bounded context.)_
 5. **Checkout** (most stateful), in order:
    1. Reload an existing in-progress order if one exists.
    2. Collect and validate a **serviceable pincode before collecting the address** (no point gathering an address the store cannot serve).
@@ -1089,34 +1132,39 @@ The original proposal grounded §19 in a **production-tested reference implement
 Every dead end and failure (unconfigured payments, uncalculable total, empty cart) must return a message stating **what happened and what to do next** — checkout is where customers are most anxious and likely to abandon.
 
 ### A.5 Payments over WhatsApp: UPI intent links + manual verification (transitional only)
+
 - Honest about what is automated: **no code in the chat layer moves money.**
 - At checkout the backend builds a **UPI intent URL** (`upi://pay?...`) from the merchant's stored UPI id and the order's **frozen total**, wrapped as a tappable action. The customer's UPI app opens with payee and amount prefilled; payment happens between customer and bank.
 - Customer taps **"I have paid"** → order moves to **`VERIFYING`**, visible on the merchant dashboard. The merchant checks their bank notification and confirms/rejects. Merchant confirmation is the **only fraud control at this tier** — fine for small volumes, **doesn't scale to hundreds of orders/day**.
 - Because the amount comes from the **frozen order total**, not customer input, a mismatch between expected and claimed amount is visible to the merchant.
-- **Documented upgrade path:** a payment gateway with server-side verification, at which point "I have paid" becomes a **verified callback** and `VERIFYING` becomes a system-driven state. *(Corrected baseline: this is the target; the callback/webhook is the payment truth.)*
+- **Documented upgrade path:** a payment gateway with server-side verification, at which point "I have paid" becomes a **verified callback** and `VERIFYING` becomes a system-driven state. _(Corrected baseline: this is the target; the callback/webhook is the payment truth.)_
 
 ### A.6 Reference chat order document & states
+
 - **Identity:** human-readable order id, tenant (organization) id, customer phone and name.
 - **Fulfilment:** delivery address, delivery pincode, resolved service area.
 - **Money:** line items (product, unit, quantity, rate, line total, portion label), subtotal, delivery fee, promotional offer, total payable.
 - **State:** `payment_status`: `UNPAID → VERIFYING → PAID`; `order_status`: `RECEIVED → CONFIRMED → PREPARING → OUT_FOR_DELIVERY → DELIVERED`, with `CANCELLED` as the side exit; plus audit trail of the UPI id used and timestamps.
 - Status advances from the dashboard, each optionally notifying the customer over chat.
 - **Self-service keywords:** `STATUS`, `HISTORY`, `CANCEL`, `PAID`. These **must be intercepted before normal flow-node matching** (so e.g. `CANCEL` works mid-browse and is never swallowed by a product-name matcher). Any new global keyword belongs in that same early interception layer and **must be tested from every step of the flow**, not only the start.
-- *(Corrected baseline: chat references the core Customer Order/Seller Order model; payment and order status are separate state machines; do not create a divergent chat order schema.)*
+- _(Corrected baseline: chat references the core Customer Order/Seller Order model; payment and order status are separate state machines; do not create a divergent chat order schema.)_
 
 ### A.7 Inventory: availability vs. stock (reference note)
+
 - The lightweight build used a single `is_available` boolean toggled by the merchant and filtered from every query/listing — sufficient for a small store since the chat never shows what cannot be bought.
 - **Explicit boundary:** nothing prevents two customers from ordering the last unit simultaneously, and nothing warns at a low-stock threshold.
 - Where real counts are required: add `stock_quantity` and `low_stock_threshold`, **decrement atomically at order creation with a guard clause** (conditional update succeeding only while `stock_quantity >= requested quantity`), flip `is_available` off at zero, surface low-stock in the dashboard. **The atomic guard is what prevents overselling; without it a decrement is decorative, not load-bearing** — describe this accurately to stakeholders.
-- *(Corrected baseline: always use the Inventory context — balances, ledger, atomic reservations with expiry.)*
+- _(Corrected baseline: always use the Inventory context — balances, ledger, atomic reservations with expiry.)_
 
 ### A.8 Multi-tenancy, sessions, webhook reliability (reference behavior)
+
 - **Multi-tenancy:** one backend serves many merchants. Every incoming message resolves to an organization (by WABA id, phone number id, or channel-specific id) and **every query must carry that tenant id**; a query without it is a **defect until proven otherwise** (failure mode = cross-merchant leakage).
 - **Sessions:** per-phone, per-organization state tracks active flow, current node, collected variables and cart; **expires on timeout** so abandoned carts don't resurface days later. When a merchant edits a live flow, **stale sessions for that flow must be purged**.
-- **Duplicate deliveries:** Meta retries webhook delivery. Reference approach: fast in-memory set of processed message ids **plus** a durable DB check (memory first, DB backstop across restarts). *(Corrected baseline: dedupe by durable provider message/event ID.)*
+- **Duplicate deliveries:** Meta retries webhook delivery. Reference approach: fast in-memory set of processed message ids **plus** a durable DB check (memory first, DB backstop across restarts). _(Corrected baseline: dedupe by durable provider message/event ID.)_
 - **Statuses vs. messages:** delivery receipts (sent, delivered, read) arrive on the same webhook in a different shape; they **only update stored message state and dashboard indicators — never trigger conversational automation.**
 
 ### A.9 Operational field guide — common failure patterns
+
 - **Tapped button appears to do nothing:** usually the customer didn't notice the button under body text; confirm from send logs whether the list was accepted; check for rejected payload (row count, title length, empty section) before assuming client-side issues.
 - **Same reply arrives twice:** duplicate webhook delivery racing dedup logic, typically around deployment/restart; check if message id appears twice in logs.
 - **Typed category/product name ignored:** matching should be case/whitespace-tolerant but can't fix spelling; often a product decision (add keyword aliases or steer to tapping).
@@ -1126,6 +1174,7 @@ Every dead end and failure (unconfigured payments, uncalculable total, empty car
 - **Notification template rejected:** usually inconsistent variable placement or marketing-style copy under a utility category; write the template exactly as it will read with sample values filled in; submit well ahead (approval isn't instant).
 
 ### A.10 Go-live checklist (reference)
+
 - Webhook subscribed on the live number with verify token set, **tested against the deployed URL with a real phone**, not only the API console.
 - Access token is a **long-lived system-user token** stored outside source control, with a **known, monitored expiry**.
 - Every catalog level within **row and character limits on a real device**; product lists paginated; nothing relies on the technical maximum being the practical maximum.
@@ -1138,27 +1187,27 @@ Every dead end and failure (unconfigured payments, uncalculable total, empty car
 
 ## Appendix B – Original vs. Corrected: What Changed
 
-| Area | Original proposal | Corrected baseline (authoritative) |
-|---|---|---|
-| Architecture style | Modular monolith mentioned as a start | Modular monolith with **explicit bounded contexts, ownership rules, module dependency rules**; extraction only via ADR |
-| Orders | Single order lifecycle | **Customer Order → multiple Seller Orders**, separate state machines, partial cancel/return/refund |
-| Marketplace finance | Not covered in detail | **Settlement context**: commissions, seller earnings, settlement batches, payouts, immutable **financial ledger** |
-| Payment | Payment intents/transactions/refunds | Separate **Payment bounded context** with intents, attempts, provider transactions, webhooks, refunds, **reconciliation**; client/chat never confirms payment |
-| Inventory | On Hand/Reserved/Available/Incoming | Adds explicit states (ALLOCATED, PICKED, PACKED, SHIPPED, …, INSPECTION, DAMAGED), locations, reconciliation without overwriting history |
-| Catalog | Product vs. listing | Adds **listing publication separate from product approval** |
-| Tenant isolation | RBAC + merchant isolation | Adds **RLS defense-in-depth**, fail-closed tenant context, deny-by-default |
-| Events | Flat names (ORDER_CREATED …) | **Versioned names** (`commerce.order.created.v1`) + **standard envelope**; replay/DLQ monitoring |
-| Search | Search engine in flow | **Derived read model**; authoritative filters; lag never licenses stale price/stock; replayable indexing |
-| AI tool execution | Tool validation | Adds **tool policy layer**, tool classification (read-only/reversible/sensitive), result validation, output guardrails, confirmation for sensitive actions |
-| WhatsApp backend | Reference impl used **MongoDB** | **MongoDB not part of architecture**; single PostgreSQL source of truth |
-| WhatsApp inventory | `is_available` boolean | Boolean = presentation hint only; real **atomic reservations** |
-| WhatsApp payment | UPI "I have paid" → VERIFYING → merchant confirms | Manual = **transitional, lower-assurance**; **verified provider webhook** is payment truth |
-| WhatsApp order schema | Separate chat order document | Chat **references core Customer/Seller Orders**; no divergent schema |
-| WhatsApp cart | Held in session state | Uses core Cart & Checkout context; Redis only for ephemeral state |
-| Roadmap | 14 phases | **17 phases** with exit conditions; adds Fulfillment & Returns, Marketplace Finance, Controlled Service Extraction |
-| Definition of Done | 14 items | Expanded (bounded contexts, seller-order split, ledger traceability, reconciliation tests, ADRs, open decisions recorded) |
-| Deliverables | 15 items | Adds bounded-context spec, state machines, payment/fulfillment/settlement specs, tenant-isolation model, MLOps report, ADR set |
-| Governance | — | Adds **Open Production Decisions** list and **architectural invariants** |
+| Area                  | Original proposal                                 | Corrected baseline (authoritative)                                                                                                                            |
+| --------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Architecture style    | Modular monolith mentioned as a start             | Modular monolith with **explicit bounded contexts, ownership rules, module dependency rules**; extraction only via ADR                                        |
+| Orders                | Single order lifecycle                            | **Customer Order → multiple Seller Orders**, separate state machines, partial cancel/return/refund                                                            |
+| Marketplace finance   | Not covered in detail                             | **Settlement context**: commissions, seller earnings, settlement batches, payouts, immutable **financial ledger**                                             |
+| Payment               | Payment intents/transactions/refunds              | Separate **Payment bounded context** with intents, attempts, provider transactions, webhooks, refunds, **reconciliation**; client/chat never confirms payment |
+| Inventory             | On Hand/Reserved/Available/Incoming               | Adds explicit states (ALLOCATED, PICKED, PACKED, SHIPPED, …, INSPECTION, DAMAGED), locations, reconciliation without overwriting history                      |
+| Catalog               | Product vs. listing                               | Adds **listing publication separate from product approval**                                                                                                   |
+| Tenant isolation      | RBAC + merchant isolation                         | Adds **RLS defense-in-depth**, fail-closed tenant context, deny-by-default                                                                                    |
+| Events                | Flat names (ORDER_CREATED …)                      | **Versioned names** (`commerce.order.created.v1`) + **standard envelope**; replay/DLQ monitoring                                                              |
+| Search                | Search engine in flow                             | **Derived read model**; authoritative filters; lag never licenses stale price/stock; replayable indexing                                                      |
+| AI tool execution     | Tool validation                                   | Adds **tool policy layer**, tool classification (read-only/reversible/sensitive), result validation, output guardrails, confirmation for sensitive actions    |
+| WhatsApp backend      | Reference impl used **MongoDB**                   | **MongoDB not part of architecture**; single PostgreSQL source of truth                                                                                       |
+| WhatsApp inventory    | `is_available` boolean                            | Boolean = presentation hint only; real **atomic reservations**                                                                                                |
+| WhatsApp payment      | UPI "I have paid" → VERIFYING → merchant confirms | Manual = **transitional, lower-assurance**; **verified provider webhook** is payment truth                                                                    |
+| WhatsApp order schema | Separate chat order document                      | Chat **references core Customer/Seller Orders**; no divergent schema                                                                                          |
+| WhatsApp cart         | Held in session state                             | Uses core Cart & Checkout context; Redis only for ephemeral state                                                                                             |
+| Roadmap               | 14 phases                                         | **17 phases** with exit conditions; adds Fulfillment & Returns, Marketplace Finance, Controlled Service Extraction                                            |
+| Definition of Done    | 14 items                                          | Expanded (bounded contexts, seller-order split, ledger traceability, reconciliation tests, ADRs, open decisions recorded)                                     |
+| Deliverables          | 15 items                                          | Adds bounded-context spec, state machines, payment/fulfillment/settlement specs, tenant-isolation model, MLOps report, ADR set                                |
+| Governance            | —                                                 | Adds **Open Production Decisions** list and **architectural invariants**                                                                                      |
 
 ---
 

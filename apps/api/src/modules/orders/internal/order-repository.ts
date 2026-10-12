@@ -1,18 +1,10 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 
 export type CustomerOrderStatus =
-  | 'PENDING_PAYMENT'
-  | 'PAID'
-  | 'PROCESSING'
-  | 'COMPLETED'
-  | 'CANCELLED';
+  'PENDING_PAYMENT' | 'PAID' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
 
 export type SellerOrderStatus =
-  | 'PENDING_PAYMENT'
-  | 'PAID'
-  | 'PROCESSING'
-  | 'COMPLETED'
-  | 'CANCELLED';
+  'PENDING_PAYMENT' | 'PAID' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
 
 export interface CustomerOrderRow {
   id: string;
@@ -194,7 +186,6 @@ export class OrderRepository {
     );
     return res.rows;
   }
-
 
   async updateCustomerOrderStatus(
     id: string,

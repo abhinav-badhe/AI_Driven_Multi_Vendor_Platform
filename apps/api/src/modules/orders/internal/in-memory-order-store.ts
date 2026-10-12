@@ -10,10 +10,7 @@ import type {
   CustomerOrderStatus,
   SellerOrderStatus,
 } from './order-models.js';
-import {
-  NotFoundError,
-  InvalidStateTransitionError,
-} from '../../../errors/app-error.js';
+import { NotFoundError, InvalidStateTransitionError } from '../../../errors/app-error.js';
 
 /**
  * InMemoryOrderStore - Zero-DB in-memory order store.

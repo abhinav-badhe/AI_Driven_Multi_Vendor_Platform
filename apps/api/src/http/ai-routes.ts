@@ -135,8 +135,12 @@ export function registerAiRoutes(
         if (!result) {
           return reply.status(404).send({ error: 'Conversation not found' });
         }
-        if (actor.role === 'CUSTOMER' && result.conversation.customerId && result.conversation.customerId !== actor.userId) {
-          throw new ForbiddenError('Cannot inspect another customer\'s conversation history');
+        if (
+          actor.role === 'CUSTOMER' &&
+          result.conversation.customerId &&
+          result.conversation.customerId !== actor.userId
+        ) {
+          throw new ForbiddenError("Cannot inspect another customer's conversation history");
         }
         return reply.status(200).send(result);
       }
@@ -148,7 +152,7 @@ export function registerAiRoutes(
 
       // Customer scoping: Customer can only inspect their own conversations
       if (actor.role === 'CUSTOMER' && conv.customerId && conv.customerId !== actor.userId) {
-        throw new ForbiddenError('Cannot inspect another customer\'s conversation history');
+        throw new ForbiddenError("Cannot inspect another customer's conversation history");
       }
 
       const messages = await store.listMessages(conv.id, 50);
@@ -238,12 +242,7 @@ export function registerAiRoutes(
       const body = ragQueryBodySchema.parse(req.body);
       const result = aiService
         ? await aiService.queryRag(actor, body.query, body.category, body.topK)
-        : await ragService.retrieveKnowledge(
-            actor.tenantId,
-            body.query,
-            body.category,
-            body.topK,
-          );
+        : await ragService.retrieveKnowledge(actor.tenantId, body.query, body.category, body.topK);
 
       return reply.status(200).send(result);
     },
@@ -356,10 +355,12 @@ export function registerAiRoutes(
       const actor = requireActor(req);
       RbacPolicy.requirePermission(actor, 'ai:chat');
 
-      const body = z.object({
-        phoneNumber: z.string().min(5),
-        code: z.string().length(6),
-      }).parse(req.body);
+      const body = z
+        .object({
+          phoneNumber: z.string().min(5),
+          code: z.string().length(6),
+        })
+        .parse(req.body);
 
       const verified = await whatsAppAdapter.confirmPhoneLinking(
         actor.tenantId,

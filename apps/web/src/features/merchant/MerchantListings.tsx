@@ -1,59 +1,63 @@
-import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { ImagePlus, PackagePlus, PackageSearch, Pencil, Plus, Search } from "lucide-react";
-import { merchantApi, type MerchantListingDetailDto } from "./api/merchant";
-import { catalogApi, type Product } from "../catalog/api/catalog";
-import { Button, buttonVariants } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { Input, Label } from "../../components/ui/input";
-import { Rating } from "../../components/product/display";
-import { formatMoney } from "../../lib/format";
-import { cn } from "../../lib/utils";
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { ImagePlus, PackagePlus, PackageSearch, Pencil, Plus, Search } from 'lucide-react';
+import { merchantApi, type MerchantListingDetailDto } from './api/merchant';
+import { catalogApi, type Product } from '../catalog/api/catalog';
+import { Button, buttonVariants } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { Input, Label } from '../../components/ui/input';
+import { Rating } from '../../components/product/display';
+import { formatMoney } from '../../lib/format';
+import { cn } from '../../lib/utils';
 
-type StatusFilter = "ALL" | MerchantListingDetailDto["status"];
+type StatusFilter = 'ALL' | MerchantListingDetailDto['status'];
 
-const statusVariant = (s: MerchantListingDetailDto["status"]) =>
-  s === "ACTIVE" ? ("success" as const) : s === "DRAFT" ? ("outline" as const) : ("warning" as const);
+const statusVariant = (s: MerchantListingDetailDto['status']) =>
+  s === 'ACTIVE'
+    ? ('success' as const)
+    : s === 'DRAFT'
+      ? ('outline' as const)
+      : ('warning' as const);
 
 export const MerchantListings = () => {
   const [listings, setListings] = useState<MerchantListingDetailDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [actionId, setActionId] = useState<string | null>(null);
 
   // Inline price editor
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editPrice, setEditPrice] = useState("");
-  const [editCompare, setEditCompare] = useState("");
+  const [editPrice, setEditPrice] = useState('');
+  const [editCompare, setEditCompare] = useState('');
 
   // Add modal
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addMode, setAddMode] = useState<"existing" | "new">("existing");
+  const [addMode, setAddMode] = useState<'existing' | 'new'>('existing');
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const [skus, setSkus] = useState<Array<{ id: string; skuCode: string }>>([]);
-  const [selectedProductId, setSelectedProductId] = useState("");
-  const [selectedSkuId, setSelectedSkuId] = useState("");
-  const [newTitle, setNewTitle] = useState("");
-  const [newBrand, setNewBrand] = useState("");
-  const [newDescription, setNewDescription] = useState("");
-  const [newCategoryId, setNewCategoryId] = useState("");
-  const [newThumbnail, setNewThumbnail] = useState("");
-  const [newImages, setNewImages] = useState("");
-  const [newWarranty, setNewWarranty] = useState("");
-  const [newShipping, setNewShipping] = useState("");
-  const [newReturns, setNewReturns] = useState("");
-  const [newSkuCode, setNewSkuCode] = useState("");
-  const [priceMajor, setPriceMajor] = useState("");
-  const [compareMajor, setCompareMajor] = useState("");
-  const [currency, setCurrency] = useState("USD");
-  const [initialStock, setInitialStock] = useState("10");
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedSkuId, setSelectedSkuId] = useState('');
+  const [newTitle, setNewTitle] = useState('');
+  const [newBrand, setNewBrand] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newCategoryId, setNewCategoryId] = useState('');
+  const [newThumbnail, setNewThumbnail] = useState('');
+  const [newImages, setNewImages] = useState('');
+  const [newWarranty, setNewWarranty] = useState('');
+  const [newShipping, setNewShipping] = useState('');
+  const [newReturns, setNewReturns] = useState('');
+  const [newSkuCode, setNewSkuCode] = useState('');
+  const [priceMajor, setPriceMajor] = useState('');
+  const [compareMajor, setCompareMajor] = useState('');
+  const [currency, setCurrency] = useState('USD');
+  const [initialStock, setInitialStock] = useState('10');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchListings = async () => {
@@ -65,7 +69,7 @@ export const MerchantListings = () => {
       const firstCurrency = data.find((d) => d.currency)?.currency;
       if (firstCurrency) setCurrency(firstCurrency);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not load listings.");
+      setError(err instanceof Error ? err.message : 'Could not load listings.');
     } finally {
       setIsLoading(false);
     }
@@ -78,11 +82,11 @@ export const MerchantListings = () => {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return listings.filter((l) => {
-      if (statusFilter !== "ALL" && l.status !== statusFilter) return false;
+      if (statusFilter !== 'ALL' && l.status !== statusFilter) return false;
       if (!q) return true;
       return (
         l.productTitle.toLowerCase().includes(q) ||
-        (l.brand ?? "").toLowerCase().includes(q) ||
+        (l.brand ?? '').toLowerCase().includes(q) ||
         l.skuCode.toLowerCase().includes(q)
       );
     });
@@ -96,11 +100,11 @@ export const MerchantListings = () => {
   const handleToggleStatus = async (l: MerchantListingDetailDto) => {
     setActionId(l.id);
     try {
-      await merchantApi.updateListingStatus(l.id, l.status === "ACTIVE" ? "INACTIVE" : "ACTIVE");
-      flashSuccess(`“${l.productTitle}” is now ${l.status === "ACTIVE" ? "inactive" : "active"}.`);
+      await merchantApi.updateListingStatus(l.id, l.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
+      flashSuccess(`“${l.productTitle}” is now ${l.status === 'ACTIVE' ? 'inactive' : 'active'}.`);
       await fetchListings();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Status update failed.");
+      setError(err instanceof Error ? err.message : 'Status update failed.');
     } finally {
       setActionId(null);
     }
@@ -109,18 +113,19 @@ export const MerchantListings = () => {
   const openPriceEditor = (l: MerchantListingDetailDto) => {
     setEditingId(l.id);
     setEditPrice((l.priceAmount / 100).toString());
-    setEditCompare(l.compareAtPrice ? (l.compareAtPrice / 100).toString() : "");
+    setEditCompare(l.compareAtPrice ? (l.compareAtPrice / 100).toString() : '');
   };
 
   const handleSavePrice = async (l: MerchantListingDetailDto) => {
     const priceAmount = Math.round(parseFloat(editPrice) * 100);
     if (!Number.isFinite(priceAmount) || priceAmount < 0) {
-      setError("Enter a valid price of 0 or more.");
+      setError('Enter a valid price of 0 or more.');
       return;
     }
-    const compareAtPrice = editCompare.trim() === "" ? null : Math.round(parseFloat(editCompare) * 100);
+    const compareAtPrice =
+      editCompare.trim() === '' ? null : Math.round(parseFloat(editCompare) * 100);
     if (compareAtPrice !== null && (!Number.isFinite(compareAtPrice) || compareAtPrice < 0)) {
-      setError("Enter a valid compare-at price, or leave it empty.");
+      setError('Enter a valid compare-at price, or leave it empty.');
       return;
     }
     setActionId(l.id);
@@ -130,7 +135,7 @@ export const MerchantListings = () => {
       flashSuccess(`Price updated for “${l.productTitle}”.`);
       await fetchListings();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Price update failed.");
+      setError(err instanceof Error ? err.message : 'Price update failed.');
     } finally {
       setActionId(null);
     }
@@ -156,7 +161,7 @@ export const MerchantListings = () => {
       }
       if (cats[0]) setNewCategoryId(cats[0].id);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not load catalog.");
+      setError(err instanceof Error ? err.message : 'Could not load catalog.');
     }
   };
 
@@ -165,15 +170,18 @@ export const MerchantListings = () => {
     try {
       const skuList = await merchantApi.getProductSkus(prodId);
       setSkus(skuList);
-      setSelectedSkuId(skuList[0]?.id ?? "");
+      setSelectedSkuId(skuList[0]?.id ?? '');
     } catch {
       setSkus([]);
-      setSelectedSkuId("");
+      setSelectedSkuId('');
     }
   };
 
   const parseImages = (raw: string): string[] =>
-    raw.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+    raw
+      .split(/[\n,]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
 
   const handleAddSubmit = async (publishImmediately: boolean) => {
     setIsSubmitting(true);
@@ -181,16 +189,20 @@ export const MerchantListings = () => {
     try {
       const priceAmount = Math.round(parseFloat(priceMajor) * 100);
       if (!Number.isFinite(priceAmount) || priceAmount <= 0) {
-        throw new Error("Enter a selling price greater than 0.");
+        throw new Error('Enter a selling price greater than 0.');
       }
       let effectiveSkuId = selectedSkuId;
 
-      if (addMode === "new") {
-        if (!newTitle.trim()) throw new Error("Product title is required.");
-        if (!newSkuCode.trim()) throw new Error("SKU code is required.");
+      if (addMode === 'new') {
+        if (!newTitle.trim()) throw new Error('Product title is required.');
+        if (!newSkuCode.trim()) throw new Error('SKU code is required.');
         const slug =
-          newTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") +
-          "-" + Date.now().toString(36);
+          newTitle
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '') +
+          '-' +
+          Date.now().toString(36);
         const images = parseImages(newImages);
         const thumbnail = newThumbnail.trim() || images[0] || undefined;
         const prod = await merchantApi.createProduct({
@@ -201,7 +213,7 @@ export const MerchantListings = () => {
           ...(newCategoryId ? { categoryId: newCategoryId } : {}),
           ...(thumbnail ? { thumbnailUrl: thumbnail } : {}),
           ...(images.length > 0 ? { images } : {}),
-          ...((newWarranty.trim() || newShipping.trim() || newReturns.trim())
+          ...(newWarranty.trim() || newShipping.trim() || newReturns.trim()
             ? {
                 attributes: {
                   ...(newWarranty.trim() ? { warrantyInformation: newWarranty.trim() } : {}),
@@ -215,17 +227,18 @@ export const MerchantListings = () => {
           skuCode: newSkuCode.trim().toUpperCase(),
         });
         try {
-          await merchantApi.updateProductStatus(prod.id, "ACTIVE");
-          await merchantApi.updateSkuStatus(createdSku.id, "ACTIVE");
+          await merchantApi.updateProductStatus(prod.id, 'ACTIVE');
+          await merchantApi.updateSkuStatus(createdSku.id, 'ACTIVE');
         } catch {
           // Activation is best-effort here; the listing flow continues.
         }
         effectiveSkuId = createdSku.id;
       }
 
-      if (!effectiveSkuId) throw new Error("Choose a variant to list.");
+      if (!effectiveSkuId) throw new Error('Choose a variant to list.');
 
-      const compareAtPrice = compareMajor.trim() === "" ? null : Math.round(parseFloat(compareMajor) * 100);
+      const compareAtPrice =
+        compareMajor.trim() === '' ? null : Math.round(parseFloat(compareMajor) * 100);
       const listing = await merchantApi.createListing({
         skuId: effectiveSkuId,
         priceAmount,
@@ -236,40 +249,43 @@ export const MerchantListings = () => {
       const stockQty = parseInt(initialStock, 10);
       if (Number.isFinite(stockQty) && stockQty > 0) {
         try {
-          await merchantApi.initInventory({ listingId: listing.id, initialOnHandQuantity: stockQty });
+          await merchantApi.initInventory({
+            listingId: listing.id,
+            initialOnHandQuantity: stockQty,
+          });
         } catch {
           // Inventory may already exist for this listing.
         }
       }
 
       if (publishImmediately) {
-        await merchantApi.updateListingStatus(listing.id, "ACTIVE");
+        await merchantApi.updateListingStatus(listing.id, 'ACTIVE');
       }
 
-      flashSuccess(`Listing ${publishImmediately ? "published" : "saved as draft"}.`);
+      flashSuccess(`Listing ${publishImmediately ? 'published' : 'saved as draft'}.`);
       setShowAddModal(false);
       resetForm();
       await fetchListings();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not save listing.");
+      setError(err instanceof Error ? err.message : 'Could not save listing.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const resetForm = () => {
-    setPriceMajor("");
-    setCompareMajor("");
-    setInitialStock("10");
-    setNewTitle("");
-    setNewBrand("");
-    setNewDescription("");
-    setNewThumbnail("");
-    setNewImages("");
-    setNewWarranty("");
-    setNewShipping("");
-    setNewReturns("");
-    setNewSkuCode("");
+    setPriceMajor('');
+    setCompareMajor('');
+    setInitialStock('10');
+    setNewTitle('');
+    setNewBrand('');
+    setNewDescription('');
+    setNewThumbnail('');
+    setNewImages('');
+    setNewWarranty('');
+    setNewShipping('');
+    setNewReturns('');
+    setNewSkuCode('');
   };
 
   const selectedProduct = catalogProducts.find((p) => p.id === selectedProductId);
@@ -307,14 +323,14 @@ export const MerchantListings = () => {
           />
         </div>
         <div className="flex gap-1" role="group" aria-label="Filter by status">
-          {(["ALL", "ACTIVE", "DRAFT", "INACTIVE"] as StatusFilter[]).map((s) => (
+          {(['ALL', 'ACTIVE', 'DRAFT', 'INACTIVE'] as StatusFilter[]).map((s) => (
             <Button
               key={s}
-              variant={statusFilter === s ? "default" : "outline"}
+              variant={statusFilter === s ? 'default' : 'outline'}
               size="sm"
               onClick={() => setStatusFilter(s)}
             >
-              {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
+              {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
             </Button>
           ))}
         </div>
@@ -329,13 +345,13 @@ export const MerchantListings = () => {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={PackageSearch}
-          title={listings.length === 0 ? "No listings yet" : "No listings match"}
+          title={listings.length === 0 ? 'No listings yet' : 'No listings match'}
           description={
             listings.length === 0
-              ? "List an existing catalog product or add a new one to start selling."
-              : "Try a different search or status filter."
+              ? 'List an existing catalog product or add a new one to start selling.'
+              : 'Try a different search or status filter.'
           }
-          actionLabel={listings.length === 0 ? "Add your first listing" : undefined}
+          actionLabel={listings.length === 0 ? 'Add your first listing' : undefined}
           onAction={listings.length === 0 ? openAddModal : undefined}
         />
       ) : (
@@ -369,7 +385,10 @@ export const MerchantListings = () => {
                       </p>
                       <p className="mt-0.5 font-mono text-xs text-muted-foreground">{l.skuCode}</p>
                     </div>
-                    <Badge variant={statusVariant(l.status)} className="ml-auto shrink-0 self-start">
+                    <Badge
+                      variant={statusVariant(l.status)}
+                      className="ml-auto shrink-0 self-start"
+                    >
                       {l.status}
                     </Badge>
                   </div>
@@ -388,7 +407,7 @@ export const MerchantListings = () => {
 
                   <p className="text-xs text-muted-foreground">
                     {l.availableQuantity == null ? (
-                      "No stock record yet"
+                      'No stock record yet'
                     ) : l.availableQuantity <= 0 ? (
                       <span className="font-medium text-destructive">Out of stock</span>
                     ) : l.availableQuantity <= 5 ? (
@@ -431,8 +450,12 @@ export const MerchantListings = () => {
                         <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
                           Cancel
                         </Button>
-                        <Button size="sm" disabled={actionId === l.id} onClick={() => handleSavePrice(l)}>
-                          {actionId === l.id ? "Saving…" : "Save price"}
+                        <Button
+                          size="sm"
+                          disabled={actionId === l.id}
+                          onClick={() => handleSavePrice(l)}
+                        >
+                          {actionId === l.id ? 'Saving…' : 'Save price'}
                         </Button>
                       </div>
                     </div>
@@ -444,7 +467,7 @@ export const MerchantListings = () => {
                         disabled={actionId === l.id}
                         onClick={() => handleToggleStatus(l)}
                       >
-                        {l.status === "ACTIVE" ? "Deactivate" : "Activate"}
+                        {l.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => openPriceEditor(l)}>
                         <Pencil aria-hidden />
@@ -452,7 +475,7 @@ export const MerchantListings = () => {
                       </Button>
                       <Link
                         to="/merchant/inventory"
-                        className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "ml-auto")}
+                        className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'ml-auto')}
                       >
                         Stock
                       </Link>
@@ -467,7 +490,11 @@ export const MerchantListings = () => {
 
       {showAddModal && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowAddModal(false)} aria-hidden />
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowAddModal(false)}
+            aria-hidden
+          />
           <div
             role="dialog"
             aria-modal="true"
@@ -475,11 +502,15 @@ export const MerchantListings = () => {
             className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-background p-4 shadow-md"
           >
             <h2 className="text-sm font-semibold">Add product / listing</h2>
-            <div className="mt-3 flex gap-1 rounded-md bg-muted p-1" role="tablist" aria-label="Add mode">
+            <div
+              className="mt-3 flex gap-1 rounded-md bg-muted p-1"
+              role="tablist"
+              aria-label="Add mode"
+            >
               {(
                 [
-                  { id: "existing", label: "Existing product" },
-                  { id: "new", label: "New product" },
+                  { id: 'existing', label: 'Existing product' },
+                  { id: 'new', label: 'New product' },
                 ] as const
               ).map((m) => (
                 <button
@@ -489,8 +520,8 @@ export const MerchantListings = () => {
                   aria-selected={addMode === m.id}
                   onClick={() => setAddMode(m.id)}
                   className={cn(
-                    "flex-1 rounded px-2 py-1.5 text-[13px] font-medium",
-                    addMode === m.id ? "bg-background shadow-sm" : "text-muted-foreground"
+                    'flex-1 rounded px-2 py-1.5 text-[13px] font-medium',
+                    addMode === m.id ? 'bg-background shadow-sm' : 'text-muted-foreground',
                   )}
                 >
                   {m.label}
@@ -499,7 +530,7 @@ export const MerchantListings = () => {
             </div>
 
             <div className="mt-3 flex flex-col gap-3">
-              {addMode === "existing" ? (
+              {addMode === 'existing' ? (
                 <>
                   <div className="flex flex-col gap-1">
                     <Label htmlFor="add-product">Product</Label>
@@ -511,7 +542,7 @@ export const MerchantListings = () => {
                     >
                       {catalogProducts.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.title} {p.brand ? `· ${p.brand}` : ""}
+                          {p.title} {p.brand ? `· ${p.brand}` : ''}
                         </option>
                       ))}
                     </select>
@@ -525,7 +556,10 @@ export const MerchantListings = () => {
                       />
                       <div className="min-w-0">
                         <p className="truncate text-[13px] font-medium">{selectedProduct.title}</p>
-                        <Rating rating={selectedProduct.rating} reviewCount={selectedProduct.reviewCount} />
+                        <Rating
+                          rating={selectedProduct.rating}
+                          reviewCount={selectedProduct.reviewCount}
+                        />
                       </div>
                     </div>
                   )}
@@ -612,7 +646,7 @@ export const MerchantListings = () => {
                     <textarea
                       id="new-images"
                       rows={2}
-                      placeholder={"https://…/1.webp\nhttps://…/2.webp"}
+                      placeholder={'https://…/1.webp\nhttps://…/2.webp'}
                       value={newImages}
                       onChange={(e) => setNewImages(e.target.value)}
                       className="rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring"
@@ -716,12 +750,17 @@ export const MerchantListings = () => {
               </div>
 
               <div className="flex justify-end gap-1.5">
-                <Button variant="outline" size="sm" disabled={isSubmitting} onClick={() => handleAddSubmit(false)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isSubmitting}
+                  onClick={() => handleAddSubmit(false)}
+                >
                   Save as draft
                 </Button>
                 <Button size="sm" disabled={isSubmitting} onClick={() => handleAddSubmit(true)}>
                   <PackagePlus aria-hidden />
-                  {isSubmitting ? "Publishing…" : "Publish listing"}
+                  {isSubmitting ? 'Publishing…' : 'Publish listing'}
                 </Button>
               </div>
             </div>

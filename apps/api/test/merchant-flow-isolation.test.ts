@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { IdentityService } from '../src/modules/identity/internal/identity-service.js';
 import { MerchantService } from '../src/modules/merchant/internal/merchant-service.js';
@@ -128,9 +132,8 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
         role: 'ADMINISTRATOR',
       };
       // Generate admin token
-      const { HmacTokenService } = await import(
-        '../src/modules/identity/internal/token-service.js'
-      );
+      const { HmacTokenService } =
+        await import('../src/modules/identity/internal/token-service.js');
       const tokenSvc = new HmacTokenService({ accessTokenSecret: TOKEN_SECRET });
       const adminToken = tokenSvc.generateAccessToken(adminActor).token;
 
@@ -164,7 +167,9 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
         tenantName: 'State Machine Store',
         role: 'MERCHANT',
       });
-      await identitySvc.verifyEmail(await identitySvc.createEmailVerificationToken(smAccount.userId));
+      await identitySvc.verifyEmail(
+        await identitySvc.createEmailVerificationToken(smAccount.userId),
+      );
       const login = await identitySvc.login({
         email: 'statemachine@test.com',
         password: 'password123!',
@@ -433,9 +438,8 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
         `INSERT INTO tenant_memberships (id, tenant_id, user_id, role, status) VALUES ('mem-admin-self', 'platform-self-tenant', 'admin-self-1', 'ADMINISTRATOR', 'ACTIVE')`,
       );
 
-      const { HmacTokenService } = await import(
-        '../src/modules/identity/internal/token-service.js'
-      );
+      const { HmacTokenService } =
+        await import('../src/modules/identity/internal/token-service.js');
       const tokenSvc = new HmacTokenService({ accessTokenSecret: TOKEN_SECRET });
       const adminToken = tokenSvc.generateAccessToken({
         userId: 'admin-self-1',
@@ -495,9 +499,8 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
         `INSERT INTO tenant_memberships (id, tenant_id, user_id, role, status) VALUES ('mem-admin-scope', 'platform-scope-tenant', 'admin-scope-1', 'ADMINISTRATOR', 'ACTIVE')`,
       );
 
-      const { HmacTokenService } = await import(
-        '../src/modules/identity/internal/token-service.js'
-      );
+      const { HmacTokenService } =
+        await import('../src/modules/identity/internal/token-service.js');
       const tokenSvc = new HmacTokenService({ accessTokenSecret: TOKEN_SECRET });
       const adminToken = tokenSvc.generateAccessToken({
         userId: 'admin-scope-1',
@@ -606,4 +609,3 @@ describe('Phase 2 Exit Condition: Authorization & Tenant Isolation', () => {
     });
   });
 });
-

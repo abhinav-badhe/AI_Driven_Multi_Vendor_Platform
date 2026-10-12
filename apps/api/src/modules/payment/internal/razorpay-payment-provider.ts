@@ -97,7 +97,8 @@ export class RazorpayPaymentProvider implements PaymentProvider {
     }
 
     try {
-      const authHeader = 'Basic ' + Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64');
+      const authHeader =
+        'Basic ' + Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64');
       const res = await this.fetchImpl(`${this.baseUrl}/orders`, {
         method: 'POST',
         headers: {
@@ -124,7 +125,11 @@ export class RazorpayPaymentProvider implements PaymentProvider {
         throw new Error(`Razorpay order creation failed (${res.status}): ${errorText}`);
       }
 
-      const orderData = (await res.json()) as { id: string; status: string; [key: string]: unknown };
+      const orderData = (await res.json()) as {
+        id: string;
+        status: string;
+        [key: string]: unknown;
+      };
 
       return {
         providerTransactionId: orderData.id,
@@ -313,12 +318,12 @@ export class RazorpayPaymentProvider implements PaymentProvider {
   parseWebhookEvent(rawBody: string): ProviderWebhookEvent {
     const payload = JSON.parse(rawBody) as Record<string, unknown>;
     const event = (payload.event as string) || 'unknown';
-    const eventEntity = ((payload.payload as Record<string, unknown>)?.payment as Record<string, unknown>)?.entity as
-      | Record<string, unknown>
-      | undefined;
+    const eventEntity = (
+      (payload.payload as Record<string, unknown>)?.payment as Record<string, unknown>
+    )?.entity as Record<string, unknown> | undefined;
 
     const paymentId = (eventEntity?.id as string | undefined) || (payload.id as string);
-    const orderId = (eventEntity?.order_id as string | undefined);
+    const orderId = eventEntity?.order_id as string | undefined;
     const amountInPaise = (eventEntity?.amount as number | undefined) || 0;
     const currency = (eventEntity?.currency as string | undefined) || 'INR';
 
@@ -330,7 +335,9 @@ export class RazorpayPaymentProvider implements PaymentProvider {
     }
 
     return {
-      providerEventId: (payload.account_id as string | undefined) ? `${payload.account_id}_${paymentId}` : paymentId,
+      providerEventId: (payload.account_id as string | undefined)
+        ? `${payload.account_id}_${paymentId}`
+        : paymentId,
       eventType: event,
       providerTransactionId: paymentId,
       paymentIntentId: orderId,
@@ -357,24 +364,31 @@ export class RazorpayPaymentProvider implements PaymentProvider {
       return {
         providerRefundId: refundId,
         status: 'SUCCEEDED',
-        rawResponse: { id: refundId, payment_id: input.providerTransactionId, amount: input.amount },
+        rawResponse: {
+          id: refundId,
+          payment_id: input.providerTransactionId,
+          amount: input.amount,
+        },
       };
     }
 
     const amountInPaise = toRazorpayAmount(input.amount);
     const authHeader = 'Basic ' + Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64');
 
-    const res = await this.fetchImpl(`${this.baseUrl}/payments/${input.providerTransactionId}/refund`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: authHeader,
+    const res = await this.fetchImpl(
+      `${this.baseUrl}/payments/${input.providerTransactionId}/refund`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({
+          amount: amountInPaise,
+          notes: { reason: input.reason ?? 'Customer refund' },
+        }),
       },
-      body: JSON.stringify({
-        amount: amountInPaise,
-        notes: { reason: input.reason ?? 'Customer refund' },
-      }),
-    });
+    );
 
     if (!res.ok) {
       const errorText = await res.text();

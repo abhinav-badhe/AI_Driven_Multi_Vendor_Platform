@@ -1,17 +1,23 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Heart, ImageOff, Lock, ShoppingCart, Trash2 } from "lucide-react";
-import { useCart } from "./CartContext";
-import { useAuth } from "../auth/AuthContext";
-import { wishlistApi } from "../customer/api/wishlist";
-import { Button, buttonVariants } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, TableSkeleton } from "../../components/ui/empty";
-import { QtyControl } from "../../components/product/ProductCard";
-import { formatPrice } from "../../lib/format";
-import { cn } from "../../lib/utils";
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Heart, ImageOff, Lock, ShoppingCart, Trash2 } from 'lucide-react';
+import { useCart } from './CartContext';
+import { useAuth } from '../auth/AuthContext';
+import { wishlistApi } from '../customer/api/wishlist';
+import { Button, buttonVariants } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, TableSkeleton } from '../../components/ui/empty';
+import { QtyControl } from '../../components/product/ProductCard';
+import { formatPrice } from '../../lib/format';
+import { cn } from '../../lib/utils';
 
 export const CartPage = () => {
   const { cart, updateQuantity, removeItem, refreshCart, isLoading } = useCart();
@@ -27,10 +33,10 @@ export const CartPage = () => {
     try {
       await wishlistApi.saveForLater(itemId);
       await refreshCart();
-      setSuccessMsg("Item saved to your wishlist.");
+      setSuccessMsg('Item saved to your wishlist.');
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save item for later");
+      setError(err instanceof Error ? err.message : 'Failed to save item for later');
     } finally {
       setUpdatingId(null);
     }
@@ -46,7 +52,7 @@ export const CartPage = () => {
     try {
       await updateQuantity(itemId, newQty);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to update quantity");
+      setError(err instanceof Error ? err.message : 'Failed to update quantity');
     } finally {
       setUpdatingId(null);
     }
@@ -58,7 +64,7 @@ export const CartPage = () => {
     try {
       await removeItem(itemId);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to remove item");
+      setError(err instanceof Error ? err.message : 'Failed to remove item');
     } finally {
       setUpdatingId(null);
     }
@@ -70,16 +76,18 @@ export const CartPage = () => {
         <Card>
           <CardHeader>
             <CardTitle>Your Shopping Cart</CardTitle>
-            <CardDescription>Please log in to view your saved cart items and complete checkout.</CardDescription>
+            <CardDescription>
+              Please log in to view your saved cart items and complete checkout.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2.5">
             <Button
               size="sm"
-              onClick={() => login({ email: "customer@example.com", password: "password123" })}
+              onClick={() => login({ email: 'customer@example.com', password: 'password123' })}
             >
               Sign in as Demo Customer
             </Button>
-            <Link to="/account" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            <Link to="/account" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
               Sign in with Other Account
             </Link>
           </CardContent>
@@ -104,7 +112,7 @@ export const CartPage = () => {
           title="Your cart is empty"
           description="You have not added any items yet. Browse the catalog to get started."
           actionLabel="Browse products"
-          onAction={() => navigate("/")}
+          onAction={() => navigate('/')}
         />
       </div>
     );
@@ -115,7 +123,7 @@ export const CartPage = () => {
   return (
     <div className="mx-auto w-full max-w-6xl p-4">
       <h1 className="text-xl font-semibold tracking-tight">
-        Cart ({itemCount} {itemCount === 1 ? "item" : "items"})
+        Cart ({itemCount} {itemCount === 1 ? 'item' : 'items'})
       </h1>
 
       {successMsg && (
@@ -207,7 +215,9 @@ export const CartPage = () => {
             <dl className="mt-2 flex flex-col gap-1.5 text-[13px]">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Subtotal</dt>
-                <dd className="tnum">{formatPrice(cart.subtotalAmount, cart.currency || "INR", 2)}</dd>
+                <dd className="tnum">
+                  {formatPrice(cart.subtotalAmount, cart.currency || 'INR', 2)}
+                </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Delivery</dt>
@@ -215,10 +225,12 @@ export const CartPage = () => {
               </div>
               <div className="flex justify-between border-t border-border pt-1.5 text-sm font-semibold">
                 <dt>Total</dt>
-                <dd className="tnum">{formatPrice(cart.subtotalAmount, cart.currency || "INR", 2)}</dd>
+                <dd className="tnum">
+                  {formatPrice(cart.subtotalAmount, cart.currency || 'INR', 2)}
+                </dd>
               </div>
             </dl>
-            <Button className="mt-3 w-full" onClick={() => navigate("/checkout")}>
+            <Button className="mt-3 w-full" onClick={() => navigate('/checkout')}>
               Proceed to checkout
             </Button>
             <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">

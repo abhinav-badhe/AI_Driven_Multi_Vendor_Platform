@@ -35,8 +35,16 @@ export const AdminReviews = () => {
     }
   };
 
-  const handleAction = async (id: string, action: 'APPROVE' | 'REJECT', currentNote: string | null) => {
-    const note = window.prompt(`Enter moderation note for ${action.toLowerCase()} (optional):`, currentNote || '') ?? undefined;
+  const handleAction = async (
+    id: string,
+    action: 'APPROVE' | 'REJECT',
+    currentNote: string | null,
+  ) => {
+    const note =
+      window.prompt(
+        `Enter moderation note for ${action.toLowerCase()} (optional):`,
+        currentNote || '',
+      ) ?? undefined;
     if (note === undefined && action === 'REJECT') return; // Cancelled
 
     try {
@@ -57,12 +65,19 @@ export const AdminReviews = () => {
     <div className="space-y-4 py-4 pb-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">Review Moderation</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">Manage and moderate reviews submitted across the platform.</p>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Review Moderation
+          </h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Manage and moderate reviews submitted across the platform.
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <label htmlFor="admin-review-filter" className="text-xs font-medium text-muted-foreground">
+          <label
+            htmlFor="admin-review-filter"
+            className="text-xs font-medium text-muted-foreground"
+          >
             Status:
           </label>
           <select
@@ -87,9 +102,7 @@ export const AdminReviews = () => {
         </Card>
       )}
 
-      {error && (
-        <Alert tone="error">{error}</Alert>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
       {!isLoading && !error && reviews.length === 0 && (
         <Card>
@@ -123,8 +136,8 @@ export const AdminReviews = () => {
                           r.status === 'APPROVED'
                             ? 'success'
                             : r.status === 'REJECTED'
-                            ? 'destructive'
-                            : 'warning'
+                              ? 'destructive'
+                              : 'warning'
                         }
                       >
                         {r.status}
@@ -139,7 +152,8 @@ export const AdminReviews = () => {
 
                       {r.reviewerName && (
                         <span className="text-xs text-muted-foreground">
-                          by <strong className="font-medium text-foreground">{r.reviewerName}</strong>
+                          by{' '}
+                          <strong className="font-medium text-foreground">{r.reviewerName}</strong>
                         </span>
                       )}
                     </div>

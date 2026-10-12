@@ -16,7 +16,7 @@ const ME_RESPONSE = {
 };
 
 const MERCHANT_ME = { ...ME_RESPONSE, role: 'MERCHANT' };
-const ADMIN_ME    = { ...ME_RESPONSE, role: 'ADMINISTRATOR' };
+const ADMIN_ME = { ...ME_RESPONSE, role: 'ADMINISTRATOR' };
 
 const ACCESS_TOKEN = 'test.access.token';
 
@@ -24,9 +24,7 @@ const ACCESS_TOKEN = 'test.access.token';
  * Mock global.fetch with a sequence of responses.
  * Each call to fetch consumes the next item from the array.
  */
-function mockFetchSequence(
-  responses: Array<() => Response | Promise<Response>>
-) {
+function mockFetchSequence(responses: Array<() => Response | Promise<Response>>) {
   let idx = 0;
   global.fetch = vi.fn().mockImplementation(() => {
     const fn = responses[idx] ?? responses[responses.length - 1];
@@ -77,9 +75,16 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
       return Promise.resolve(failResponse(404));
     });
 
-    const Probe = () => { useAuth(); return null; };
+    const Probe = () => {
+      useAuth();
+      return null;
+    };
     await act(async () => {
-      render(<AuthProvider><Probe /></AuthProvider>);
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
     });
 
     expect(global.fetch).toHaveBeenCalled();
@@ -96,9 +101,16 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     ]);
 
     let capturedAuth: any;
-    const Probe = () => { capturedAuth = useAuth(); return null; };
+    const Probe = () => {
+      capturedAuth = useAuth();
+      return null;
+    };
     await act(async () => {
-      render(<AuthProvider><Probe /></AuthProvider>);
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
     });
     await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
 
@@ -122,14 +134,18 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     await act(async () => {
       render(
         <>
-          <AuthProvider><div /></AuthProvider>
-          <AuthProvider><div /></AuthProvider>
-        </>
+          <AuthProvider>
+            <div />
+          </AuthProvider>
+          <AuthProvider>
+            <div />
+          </AuthProvider>
+        </>,
       );
     });
 
     const refreshCalls = fetchMock.mock.calls.filter(
-      ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh')
+      ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh'),
     );
     expect(refreshCalls.length).toBe(1);
   });
@@ -138,9 +154,16 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     mockFetchSequence([() => failResponse(401)]);
 
     let capturedAuth: any;
-    const Probe = () => { capturedAuth = useAuth(); return null; };
+    const Probe = () => {
+      capturedAuth = useAuth();
+      return null;
+    };
     await act(async () => {
-      render(<AuthProvider><Probe /></AuthProvider>);
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
     });
     await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
 
@@ -162,9 +185,16 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE));
 
     let capturedAuth: any;
-    const Probe = () => { capturedAuth = useAuth(); return null; };
+    const Probe = () => {
+      capturedAuth = useAuth();
+      return null;
+    };
     await act(async () => {
-      render(<AuthProvider><Probe /></AuthProvider>);
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
     });
     await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
 
@@ -184,7 +214,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
 
     // 4d. Login call used credentials:include
     const loginCall = fetchMock.mock.calls.find(
-      ([url]: any) => typeof url === 'string' && url.includes('/auth/login')
+      ([url]: any) => typeof url === 'string' && url.includes('/auth/login'),
     );
     expect(loginCall).toBeDefined();
     expect(loginCall![1].credentials).toBe('include');
@@ -200,9 +230,16 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE));
 
     let capturedAuth: any;
-    const Probe = () => { capturedAuth = useAuth(); return null; };
+    const Probe = () => {
+      capturedAuth = useAuth();
+      return null;
+    };
     await act(async () => {
-      render(<AuthProvider><Probe /></AuthProvider>);
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
     });
     await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
     await act(async () => {
@@ -230,9 +267,16 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     ); // register
 
     let capturedAuth: any;
-    const Probe = () => { capturedAuth = useAuth(); return null; };
+    const Probe = () => {
+      capturedAuth = useAuth();
+      return null;
+    };
     await act(async () => {
-      render(<AuthProvider><Probe /></AuthProvider>);
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
     });
     await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
 
@@ -247,7 +291,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     });
 
     const regCall = fetchMock.mock.calls.find(
-      ([url]: any) => typeof url === 'string' && url.includes('/auth/register')
+      ([url]: any) => typeof url === 'string' && url.includes('/auth/register'),
     );
     expect(regCall).toBeDefined();
     expect(regCall![1].credentials).toBe('include');
@@ -267,12 +311,23 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     fetchMock.mockResolvedValueOnce(okJson({ accessToken: ACCESS_TOKEN }));
     fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE));
     // logout 204
-    fetchMock.mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) } as unknown as Response);
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      json: () => Promise.resolve({}),
+    } as unknown as Response);
 
     let capturedAuth: any;
-    const Probe = () => { capturedAuth = useAuth(); return null; };
+    const Probe = () => {
+      capturedAuth = useAuth();
+      return null;
+    };
     await act(async () => {
-      render(<AuthProvider><Probe /></AuthProvider>);
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
     });
     await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
     expect(capturedAuth.isAuthenticated).toBe(true);
@@ -286,7 +341,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     expect(getAuthToken()).toBeNull();
 
     const logoutCall = fetchMock.mock.calls.find(
-      ([url]: any) => typeof url === 'string' && url.includes('/auth/logout')
+      ([url]: any) => typeof url === 'string' && url.includes('/auth/logout'),
     );
     expect(logoutCall).toBeDefined();
     expect(logoutCall![1].credentials).toBe('include');
@@ -301,9 +356,16 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     fetchMock.mockResolvedValueOnce(failResponse(500)); // logout fails
 
     let capturedAuth: any;
-    const Probe = () => { capturedAuth = useAuth(); return null; };
+    const Probe = () => {
+      capturedAuth = useAuth();
+      return null;
+    };
     await act(async () => {
-      render(<AuthProvider><Probe /></AuthProvider>);
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
     });
     await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
 
@@ -332,10 +394,12 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
               <Route path="/account" element={<div>Login Page</div>} />
             </Routes>
           </MemoryRouter>
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
-    await waitFor(() => expect(screen.queryByText('Login Page') ?? screen.queryByText('Loading...')).not.toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByText('Login Page') ?? screen.queryByText('Loading...')).not.toBeNull(),
+    );
 
     // After loading resolves, must be at login page
     await waitFor(() => screen.getByText('Login Page'));
@@ -356,7 +420,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
               <Route path="/account" element={<div>Login Page</div>} />
             </Routes>
           </MemoryRouter>
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
     await waitFor(() => screen.getByText('Login Page'));
@@ -380,7 +444,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
               <Route path="/account" element={<div>Login Page</div>} />
             </Routes>
           </MemoryRouter>
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
     await waitFor(() => screen.getByText('Merchant Content'));
@@ -404,7 +468,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
               <Route path="/account" element={<div>Login Page</div>} />
             </Routes>
           </MemoryRouter>
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
     await waitFor(() => screen.getByText('Login Page'));
@@ -428,7 +492,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
               <Route path="/account" element={<div>Login Page</div>} />
             </Routes>
           </MemoryRouter>
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
     await waitFor(() => screen.getByText('Admin Content'));
@@ -459,7 +523,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     }
 
     const refreshCalls = fetchMock.mock.calls.filter(
-      ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh')
+      ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh'),
     );
     expect(refreshCalls.length).toBe(1);
   });
@@ -469,7 +533,9 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     global.fetch = fetchMock;
 
     let refreshResolve: (v: Response) => void;
-    const refreshGate = new Promise<Response>((res) => { refreshResolve = res; });
+    const refreshGate = new Promise<Response>((res) => {
+      refreshResolve = res;
+    });
 
     // Both protected requests return 401 immediately
     fetchMock.mockResolvedValueOnce(failResponse(401));
@@ -492,7 +558,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     await Promise.all([p1, p2]);
 
     const refreshCalls = fetchMock.mock.calls.filter(
-      ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh')
+      ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh'),
     );
     // Despite two concurrent 401s, only one refresh must be issued
     expect(refreshCalls.length).toBe(1);
@@ -515,7 +581,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     expect(result.data).toBe('ok');
 
     const protectedCalls = fetchMock.mock.calls.filter(
-      ([url]: any) => typeof url === 'string' && url.includes('/some/endpoint')
+      ([url]: any) => typeof url === 'string' && url.includes('/some/endpoint'),
     );
     // Exactly 2: the original failing request + one retry
     expect(protectedCalls.length).toBe(2);
@@ -558,9 +624,16 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE));
 
     let capturedAuth: any;
-    const Probe = () => { capturedAuth = useAuth(); return null; };
+    const Probe = () => {
+      capturedAuth = useAuth();
+      return null;
+    };
     await act(async () => {
-      render(<AuthProvider><Probe /></AuthProvider>);
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
     });
     await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
     await act(async () => {
@@ -586,9 +659,16 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
     fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE));
 
     let capturedAuth: any;
-    const Probe = () => { capturedAuth = useAuth(); return null; };
+    const Probe = () => {
+      capturedAuth = useAuth();
+      return null;
+    };
     await act(async () => {
-      render(<AuthProvider><Probe /></AuthProvider>);
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
     });
     await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
 
@@ -608,33 +688,50 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
       fetchMock.mockResolvedValueOnce(okJson({ accessToken: ACCESS_TOKEN }));
       fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE));
       // Logout → 204
-      fetchMock.mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) } as unknown as Response);
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: () => Promise.resolve({}),
+      } as unknown as Response);
 
       let capturedAuth: any;
-      const Probe = () => { capturedAuth = useAuth(); return null; };
-      await act(async () => { render(<AuthProvider><Probe /></AuthProvider>); });
+      const Probe = () => {
+        capturedAuth = useAuth();
+        return null;
+      };
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <Probe />
+          </AuthProvider>,
+        );
+      });
       await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
 
-      await act(async () => { await capturedAuth.logout(); });
+      await act(async () => {
+        await capturedAuth.logout();
+      });
 
       // The only calls should be: restore(refresh), restore(me), logout
       // /auth/refresh must NOT be called again as a prerequisite for logout
-      const refreshCalls = fetchMock.mock.calls.filter(
-        ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh')
-      ).filter(
-        (_: unknown, i: number) => i > 0 // skip the session restore call
-      );
+      const refreshCalls = fetchMock.mock.calls
+        .filter(([url]: any) => typeof url === 'string' && url.includes('/auth/refresh'))
+        .filter(
+          (_: unknown, i: number) => i > 0, // skip the session restore call
+        );
       // Any extra refresh call after the initial session restore is the bug
       expect(refreshCalls.length).toBe(0);
-      const logoutCall = fetchMock.mock.calls.find(([url]: any) => typeof url === 'string' && url.includes('/auth/logout'));
+      const logoutCall = fetchMock.mock.calls.find(
+        ([url]: any) => typeof url === 'string' && url.includes('/auth/logout'),
+      );
       expect(logoutCall).toBeDefined();
 
       // Count refresh calls that happened AFTER the first two (restore) calls
       const allCalls: string[] = fetchMock.mock.calls.map(([url]: any) => url as string);
-      const logoutIndex = allCalls.findIndex(u => u.includes('/auth/logout'));
+      const logoutIndex = allCalls.findIndex((u) => u.includes('/auth/logout'));
       const extraRefreshBeforeLogout = allCalls
         .slice(2, logoutIndex) // calls between session restore and logout
-        .filter(u => u.includes('/auth/refresh'));
+        .filter((u) => u.includes('/auth/refresh'));
       expect(extraRefreshBeforeLogout.length).toBe(0);
     });
 
@@ -644,15 +741,32 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
 
       fetchMock.mockResolvedValueOnce(okJson({ accessToken: ACCESS_TOKEN }));
       fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE));
-      fetchMock.mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) } as unknown as Response);
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: () => Promise.resolve({}),
+      } as unknown as Response);
 
       let capturedAuth: any;
-      const Probe = () => { capturedAuth = useAuth(); return null; };
-      await act(async () => { render(<AuthProvider><Probe /></AuthProvider>); });
+      const Probe = () => {
+        capturedAuth = useAuth();
+        return null;
+      };
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <Probe />
+          </AuthProvider>,
+        );
+      });
       await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
-      await act(async () => { await capturedAuth.logout(); });
+      await act(async () => {
+        await capturedAuth.logout();
+      });
 
-      const logoutCall = fetchMock.mock.calls.find(([url]: any) => typeof url === 'string' && url.includes('/auth/logout'));
+      const logoutCall = fetchMock.mock.calls.find(
+        ([url]: any) => typeof url === 'string' && url.includes('/auth/logout'),
+      );
       expect(logoutCall).toBeDefined();
       expect(logoutCall![1].credentials).toBe('include');
     });
@@ -666,13 +780,28 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
       global.fetch = fetchMock;
       fetchMock.mockResolvedValueOnce(okJson({ accessToken: ACCESS_TOKEN }));
       fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE));
-      fetchMock.mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) } as unknown as Response);
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: () => Promise.resolve({}),
+      } as unknown as Response);
 
       let capturedAuth: any;
-      const Probe = () => { capturedAuth = useAuth(); return null; };
-      await act(async () => { render(<AuthProvider><Probe /></AuthProvider>); });
+      const Probe = () => {
+        capturedAuth = useAuth();
+        return null;
+      };
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <Probe />
+          </AuthProvider>,
+        );
+      });
       await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
-      await act(async () => { await capturedAuth.logout(); });
+      await act(async () => {
+        await capturedAuth.logout();
+      });
 
       // No fetch call should have an auth_refresh header or body field
       for (const [, opts] of fetchMock.mock.calls as [string, RequestInit][]) {
@@ -693,15 +822,30 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
 
       fetchMock.mockResolvedValueOnce(okJson({ accessToken: ACCESS_TOKEN }));
       fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE));
-      fetchMock.mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) } as unknown as Response);
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        json: () => Promise.resolve({}),
+      } as unknown as Response);
 
       let capturedAuth: any;
-      const Probe = () => { capturedAuth = useAuth(); return null; };
-      await act(async () => { render(<AuthProvider><Probe /></AuthProvider>); });
+      const Probe = () => {
+        capturedAuth = useAuth();
+        return null;
+      };
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <Probe />
+          </AuthProvider>,
+        );
+      });
       await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
       expect(getAuthToken()).toBe(ACCESS_TOKEN); // token present before logout
 
-      await act(async () => { await capturedAuth.logout(); });
+      await act(async () => {
+        await capturedAuth.logout();
+      });
 
       expect(getAuthToken()).toBeNull(); // token cleared after logout
       expect(capturedAuth.isAuthenticated).toBe(false);
@@ -732,7 +876,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
 
       // No refresh call should have been made in response to the logout 401
       const refreshCalls = fetchMock.mock.calls.filter(
-        ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh')
+        ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh'),
       );
       expect(refreshCalls.length).toBe(0);
 
@@ -747,7 +891,9 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
       setAuthData('stale.token', 'tenant-1');
 
       let refreshResolve: (v: Response) => void;
-      const refreshGate = new Promise<Response>(res => { refreshResolve = res; });
+      const refreshGate = new Promise<Response>((res) => {
+        refreshResolve = res;
+      });
 
       // Two ordinary protected requests return 401
       fetchMock.mockResolvedValueOnce(failResponse(401));
@@ -760,13 +906,13 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
       const p1 = apiClient('/protected/a').catch(() => null);
       const p2 = apiClient('/protected/b').catch(() => null);
 
-      await new Promise(r => setTimeout(r, 0));
+      await new Promise((r) => setTimeout(r, 0));
       refreshResolve!(failResponse(401) as Response);
 
       await Promise.all([p1, p2]);
 
       const refreshCalls = fetchMock.mock.calls.filter(
-        ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh')
+        ([url]: any) => typeof url === 'string' && url.includes('/auth/refresh'),
       );
       // Exactly ONE refresh despite two concurrent 401s
       expect(refreshCalls.length).toBe(1);
@@ -783,12 +929,21 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
       // Session restore fails
       fetchMock.mockResolvedValueOnce(failResponse(401));
       // Login returns 2FA challenge
-      fetchMock.mockResolvedValueOnce(okJson({ requires2FA: true, tempToken: 'temp-2fa-token-xyz' }));
+      fetchMock.mockResolvedValueOnce(
+        okJson({ requires2FA: true, tempToken: 'temp-2fa-token-xyz' }),
+      );
 
       let capturedAuth: any;
-      const Probe = () => { capturedAuth = useAuth(); return null; };
+      const Probe = () => {
+        capturedAuth = useAuth();
+        return null;
+      };
       await act(async () => {
-        render(<AuthProvider><Probe /></AuthProvider>);
+        render(
+          <AuthProvider>
+            <Probe />
+          </AuthProvider>,
+        );
       });
       await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
 
@@ -814,9 +969,16 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
       fetchMock.mockResolvedValueOnce(okJson(ME_RESPONSE));
 
       let capturedAuth: any;
-      const Probe = () => { capturedAuth = useAuth(); return null; };
+      const Probe = () => {
+        capturedAuth = useAuth();
+        return null;
+      };
       await act(async () => {
-        render(<AuthProvider><Probe /></AuthProvider>);
+        render(
+          <AuthProvider>
+            <Probe />
+          </AuthProvider>,
+        );
       });
       await waitFor(() => expect(capturedAuth?.isLoading).toBe(false));
 
@@ -835,7 +997,7 @@ describe('Phase B – Frontend Authentication Security Properties', () => {
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ tempToken: 'temp-2fa-token-xyz', code: '123456' }),
-        })
+        }),
       );
     });
   });

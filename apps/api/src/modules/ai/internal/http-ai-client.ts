@@ -53,16 +53,11 @@ export class HttpAiClient implements IAiService {
 
   async processMessage(input: SendMessageInput): Promise<OrchestratorResponse> {
     try {
-      return await this.request<OrchestratorResponse>(
-        'POST',
-        '/ai/chat',
-        input.actor,
-        {
-          message: input.userText,
-          conversationId: input.conversationId,
-          channel: input.channel,
-        },
-      );
+      return await this.request<OrchestratorResponse>('POST', '/ai/chat', input.actor, {
+        message: input.userText,
+        conversationId: input.conversationId,
+        channel: input.channel,
+      });
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
         this.logger?.warn('Remote AI service failed; falling back to local orchestrator', {
@@ -184,11 +179,7 @@ export class HttpAiClient implements IAiService {
 
   async deleteDocument(actor: AuthorizedActor, documentId: string): Promise<void> {
     try {
-      await this.request<void>(
-        'DELETE',
-        `/ai/documents/${encodeURIComponent(documentId)}`,
-        actor,
-      );
+      await this.request<void>('DELETE', `/ai/documents/${encodeURIComponent(documentId)}`, actor);
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
         this.logger?.warn('Remote AI service failed; falling back to local service', {
@@ -207,16 +198,11 @@ export class HttpAiClient implements IAiService {
     topK?: number,
   ): Promise<RetrievalResult> {
     try {
-      return await this.request<RetrievalResult>(
-        'POST',
-        '/ai/rag/query',
-        actor,
-        {
-          query,
-          category,
-          topK,
-        },
-      );
+      return await this.request<RetrievalResult>('POST', '/ai/rag/query', actor, {
+        query,
+        category,
+        topK,
+      });
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
         this.logger?.warn('Remote AI service failed; falling back to local service', {

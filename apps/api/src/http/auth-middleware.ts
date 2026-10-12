@@ -9,10 +9,7 @@ declare module 'fastify' {
 }
 
 export function createAuthMiddleware(actorResolver: IIdentityActorResolver) {
-  return async function authenticate(
-    request: FastifyRequest,
-    _reply: FastifyReply,
-  ): Promise<void> {
+  return async function authenticate(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
     // 1. Check if trusted gateway headers are present
     if (typeof actorResolver.resolveFromHeaders === 'function') {
       const headerActor = actorResolver.resolveFromHeaders(request.headers);

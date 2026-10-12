@@ -26,9 +26,17 @@ export class InMemoryMlStore implements IMlStore {
     return { ...m };
   }
 
-  async getActiveModel(tenantId: string, modelType: ModelType): Promise<RegisteredModelRecord | null> {
+  async getActiveModel(
+    tenantId: string,
+    modelType: ModelType,
+  ): Promise<RegisteredModelRecord | null> {
     for (const m of this.models.values()) {
-      if (m.tenantId === tenantId && m.modelType === modelType && m.isActive && m.status === 'APPROVED') {
+      if (
+        m.tenantId === tenantId &&
+        m.modelType === modelType &&
+        m.isActive &&
+        m.status === 'APPROVED'
+      ) {
         return { ...m };
       }
     }
@@ -49,9 +57,19 @@ export class InMemoryMlStore implements IMlStore {
     for (const [id, m] of this.models.entries()) {
       if (m.tenantId === tenantId && m.modelType === modelType) {
         if (id === modelId) {
-          this.models.set(id, { ...m, isActive: true, status: 'APPROVED', approvedAt: new Date().toISOString() });
+          this.models.set(id, {
+            ...m,
+            isActive: true,
+            status: 'APPROVED',
+            approvedAt: new Date().toISOString(),
+          });
         } else if (m.isActive) {
-          this.models.set(id, { ...m, isActive: false, status: 'RETIRED', retiredAt: new Date().toISOString() });
+          this.models.set(id, {
+            ...m,
+            isActive: false,
+            status: 'RETIRED',
+            retiredAt: new Date().toISOString(),
+          });
         }
       }
     }
@@ -78,7 +96,11 @@ export class InMemoryMlStore implements IMlStore {
     // Database-equivalent uniqueness enforcement for active training jobs
     if (job.status === 'PENDING' || job.status === 'RUNNING') {
       for (const j of this.jobs.values()) {
-        if (j.tenantId === job.tenantId && j.modelType === job.modelType && (j.status === 'PENDING' || j.status === 'RUNNING')) {
+        if (
+          j.tenantId === job.tenantId &&
+          j.modelType === job.modelType &&
+          (j.status === 'PENDING' || j.status === 'RUNNING')
+        ) {
           throw new ConflictError(
             `A training job (${j.id}) is already active (${j.status}) for ${job.tenantId} ${job.modelType}`,
           );
@@ -90,7 +112,12 @@ export class InMemoryMlStore implements IMlStore {
 
   async updateTrainingJob(
     jobId: string,
-    updates: Partial<Pick<TrainingJobRecord, 'status' | 'modelId' | 'errorMessage' | 'completedAt' | 'sampleCount' | 'dataSourceType'>>,
+    updates: Partial<
+      Pick<
+        TrainingJobRecord,
+        'status' | 'modelId' | 'errorMessage' | 'completedAt' | 'sampleCount' | 'dataSourceType'
+      >
+    >,
   ): Promise<void> {
     const j = this.jobs.get(jobId);
     if (j) {
@@ -104,9 +131,16 @@ export class InMemoryMlStore implements IMlStore {
     return { ...j };
   }
 
-  async getLatestRunningJob(tenantId: string, modelType: ModelType): Promise<TrainingJobRecord | null> {
+  async getLatestRunningJob(
+    tenantId: string,
+    modelType: ModelType,
+  ): Promise<TrainingJobRecord | null> {
     for (const j of this.jobs.values()) {
-      if (j.tenantId === tenantId && j.modelType === modelType && (j.status === 'RUNNING' || j.status === 'PENDING')) {
+      if (
+        j.tenantId === tenantId &&
+        j.modelType === modelType &&
+        (j.status === 'RUNNING' || j.status === 'PENDING')
+      ) {
         return { ...j };
       }
     }
@@ -197,7 +231,10 @@ export class InMemoryMlStore implements IMlStore {
     return res;
   }
 
-  async getRetrainingPolicy(tenantId: string, modelType: ModelType): Promise<RetrainingPolicyRecord | null> {
+  async getRetrainingPolicy(
+    tenantId: string,
+    modelType: ModelType,
+  ): Promise<RetrainingPolicyRecord | null> {
     const key = `${tenantId}:${modelType}`;
     const pol = this.policies.get(key);
     return pol ? { ...pol } : null;
@@ -236,4 +273,3 @@ export class InMemoryMlStore implements IMlStore {
     }
   }
 }
-

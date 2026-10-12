@@ -11,11 +11,7 @@ import {
   type RetrievalResult,
 } from '../src/modules/ai/index.js';
 import type { AuthorizedActor } from '../src/modules/identity/rbac/policy.js';
-import {
-  ValidationError,
-  ForbiddenError,
-  UnauthorizedError,
-} from '../src/errors/app-error.js';
+import { ValidationError, ForbiddenError, UnauthorizedError } from '../src/errors/app-error.js';
 
 const mockCustomerActor: AuthorizedActor = {
   userId: 'usr-cust-1',
@@ -291,14 +287,23 @@ describe('HttpAiClient', () => {
       fetchFn: mockFetch as unknown as typeof fetch,
     });
 
-    const result = await client.queryRag(mockAdminActor, 'What is the return period?', 'RETURNS', 3);
+    const result = await client.queryRag(
+      mockAdminActor,
+      'What is the return period?',
+      'RETURNS',
+      3,
+    );
     expect(result.groundedContext).toContain('30 days');
     expect(result.chunks[0]?.documentId).toBe('doc-123');
   });
 
   it('maps HTTP errors to ValidationError, UnauthorizedError, and ForbiddenError', async () => {
     const client400 = new HttpAiClient(baseUrl, {
-      fetchFn: vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'Message empty' }), { status: 400 })),
+      fetchFn: vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ error: 'Message empty' }), { status: 400 }),
+        ),
     });
     await expect(
       client400.processMessage({
@@ -311,7 +316,11 @@ describe('HttpAiClient', () => {
     ).rejects.toThrow(ValidationError);
 
     const client401 = new HttpAiClient(baseUrl, {
-      fetchFn: vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })),
+      fetchFn: vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }),
+        ),
     });
     await expect(
       client401.processMessage({
@@ -324,9 +333,13 @@ describe('HttpAiClient', () => {
     ).rejects.toThrow(UnauthorizedError);
 
     const client403 = new HttpAiClient(baseUrl, {
-      fetchFn: vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 })),
+      fetchFn: vi
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 })),
     });
-    await expect(client403.deleteDocument(mockCustomerActor, 'doc-1')).rejects.toThrow(ForbiddenError);
+    await expect(client403.deleteDocument(mockCustomerActor, 'doc-1')).rejects.toThrow(
+      ForbiddenError,
+    );
   });
 
   it('falls back to fallbackService when remote AI service returns 500 error', async () => {
@@ -343,10 +356,17 @@ describe('HttpAiClient', () => {
       processMessage: vi.fn().mockResolvedValue(mockFallbackResponse),
       getConversation: vi.fn().mockResolvedValue(null),
       listConversations: vi.fn().mockResolvedValue([]),
-      ingestDocument: vi.fn().mockResolvedValue({ document: mockDocument, version: mockVersion, chunkCount: 1 }),
+      ingestDocument: vi
+        .fn()
+        .mockResolvedValue({ document: mockDocument, version: mockVersion, chunkCount: 1 }),
       listDocuments: vi.fn().mockResolvedValue([mockDocument]),
       deleteDocument: vi.fn().mockResolvedValue(undefined),
-      queryRag: vi.fn().mockResolvedValue({ groundedContext: '', chunks: [], documentsUsed: [], queryEmbeddingGenerated: true }),
+      queryRag: vi.fn().mockResolvedValue({
+        groundedContext: '',
+        chunks: [],
+        documentsUsed: [],
+        queryEmbeddingGenerated: true,
+      }),
     };
 
     const client = new HttpAiClient(baseUrl, {

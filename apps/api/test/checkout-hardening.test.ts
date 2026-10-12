@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 
 const TOKEN_SECRET = 'super-secret-key-at-least-16-chars';
@@ -85,11 +89,29 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${alphaToken}` },
-      payload: { businessName: 'Alpha LLC', legalName: 'Alpha Legal', contactEmail: 'alpha@biz.com' },
+      payload: {
+        businessName: 'Alpha LLC',
+        legalName: 'Alpha Legal',
+        contactEmail: 'alpha@biz.com',
+      },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${alphaToken}` } });
-    const profA = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${alphaToken}` } })).json();
-    await app.inject({ method: 'POST', url: `/merchants/${profA.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${alphaToken}` },
+    });
+    const profA = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${alphaToken}` },
+      })
+    ).json();
+    await app.inject({
+      method: 'POST',
+      url: `/merchants/${profA.tenantId}/approve`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
 
     // 3. Merchant Beta
     const betaToken = await registerVerifiedUser(app, db, {
@@ -105,9 +127,23 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
       headers: { authorization: `Bearer ${betaToken}` },
       payload: { businessName: 'Beta LLC', legalName: 'Beta Legal', contactEmail: 'beta@biz.com' },
     });
-    await app.inject({ method: 'POST', url: '/merchants/me/submit', headers: { authorization: `Bearer ${betaToken}` } });
-    const profB = (await app.inject({ method: 'GET', url: '/merchants/me', headers: { authorization: `Bearer ${betaToken}` } })).json();
-    await app.inject({ method: 'POST', url: `/merchants/${profB.tenantId}/approve`, headers: { authorization: `Bearer ${adminToken}` } });
+    await app.inject({
+      method: 'POST',
+      url: '/merchants/me/submit',
+      headers: { authorization: `Bearer ${betaToken}` },
+    });
+    const profB = (
+      await app.inject({
+        method: 'GET',
+        url: '/merchants/me',
+        headers: { authorization: `Bearer ${betaToken}` },
+      })
+    ).json();
+    await app.inject({
+      method: 'POST',
+      url: `/merchants/${profB.tenantId}/approve`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
 
     // 4. Catalog: Category, Products, SKUs
     const cat = (
@@ -127,7 +163,12 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
         payload: { title: 'Smartphone Pro', slug: 'smartphone-pro', categoryId: cat.id },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/products/${prodA.id}/status`, headers: { authorization: `Bearer ${adminToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/products/${prodA.id}/status`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     const skuA = (
       await app.inject({
@@ -137,7 +178,12 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
         payload: { skuCode: 'SP-PRO-128' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/skus/${skuA.id}/status`, headers: { authorization: `Bearer ${adminToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/skus/${skuA.id}/status`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     const prodB = (
       await app.inject({
@@ -147,7 +193,12 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
         payload: { title: 'Wireless Headphones', slug: 'wireless-headphones', categoryId: cat.id },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/products/${prodB.id}/status`, headers: { authorization: `Bearer ${adminToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/products/${prodB.id}/status`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     const skuB = (
       await app.inject({
@@ -157,7 +208,12 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
         payload: { skuCode: 'WH-BT-500' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/skus/${skuB.id}/status`, headers: { authorization: `Bearer ${adminToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/skus/${skuB.id}/status`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     // 5. Listings
     // Listing Alpha: ₹80,000 (8000000 minor units)
@@ -169,7 +225,12 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
         payload: { skuId: skuA.id, priceAmount: 8000000, currency: 'INR' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/listings/${listA.id}/status`, headers: { authorization: `Bearer ${alphaToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/listings/${listA.id}/status`,
+      headers: { authorization: `Bearer ${alphaToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     // Listing Beta: ₹15,000 (1500000 minor units)
     const listB = (
@@ -180,7 +241,12 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
         payload: { skuId: skuB.id, priceAmount: 1500000, currency: 'INR' },
       })
     ).json();
-    await app.inject({ method: 'POST', url: `/listings/${listB.id}/status`, headers: { authorization: `Bearer ${betaToken}` }, payload: { status: 'ACTIVE' } });
+    await app.inject({
+      method: 'POST',
+      url: `/listings/${listB.id}/status`,
+      headers: { authorization: `Bearer ${betaToken}` },
+      payload: { status: 'ACTIVE' },
+    });
 
     // 6. Inventory: 10 on-hand each
     const invA = (
@@ -1011,7 +1077,9 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
       });
 
       expect(res2.statusCode).toBe(422);
-      expect(res2.json().error.message).toContain('Idempotency key reuse detected with different cart contents');
+      expect(res2.json().error.message).toContain(
+        'Idempotency key reuse detected with different cart contents',
+      );
     });
 
     it('allows different customers to independently use the same idempotency key', async () => {
@@ -1406,7 +1474,9 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
       });
       expect(res2.statusCode).toBe(200);
       expect(res2.json().status).toBe('READY');
-      expect(res2.json().items[0].inventoryReservationId).toBe(res1.json().items[0].inventoryReservationId);
+      expect(res2.json().items[0].inventoryReservationId).toBe(
+        res1.json().items[0].inventoryReservationId,
+      );
 
       // Retry 3
       const res3 = await app.inject({
@@ -1469,7 +1539,9 @@ describe('Phase 5 Hardening: Cart & Checkout Transactional / Concurrency Verific
       expect(retry2.statusCode).toBe(200);
       expect(retry1.json().status).toBe('READY');
       expect(retry2.json().status).toBe('READY');
-      expect(retry1.json().items[0].inventoryReservationId).toBe(retry2.json().items[0].inventoryReservationId);
+      expect(retry1.json().items[0].inventoryReservationId).toBe(
+        retry2.json().items[0].inventoryReservationId,
+      );
 
       const inv = (
         await app.inject({

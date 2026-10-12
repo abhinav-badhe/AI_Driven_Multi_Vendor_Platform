@@ -1,16 +1,30 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Tag, Plus, CheckCircle, XCircle, RefreshCw, AlertCircle, TrendingUp, DollarSign } from "lucide-react";
-import { promotionsApi, type PromotionDto, type CreatePromotionPayload, type PromotionAnalyticsDto } from "./api/promotions";
-import { Button } from "../../components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { Input, Label } from "../../components/ui/input";
-import { formatPrice } from "../../lib/format";
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Tag,
+  Plus,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  AlertCircle,
+  TrendingUp,
+  DollarSign,
+} from 'lucide-react';
+import {
+  promotionsApi,
+  type PromotionDto,
+  type CreatePromotionPayload,
+  type PromotionAnalyticsDto,
+} from './api/promotions';
+import { Button } from '../../components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { Input, Label } from '../../components/ui/input';
+import { formatPrice } from '../../lib/format';
 
 interface PromotionManagementProps {
-  role: "MERCHANT" | "ADMINISTRATOR";
+  role: 'MERCHANT' | 'ADMINISTRATOR';
   tenantId?: string;
 }
 
@@ -25,19 +39,19 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
 
   // Form State
   const [formData, setFormData] = useState<CreatePromotionPayload>({
-    name: "",
-    description: "",
-    code: "",
-    discountType: "PERCENTAGE",
+    name: '',
+    description: '',
+    code: '',
+    discountType: 'PERCENTAGE',
     discountValue: 10,
-    currency: "USD",
-    scope: "ORDER",
+    currency: 'USD',
+    scope: 'ORDER',
     targetIds: [],
     minOrderAmount: 0,
     maxDiscountAmount: null,
     startsAt: new Date().toISOString().slice(0, 16),
     expiresAt: null,
-    status: "ACTIVE",
+    status: 'ACTIVE',
     usageLimitTotal: null,
     usageLimitPerCustomer: null,
     firstOrderOnly: false,
@@ -50,14 +64,16 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
     try {
       const [promos, stats] = await Promise.all([
         promotionsApi.listPromotions({
-          merchantTenantId: role === "MERCHANT" ? tenantId : undefined,
+          merchantTenantId: role === 'MERCHANT' ? tenantId : undefined,
         }),
-        promotionsApi.getPromotionAnalytics(role === "MERCHANT" ? tenantId : undefined).catch(() => null),
+        promotionsApi
+          .getPromotionAnalytics(role === 'MERCHANT' ? tenantId : undefined)
+          .catch(() => null),
       ]);
       setPromotions(promos);
       setAnalytics(stats);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load promotions");
+      setError(err instanceof Error ? err.message : 'Failed to load promotions');
     } finally {
       setIsLoading(false);
     }
@@ -68,14 +84,14 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
   }, [loadData]);
 
   const handleToggleStatus = async (promo: PromotionDto) => {
-    const nextStatus = promo.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    const nextStatus = promo.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     try {
       await promotionsApi.updatePromotion(promo.id, { status: nextStatus });
       setPromotions((prev) =>
         prev.map((p) => (p.id === promo.id ? { ...p, status: nextStatus } : p)),
       );
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to update promotion status");
+      setError(err instanceof Error ? err.message : 'Failed to update promotion status');
     }
   };
 
@@ -86,13 +102,15 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
     try {
       const payload: CreatePromotionPayload = {
         ...formData,
-        merchantTenantId: role === "MERCHANT" ? tenantId : undefined,
+        merchantTenantId: role === 'MERCHANT' ? tenantId : undefined,
         code: formData.code?.trim() ? formData.code.trim().toUpperCase() : undefined,
         discountValue: Number(formData.discountValue),
         minOrderAmount: Number(formData.minOrderAmount) || 0,
         maxDiscountAmount: formData.maxDiscountAmount ? Number(formData.maxDiscountAmount) : null,
         usageLimitTotal: formData.usageLimitTotal ? Number(formData.usageLimitTotal) : null,
-        usageLimitPerCustomer: formData.usageLimitPerCustomer ? Number(formData.usageLimitPerCustomer) : null,
+        usageLimitPerCustomer: formData.usageLimitPerCustomer
+          ? Number(formData.usageLimitPerCustomer)
+          : null,
         expiresAt: formData.expiresAt ? new Date(formData.expiresAt).toISOString() : null,
         startsAt: new Date(formData.startsAt).toISOString(),
       };
@@ -102,26 +120,26 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
       setShowCreateModal(false);
       // Reset form
       setFormData({
-        name: "",
-        description: "",
-        code: "",
-        discountType: "PERCENTAGE",
+        name: '',
+        description: '',
+        code: '',
+        discountType: 'PERCENTAGE',
         discountValue: 10,
-        currency: "USD",
-        scope: "ORDER",
+        currency: 'USD',
+        scope: 'ORDER',
         targetIds: [],
         minOrderAmount: 0,
         maxDiscountAmount: null,
         startsAt: new Date().toISOString().slice(0, 16),
         expiresAt: null,
-        status: "ACTIVE",
+        status: 'ACTIVE',
         usageLimitTotal: null,
         usageLimitPerCustomer: null,
         firstOrderOnly: false,
         stackable: false,
       });
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to create promotion");
+      setFormError(err instanceof Error ? err.message : 'Failed to create promotion');
     } finally {
       setIsSubmitting(false);
     }
@@ -131,14 +149,16 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Promotions & Coupons ({promotions.length})</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Promotions & Coupons ({promotions.length})
+          </h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
             Manage promotional campaigns, coupon codes, discount scopes, and eligibility rules.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={loadData} disabled={isLoading}>
-            <RefreshCw className={`mr-2 size-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`mr-2 size-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button size="sm" onClick={() => setShowCreateModal(true)}>
@@ -179,7 +199,9 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
               </div>
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Total Discount Given</p>
-                <p className="text-2xl font-bold">{formatPrice(analytics.totalDiscountAmount, "USD", 2)}</p>
+                <p className="text-2xl font-bold">
+                  {formatPrice(analytics.totalDiscountAmount, 'USD', 2)}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -190,7 +212,9 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
               </div>
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Attributed Sales</p>
-                <p className="text-2xl font-bold">{formatPrice(analytics.promotionAttributedSales, "USD", 2)}</p>
+                <p className="text-2xl font-bold">
+                  {formatPrice(analytics.promotionAttributedSales, 'USD', 2)}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -252,7 +276,7 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                         )}
                       </td>
                       <td className="px-4 py-3 font-medium">
-                        {promo.discountType === "PERCENTAGE"
+                        {promo.discountType === 'PERCENTAGE'
                           ? `${promo.discountValue}% OFF`
                           : `${formatPrice(promo.discountValue, promo.currency, 2)} OFF`}
                         {promo.maxDiscountAmount && (
@@ -268,16 +292,16 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                       </td>
                       <td className="px-4 py-3 text-xs">
                         <span className="font-medium">{promo.currentUsageCount}</span>
-                        {promo.usageLimitTotal !== null ? ` / ${promo.usageLimitTotal}` : " uses"}
+                        {promo.usageLimitTotal !== null ? ` / ${promo.usageLimitTotal}` : ' uses'}
                       </td>
                       <td className="px-4 py-3">
                         <Badge
                           variant={
-                            promo.status === "ACTIVE"
-                              ? "success"
-                              : promo.status === "INACTIVE"
-                              ? "warning"
-                              : "outline"
+                            promo.status === 'ACTIVE'
+                              ? 'success'
+                              : promo.status === 'INACTIVE'
+                                ? 'warning'
+                                : 'outline'
                           }
                         >
                           {promo.status}
@@ -290,7 +314,7 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                           onClick={() => handleToggleStatus(promo)}
                           className="h-8 px-2"
                         >
-                          {promo.status === "ACTIVE" ? (
+                          {promo.status === 'ACTIVE' ? (
                             <span className="flex items-center text-xs text-destructive">
                               <XCircle className="mr-1 size-3.5" /> Deactivate
                             </span>
@@ -347,7 +371,7 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                 <Input
                   id="promo-desc"
                   placeholder="e.g. 20% off all summer apparel"
-                  value={formData.description ?? ""}
+                  value={formData.description ?? ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
@@ -358,10 +382,14 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                   <Input
                     id="promo-code"
                     placeholder="e.g. SUMMER20"
-                    value={formData.code ?? ""}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                    value={formData.code ?? ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, code: e.target.value.toUpperCase() })
+                    }
                   />
-                  <span className="text-[11px] text-muted-foreground">Leave empty for automatic discount</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Leave empty for automatic discount
+                  </span>
                 </div>
                 <div>
                   <Label htmlFor="promo-scope">Discount Scope</Label>
@@ -370,7 +398,10 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                     value={formData.scope}
                     onChange={(e) =>
-                      setFormData({ ...formData, scope: e.target.value as "ORDER" | "PRODUCT" | "CATEGORY" })
+                      setFormData({
+                        ...formData,
+                        scope: e.target.value as 'ORDER' | 'PRODUCT' | 'CATEGORY',
+                      })
                     }
                   >
                     <option value="ORDER">Entire Order</option>
@@ -390,7 +421,7 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        discountType: e.target.value as "PERCENTAGE" | "FIXED_AMOUNT",
+                        discountType: e.target.value as 'PERCENTAGE' | 'FIXED_AMOUNT',
                       })
                     }
                   >
@@ -400,16 +431,20 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                 </div>
                 <div>
                   <Label htmlFor="promo-value">
-                    {formData.discountType === "PERCENTAGE" ? "Percentage Value (1-100%)" : "Amount (minor units / cents)"}
+                    {formData.discountType === 'PERCENTAGE'
+                      ? 'Percentage Value (1-100%)'
+                      : 'Amount (minor units / cents)'}
                   </Label>
                   <Input
                     id="promo-value"
                     type="number"
                     min="1"
-                    max={formData.discountType === "PERCENTAGE" ? "100" : undefined}
+                    max={formData.discountType === 'PERCENTAGE' ? '100' : undefined}
                     required
                     value={formData.discountValue}
-                    onChange={(e) => setFormData({ ...formData, discountValue: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, discountValue: Number(e.target.value) })
+                    }
                   />
                 </div>
               </div>
@@ -422,7 +457,9 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                     type="number"
                     min="0"
                     value={formData.minOrderAmount}
-                    onChange={(e) => setFormData({ ...formData, minOrderAmount: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, minOrderAmount: Number(e.target.value) })
+                    }
                   />
                 </div>
                 <div>
@@ -432,7 +469,7 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                     type="number"
                     min="1"
                     placeholder="e.g. 5000 for $50 cap"
-                    value={formData.maxDiscountAmount ?? ""}
+                    value={formData.maxDiscountAmount ?? ''}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
@@ -459,7 +496,7 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                   <Input
                     id="promo-expires"
                     type="datetime-local"
-                    value={formData.expiresAt ?? ""}
+                    value={formData.expiresAt ?? ''}
                     onChange={(e) =>
                       setFormData({ ...formData, expiresAt: e.target.value || null })
                     }
@@ -475,7 +512,7 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                     type="number"
                     min="1"
                     placeholder="Unlimited"
-                    value={formData.usageLimitTotal ?? ""}
+                    value={formData.usageLimitTotal ?? ''}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
@@ -491,7 +528,7 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                     type="number"
                     min="1"
                     placeholder="Unlimited"
-                    value={formData.usageLimitPerCustomer ?? ""}
+                    value={formData.usageLimitPerCustomer ?? ''}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
@@ -533,7 +570,7 @@ export const PromotionManagement: React.FC<PromotionManagementProps> = ({ role, 
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Creating…" : "Save Promotion"}
+                  {isSubmitting ? 'Creating…' : 'Save Promotion'}
                 </Button>
               </div>
             </form>

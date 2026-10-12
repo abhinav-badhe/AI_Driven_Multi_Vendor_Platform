@@ -104,10 +104,7 @@ export interface AnalyticsModule {
     service: AnalyticsService,
   ): AnalyticsEventConsumer;
   createInMemoryReader(): InMemoryAnalyticsReader;
-  createHttpClient(
-    serviceUrl: string,
-    options?: HttpAnalyticsClientOptions,
-  ): HttpAnalyticsClient;
+  createHttpClient(serviceUrl: string, options?: HttpAnalyticsClientOptions): HttpAnalyticsClient;
 }
 
 export const analyticsModule: AnalyticsModule = {
@@ -138,10 +135,7 @@ export const analyticsModule: AnalyticsModule = {
   createInMemoryReader(): InMemoryAnalyticsReader {
     return new InMemoryAnalyticsReader();
   },
-  createHttpClient(
-    serviceUrl: string,
-    options?: HttpAnalyticsClientOptions,
-  ): HttpAnalyticsClient {
+  createHttpClient(serviceUrl: string, options?: HttpAnalyticsClientOptions): HttpAnalyticsClient {
     return new HttpAnalyticsClient(serviceUrl, options);
   },
 };

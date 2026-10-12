@@ -144,7 +144,12 @@ export class HttpMerchantClient implements IMerchantService {
 
   async submitForVerification(actor: AuthorizedActor): Promise<MerchantProfileDto> {
     try {
-      return await this.request<MerchantProfileDto>('/merchants/me/submit', 'POST', undefined, actor);
+      return await this.request<MerchantProfileDto>(
+        '/merchants/me/submit',
+        'POST',
+        undefined,
+        actor,
+      );
     } catch (err) {
       if (
         err instanceof NotFoundError ||
@@ -280,7 +285,7 @@ export class HttpMerchantClient implements IMerchantService {
       if (response.status === 400) {
         let msg = 'Bad request';
         try {
-          const json = await response.json() as { message?: string };
+          const json = (await response.json()) as { message?: string };
           if (json.message) msg = json.message;
         } catch {
           // ignore
@@ -290,7 +295,7 @@ export class HttpMerchantClient implements IMerchantService {
       if (response.status === 403) {
         let msg = 'Forbidden';
         try {
-          const json = await response.json() as { message?: string };
+          const json = (await response.json()) as { message?: string };
           if (json.message) msg = json.message;
         } catch {
           // ignore
@@ -300,7 +305,7 @@ export class HttpMerchantClient implements IMerchantService {
       if (response.status === 409) {
         let msg = 'Conflict';
         try {
-          const json = await response.json() as { message?: string };
+          const json = (await response.json()) as { message?: string };
           if (json.message) msg = json.message;
         } catch {
           // ignore

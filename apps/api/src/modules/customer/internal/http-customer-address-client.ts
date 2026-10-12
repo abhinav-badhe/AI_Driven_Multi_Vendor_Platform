@@ -116,7 +116,7 @@ export class HttpCustomerAddressClient implements ICustomerAddressReader {
       const response = await this.fetchFn(`${this.baseUrl}${path}`, {
         method: 'GET',
         headers: {
-          'accept': 'application/json',
+          accept: 'application/json',
           'x-user-id': actor.userId,
           'x-tenant-id': actor.tenantId,
           'x-user-role': actor.role,

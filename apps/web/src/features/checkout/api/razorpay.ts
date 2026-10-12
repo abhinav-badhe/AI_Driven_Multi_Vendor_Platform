@@ -25,13 +25,15 @@ export interface RazorpayOptions {
 
 declare global {
   interface Window {
-    Razorpay?: new (options: RazorpayOptions & {
-      handler: (response: RazorpaySuccessResponse) => void;
-      modal?: {
-        ondismiss?: () => void;
-        escape?: boolean;
-      };
-    }) => {
+    Razorpay?: new (
+      options: RazorpayOptions & {
+        handler: (response: RazorpaySuccessResponse) => void;
+        modal?: {
+          ondismiss?: () => void;
+          escape?: boolean;
+        };
+      },
+    ) => {
       open: () => void;
       on: (event: string, callback: (err: unknown) => void) => void;
     };
@@ -46,7 +48,9 @@ export async function loadRazorpayScript(): Promise<boolean> {
   if (window.Razorpay) return true;
 
   return new Promise((resolve) => {
-    const existing = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    const existing = document.querySelector(
+      'script[src="https://checkout.razorpay.com/v1/checkout.js"]',
+    );
     if (existing) {
       existing.addEventListener('load', () => resolve(true));
       existing.addEventListener('error', () => resolve(false));
@@ -69,7 +73,9 @@ export async function loadRazorpayScript(): Promise<boolean> {
  * Opens Razorpay standard checkout popup.
  * Resolves with payment verification payload upon customer payment success.
  */
-export async function initiateRazorpayPayment(options: RazorpayOptions): Promise<RazorpaySuccessResponse> {
+export async function initiateRazorpayPayment(
+  options: RazorpayOptions,
+): Promise<RazorpaySuccessResponse> {
   const loaded = await loadRazorpayScript();
 
   if (!loaded || !window.Razorpay) {

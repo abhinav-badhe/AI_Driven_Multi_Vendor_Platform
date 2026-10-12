@@ -4,7 +4,9 @@ import { HmacTokenService, type TokenService } from './token-service.js';
 export interface IIdentityActorResolver {
   resolveActiveActor(token: string): Promise<AuthorizedActor | null>;
   verifyAccessToken(token: string): AuthorizedActor | null;
-  resolveFromHeaders?(headers: Record<string, string | string[] | undefined>): AuthorizedActor | null;
+  resolveFromHeaders?(
+    headers: Record<string, string | string[] | undefined>,
+  ): AuthorizedActor | null;
 }
 
 /**
@@ -55,7 +57,9 @@ export class StatelessTokenActorResolver implements IIdentityActorResolver {
 export class GatewayHeaderActorResolver implements IIdentityActorResolver {
   constructor(private readonly fallbackResolver?: IIdentityActorResolver) {}
 
-  resolveFromHeaders(headers: Record<string, string | string[] | undefined>): AuthorizedActor | null {
+  resolveFromHeaders(
+    headers: Record<string, string | string[] | undefined>,
+  ): AuthorizedActor | null {
     const rawUserId = headers['x-user-id'];
     const rawTenantId = headers['x-tenant-id'];
     const rawRole = headers['x-user-role'];

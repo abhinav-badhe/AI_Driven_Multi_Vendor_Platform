@@ -46,7 +46,16 @@ function mockApi() {
     if (url.includes('/auth/refresh')) return ok({ accessToken: 'tok' });
     if (url.includes('/auth/me')) return ok(MERCHANT_ME);
     if (url.includes('/analytics/sales'))
-      return ok({ currency: 'USD', totals: { totalOrders: 2, grossSales: '1609.9800', netSales: '1609.9800', averageOrderValue: '804.9900' }, trends: [] });
+      return ok({
+        currency: 'USD',
+        totals: {
+          totalOrders: 2,
+          grossSales: '1609.9800',
+          netSales: '1609.9800',
+          averageOrderValue: '804.9900',
+        },
+        trends: [],
+      });
     if (url.includes('/analytics/products')) return ok({ products: [] });
     if (url.includes('/analytics/operations'))
       return ok({
@@ -96,7 +105,9 @@ describe('Analytics dashboard — Models tab crash guard', () => {
     await waitFor(() => expect(screen.getByText('Train a model')).toBeDefined());
 
     // Model row renders (string rmse coerced, no .toFixed crash).
-    await waitFor(() => expect(screen.getAllByText('DEMAND_FORECASTING').length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(screen.getAllByText('DEMAND_FORECASTING').length).toBeGreaterThan(0),
+    );
     expect(screen.getByText(/RMSE 30\.611/)).toBeDefined();
     expect(screen.getAllByText('BOOTSTRAP').length).toBeGreaterThan(0);
 

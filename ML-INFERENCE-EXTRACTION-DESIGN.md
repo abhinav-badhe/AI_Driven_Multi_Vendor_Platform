@@ -12,6 +12,7 @@
 This document specifies the target extraction design for decoupling Machine Learning (ML) inference from the monolith into an autonomous, stateless, high-throughput microservice (`apps/ml-service`).
 
 ### Core Architectural Findings from Code Inspection
+
 1. **Asynchronous Batch Scoring Architecture:** In the current implementation, real-time customer and merchant HTTP queries (`GET /ml/predictions/*`) **never trigger synchronous Python execution**. The system already operates an asynchronous batch scoring + persistent read-cache pattern:
    - When a model is approved or refreshed, [`MlService.generatePredictions()`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L500) scores active entities via [`predict.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/predict.py) and writes results to the PostgreSQL `ml_predictions` table.
    - User and assistant queries read exclusively from `ml_predictions` (or memory cache) in sub-millisecond database queries.
@@ -28,7 +29,7 @@ This document specifies the target extraction design for decoupling Machine Lear
 ### End-to-End Sequence Diagram (Current Monolith)
 
 ```text
-[HTTP Caller / Cron] 
+[HTTP Caller / Cron]
        │
        ▼ (1. trigger: e.g. post-training or admin refresh)
 MlService.generatePredictions(tenantId, modelType)
@@ -79,6 +80,7 @@ DerivedPredictionRecord[] ──► SqlMlStore.savePredictions() ──► INSER
 ## 3. Prediction Flow by Use Case
 
 ### 1. Demand Forecasting (`DEMAND_FORECASTING`)
+
 - **Caller:** Triggered automatically in `MlService.executeJob()` upon model approval, or via direct administrative call to `generatePredictions(tenantId, 'DEMAND_FORECASTING')`.
 - **Method:** [`MlService.generatePredictions()`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L509-L534).
 - **Feature Extraction Location:** In TypeScript in `ml-service.ts#L510-L534`, calling `IAnalyticsMlFeatureReader.getProductDailyDemandHistory(tenantId, 60)`.
@@ -97,6 +99,7 @@ DerivedPredictionRecord[] ──► SqlMlStore.savePredictions() ──► INSER
 - **Read APIs:** `GET /ml/predictions/demand/:productId`, AI tool `get_demand_forecast`.
 
 ### 2. Stockout Risk (`STOCKOUT_RISK`)
+
 - **Caller:** `MlService.generatePredictions(tenantId, 'STOCKOUT_RISK')`.
 - **Method:** [`MlService.generatePredictions()`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L535-L551).
 - **Feature Extraction Location:** TypeScript in `ml-service.ts#L536-L551`, calling `IAnalyticsMlFeatureReader.getInventoryVelocitySignals(tenantId)`.
@@ -108,6 +111,7 @@ DerivedPredictionRecord[] ──► SqlMlStore.savePredictions() ──► INSER
 - **Read APIs:** `GET /ml/predictions/stockout/:sku`, AI tool `get_stockout_risk`.
 
 ### 3. Customer Purchase Propensity (`PURCHASE_PROPENSITY`)
+
 - **Caller:** `MlService.generatePredictions(tenantId, 'PURCHASE_PROPENSITY')`.
 - **Method:** [`MlService.generatePredictions()`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L552-L567).
 - **Feature Extraction Location:** TypeScript in `ml-service.ts#L553-L567`, calling `IAnalyticsMlFeatureReader.getCustomerActivitySignals(tenantId)`.
@@ -119,6 +123,7 @@ DerivedPredictionRecord[] ──► SqlMlStore.savePredictions() ──► INSER
 - **Read APIs:** `GET /ml/predictions/propensity/:customerId`.
 
 ### 4. Order Anomaly Detection (`ANOMALY_DETECTION`)
+
 - **Caller:** `MlService.generatePredictions(tenantId, 'ANOMALY_DETECTION')`.
 - **Method:** [`MlService.generatePredictions()`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L568-L585).
 - **Feature Extraction Location:** TypeScript in `ml-service.ts#L569-L585`, calling `IAnalyticsMlFeatureReader.getOrderAnomalySignals(tenantId)`.
@@ -136,6 +141,7 @@ DerivedPredictionRecord[] ──► SqlMlStore.savePredictions() ──► INSER
 The standalone inference service must preserve the exact input and output JSON shapes established in [`ml/predict.py`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/predict.py).
 
 ### Request Payload Schema
+
 ```json
 {
   "modelType": "DEMAND_FORECASTING | STOCKOUT_RISK | PURCHASE_PROPENSITY | ANOMALY_DETECTION",
@@ -150,6 +156,7 @@ The standalone inference service must preserve the exact input and output JSON s
 ```
 
 #### Field Specifications:
+
 - `modelType` (string, required): Used by `predict.py` to route between `.predict()` (continuous regression) and `.predict_proba()` (binary classification probability).
 - `artifactPath` (string, required): Path to model binary. In the future standalone service, this transitions to an artifact version/URI identifier (`s3://...` or `model-id:version`).
 - `features` (array of objects, optional/nullable):
@@ -158,13 +165,14 @@ The standalone inference service must preserve the exact input and output JSON s
   - `featureVector` (array of numbers): Dense numerical vector matching the model's expected dimension.
 
 ### Response Payload Schema
+
 ```json
 {
   "success": true,
   "predictions": [
     {
       "entityId": "prod-101",
-      "predictionValue": 84.50,
+      "predictionValue": 84.5,
       "probability": null,
       "confidence": 0.85
     },
@@ -179,6 +187,7 @@ The standalone inference service must preserve the exact input and output JSON s
 ```
 
 #### Error Response Payload Schema
+
 ```json
 {
   "success": false,
@@ -192,15 +201,17 @@ The standalone inference service must preserve the exact input and output JSON s
 
 A critical architectural liability identified during code inspection is the **feature calculation divergence** between training and prediction:
 
-| Use Case | Training Feature Extraction | Prediction Feature Extraction | Input Data Source | Language / Runtime | Duplication & Drift Risk |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Demand Forecasting** | [`ml/data/features.py#L12`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L12) | [`ml-service.ts#L510-L534`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L510-L534) | `analytics_order_facts` | Training: Python (Pandas)<br>Prediction: TypeScript | **HIGH RISK:** In Python training, `rolling_std_7d` is calculated dynamically (`np.std(units)`). In TypeScript prediction, Node.js hardcodes `1.5`! |
-| **Stockout Risk** | [`ml/data/features.py#L92`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L92) | [`ml-service.ts#L535-L551`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L535-L551) | `analytics_order_facts` | Training: Python<br>Prediction: TypeScript | **MEDIUM RISK:** Calculation of `runoutRate` and `daysOfSupply` is duplicated across Python and TypeScript. |
-| **Purchase Propensity**| [`ml/data/features.py#L214`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L214) | [`ml-service.ts#L552-L567`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L552-L567) | `analytics_order_facts` | Training: Python<br>Prediction: TypeScript | **LOW RISK:** Identical RFM feature formulas implemented in both languages. |
-| **Anomaly Detection** | [`ml/data/features.py#L152`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L152) | [`ml-service.ts#L568-L585`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L568-L585) | `seller_orders`, `order_items` | Training: Python<br>Prediction: TypeScript | **LOW RISK:** Identical log-transforms and timing indicators. |
+| Use Case                | Training Feature Extraction                                                                                                                        | Prediction Feature Extraction                                                                                                                                                               | Input Data Source              | Language / Runtime                                  | Duplication & Drift Risk                                                                                                                            |
+| :---------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----------------------------- | :-------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Demand Forecasting**  | [`ml/data/features.py#L12`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L12)   | [`ml-service.ts#L510-L534`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L510-L534) | `analytics_order_facts`        | Training: Python (Pandas)<br>Prediction: TypeScript | **HIGH RISK:** In Python training, `rolling_std_7d` is calculated dynamically (`np.std(units)`). In TypeScript prediction, Node.js hardcodes `1.5`! |
+| **Stockout Risk**       | [`ml/data/features.py#L92`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L92)   | [`ml-service.ts#L535-L551`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L535-L551) | `analytics_order_facts`        | Training: Python<br>Prediction: TypeScript          | **MEDIUM RISK:** Calculation of `runoutRate` and `daysOfSupply` is duplicated across Python and TypeScript.                                         |
+| **Purchase Propensity** | [`ml/data/features.py#L214`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L214) | [`ml-service.ts#L552-L567`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L552-L567) | `analytics_order_facts`        | Training: Python<br>Prediction: TypeScript          | **LOW RISK:** Identical RFM feature formulas implemented in both languages.                                                                         |
+| **Anomaly Detection**   | [`ml/data/features.py#L152`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/ml/data/features.py#L152) | [`ml-service.ts#L568-L585`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/analytics-ml/internal/ml-service.ts#L568-L585) | `seller_orders`, `order_items` | Training: Python<br>Prediction: TypeScript          | **LOW RISK:** Identical log-transforms and timing indicators.                                                                                       |
 
 ### Feature Ownership Boundary Decision
+
 For the initial extraction of `apps/ml-service`:
+
 - **Phase 1 (Non-Breaking Extraction):** Keep feature vector construction in `ml-service.ts` exactly as it exists today. The standalone inference service receives pre-extracted feature vectors (`featureVector: number[]`). This ensures **zero risk** of regression during initial service decoupling.
 - **Phase 2 (Consolidation):** Standardize canonical feature transformers in a shared Python library (`packages/ml-core`) once training is extracted.
 
@@ -209,6 +220,7 @@ For the initial extraction of `apps/ml-service`:
 ## 6. Model Loading and Artifact Dependencies
 
 ### Current Model Loading Behavior in `predict.py`
+
 1. **Input Path Dependency:** Requires an absolute or relative local disk path:
    ```python
    artifact_path = payload["artifactPath"]
@@ -225,7 +237,9 @@ For the initial extraction of `apps/ml-service`:
 5. **No Model Warmup:** Python startup latency + Scikit-learn import latency + disk I/O occurs on every invocation (~300ms–800ms overhead).
 
 ### Target Standalone Model Loading Strategy
+
 In `apps/ml-service`:
+
 - **LRU / TTL In-Memory Model Cache:** Pre-load active models into memory. Deserialization happens once on startup or upon cache miss, reducing inference latency to $< 5\text{ms}$.
 - **Readiness Probes (`/ready`):** Ensure primary models are loaded into memory before the container accepts production traffic.
 - **Atomic Cache Invalidation:** When a new model version is promoted, a reload signal refreshes the in-memory pointer without dropping traffic.
@@ -235,6 +249,7 @@ In `apps/ml-service`:
 ## 7. Future ML Service Boundary
 
 The standalone ML inference service will be packaged as:
+
 - **Repository Location:** `apps/ml-service/`
 - **Runtime:** Python 3.11+
 - **Framework:** FastAPI + Uvicorn
@@ -242,6 +257,7 @@ The standalone ML inference service will be packaged as:
 ### Proposed Internal REST Endpoints
 
 #### 1. `POST /v1/predict` (Batch Inference)
+
 - **Method:** `POST`
 - **Headers:** `Content-Type: application/json`, `X-Correlation-Id: <uuid>`, `X-Tenant-Id: <tenantId>`
 - **Request Body:**
@@ -273,10 +289,12 @@ The standalone ML inference service will be packaged as:
   ```
 
 #### 2. `GET /health/live` & `GET /health/ready`
+
 - **Liveness:** Returns `200 OK` if the Uvicorn web server is running.
 - **Readiness:** Returns `200 OK` if active model weights are initialized and memory capacity is normal.
 
 #### 3. Operational Limits
+
 - **Timeout SLA:** 200ms maximum internal timeout (vs 30,000ms currently allowed for subprocess startup).
 - **Max Request Size:** 5MB payload limit (~1,000 entities per batch).
 
@@ -331,14 +349,14 @@ export class HttpMlExecutionProvider implements IMlExecutionProvider {
 
 To guarantee that the extraction does not alter monolith behavior, the future service must replicate all current failure semantics:
 
-| Failure Scenario | Current Monolith Subprocess Behavior | Required Future Service Behavior |
-| :--- | :--- | :--- |
+| Failure Scenario                | Current Monolith Subprocess Behavior                                                                               | Required Future Service Behavior                                                                                                  |
+| :------------------------------ | :----------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
 | **Model Unavailable / Missing** | `predict.py` returns `{ success: false, error: "Artifact not found" }`. Node logs warning, returns `{ count: 0 }`. | `apps/ml-service` returns `404` or `{ success: false, error: "Model not found" }`. Node provider returns identical failure shape. |
-| **Model Artifact Corrupted** | Subprocess exits with non-zero exit code. Node traps error in `try/catch`, returns `{ count: 0 }`. | `apps/ml-service` returns `500` `{ success: false, error: "Corrupted model artifact" }`. |
-| **Service Timeout** | Process killed at 30,000ms. Node traps timeout, logs error, returns `{ count: 0 }`. | Monolith HTTP client aborts at 5,000ms. Logs timeout, returns `{ count: 0 }`. |
-| **Malformed Feature Vector** | NumPy throws `ValueError`. Python returns `{ success: false, error: "..." }`. | FastAPI validation returns `422 Unprocessable Entity` or `{ success: false }`. |
-| **Unsupported Model Type** | `predict.py` returns `{ success: false, error: "Unknown model type" }`. | Service returns `{ success: false, error: "Unknown model type" }`. |
-| **Service Crash / Outage** | Process spawn fails with `ENOENT`. Trapped safely in Node. | HTTP connection refused (`ECONNREFUSED`). Trapped safely in Node provider; commerce continues unimpeded. |
+| **Model Artifact Corrupted**    | Subprocess exits with non-zero exit code. Node traps error in `try/catch`, returns `{ count: 0 }`.                 | `apps/ml-service` returns `500` `{ success: false, error: "Corrupted model artifact" }`.                                          |
+| **Service Timeout**             | Process killed at 30,000ms. Node traps timeout, logs error, returns `{ count: 0 }`.                                | Monolith HTTP client aborts at 5,000ms. Logs timeout, returns `{ count: 0 }`.                                                     |
+| **Malformed Feature Vector**    | NumPy throws `ValueError`. Python returns `{ success: false, error: "..." }`.                                      | FastAPI validation returns `422 Unprocessable Entity` or `{ success: false }`.                                                    |
+| **Unsupported Model Type**      | `predict.py` returns `{ success: false, error: "Unknown model type" }`.                                            | Service returns `{ success: false, error: "Unknown model type" }`.                                                                |
+| **Service Crash / Outage**      | Process spawn fails with `ENOENT`. Trapped safely in Node.                                                         | HTTP connection refused (`ECONNREFUSED`). Trapped safely in Node provider; commerce continues unimpeded.                          |
 
 ---
 
@@ -358,6 +376,7 @@ The standalone ML inference service is strictly an **internal, non-public micros
 The code separation across repositories and build artifacts:
 
 ### A. Inference Runtime Files (`apps/ml-service/`)
+
 - `apps/ml-service/src/main.py` (FastAPI app & lifecycle hooks)
 - `apps/ml-service/src/routes/predict.py`
 - `apps/ml-service/src/model_cache.py` (In-memory model manager)
@@ -365,22 +384,26 @@ The code separation across repositories and build artifacts:
 - `apps/ml-service/requirements.txt` (`fastapi`, `uvicorn`, `scikit-learn`, `numpy`, `joblib`, `boto3`)
 
 ### B. Training-Only Files (`jobs/ml-training/`)
+
 - `jobs/ml-training/src/trainer.py`
 - `jobs/ml-training/src/data/bootstrap.py` (Synthetic cold-start generator)
 - `jobs/ml-training/requirements.txt` (Adds `pandas`)
 
 ### C. Shared Model Definitions (`packages/ml-core/`)
+
 - `ml/models/demand_forecaster.py`
 - `ml/models/stockout_predictor.py`
 - `ml/models/propensity_predictor.py`
 - `ml/models/anomaly_detector.py`
 
 ### D. Files Retained in Monolith (`apps/api/`)
+
 - `apps/api/src/modules/analytics-ml/internal/ml-service.ts` (Orchestrator & persistence manager)
 - `apps/api/src/infra/ml/sql-ml-store.ts` (PostgreSQL table repository)
 - `apps/api/src/http/ml-routes.ts` (Customer and admin HTTP endpoints)
 
 ### E. Files to be Deprecated Post-Extraction
+
 - `apps/api/src/modules/analytics-ml/internal/python-runner.ts` (Replaced by `HttpMlExecutionProvider`)
 - Root-level `/ml/predict.py`
 
@@ -389,10 +412,12 @@ The code separation across repositories and build artifacts:
 ## 12. Artifact Migration Boundary
 
 ### Current State
+
 - Model binaries stored locally in `/.ml_artifacts/<tenantId>_<MODEL_TYPE>_<version>.joblib`.
 - Database table `ml_models.artifact_path` stores local absolute/relative disk paths.
 
 ### Target State
+
 - Model binaries published by training jobs to centralized Object Storage:
   `s3://commerce-ml-registry/models/<tenantId>/<modelType>/<version>.joblib`
 - `ml_models.artifact_path` updated to store S3 URIs or immutable artifact IDs.
@@ -417,12 +442,15 @@ The architecture supports a zero-downtime, fully reversible cutover strategy:
 ```
 
 ### Dynamic Provider Selection
+
 In `analyticsMlModule.createService()`:
+
 ```typescript
 const provider = process.env.ML_SERVICE_URL
   ? new HttpMlExecutionProvider(process.env.ML_SERVICE_URL)
   : new LocalPythonMlExecutionProvider(new PythonRunner(logger));
 ```
+
 - If `ML_SERVICE_URL` is omitted, the system defaults to the existing local Python runner.
 - If the standalone service experiences an issue during rollout, unsetting `ML_SERVICE_URL` instantly reverts execution back to the monolith without a code deployment.
 
@@ -465,10 +493,10 @@ STEP 6: Deprecate Legacy Monolith Python Runner
    - HTTP internal network hop will take 2ms–10ms, representing a **30x–50x latency improvement**.
 2. **Batch Request Sizing:**
    - High-entity batches (e.g. 5,000 products in catalog) could cause HTTP request payload timeouts.
-   - *Mitigation:* Chunk feature vectors in batches of 500 entities in `HttpMlExecutionProvider`.
+   - _Mitigation:_ Chunk feature vectors in batches of 500 entities in `HttpMlExecutionProvider`.
 3. **Artifact Availability during Transition:**
    - If `apps/ml-service` runs in Docker/Kubernetes while models are still on local developer disk, the container cannot read developer disk files.
-   - *Requirement:* S3 object storage integration or a shared volume must precede deploying `apps/ml-service` to multi-node clusters.
+   - _Requirement:_ S3 object storage integration or a shared volume must precede deploying `apps/ml-service` to multi-node clusters.
 
 ---
 

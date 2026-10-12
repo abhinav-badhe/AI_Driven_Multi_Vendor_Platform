@@ -70,8 +70,8 @@ export class ResendEmailProvider implements EmailChannelProvider {
       if (isSandboxRestriction || isTestingEmailRestriction) {
         console.warn(
           `[Resend Sandbox Warning] Resend rejected email to <${to}> (${res.status}): ${detail.trim()}.\n` +
-          `[Captured Email Content] Subject: "${subject}"\nBody:\n${body}\n` +
-          `[Action Required] To send live emails to all addresses, verify your domain at https://resend.com/domains and set EMAIL_FROM in .env`
+            `[Captured Email Content] Subject: "${subject}"\nBody:\n${body}\n` +
+            `[Action Required] To send live emails to all addresses, verify your domain at https://resend.com/domains and set EMAIL_FROM in .env`,
         );
         return { providerMessageId: `resend-sandbox-simulated-${Date.now()}` };
       }
@@ -119,7 +119,9 @@ export class InMemoryEmailProvider implements EmailChannelProvider {
     } else {
       this.sentEmails.push({ to, subject, body });
     }
-    return { providerMessageId: `email-${Date.now()}-${Math.random().toString(36).substring(2, 7)}` };
+    return {
+      providerMessageId: `email-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    };
   }
 }
 
@@ -195,6 +197,8 @@ export class InMemoryPushProvider implements PushChannelProvider {
     } else {
       this.sentPushes.push({ deviceToken, title, body });
     }
-    return { providerMessageId: `push-${Date.now()}-${Math.random().toString(36).substring(2, 7)}` };
+    return {
+      providerMessageId: `push-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    };
   }
 }

@@ -78,9 +78,7 @@ describe('SearchPage Frontend Integration', () => {
 
     // Verify searchApi was invoked
     await waitFor(() => {
-      expect(searchApi.search).toHaveBeenCalledWith(
-        expect.objectContaining({ q: 'iPhone' }),
-      );
+      expect(searchApi.search).toHaveBeenCalledWith(expect.objectContaining({ q: 'iPhone' }));
     });
 
     // Check product title, category, and offer count
@@ -155,9 +153,7 @@ describe('SearchPage Frontend Integration', () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(searchSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ q: 'Samsung' }),
-      );
+      expect(searchSpy).toHaveBeenCalledWith(expect.objectContaining({ q: 'Samsung' }));
     });
   });
 });

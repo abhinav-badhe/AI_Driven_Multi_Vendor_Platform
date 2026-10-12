@@ -3,7 +3,11 @@ import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/re
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ProductPage } from '../src/features/catalog/Product';
-import { catalogApi, type ProductReview, type ProductRatingSummary } from '../src/features/catalog/api/catalog';
+import {
+  catalogApi,
+  type ProductReview,
+  type ProductRatingSummary,
+} from '../src/features/catalog/api/catalog';
 
 vi.mock('../src/features/catalog/api/catalog', () => ({
   catalogApi: {
@@ -132,7 +136,7 @@ describe('Customer Product Reviews & Moderation Frontend Tests', () => {
         <Routes>
           <Route path="/product/:id" element={<ProductPage />} />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
   };
 
@@ -313,6 +317,8 @@ describe('Customer Product Reviews & Moderation Frontend Tests', () => {
     // Click Edit
     fireEvent.click(editBtn);
     expect(screen.getByTestId('write-review-form')).toBeDefined();
-    expect((screen.getByTestId('review-title-input') as HTMLInputElement).value).toBe('Very comfortable');
+    expect((screen.getByTestId('review-title-input') as HTMLInputElement).value).toBe(
+      'Very comfortable',
+    );
   });
 });

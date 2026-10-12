@@ -69,9 +69,7 @@ export class InMemoryRateLimiter implements RateLimiter {
     return async (request: FastifyRequest, _reply: FastifyReply): Promise<void> => {
       const allowed = this.check(requestKey(request));
       if (!allowed) {
-        throw new TooManyRequestsError(
-          'Too many requests. Please slow down and try again later.',
-        );
+        throw new TooManyRequestsError('Too many requests. Please slow down and try again later.');
       }
     };
   }
@@ -118,9 +116,7 @@ export class RedisRateLimiter implements RateLimiter {
     return async (request: FastifyRequest, _reply: FastifyReply): Promise<void> => {
       const allowed = await this.check(requestKey(request));
       if (!allowed) {
-        throw new TooManyRequestsError(
-          'Too many requests. Please slow down and try again later.',
-        );
+        throw new TooManyRequestsError('Too many requests. Please slow down and try again later.');
       }
     };
   }
@@ -156,9 +152,7 @@ export class CompositeRateLimiter implements RateLimiter {
     return async (request: FastifyRequest, _reply: FastifyReply): Promise<void> => {
       const allowed = await this.check(requestKey(request));
       if (!allowed) {
-        throw new TooManyRequestsError(
-          'Too many requests. Please slow down and try again later.',
-        );
+        throw new TooManyRequestsError('Too many requests. Please slow down and try again later.');
       }
     };
   }

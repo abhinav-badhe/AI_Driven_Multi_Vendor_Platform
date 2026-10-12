@@ -1,18 +1,18 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Heart, ShoppingCart, Trash2, ImageOff, CheckCircle2, Bell } from "lucide-react";
-import { wishlistApi, type WishlistItem } from "./api/wishlist";
-import { backInStockApi } from "./api/back-in-stock";
-import { useCart } from "../cart/CartContext";
-import { useAuth } from "../auth/AuthContext";
-import { Button, buttonVariants } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, TableSkeleton } from "../../components/ui/empty";
-import { Rating } from "../../components/product/display";
-import { formatPrice } from "../../lib/format";
-import { cn } from "../../lib/utils";
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Heart, ShoppingCart, Trash2, ImageOff, CheckCircle2, Bell } from 'lucide-react';
+import { wishlistApi, type WishlistItem } from './api/wishlist';
+import { backInStockApi } from './api/back-in-stock';
+import { useCart } from '../cart/CartContext';
+import { useAuth } from '../auth/AuthContext';
+import { Button, buttonVariants } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, TableSkeleton } from '../../components/ui/empty';
+import { Rating } from '../../components/product/display';
+import { formatPrice } from '../../lib/format';
+import { cn } from '../../lib/utils';
 
 export const WishlistPage = () => {
   const { refreshCart } = useCart();
@@ -23,7 +23,9 @@ export const WishlistPage = () => {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [movingProductId, setMovingProductId] = useState<string | null>(null);
   const [removingProductId, setRemovingProductId] = useState<string | null>(null);
-  const [subscribedStockProductIds, setSubscribedStockProductIds] = useState<Set<string>>(new Set());
+  const [subscribedStockProductIds, setSubscribedStockProductIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [alertingProductId, setAlertingProductId] = useState<string | null>(null);
 
   const fetchWishlist = async () => {
@@ -35,12 +37,10 @@ export const WishlistPage = () => {
         backInStockApi.getSubscriptions().catch(() => []),
       ]);
       setItems(Array.isArray(data) ? data : []);
-      const activeIds = new Set(
-        subs.filter((s) => s.status === 'ACTIVE').map((s) => s.productId),
-      );
+      const activeIds = new Set(subs.filter((s) => s.status === 'ACTIVE').map((s) => s.productId));
       setSubscribedStockProductIds(activeIds);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load wishlist");
+      setError(err instanceof Error ? err.message : 'Failed to load wishlist');
     } finally {
       setIsLoading(false);
     }
@@ -74,7 +74,7 @@ export const WishlistPage = () => {
       }
       setTimeout(() => setFeedback(null), 4000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to update stock alert");
+      setError(err instanceof Error ? err.message : 'Failed to update stock alert');
     } finally {
       setAlertingProductId(null);
     }
@@ -91,7 +91,7 @@ export const WishlistPage = () => {
       setFeedback(`"${item.product.title}" moved to your shopping cart.`);
       setTimeout(() => setFeedback(null), 4000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to move item to cart");
+      setError(err instanceof Error ? err.message : 'Failed to move item to cart');
     } finally {
       setMovingProductId(null);
     }
@@ -106,7 +106,7 @@ export const WishlistPage = () => {
       setFeedback(`"${item.product.title}" removed from your wishlist.`);
       setTimeout(() => setFeedback(null), 3000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to remove item from wishlist");
+      setError(err instanceof Error ? err.message : 'Failed to remove item from wishlist');
     } finally {
       setRemovingProductId(null);
     }
@@ -129,12 +129,15 @@ export const WishlistPage = () => {
                 <Button
                   size="sm"
                   onClick={async () => {
-                    await login({ email: "customer@example.com", password: "password123" });
+                    await login({ email: 'customer@example.com', password: 'password123' });
                   }}
                 >
                   Sign in as Demo Customer
                 </Button>
-                <Link to="/account" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                <Link
+                  to="/account"
+                  className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                >
                   Sign in
                 </Link>
               </div>
@@ -159,13 +162,13 @@ export const WishlistPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            My Wishlist ({items.length} {items.length === 1 ? "item" : "items"})
+            My Wishlist ({items.length} {items.length === 1 ? 'item' : 'items'})
           </h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Items saved for later. Move to cart anytime.
           </p>
         </div>
-        <Link to="/cart" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+        <Link to="/cart" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
           <ShoppingCart className="size-4" />
           View Cart
         </Link>
@@ -197,7 +200,7 @@ export const WishlistPage = () => {
             title="Your wishlist is empty"
             description="Explore our catalog and click 'Save to Wishlist' on products you want to keep an eye on."
             actionLabel="Browse products"
-            onAction={() => window.location.assign("/")}
+            onAction={() => window.location.assign('/')}
           />
         </div>
       ) : (
@@ -265,13 +268,13 @@ export const WishlistPage = () => {
                           <span className="text-xs text-muted-foreground">No active offers</span>
                         )}
 
-                        {item.availability.status === "IN_STOCK" && (
+                        {item.availability.status === 'IN_STOCK' && (
                           <Badge variant="success">In Stock</Badge>
                         )}
-                        {item.availability.status === "OUT_OF_STOCK" && (
+                        {item.availability.status === 'OUT_OF_STOCK' && (
                           <Badge variant="warning">Out of Stock</Badge>
                         )}
-                        {item.availability.status === "UNAVAILABLE" && (
+                        {item.availability.status === 'UNAVAILABLE' && (
                           <Badge variant="destructive">Unavailable</Badge>
                         )}
                       </div>
@@ -287,12 +290,14 @@ export const WishlistPage = () => {
                         className="gap-1.5"
                       >
                         <ShoppingCart className="size-4" />
-                        {isMoving ? "Moving…" : "Move to Cart"}
+                        {isMoving ? 'Moving…' : 'Move to Cart'}
                       </Button>
                     ) : (
                       <Button
                         size="sm"
-                        variant={subscribedStockProductIds.has(item.productId) ? "secondary" : "outline"}
+                        variant={
+                          subscribedStockProductIds.has(item.productId) ? 'secondary' : 'outline'
+                        }
                         disabled={alertingProductId === item.productId || isMoving || isRemoving}
                         onClick={() => handleToggleStockAlert(item)}
                         className="gap-1.5"
@@ -300,15 +305,16 @@ export const WishlistPage = () => {
                       >
                         <Bell
                           className={cn(
-                            "size-4",
-                            subscribedStockProductIds.has(item.productId) && "fill-primary text-primary",
+                            'size-4',
+                            subscribedStockProductIds.has(item.productId) &&
+                              'fill-primary text-primary',
                           )}
                         />
                         {alertingProductId === item.productId
-                          ? "Updating…"
+                          ? 'Updating…'
                           : subscribedStockProductIds.has(item.productId)
-                          ? "Alert Active"
-                          : "Notify Me"}
+                            ? 'Alert Active'
+                            : 'Notify Me'}
                       </Button>
                     )}
 
@@ -320,7 +326,7 @@ export const WishlistPage = () => {
                       className="text-destructive hover:text-destructive"
                     >
                       <Trash2 className="size-4" />
-                      {isRemoving ? "Removing…" : "Remove"}
+                      {isRemoving ? 'Removing…' : 'Remove'}
                     </Button>
                   </div>
                 </CardContent>

@@ -40,7 +40,7 @@ export class InMemoryCartStore implements ICartService {
   private calculateCartDto(cart: InMemoryCartRecord): CartDto {
     const itemCount = cart.items.reduce((acc, curr) => acc + curr.quantity, 0);
     const subtotalAmount = cart.items.reduce((acc, curr) => acc + curr.lineTotalAmount, 0);
-    const primaryCurrency = cart.items.length > 0 ? cart.items[0]?.currency ?? 'INR' : 'INR';
+    const primaryCurrency = cart.items.length > 0 ? (cart.items[0]?.currency ?? 'INR') : 'INR';
 
     return {
       id: cart.id,
@@ -347,10 +347,7 @@ export class InMemoryCheckoutStore implements ICheckoutService {
     return sessionDto;
   }
 
-  async getCheckoutSession(
-    actor: AuthorizedActor,
-    sessionId: string,
-  ): Promise<CheckoutSessionDto> {
+  async getCheckoutSession(actor: AuthorizedActor, sessionId: string): Promise<CheckoutSessionDto> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new NotFoundError(`Checkout session '${sessionId}' not found`);

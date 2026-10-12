@@ -56,7 +56,11 @@ export interface TotpOptions {
 /**
  * Generate a 6-digit TOTP code for a given timestamp and secret.
  */
-export function generateTotpCode(secretBase32: string, timestampMs = Date.now(), options?: TotpOptions): string {
+export function generateTotpCode(
+  secretBase32: string,
+  timestampMs = Date.now(),
+  options?: TotpOptions,
+): string {
   const step = options?.stepSeconds ?? 30;
   const digits = options?.digits ?? 6;
   const counter = Math.floor(timestampMs / 1000 / step);
@@ -127,7 +131,11 @@ export function generateTotpSecret(): string {
 /**
  * Construct standard otpauth:// URL for authenticator apps.
  */
-export function buildOtpAuthUri(secret: string, accountName: string, issuer = 'Commerce Platform'): string {
+export function buildOtpAuthUri(
+  secret: string,
+  accountName: string,
+  issuer = 'Commerce Platform',
+): string {
   const encIssuer = encodeURIComponent(issuer);
   const encAccount = encodeURIComponent(accountName);
   return `otpauth://totp/${encIssuer}:${encAccount}?secret=${secret}&issuer=${encIssuer}&algorithm=SHA1&digits=6&period=30`;
@@ -155,6 +163,9 @@ export function generateRecoveryCodes(count = 10): {
 }
 
 export function hashRecoveryCode(code: string): string {
-  const normalized = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const normalized = code
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
   return createHash('sha256').update(normalized).digest('hex');
 }

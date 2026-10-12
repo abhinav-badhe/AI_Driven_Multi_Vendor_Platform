@@ -15,7 +15,7 @@ async function start() {
   try {
     let dbConnection;
     let skipMigrations = false;
-    
+
     // Check if we're using placeholder credentials and should boot in-memory database
     if (config.postgres.password === 'placeholder_postgres_password' || !config.postgres.password) {
       logger.info('Using in-memory PostgreSQL (pg-mem) for functional verification...');
@@ -27,11 +27,11 @@ async function start() {
       skipMigrations = true;
     }
 
-    const app = await buildApp({ 
-      config, 
-      logger, 
+    const app = await buildApp({
+      config,
+      logger,
       dbConnection,
-      skipMigrations
+      skipMigrations,
     });
     await app.listen({ port: config.app.port, host: config.app.host });
     logger.info(`Server listening on http://${config.app.host}:${config.app.port}`, {

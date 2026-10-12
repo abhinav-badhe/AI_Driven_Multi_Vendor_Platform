@@ -209,7 +209,11 @@ export class OutboxRepository {
              last_error = $2,
              updated_at = NOW()
          WHERE event_id = $3`,
-        [nextAvailableAt ? nextAvailableAt.toISOString() : new Date().toISOString(), error, eventId],
+        [
+          nextAvailableAt ? nextAvailableAt.toISOString() : new Date().toISOString(),
+          error,
+          eventId,
+        ],
       );
     }
   }
@@ -233,10 +237,9 @@ export class OutboxRepository {
   }
 
   async getEventById(db: DatabaseConnection, eventId: string): Promise<OutboxEventRecord | null> {
-    const res = await db.query<RawOutboxRow>(
-      `SELECT * FROM outbox_events WHERE event_id = $1`,
-      [eventId],
-    );
+    const res = await db.query<RawOutboxRow>(`SELECT * FROM outbox_events WHERE event_id = $1`, [
+      eventId,
+    ]);
     const row = res.rows[0];
     return row ? mapRowToOutboxRecord(row) : null;
   }
@@ -308,16 +311,14 @@ export class OutboxRepository {
       status: 'PROCESSING' | 'COMPLETED' | 'SKIPPED' | 'FAILED' | 'QUARANTINED';
       error_metadata: Record<string, unknown> | string | null;
       created_at: string | Date;
-    }>(
-      `SELECT * FROM event_consumer_receipts WHERE consumer_name = $1 AND event_id = $2`,
-      [consumerName, eventId],
-    );
+    }>(`SELECT * FROM event_consumer_receipts WHERE consumer_name = $1 AND event_id = $2`, [
+      consumerName,
+      eventId,
+    ]);
     const row = res.rows[0];
     if (!row) return null;
     const errorMetadata =
-      typeof row.error_metadata === 'string'
-        ? JSON.parse(row.error_metadata)
-        : row.error_metadata;
+      typeof row.error_metadata === 'string' ? JSON.parse(row.error_metadata) : row.error_metadata;
     return {
       id: row.id,
       consumerName: row.consumer_name,
@@ -366,12 +367,7 @@ export class OutboxRepository {
            error_metadata = $2,
            processed_at = NOW()
        WHERE consumer_name = $3 AND event_id = $4`,
-      [
-        status,
-        errorMetadata ? JSON.stringify(errorMetadata) : null,
-        consumerName,
-        eventId,
-      ],
+      [status, errorMetadata ? JSON.stringify(errorMetadata) : null, consumerName, eventId],
     );
   }
 
@@ -379,14 +375,20 @@ export class OutboxRepository {
    * Resets all consumer receipts for a specific consumer, enabling clean event stream replay and projection recovery.
    */
   async clearReceiptsForConsumer(db: DatabaseConnection, consumerName: string): Promise<number> {
-    const res = await db.query(`DELETE FROM event_consumer_receipts WHERE consumer_name = $1`, [consumerName]);
+    const res = await db.query(`DELETE FROM event_consumer_receipts WHERE consumer_name = $1`, [
+      consumerName,
+    ]);
     return res.rowCount ?? 0;
   }
 
   /**
    * Clears a single consumer receipt for specific event replay.
    */
-  async deleteReceipt(db: DatabaseConnection, consumerName: string, eventId: string): Promise<boolean> {
+  async deleteReceipt(
+    db: DatabaseConnection,
+    consumerName: string,
+    eventId: string,
+  ): Promise<boolean> {
     const res = await db.query(
       `DELETE FROM event_consumer_receipts WHERE consumer_name = $1 AND event_id = $2`,
       [consumerName, eventId],
@@ -394,4 +396,3 @@ export class OutboxRepository {
     return (res.rowCount ?? 0) > 0;
   }
 }
-

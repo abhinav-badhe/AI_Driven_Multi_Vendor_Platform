@@ -46,10 +46,7 @@ export class WishlistRepository {
     return result.rows[0] ?? null;
   }
 
-  async findItemById(
-    customerId: string,
-    id: string,
-  ): Promise<WishlistItemRow | null> {
+  async findItemById(customerId: string, id: string): Promise<WishlistItemRow | null> {
     const result = await this.db.query<WishlistItemRow>(
       `SELECT id, customer_id, tenant_id, product_id, sku_id, created_at, updated_at
        FROM wishlist_items
@@ -72,10 +69,7 @@ export class WishlistRepository {
     return result.rows[0] ?? null;
   }
 
-  async removeItemById(
-    customerId: string,
-    id: string,
-  ): Promise<WishlistItemRow | null> {
+  async removeItemById(customerId: string, id: string): Promise<WishlistItemRow | null> {
     const result = await this.db.query<WishlistItemRow>(
       `DELETE FROM wishlist_items
        WHERE customer_id = $1 AND id = $2
@@ -85,10 +79,7 @@ export class WishlistRepository {
     return result.rows[0] ?? null;
   }
 
-  async listItemsByCustomer(
-    customerId: string,
-    tenantId: string,
-  ): Promise<WishlistItemRow[]> {
+  async listItemsByCustomer(customerId: string, tenantId: string): Promise<WishlistItemRow[]> {
     const result = await this.db.query<WishlistItemRow>(
       `SELECT id, customer_id, tenant_id, product_id, sku_id, created_at, updated_at
        FROM wishlist_items
@@ -152,10 +143,7 @@ export class WishlistRepository {
         id: string;
         sku_code: string;
         attributes: Record<string, unknown> | null;
-      }>(
-        `SELECT id, sku_code, attributes FROM product_skus WHERE id = $1`,
-        [item.sku_id],
-      );
+      }>(`SELECT id, sku_code, attributes FROM product_skus WHERE id = $1`, [item.sku_id]);
       if (skuResult.rows[0]) {
         skuSummary = {
           id: skuResult.rows[0].id,
@@ -228,7 +216,8 @@ export class WishlistRepository {
           merchantTenantId: bestListing.merchant_tenant_id,
           priceAmount: Number(bestListing.price_amount),
           currency: bestListing.currency,
-          compareAtPrice: bestListing.compare_at_price != null ? Number(bestListing.compare_at_price) : null,
+          compareAtPrice:
+            bestListing.compare_at_price != null ? Number(bestListing.compare_at_price) : null,
         };
 
         const availQty = Math.max(0, Number(bestListing.available_quantity ?? 0));

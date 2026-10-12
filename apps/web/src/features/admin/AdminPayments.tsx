@@ -1,18 +1,24 @@
-import { useState, useEffect, useMemo } from "react";
-import { Navigate } from "react-router-dom";
-import { CreditCard, RefreshCw, Search } from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { apiClient } from "../../api/client";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { Input } from "../../components/ui/input";
-import { formatMoney } from "../../lib/format";
-import { cn } from "../../lib/utils";
+import { useState, useEffect, useMemo } from 'react';
+import { Navigate } from 'react-router-dom';
+import { CreditCard, RefreshCw, Search } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { apiClient } from '../../api/client';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { Input } from '../../components/ui/input';
+import { formatMoney } from '../../lib/format';
+import { cn } from '../../lib/utils';
 
 interface Payment {
   id: string;
@@ -30,36 +36,36 @@ export const AdminPayments = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
 
   const loadPayments = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await apiClient<unknown>("/admin/payments");
+      const res = await apiClient<unknown>('/admin/payments');
       const list = Array.isArray(res)
         ? (res as Payment[])
         : ((res as { payments?: Payment[] }).payments ?? []);
       setPayments(list);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load payments");
+      setError(e instanceof Error ? e.message : 'Failed to load payments');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user?.role !== "ADMINISTRATOR") return;
+    if (user?.role !== 'ADMINISTRATOR') return;
     loadPayments();
   }, [user]);
 
-  if (user?.role !== "ADMINISTRATOR") return <Navigate to="/account" replace />;
+  if (user?.role !== 'ADMINISTRATOR') return <Navigate to="/account" replace />;
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return payments.filter((p) => {
-      if (statusFilter !== "ALL" && p.status !== statusFilter) return false;
+      if (statusFilter !== 'ALL' && p.status !== statusFilter) return false;
       if (!q) return true;
       return (
         p.id.toLowerCase().includes(q) ||
@@ -71,24 +77,30 @@ export const AdminPayments = () => {
   }, [payments, searchQuery, statusFilter]);
 
   const totalVolume = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0) / 100;
-  const displayCurrency = payments.find((p) => p.currency)?.currency ?? "INR";
-  const succeededCount = payments.filter((p) => p.status === "CAPTURED" || p.status === "SUCCEEDED").length;
-  const pendingCount = payments.filter((p) => p.status === "PENDING" || p.status === "PROCESSING").length;
-  const failedCount = payments.filter((p) => p.status === "FAILED" || p.status === "REFUNDED").length;
+  const displayCurrency = payments.find((p) => p.currency)?.currency ?? 'INR';
+  const succeededCount = payments.filter(
+    (p) => p.status === 'CAPTURED' || p.status === 'SUCCEEDED',
+  ).length;
+  const pendingCount = payments.filter(
+    (p) => p.status === 'PENDING' || p.status === 'PROCESSING',
+  ).length;
+  const failedCount = payments.filter(
+    (p) => p.status === 'FAILED' || p.status === 'REFUNDED',
+  ).length;
 
   const statusVariant = (s: string) => {
     switch (s) {
-      case "CAPTURED":
-      case "SUCCEEDED":
-        return "success" as const;
-      case "PENDING":
-      case "PROCESSING":
-        return "warning" as const;
-      case "FAILED":
-      case "REFUNDED":
-        return "destructive" as const;
+      case 'CAPTURED':
+      case 'SUCCEEDED':
+        return 'success' as const;
+      case 'PENDING':
+      case 'PROCESSING':
+        return 'warning' as const;
+      case 'FAILED':
+      case 'REFUNDED':
+        return 'destructive' as const;
       default:
-        return "outline" as const;
+        return 'outline' as const;
     }
   };
 
@@ -103,7 +115,7 @@ export const AdminPayments = () => {
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={loadPayments} disabled={isLoading}>
-          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isLoading && "animate-spin")} />
+          <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isLoading && 'animate-spin')} />
           Refresh
         </Button>
       </div>
@@ -122,7 +134,9 @@ export const AdminPayments = () => {
             <p className="tnum mt-1 text-2xl font-semibold tracking-tight">
               {formatMoney(totalVolume, displayCurrency)}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">Across {payments.length} transactions processed</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Across {payments.length} transactions processed
+            </p>
           </CardContent>
         </Card>
         <div className="grid gap-3 sm:grid-cols-3 lg:col-span-2">
@@ -131,7 +145,7 @@ export const AdminPayments = () => {
           <KpiCard
             label="Pending / Processing"
             value={String(pendingCount)}
-            hint={failedCount > 0 ? `${failedCount} failed/refunded` : "in transit"}
+            hint={failedCount > 0 ? `${failedCount} failed/refunded` : 'in transit'}
           />
         </div>
       </div>
@@ -142,7 +156,9 @@ export const AdminPayments = () => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle>Transactions list</CardTitle>
-              <CardDescription>Filter by payment status or search by intent ID and order ID</CardDescription>
+              <CardDescription>
+                Filter by payment status or search by intent ID and order ID
+              </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative min-w-[200px]">
@@ -159,9 +175,9 @@ export const AdminPayments = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground outline-none focus-visible:border-ring"
               >
-                {["ALL", "CAPTURED", "SUCCEEDED", "PENDING", "FAILED"].map((s) => (
+                {['ALL', 'CAPTURED', 'SUCCEEDED', 'PENDING', 'FAILED'].map((s) => (
                   <option key={s} value={s}>
-                    {s === "ALL" ? "All statuses" : s}
+                    {s === 'ALL' ? 'All statuses' : s}
                   </option>
                 ))}
               </select>
@@ -180,10 +196,10 @@ export const AdminPayments = () => {
               icon={CreditCard}
               title="No transactions found"
               description="No payment records match the filter criteria."
-              actionLabel={statusFilter !== "ALL" || searchQuery ? "Clear filters" : undefined}
+              actionLabel={statusFilter !== 'ALL' || searchQuery ? 'Clear filters' : undefined}
               onAction={() => {
-                setStatusFilter("ALL");
-                setSearchQuery("");
+                setStatusFilter('ALL');
+                setSearchQuery('');
               }}
             />
           ) : (
@@ -203,19 +219,19 @@ export const AdminPayments = () => {
                   <tr key={p.id}>
                     <TD className="font-mono text-xs font-medium">#{p.id.slice(0, 8)}</TD>
                     <TD className="font-mono text-xs text-muted-foreground">
-                      {p.orderId ? `#${p.orderId.slice(0, 8)}` : "—"}
+                      {p.orderId ? `#${p.orderId.slice(0, 8)}` : '—'}
                     </TD>
                     <TD className="tnum text-right font-medium text-xs">
                       {formatMoney((p.amount || 0) / 100, p.currency || displayCurrency)}
                     </TD>
                     <TD className="text-xs text-muted-foreground">
-                      {p.method || p.provider || "Razorpay / UPI"}
+                      {p.method || p.provider || 'Razorpay / UPI'}
                     </TD>
                     <TD>
                       <Badge variant={statusVariant(p.status)}>{p.status}</Badge>
                     </TD>
                     <TD className="text-right text-xs text-muted-foreground">
-                      {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—"}
+                      {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}
                     </TD>
                   </tr>
                 ))}

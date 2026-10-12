@@ -1,7 +1,11 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
-import { RbacPolicy, SecurityAuditService, type ISecurityAuditService } from '../../identity/index.js';
+import {
+  RbacPolicy,
+  SecurityAuditService,
+  type ISecurityAuditService,
+} from '../../identity/index.js';
 import type { CatalogService, ICatalogReader } from '../../catalog/index.js';
 import type { MerchantService, IMerchantProfileReader } from '../../merchant/index.js';
 import {
@@ -98,8 +102,14 @@ export class ListingService implements IMarketplaceService {
     const skuId = input.skuId?.trim();
     if (!skuId) throw new ValidationError('skuId is required');
 
-    if (typeof input.priceAmount !== 'number' || !Number.isInteger(input.priceAmount) || input.priceAmount < 0) {
-      throw new ValidationError('priceAmount must be a non-negative integer (representing minor currency units)');
+    if (
+      typeof input.priceAmount !== 'number' ||
+      !Number.isInteger(input.priceAmount) ||
+      input.priceAmount < 0
+    ) {
+      throw new ValidationError(
+        'priceAmount must be a non-negative integer (representing minor currency units)',
+      );
     }
 
     const currency = input.currency?.toUpperCase().trim();
@@ -156,10 +166,7 @@ export class ListingService implements IMarketplaceService {
     return rows.map((r) => this.toDetailDto(r));
   }
 
-  async getListingById(
-    actor: AuthorizedActor | null,
-    id: string,
-  ): Promise<MerchantListingDto> {
+  async getListingById(actor: AuthorizedActor | null, id: string): Promise<MerchantListingDto> {
     const listing = await this.repo.findListingById(id);
     if (!listing) throw new NotFoundError(`Listing '${id}' not found`);
 
@@ -364,7 +371,6 @@ export class ListingService implements IMarketplaceService {
     return rows.map((r) => this.toDto(r));
   }
 }
-
 
 function safeParseStringArray(val: string): string[] {
   try {

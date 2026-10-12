@@ -26,7 +26,21 @@ export interface StripePaymentConfig {
  * Currencies without decimal exponents (e.g. JPY, KRW) are unscaled.
  */
 export function toStripeAmount(amount: number, currency = 'USD'): number {
-  const zeroDecimalCurrencies = new Set(['JPY', 'KRW', 'UGX', 'VND', 'BIF', 'CLP', 'DJF', 'GNF', 'KMF', 'MGA', 'PYG', 'RWF', 'VUV']);
+  const zeroDecimalCurrencies = new Set([
+    'JPY',
+    'KRW',
+    'UGX',
+    'VND',
+    'BIF',
+    'CLP',
+    'DJF',
+    'GNF',
+    'KMF',
+    'MGA',
+    'PYG',
+    'RWF',
+    'VUV',
+  ]);
   const curr = currency.toUpperCase();
   if (zeroDecimalCurrencies.has(curr)) {
     return Math.round(amount);
@@ -38,7 +52,21 @@ export function toStripeAmount(amount: number, currency = 'USD'): number {
  * Normalizes Stripe integer amount (cents) back into decimal currency amount.
  */
 export function fromStripeAmount(cents: number, currency = 'USD'): number {
-  const zeroDecimalCurrencies = new Set(['JPY', 'KRW', 'UGX', 'VND', 'BIF', 'CLP', 'DJF', 'GNF', 'KMF', 'MGA', 'PYG', 'RWF', 'VUV']);
+  const zeroDecimalCurrencies = new Set([
+    'JPY',
+    'KRW',
+    'UGX',
+    'VND',
+    'BIF',
+    'CLP',
+    'DJF',
+    'GNF',
+    'KMF',
+    'MGA',
+    'PYG',
+    'RWF',
+    'VUV',
+  ]);
   const curr = currency.toUpperCase();
   if (zeroDecimalCurrencies.has(curr)) {
     return cents;
@@ -174,7 +202,11 @@ export class StripePaymentProvider implements PaymentProvider {
 
     // Map simulated failure triggers or standard card tokens
     let stripeMethod = rawMethod;
-    if (rawMethod === 'pm_card_declined' || rawMethod.toLowerCase().includes('fail') || rawMethod.toLowerCase().includes('decline')) {
+    if (
+      rawMethod === 'pm_card_declined' ||
+      rawMethod.toLowerCase().includes('fail') ||
+      rawMethod.toLowerCase().includes('decline')
+    ) {
       stripeMethod = 'pm_card_chargeCustomerFail';
     } else if (
       rawMethod === 'pm_card_threeDSecure2Required' ||
@@ -233,7 +265,8 @@ export class StripePaymentProvider implements PaymentProvider {
         providerTransactionId: input.providerTransactionId,
         status: 'FAILED',
         failureCode: stripeErr?.code ?? 'card_declined',
-        failureMessage: stripeErr?.message ?? (err instanceof Error ? err.message : 'Payment attempt declined'),
+        failureMessage:
+          stripeErr?.message ?? (err instanceof Error ? err.message : 'Payment attempt declined'),
         rawResponse: { error: String(err) },
       };
     }
@@ -260,11 +293,14 @@ export class StripePaymentProvider implements PaymentProvider {
     try {
       // Check if Stripe timestamp format: t=...,v1=...
       if (signature.includes('t=') && signature.includes('v1=')) {
-        const parts = signature.split(',').reduce((acc, item) => {
-          const [k, v] = item.split('=');
-          if (k && v) acc[k.trim()] = v.trim();
-          return acc;
-        }, {} as Record<string, string>);
+        const parts = signature.split(',').reduce(
+          (acc, item) => {
+            const [k, v] = item.split('=');
+            if (k && v) acc[k.trim()] = v.trim();
+            return acc;
+          },
+          {} as Record<string, string>,
+        );
 
         const timestamp = parts['t'];
         const sigV1 = parts['v1'];
@@ -313,20 +349,35 @@ export class StripePaymentProvider implements PaymentProvider {
     const parsed = JSON.parse(rawBody) as Record<string, unknown>;
     const providerEventId = String(parsed['id'] ?? parsed['eventId'] ?? `evt_${randomUUID()}`);
     const eventType = String(parsed['type'] ?? parsed['eventType'] ?? 'unknown');
-    const dataObj = ((parsed['data'] as Record<string, unknown> | undefined)?.['object'] ?? parsed['data'] ?? parsed) as Record<string, unknown>;
+    const dataObj = ((parsed['data'] as Record<string, unknown> | undefined)?.['object'] ??
+      parsed['data'] ??
+      parsed) as Record<string, unknown>;
 
     const meta = (dataObj['metadata'] as Record<string, unknown> | undefined) ?? {};
-    const paymentIntentId = (meta['paymentIntentId'] || meta['internalIntentId']) as string | undefined;
+    const paymentIntentId = (meta['paymentIntentId'] || meta['internalIntentId']) as
+      string | undefined;
     const providerTransactionId = String(dataObj['id'] ?? dataObj['providerTransactionId'] ?? '');
 
     const rawAmount = typeof dataObj['amount'] === 'number' ? dataObj['amount'] : undefined;
-    const currency = typeof dataObj['currency'] === 'string' ? String(dataObj['currency']).toUpperCase() : undefined;
-    const decimalAmount = rawAmount !== undefined ? fromStripeAmount(rawAmount, currency) : undefined;
+    const currency =
+      typeof dataObj['currency'] === 'string'
+        ? String(dataObj['currency']).toUpperCase()
+        : undefined;
+    const decimalAmount =
+      rawAmount !== undefined ? fromStripeAmount(rawAmount, currency) : undefined;
 
     let status: 'SUCCEEDED' | 'FAILED' | undefined;
-    if (eventType === 'payment_intent.succeeded' || dataObj['status'] === 'succeeded' || dataObj['status'] === 'SUCCEEDED') {
+    if (
+      eventType === 'payment_intent.succeeded' ||
+      dataObj['status'] === 'succeeded' ||
+      dataObj['status'] === 'SUCCEEDED'
+    ) {
       status = 'SUCCEEDED';
-    } else if (eventType === 'payment_intent.payment_failed' || dataObj['status'] === 'requires_payment_method' || dataObj['status'] === 'FAILED') {
+    } else if (
+      eventType === 'payment_intent.payment_failed' ||
+      dataObj['status'] === 'requires_payment_method' ||
+      dataObj['status'] === 'FAILED'
+    ) {
       status = 'FAILED';
     }
 

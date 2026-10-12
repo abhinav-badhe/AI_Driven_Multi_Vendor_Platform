@@ -58,15 +58,19 @@ export class OrderEventConsumer extends BaseEventConsumer {
       } catch (err: unknown) {
         // Validation errors might occur if the order was already processed manually,
         // which is expected due to concurrent POST /orders and webhook.
-        if (err instanceof Error && err.name === 'ValidationError' && err.message.includes('idempotency key')) {
-           this.logger.info('Order creation skipped due to idempotency', {
-             paymentIntentId,
-             checkoutSessionId,
-             eventId: event.eventId,
-           });
-           return;
+        if (
+          err instanceof Error &&
+          err.name === 'ValidationError' &&
+          err.message.includes('idempotency key')
+        ) {
+          this.logger.info('Order creation skipped due to idempotency', {
+            paymentIntentId,
+            checkoutSessionId,
+            eventId: event.eventId,
+          });
+          return;
         }
-        
+
         // Log error but rethrow so the consumer retry mechanism works if it's a transient failure
         this.logger.error('Failed to create order from payment event', {
           paymentIntentId,

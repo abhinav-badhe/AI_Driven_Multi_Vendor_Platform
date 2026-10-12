@@ -165,7 +165,12 @@ export class HttpCatalogClient implements ICatalogService {
     updates: UpdateProductInput,
   ): Promise<ProductDto> {
     try {
-      return await this.request<ProductDto>(`/products/${encodeURIComponent(id)}`, 'PATCH', updates, actor);
+      return await this.request<ProductDto>(
+        `/products/${encodeURIComponent(id)}`,
+        'PATCH',
+        updates,
+        actor,
+      );
     } catch (err) {
       if (
         err instanceof ValidationError ||
@@ -349,7 +354,12 @@ export class HttpCatalogClient implements ICatalogService {
     updates: UpdateSkuInput,
   ): Promise<ProductSkuDto> {
     try {
-      return await this.request<ProductSkuDto>(`/skus/${encodeURIComponent(id)}`, 'PATCH', updates, actor);
+      return await this.request<ProductSkuDto>(
+        `/skus/${encodeURIComponent(id)}`,
+        'PATCH',
+        updates,
+        actor,
+      );
     } catch (err) {
       if (
         err instanceof ValidationError ||

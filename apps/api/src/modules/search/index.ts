@@ -13,7 +13,12 @@ import type { ListingService, IMarketplaceReader } from '../marketplace/index.js
 import type { InventoryService, IInventoryReader } from '../inventory/index.js';
 import type { MerchantService, IMerchantProfileReader } from '../merchant/index.js';
 import { SearchService } from './internal/search-service.js';
-import { InMemorySearchStore, type ISearchStore, type SearchStoreQueryResult, filterAndRankDocuments } from './internal/search-store.js';
+import {
+  InMemorySearchStore,
+  type ISearchStore,
+  type SearchStoreQueryResult,
+  filterAndRankDocuments,
+} from './internal/search-store.js';
 import type {
   SearchProductDocument,
   SearchSellerOffer,

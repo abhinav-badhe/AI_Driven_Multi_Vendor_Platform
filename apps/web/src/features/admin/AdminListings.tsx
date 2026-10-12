@@ -1,18 +1,24 @@
-import { useState, useEffect, useMemo } from "react";
-import { Navigate } from "react-router-dom";
-import { Layers, RefreshCw, Search, CheckCircle2, Ban } from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { apiClient } from "../../api/client";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { Input } from "../../components/ui/input";
-import { formatMoney } from "../../lib/format";
-import { cn } from "../../lib/utils";
+import { useState, useEffect, useMemo } from 'react';
+import { Navigate } from 'react-router-dom';
+import { Layers, RefreshCw, Search, CheckCircle2, Ban } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { apiClient } from '../../api/client';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { Input } from '../../components/ui/input';
+import { formatMoney } from '../../lib/format';
+import { cn } from '../../lib/utils';
 
 interface Listing {
   id: string;
@@ -31,45 +37,46 @@ export const AdminListings = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const loadListings = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await apiClient<unknown>("/admin/listings")
-        .catch(() => apiClient<unknown>("/listings?limit=100"));
+      const res = await apiClient<unknown>('/admin/listings').catch(() =>
+        apiClient<unknown>('/listings?limit=100'),
+      );
       const list = Array.isArray(res)
         ? (res as Listing[])
         : ((res as { listings?: Listing[] }).listings ?? []);
       setListings(list);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load listings");
+      setError(err instanceof Error ? err.message : 'Failed to load listings');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user?.role !== "ADMINISTRATOR") return;
+    if (user?.role !== 'ADMINISTRATOR') return;
     loadListings();
   }, [user]);
 
-  if (user?.role !== "ADMINISTRATOR") return <Navigate to="/account" replace />;
+  if (user?.role !== 'ADMINISTRATOR') return <Navigate to="/account" replace />;
 
   const handleToggleStatus = async (listing: Listing) => {
-    const nextStatus = listing.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    const nextStatus = listing.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     setUpdatingId(listing.id);
     try {
       await apiClient(`/listings/${listing.id}/status`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({ status: nextStatus }),
       });
       await loadListings();
     } catch (err: unknown) {
-      alert(`Status update failed: ${err instanceof Error ? err.message : "Error"}`);
+      alert(`Status update failed: ${err instanceof Error ? err.message : 'Error'}`);
     } finally {
       setUpdatingId(null);
     }
@@ -78,7 +85,7 @@ export const AdminListings = () => {
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return listings.filter((l) => {
-      if (statusFilter !== "ALL" && l.status !== statusFilter) return false;
+      if (statusFilter !== 'ALL' && l.status !== statusFilter) return false;
       if (!q) return true;
       return (
         (l.productTitle && l.productTitle.toLowerCase().includes(q)) ||
@@ -90,20 +97,20 @@ export const AdminListings = () => {
     });
   }, [listings, searchQuery, statusFilter]);
 
-  const activeCount = listings.filter((l) => l.status === "ACTIVE").length;
-  const inactiveCount = listings.filter((l) => l.status !== "ACTIVE").length;
+  const activeCount = listings.filter((l) => l.status === 'ACTIVE').length;
+  const inactiveCount = listings.filter((l) => l.status !== 'ACTIVE').length;
   const totalCatalogValue = listings.reduce((sum, l) => sum + (l.sellerPrice || 0), 0) / 100;
-  const displayCurrency = listings.find((l) => l.currency)?.currency ?? "INR";
+  const displayCurrency = listings.find((l) => l.currency)?.currency ?? 'INR';
 
   const statusVariant = (s: string) => {
     switch (s) {
-      case "ACTIVE":
-        return "success" as const;
-      case "INACTIVE":
-      case "SUSPENDED":
-        return "destructive" as const;
+      case 'ACTIVE':
+        return 'success' as const;
+      case 'INACTIVE':
+      case 'SUSPENDED':
+        return 'destructive' as const;
       default:
-        return "warning" as const;
+        return 'warning' as const;
     }
   };
 
@@ -118,7 +125,7 @@ export const AdminListings = () => {
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={loadListings} disabled={isLoading}>
-          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isLoading && "animate-spin")} />
+          <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isLoading && 'animate-spin')} />
           Refresh
         </Button>
       </div>
@@ -137,13 +144,19 @@ export const AdminListings = () => {
             <p className="tnum mt-1 text-2xl font-semibold tracking-tight">
               {formatMoney(totalCatalogValue, displayCurrency)}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">Sum of list prices across all active merchant offers</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Sum of list prices across all active merchant offers
+            </p>
           </CardContent>
         </Card>
         <div className="grid gap-3 sm:grid-cols-3 lg:col-span-2">
           <KpiCard label="All listings" value={String(listings.length)} hint="in database" />
           <KpiCard label="Active offers" value={String(activeCount)} hint="visible to customers" />
-          <KpiCard label="Inactive / Suspended" value={String(inactiveCount)} hint="hidden from search" />
+          <KpiCard
+            label="Inactive / Suspended"
+            value={String(inactiveCount)}
+            hint="hidden from search"
+          />
         </div>
       </div>
 
@@ -153,7 +166,9 @@ export const AdminListings = () => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle>Catalog listings</CardTitle>
-              <CardDescription>Search by product title, SKU code, or merchant tenant ID</CardDescription>
+              <CardDescription>
+                Search by product title, SKU code, or merchant tenant ID
+              </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative min-w-[200px]">
@@ -170,9 +185,9 @@ export const AdminListings = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground outline-none focus-visible:border-ring"
               >
-                {["ALL", "ACTIVE", "INACTIVE", "DRAFT"].map((s) => (
+                {['ALL', 'ACTIVE', 'INACTIVE', 'DRAFT'].map((s) => (
                   <option key={s} value={s}>
-                    {s === "ALL" ? "All statuses" : s}
+                    {s === 'ALL' ? 'All statuses' : s}
                   </option>
                 ))}
               </select>
@@ -191,10 +206,10 @@ export const AdminListings = () => {
               icon={Layers}
               title="No listings found"
               description="No seller listings match the specified filter criteria."
-              actionLabel={statusFilter !== "ALL" || searchQuery ? "Clear filters" : undefined}
+              actionLabel={statusFilter !== 'ALL' || searchQuery ? 'Clear filters' : undefined}
               onAction={() => {
-                setStatusFilter("ALL");
-                setSearchQuery("");
+                setStatusFilter('ALL');
+                setSearchQuery('');
               }}
             />
           ) : (
@@ -213,13 +228,15 @@ export const AdminListings = () => {
                 {filtered.map((l) => (
                   <tr key={l.id}>
                     <TD>
-                      <div className="font-medium text-xs">{l.productTitle || "Marketplace Product"}</div>
+                      <div className="font-medium text-xs">
+                        {l.productTitle || 'Marketplace Product'}
+                      </div>
                       <div className="font-mono text-[11px] text-muted-foreground">
                         {l.skuCode || l.id.slice(0, 10)}
                       </div>
                     </TD>
                     <TD className="font-mono text-xs text-muted-foreground">
-                      {l.merchantId || l.tenantId || "—"}
+                      {l.merchantId || l.tenantId || '—'}
                     </TD>
                     <TD className="tnum text-right font-medium text-xs">
                       {formatMoney((l.sellerPrice || 0) / 100, l.currency || displayCurrency)}
@@ -228,7 +245,7 @@ export const AdminListings = () => {
                       <Badge variant={statusVariant(l.status)}>{l.status}</Badge>
                     </TD>
                     <TD className="text-xs text-muted-foreground">
-                      {l.createdAt ? new Date(l.createdAt).toLocaleDateString() : "—"}
+                      {l.createdAt ? new Date(l.createdAt).toLocaleDateString() : '—'}
                     </TD>
                     <TD className="text-right">
                       <Button
@@ -238,7 +255,7 @@ export const AdminListings = () => {
                         disabled={updatingId === l.id}
                         onClick={() => handleToggleStatus(l)}
                       >
-                        {l.status === "ACTIVE" ? (
+                        {l.status === 'ACTIVE' ? (
                           <>
                             <Ban className="mr-1 h-3 w-3 text-destructive" />
                             Suspend

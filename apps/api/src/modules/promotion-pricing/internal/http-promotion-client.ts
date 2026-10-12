@@ -109,11 +109,19 @@ export class HttpPromotionPricingClient implements IPromotionPricingEngine {
     }
   }
 
-  async createPromotion(actor: AuthorizedActor, input: CreatePromotionInput): Promise<PromotionDto> {
+  async createPromotion(
+    actor: AuthorizedActor,
+    input: CreatePromotionInput,
+  ): Promise<PromotionDto> {
     try {
       return await this.request<PromotionDto>(actor, '/v1/promotions', 'POST', input);
     } catch (err) {
-      if (this.fallbackEngine && !(err instanceof ValidationError) && !(err instanceof ForbiddenError) && !(err instanceof ConflictError)) {
+      if (
+        this.fallbackEngine &&
+        !(err instanceof ValidationError) &&
+        !(err instanceof ForbiddenError) &&
+        !(err instanceof ConflictError)
+      ) {
         return this.fallbackEngine.createPromotion(actor, input);
       }
       throw err;
@@ -122,16 +130,27 @@ export class HttpPromotionPricingClient implements IPromotionPricingEngine {
 
   async getPromotion(actor: AuthorizedActor, id: string): Promise<PromotionDto> {
     try {
-      return await this.request<PromotionDto>(actor, `/v1/promotions/${encodeURIComponent(id)}`, 'GET');
+      return await this.request<PromotionDto>(
+        actor,
+        `/v1/promotions/${encodeURIComponent(id)}`,
+        'GET',
+      );
     } catch (err) {
-      if (this.fallbackEngine && !(err instanceof NotFoundError) && !(err instanceof ForbiddenError)) {
+      if (
+        this.fallbackEngine &&
+        !(err instanceof NotFoundError) &&
+        !(err instanceof ForbiddenError)
+      ) {
         return this.fallbackEngine.getPromotion(actor, id);
       }
       throw err;
     }
   }
 
-  async listPromotions(actor: AuthorizedActor, filter?: ListPromotionsFilter): Promise<PromotionDto[]> {
+  async listPromotions(
+    actor: AuthorizedActor,
+    filter?: ListPromotionsFilter,
+  ): Promise<PromotionDto[]> {
     const params = new URLSearchParams();
     if (filter?.merchantTenantId) params.set('merchantTenantId', filter.merchantTenantId);
     if (filter?.includePlatform) params.set('includePlatform', 'true');
@@ -151,22 +170,48 @@ export class HttpPromotionPricingClient implements IPromotionPricingEngine {
     }
   }
 
-  async updatePromotion(actor: AuthorizedActor, id: string, input: UpdatePromotionInput): Promise<PromotionDto> {
+  async updatePromotion(
+    actor: AuthorizedActor,
+    id: string,
+    input: UpdatePromotionInput,
+  ): Promise<PromotionDto> {
     try {
-      return await this.request<PromotionDto>(actor, `/v1/promotions/${encodeURIComponent(id)}`, 'PATCH', input);
+      return await this.request<PromotionDto>(
+        actor,
+        `/v1/promotions/${encodeURIComponent(id)}`,
+        'PATCH',
+        input,
+      );
     } catch (err) {
-      if (this.fallbackEngine && !(err instanceof NotFoundError) && !(err instanceof ForbiddenError) && !(err instanceof ValidationError)) {
+      if (
+        this.fallbackEngine &&
+        !(err instanceof NotFoundError) &&
+        !(err instanceof ForbiddenError) &&
+        !(err instanceof ValidationError)
+      ) {
         return this.fallbackEngine.updatePromotion(actor, id, input);
       }
       throw err;
     }
   }
 
-  async previewDiscounts(actor: AuthorizedActor, input: PreviewDiscountsInput): Promise<DiscountCalculationResult> {
+  async previewDiscounts(
+    actor: AuthorizedActor,
+    input: PreviewDiscountsInput,
+  ): Promise<DiscountCalculationResult> {
     try {
-      return await this.request<DiscountCalculationResult>(actor, '/v1/promotions/preview', 'POST', input);
+      return await this.request<DiscountCalculationResult>(
+        actor,
+        '/v1/promotions/preview',
+        'POST',
+        input,
+      );
     } catch (err) {
-      if (this.fallbackEngine && !(err instanceof ValidationError) && !(err instanceof NotFoundError)) {
+      if (
+        this.fallbackEngine &&
+        !(err instanceof ValidationError) &&
+        !(err instanceof NotFoundError)
+      ) {
         return this.fallbackEngine.previewDiscounts(actor, input);
       }
       throw err;
@@ -186,7 +231,11 @@ export class HttpPromotionPricingClient implements IPromotionPricingEngine {
         { couponCode },
       );
     } catch (err) {
-      if (this.fallbackEngine && !(err instanceof NotFoundError) && !(err instanceof ValidationError)) {
+      if (
+        this.fallbackEngine &&
+        !(err instanceof NotFoundError) &&
+        !(err instanceof ValidationError)
+      ) {
         return this.fallbackEngine.applyCouponToCheckout(actor, checkoutSessionId, couponCode);
       }
       throw err;

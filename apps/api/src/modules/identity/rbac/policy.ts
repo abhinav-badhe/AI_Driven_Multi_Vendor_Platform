@@ -279,9 +279,7 @@ export class RbacPolicy {
 
   static requirePermission(actor: AuthorizedActor, permission: Permission): void {
     if (!RbacPolicy.hasPermission(actor, permission)) {
-      throw new ForbiddenError(
-        `Actor role '${actor.role}' lacks permission '${permission}'`,
-      );
+      throw new ForbiddenError(`Actor role '${actor.role}' lacks permission '${permission}'`);
     }
   }
 

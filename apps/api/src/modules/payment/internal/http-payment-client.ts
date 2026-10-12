@@ -200,9 +200,12 @@ export class HttpPaymentClient implements IPaymentService {
       };
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
-        this.logger?.warn('Remote payment service failed for webhook; falling back to local service', {
-          error: (err as Error).message,
-        });
+        this.logger?.warn(
+          'Remote payment service failed for webhook; falling back to local service',
+          {
+            error: (err as Error).message,
+          },
+        );
         return this.fallbackService.processWebhook(providerName, rawPayload, signatureHeader);
       }
       throw err;

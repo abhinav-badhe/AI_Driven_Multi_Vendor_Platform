@@ -4,13 +4,7 @@ import type { ShipmentStatus } from './carrier-provider.js';
 export type { ShipmentStatus };
 
 export type ReturnStatus =
-  | 'REQUESTED'
-  | 'APPROVED'
-  | 'IN_TRANSIT'
-  | 'RECEIVED'
-  | 'COMPLETED'
-  | 'REJECTED'
-  | 'CANCELLED';
+  'REQUESTED' | 'APPROVED' | 'IN_TRANSIT' | 'RECEIVED' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
 
 export interface ShipmentRow {
   id: string;
@@ -158,7 +152,6 @@ export class FulfillmentRepository {
     return res.rows[0] ?? null;
   }
 
-
   async findShipmentsBySellerOrder(sellerOrderId: string): Promise<ShipmentRow[]> {
     const res = await this.db.query<ShipmentRow>(
       `SELECT id, seller_order_id, customer_order_id, seller_tenant_id, status,
@@ -222,7 +215,10 @@ export class FulfillmentRepository {
     return res.rows;
   }
 
-  async findShipmentByTracking(carrier: string, trackingNumber: string): Promise<ShipmentRow | null> {
+  async findShipmentByTracking(
+    carrier: string,
+    trackingNumber: string,
+  ): Promise<ShipmentRow | null> {
     const res = await this.db.query<ShipmentRow>(
       `SELECT id, seller_order_id, customer_order_id, seller_tenant_id, status,
               carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
@@ -236,7 +232,10 @@ export class FulfillmentRepository {
     return res.rows[0] ?? null;
   }
 
-  async findShipmentByTrackingForUpdate(carrier: string, trackingNumber: string): Promise<ShipmentRow | null> {
+  async findShipmentByTrackingForUpdate(
+    carrier: string,
+    trackingNumber: string,
+  ): Promise<ShipmentRow | null> {
     const res = await this.db.query<ShipmentRow>(
       `SELECT id, seller_order_id, customer_order_id, seller_tenant_id, status,
               carrier, tracking_number, tracking_url, carrier_shipment_id, label_url,
@@ -284,11 +283,13 @@ export class FulfillmentRepository {
     id: string,
     allowedCurrentStatuses: ShipmentStatus | ShipmentStatus[],
     newStatus: ShipmentStatus,
-    extra?: {
-      shippedAt?: Date | undefined;
-      deliveredAt?: Date | undefined;
-      metadata?: Record<string, unknown> | undefined;
-    } | undefined,
+    extra?:
+      | {
+          shippedAt?: Date | undefined;
+          deliveredAt?: Date | undefined;
+          metadata?: Record<string, unknown> | undefined;
+        }
+      | undefined,
   ): Promise<ShipmentRow | null> {
     const allowed = Array.isArray(allowedCurrentStatuses)
       ? allowedCurrentStatuses
@@ -310,10 +311,12 @@ export class FulfillmentRepository {
       query += `, metadata = $${params.length}`;
     }
 
-    const placeholders = allowed.map((s) => {
-      params.push(s);
-      return `$${params.length}`;
-    }).join(', ');
+    const placeholders = allowed
+      .map((s) => {
+        params.push(s);
+        return `$${params.length}`;
+      })
+      .join(', ');
 
     query += ` WHERE id = $1 AND status IN (${placeholders})
       RETURNING id, seller_order_id, customer_order_id, seller_tenant_id, status,
@@ -503,14 +506,16 @@ export class FulfillmentRepository {
     id: string,
     allowedCurrentStatuses: ReturnStatus | ReturnStatus[],
     newStatus: ReturnStatus,
-    extra?: {
-      approvedAt?: Date | undefined;
-      rejectedAt?: Date | undefined;
-      receivedAt?: Date | undefined;
-      completedAt?: Date | undefined;
-      refundId?: string | undefined;
-      metadata?: Record<string, unknown> | undefined;
-    } | undefined,
+    extra?:
+      | {
+          approvedAt?: Date | undefined;
+          rejectedAt?: Date | undefined;
+          receivedAt?: Date | undefined;
+          completedAt?: Date | undefined;
+          refundId?: string | undefined;
+          metadata?: Record<string, unknown> | undefined;
+        }
+      | undefined,
   ): Promise<ReturnRow | null> {
     const allowed = Array.isArray(allowedCurrentStatuses)
       ? allowedCurrentStatuses
@@ -544,10 +549,12 @@ export class FulfillmentRepository {
       query += `, metadata = $${params.length}`;
     }
 
-    const placeholders = allowed.map((s) => {
-      params.push(s);
-      return `$${params.length}`;
-    }).join(', ');
+    const placeholders = allowed
+      .map((s) => {
+        params.push(s);
+        return `$${params.length}`;
+      })
+      .join(', ');
 
     query += ` WHERE id = $1 AND status IN (${placeholders})
       RETURNING id, customer_tenant_id, customer_order_id, seller_order_id, seller_tenant_id,
@@ -651,9 +658,7 @@ export class FulfillmentRepository {
     return { claimed: false, operation: existingRes.rows[0]! };
   }
 
-  async findCarrierOperation(
-    idempotencyKey: string,
-  ): Promise<CarrierOperationRow | null> {
+  async findCarrierOperation(idempotencyKey: string): Promise<CarrierOperationRow | null> {
     const res = await this.db.query<CarrierOperationRow>(
       `SELECT * FROM carrier_shipment_operations
        WHERE idempotency_key = $1`,
@@ -698,9 +703,7 @@ export class FulfillmentRepository {
     return res.rows[0]!;
   }
 
-  async failCarrierOperation(
-    idempotencyKey: string,
-  ): Promise<void> {
+  async failCarrierOperation(idempotencyKey: string): Promise<void> {
     await this.db.query(
       `UPDATE carrier_shipment_operations
        SET status = 'FAILED',
@@ -736,4 +739,3 @@ export interface CarrierOperationRow {
   created_at: Date;
   updated_at: Date;
 }
-

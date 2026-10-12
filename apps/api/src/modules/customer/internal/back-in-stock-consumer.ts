@@ -16,9 +16,7 @@ export class BackInStockEventConsumer extends BaseEventConsumer {
   }
 
   registerSubscriptions(): void {
-    const events = [
-      EventTypes.INVENTORY_STOCK_AVAILABLE,
-    ];
+    const events = [EventTypes.INVENTORY_STOCK_AVAILABLE];
 
     for (const evt of events) {
       this.transport.subscribe(evt, async (event) => {
@@ -33,9 +31,7 @@ export class BackInStockEventConsumer extends BaseEventConsumer {
     }
 
     const payload = event.payload as Record<string, unknown>;
-    const isAvailable = Boolean(
-      payload.isAvailable ?? (Number(payload.availableQuantity ?? 0) > 0),
-    );
+    const isAvailable = Boolean(payload.isAvailable ?? Number(payload.availableQuantity ?? 0) > 0);
 
     // Only process when stock actually transitioned to available
     if (!isAvailable) {

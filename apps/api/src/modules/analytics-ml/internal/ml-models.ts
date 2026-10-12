@@ -3,15 +3,11 @@
  * Domain models, DTOs, and Store interfaces for Predictive ML.
  */
 
-export type ModelType = 'DEMAND_FORECASTING' | 'STOCKOUT_RISK' | 'PURCHASE_PROPENSITY' | 'ANOMALY_DETECTION';
+export type ModelType =
+  'DEMAND_FORECASTING' | 'STOCKOUT_RISK' | 'PURCHASE_PROPENSITY' | 'ANOMALY_DETECTION';
 
 export type ModelStatus =
-  | 'TRAINING'
-  | 'EVALUATING'
-  | 'APPROVED'
-  | 'REJECTED'
-  | 'RETIRED'
-  | 'FAILED';
+  'TRAINING' | 'EVALUATING' | 'APPROVED' | 'REJECTED' | 'RETIRED' | 'FAILED';
 
 export type DataSourceType = 'REAL' | 'BOOTSTRAP';
 
@@ -145,7 +141,12 @@ export interface IMlStore {
   createTrainingJob(job: TrainingJobRecord): Promise<void>;
   updateTrainingJob(
     jobId: string,
-    updates: Partial<Pick<TrainingJobRecord, 'status' | 'modelId' | 'errorMessage' | 'completedAt' | 'sampleCount' | 'dataSourceType'>>,
+    updates: Partial<
+      Pick<
+        TrainingJobRecord,
+        'status' | 'modelId' | 'errorMessage' | 'completedAt' | 'sampleCount' | 'dataSourceType'
+      >
+    >,
   ): Promise<void>;
   getTrainingJobById(tenantId: string, jobId: string): Promise<TrainingJobRecord | null>;
   getLatestRunningJob(tenantId: string, modelType: ModelType): Promise<TrainingJobRecord | null>;
@@ -163,11 +164,18 @@ export interface IMlStore {
   ): Promise<DerivedPredictionRecord | null>;
   listPredictions(
     tenantId: string,
-    filter?: { modelType?: ModelType | undefined; entityType?: EntityType | undefined; entityId?: string | undefined },
+    filter?: {
+      modelType?: ModelType | undefined;
+      entityType?: EntityType | undefined;
+      entityId?: string | undefined;
+    },
   ): Promise<DerivedPredictionRecord[]>;
 
   // Retraining Policies
-  getRetrainingPolicy(tenantId: string, modelType: ModelType): Promise<RetrainingPolicyRecord | null>;
+  getRetrainingPolicy(
+    tenantId: string,
+    modelType: ModelType,
+  ): Promise<RetrainingPolicyRecord | null>;
   listAllEnabledPolicies(): Promise<RetrainingPolicyRecord[]>;
   saveRetrainingPolicy(policy: RetrainingPolicyRecord): Promise<void>;
   updateRetrainingPolicyStats(

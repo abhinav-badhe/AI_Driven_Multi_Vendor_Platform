@@ -115,14 +115,29 @@ export class NotificationRepository {
              disabled_types = $4,
              updated_at = NOW()
          WHERE tenant_id = $5 AND customer_id = $6`,
-        [pref.emailEnabled, pref.smsEnabled, pref.pushEnabled, disabledStr, pref.tenantId, pref.customerId],
+        [
+          pref.emailEnabled,
+          pref.smsEnabled,
+          pref.pushEnabled,
+          disabledStr,
+          pref.tenantId,
+          pref.customerId,
+        ],
       );
     } else {
       await db.query(
         `INSERT INTO customer_notification_preferences (
           id, tenant_id, customer_id, email_enabled, sms_enabled, push_enabled, disabled_types, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-        [pref.id, pref.tenantId, pref.customerId, pref.emailEnabled, pref.smsEnabled, pref.pushEnabled, disabledStr],
+        [
+          pref.id,
+          pref.tenantId,
+          pref.customerId,
+          pref.emailEnabled,
+          pref.smsEnabled,
+          pref.pushEnabled,
+          disabledStr,
+        ],
       );
     }
   }
@@ -254,10 +269,9 @@ export class NotificationRepository {
     db: DatabaseConnection,
     id: string,
   ): Promise<NotificationRecord | null> {
-    const res = await db.query<RawNotificationRow>(
-      `SELECT * FROM notifications WHERE id = $1`,
-      [id],
-    );
+    const res = await db.query<RawNotificationRow>(`SELECT * FROM notifications WHERE id = $1`, [
+      id,
+    ]);
     const row = res.rows[0];
     return row ? mapRowToNotificationRecord(row) : null;
   }

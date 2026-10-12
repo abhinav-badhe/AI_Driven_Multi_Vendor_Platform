@@ -25,26 +25,28 @@ Prior to implementing changes, the audit findings were verified directly against
 
 ## 3. Files Changed and Rationale
 
-| File Path | Nature of Change | Architectural Rationale |
-|---|---|---|
-| [`apps/notifications-service/src/auth/internal-auth.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/auth/internal-auth.ts) | **Created** | Implements `createInternalAuthMiddleware` and `verifyInternalServiceKey` utilizing `crypto.timingSafeEqual` to enforce service-to-service authentication without timing vulnerability. |
-| [`apps/notifications-service/src/config/schema.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/config/schema.ts) | **Modified** | Added `INTERNAL_SERVICE_KEY` (minimum 16 characters) with startup refinement that fails fast in production if unconfigured. |
-| [`apps/notifications-service/src/config/index.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/config/index.ts) | **Modified** | Mapped `internalServiceKey` into `NotificationsConfig.auth`. |
-| [`apps/notifications-service/src/domain/notification-service.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/domain/notification-service.ts) | **Modified** | Updated `sendTransactionalEmail` to perform immediate, synchronous dispatch through `this.channels.email.sendEmail(...)`, validate email inputs, return `{ providerMessageId }`, and bypass the notifications database queue. |
-| [`apps/notifications-service/src/http/routes/internal-routes.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/http/routes/internal-routes.ts) | **Modified** | Enforced `internalAuth` preHandler on all internal endpoints. Made `tenantId` optional (defaults to `'default'`) on `POST /v1/internal/notifications/transactional-email` and returned `{ providerMessageId }`. |
-| [`apps/notifications-service/src/app.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/app.ts) | **Modified** | Wired `createInternalAuthMiddleware(config.auth.internalServiceKey)` into `registerInternalRoutes`. |
-| [`apps/notifications-service/src/repository/notification-repository.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/repository/notification-repository.ts) | **Modified** | Added `claimEventReceipt` providing atomic initial claim (`status = 'PROCESSING'`), atomic retry transition (`FAILED -> PROCESSING`), and atomic stale recovery on worker crash. |
-| [`apps/notifications-service/src/events/notification-event-consumer.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/events/notification-event-consumer.ts) | **Modified** | Updated `process` and added `processEvent` to acquire a durable processing claim before execution, record `COMPLETED` on success, record `FAILED` with error metadata on failure, and drop concurrent duplicates. |
-| [`apps/notifications-service/test/notification-service.test.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/test/notification-service.test.ts) | **Modified** | Updated transactional email test to verify synchronous dispatch, provider message ID return, input validation, and lack of queue pollution. |
-| [`apps/notifications-service/test/http-api.test.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/test/http-api.test.ts) | **Modified** | Added tests verifying 401 on missing/invalid internal credentials, 200 on valid header/bearer credentials, and synchronous transactional email response shape. |
-| [`apps/notifications-service/test/event-consumer.test.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/test/event-consumer.test.ts) | **Modified** | Added tests verifying concurrent delivery race condition safety (exactly 1 claim succeeds), failure recording with retryability, and stale claim recovery. |
+| File Path                                                                                                                                                                                                                                  | Nature of Change | Architectural Rationale                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`apps/notifications-service/src/auth/internal-auth.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/auth/internal-auth.ts)                                 | **Created**      | Implements `createInternalAuthMiddleware` and `verifyInternalServiceKey` utilizing `crypto.timingSafeEqual` to enforce service-to-service authentication without timing vulnerability.                                        |
+| [`apps/notifications-service/src/config/schema.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/config/schema.ts)                                           | **Modified**     | Added `INTERNAL_SERVICE_KEY` (minimum 16 characters) with startup refinement that fails fast in production if unconfigured.                                                                                                   |
+| [`apps/notifications-service/src/config/index.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/config/index.ts)                                             | **Modified**     | Mapped `internalServiceKey` into `NotificationsConfig.auth`.                                                                                                                                                                  |
+| [`apps/notifications-service/src/domain/notification-service.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/domain/notification-service.ts)               | **Modified**     | Updated `sendTransactionalEmail` to perform immediate, synchronous dispatch through `this.channels.email.sendEmail(...)`, validate email inputs, return `{ providerMessageId }`, and bypass the notifications database queue. |
+| [`apps/notifications-service/src/http/routes/internal-routes.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/http/routes/internal-routes.ts)               | **Modified**     | Enforced `internalAuth` preHandler on all internal endpoints. Made `tenantId` optional (defaults to `'default'`) on `POST /v1/internal/notifications/transactional-email` and returned `{ providerMessageId }`.               |
+| [`apps/notifications-service/src/app.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/app.ts)                                                               | **Modified**     | Wired `createInternalAuthMiddleware(config.auth.internalServiceKey)` into `registerInternalRoutes`.                                                                                                                           |
+| [`apps/notifications-service/src/repository/notification-repository.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/repository/notification-repository.ts) | **Modified**     | Added `claimEventReceipt` providing atomic initial claim (`status = 'PROCESSING'`), atomic retry transition (`FAILED -> PROCESSING`), and atomic stale recovery on worker crash.                                              |
+| [`apps/notifications-service/src/events/notification-event-consumer.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/events/notification-event-consumer.ts) | **Modified**     | Updated `process` and added `processEvent` to acquire a durable processing claim before execution, record `COMPLETED` on success, record `FAILED` with error metadata on failure, and drop concurrent duplicates.             |
+| [`apps/notifications-service/test/notification-service.test.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/test/notification-service.test.ts)                 | **Modified**     | Updated transactional email test to verify synchronous dispatch, provider message ID return, input validation, and lack of queue pollution.                                                                                   |
+| [`apps/notifications-service/test/http-api.test.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/test/http-api.test.ts)                                         | **Modified**     | Added tests verifying 401 on missing/invalid internal credentials, 200 on valid header/bearer credentials, and synchronous transactional email response shape.                                                                |
+| [`apps/notifications-service/test/event-consumer.test.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/test/event-consumer.test.ts)                             | **Modified**     | Added tests verifying concurrent delivery race condition safety (exactly 1 claim succeeds), failure recording with retryability, and stale claim recovery.                                                                    |
 
 ---
 
 ## 4. Authentication Contract and Configuration Requirements
 
 ### Internal Service-to-Service Contract
+
 Internal routes (`/v1/internal/*`) now require service-level authentication:
+
 - **Accepted Headers:**
   - `X-Internal-Service-Key: <key>`
   - `Authorization: Bearer <key>`
@@ -57,6 +59,7 @@ Internal routes (`/v1/internal/*`) now require service-level authentication:
   - Never logs authorization secrets, tokens, or email contents.
 
 ### Configuration Requirements
+
 - **Environment Variable:** `INTERNAL_SERVICE_KEY`
 - **Validation Rule:** Minimum 16 characters.
 - **Production Safety:** In `NODE_ENV === 'production'`, startup validation (`configSchema.refine`) throws an error if `INTERNAL_SERVICE_KEY` is not explicitly set to a custom secret (cannot use development default).
@@ -66,20 +69,21 @@ Internal routes (`/v1/internal/*`) now require service-level authentication:
 
 ## 5. Transactional Email Behavior Before and After
 
-| Aspect | Before (Audit Finding) | After (Phase 1 Fix) |
-|---|---|---|
-| **Execution Timing** | Asynchronous: enqueued `PENDING` notification in database. | **Synchronous & Immediate:** dispatches directly through `emailProvider.sendEmail(...)`. |
-| **Return Shape** | Returned `NotificationResultDto` (`{ notificationId, status: 'PENDING' }`). | **Matches Monolith Contract:** returns `{ providerMessageId: string }`. |
-| **Error Handling** | Swallowed downstream dispatch failures into retry queue. | **Immediate Propagation:** throws `ValidationError` or provider errors back to the caller. |
-| **Tenant Context** | Required explicit `tenantId` in payload. | **Optional `tenantId`:** defaults to `'default'`, aligning with IdentityService calls. |
-| **Marketing Preferences** | N/A (queued) | **Direct Provider Dispatch:** explicitly bypasses marketing opt-outs as security-required messages. |
-| **Database Queue** | Created rows in `notifications` table. | **Zero Queue Pollution:** does not create rows in `notifications` table. |
+| Aspect                    | Before (Audit Finding)                                                      | After (Phase 1 Fix)                                                                                 |
+| ------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Execution Timing**      | Asynchronous: enqueued `PENDING` notification in database.                  | **Synchronous & Immediate:** dispatches directly through `emailProvider.sendEmail(...)`.            |
+| **Return Shape**          | Returned `NotificationResultDto` (`{ notificationId, status: 'PENDING' }`). | **Matches Monolith Contract:** returns `{ providerMessageId: string }`.                             |
+| **Error Handling**        | Swallowed downstream dispatch failures into retry queue.                    | **Immediate Propagation:** throws `ValidationError` or provider errors back to the caller.          |
+| **Tenant Context**        | Required explicit `tenantId` in payload.                                    | **Optional `tenantId`:** defaults to `'default'`, aligning with IdentityService calls.              |
+| **Marketing Preferences** | N/A (queued)                                                                | **Direct Provider Dispatch:** explicitly bypasses marketing opt-outs as security-required messages. |
+| **Database Queue**        | Created rows in `notifications` table.                                      | **Zero Queue Pollution:** does not create rows in `notifications` table.                            |
 
 ---
 
 ## 6. Event Lifecycle, Concurrency Protection, and Retries
 
 ### State Machine Lifecycle in `notification_consumer_receipts`
+
 ```
                 [Event Arrives]
                        │
@@ -111,6 +115,7 @@ Internal routes (`/v1/internal/*`) now require service-level authentication:
 ```
 
 ### Concurrency and Reliability Guarantees
+
 1. **Concurrent Delivery Protection:**
    - On the first delivery of an event, multiple workers race to insert `status = 'PROCESSING'`.
    - The PostgreSQL constraint `CONSTRAINT uq_notification_consumer_receipt UNIQUE (consumer_name, event_id)` permits exactly **one** insert to succeed.
@@ -123,8 +128,8 @@ Internal routes (`/v1/internal/*`) now require service-level authentication:
    - If a container or worker process abruptly terminates while an event is in `status = 'PROCESSING'`, subsequent redeliveries check the elapsed time since `processed_at`.
    - If `elapsedMs >= staleTimeoutMs` (default 5 minutes), the consumer atomically reclaims the receipt and reprocesses the event.
 4. **Remaining Risk & Defense-in-Depth:**
-   - *Risk:* If a worker sends an external email/SMS but the database crashes *before* the receipt can be updated from `'PROCESSING'` to `'COMPLETED'`, a subsequent retry could re-execute the event.
-   - *Mitigation:* The event handler invokes `notificationService.requestNotification(...)`, which relies on the unique constraint `CONSTRAINT uq_notification_idempotency UNIQUE (tenant_id, idempotency_key)`. The inner notification request is deduplicated even if the consumer receipt was interrupted, ensuring downstream idempotency.
+   - _Risk:_ If a worker sends an external email/SMS but the database crashes _before_ the receipt can be updated from `'PROCESSING'` to `'COMPLETED'`, a subsequent retry could re-execute the event.
+   - _Mitigation:_ The event handler invokes `notificationService.requestNotification(...)`, which relies on the unique constraint `CONSTRAINT uq_notification_idempotency UNIQUE (tenant_id, idempotency_key)`. The inner notification request is deduplicated even if the consumer receipt was interrupted, ensuring downstream idempotency.
 
 ---
 
@@ -153,10 +158,12 @@ All tests across both services were executed using isolated runners without star
 ## 8. Unresolved Audit Findings & Recommended Next Step
 
 ### Remaining Non-Critical Audit Items (For Subsequent Phases)
+
 1. **API Entity vs Boolean Return on Manual Retry:** Monolith `POST /notifications/:id/retry` returns `{ retried: true }`, whereas standalone returns the full `NotificationRecord`.
 2. **Observability / Request Correlation:** Fastify error responses do not currently include `correlationId` and `requestId`.
 3. **Background Processing Daemon:** Monolith runs a 30s `setInterval` flusher; standalone currently relies on `POST /notifications/process` HTTP trigger.
 
 ### Recommended Next Step
+
 **Implement Monolith-Side `HttpNotificationClient` (Feature-Flagged Adapter):**
 Create the HTTP client implementing `INotificationClient` inside `apps/api/src/modules/notifications/internal/` that connects to the standalone service, passing `X-Internal-Service-Key` and parsing the synchronous `{ providerMessageId }` transactional email response.

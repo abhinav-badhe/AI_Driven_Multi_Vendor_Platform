@@ -248,7 +248,10 @@ describe('HttpCatalogClient', () => {
     ).rejects.toThrowError(ValidationError);
 
     await expect(
-      makeErrorClient(403, 'Permission denied').createProduct(adminActor, { title: 'T', slug: 's' }),
+      makeErrorClient(403, 'Permission denied').createProduct(adminActor, {
+        title: 'T',
+        slug: 's',
+      }),
     ).rejects.toThrowError(ForbiddenError);
 
     await expect(

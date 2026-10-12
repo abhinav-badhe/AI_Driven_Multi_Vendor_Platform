@@ -189,34 +189,35 @@ The target repository organizes applications into deployable units under `/apps`
 
 The 21 monolith modules map into **11 distinct deployable microservices**, plus **1 dedicated Analytics Service**, **1 ML Inference Service**, and **1 Batch Training Job**:
 
-| Target Service / Application | Monolith Modules Consolidated | Data Ownership (Schema/DB) | Primary Protocol | Justification |
-|---|---|---|---|---|
-| **API Gateway** | Routing from `http/*-routes.ts` | Redis (Rate limits, token blacklist) | HTTP/2, TLS | Single entry point, isolates frontend from internal microservice topology. |
-| **Identity Service** | `identity`, `security-audit` | `identity_db` (`users`, `tenants`, `memberships`, `tokens`, `audit_logs`) | REST / Internal gRPC | High security requirement, token issuance, credential hashing. |
-| **Catalog & Marketplace**| `catalog`, `marketplace` | `catalog_db` (`categories`, `products`, `skus`, `listings`, `reviews`) | REST / gRPC, Outbox | High read volume; avoids N+1 distributed join between products and vendor offers on PDP. |
-| **Inventory Service** | `inventory` | `inventory_db` (`inventory_items`, `reservations`, `movements`) | gRPC, Outbox | Concurrency write hotspot; handles CAS locks and stock reservation lifecycles. |
-| **Order Orchestrator** | `cart-checkout`, `orders` | `orders_db` (`carts`, `cart_items`, `checkout_sessions`, `customer_orders`, `seller_orders`, `order_items`) | REST / gRPC, Outbox | Coordinates checkout progression, immutable snapshots, and Saga compensation. |
-| **Payment Service** | `payment` | `payment_db` (`intents`, `attempts`, `webhook_events`, `refunds`) | REST, Webhooks, Outbox | PCI boundary, provider tokenization (Stripe), refund ledger. |
-| **Fulfillment Service** | `fulfillment` | `fulfillment_db` (`shipments`, `items`, `returns`, `carrier_ops`) | REST, Webhooks, Outbox | Carrier integration (Shippo), tracking updates, return workflows. |
-| **Settlement & Ledger** | `settlement-ledger` | `settlement_db` (`accounts`, `adjustments`, `settlements`, `ledger_entries`, `transactions`) | Outbox Consumer, REST | Double-entry financial accounting, immutable audit trails. |
-| **Promotion & Pricing** | `promotion-pricing` | `promotions_db` (`promotions`, `coupons`, `redemptions`) | REST, Outbox | Coupon validation, multi-vendor discount calculation and attribution. |
-| **Search Service** | `search` | `search_db` / OpenSearch (`product_projections`, `seller_offers`) | REST, Outbox Consumer | Derived read model for faceted search and text matching. |
-| **Notification Service**| `notifications`, `price-alerts` | `notifications_db` (`notifications`, `preferences`, `price_watches`) | Outbox Consumer | Multi-channel delivery (Email, WhatsApp) with retry logic. |
-| **AI Assistant Service**| `ai` | `ai_db` (`conversations`, `messages`, `knowledge_documents`, `vector_chunks`) | REST, Webhooks | LLM integrations, pgvector semantic search, WhatsApp bot. |
-| **Analytics Service** | `analytics` | `analytics_db` (`order_facts`, `payment_facts`, `fulfillment_facts`, `daily_metrics`) | REST, Outbox Consumer | Purely derived read model for merchant and admin dashboards. |
-| **ML Inference Service**| Part of `analytics-ml` | Stateless (Reads cached `.joblib` artifacts from S3/MinIO) | REST / gRPC | Lightweight scikit-learn scoring engine. Zero database writes. |
-| **ML Training Job** | Part of `analytics-ml` + `/ml` | `ml_registry_db` (`ml_models`, `ml_training_jobs`, `ml_policies`) | Batch CLI / K8s Job | Asynchronous feature engineering, model fitting, and S3 artifact publishing. |
+| Target Service / Application | Monolith Modules Consolidated   | Data Ownership (Schema/DB)                                                                                  | Primary Protocol       | Justification                                                                            |
+| ---------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------- |
+| **API Gateway**              | Routing from `http/*-routes.ts` | Redis (Rate limits, token blacklist)                                                                        | HTTP/2, TLS            | Single entry point, isolates frontend from internal microservice topology.               |
+| **Identity Service**         | `identity`, `security-audit`    | `identity_db` (`users`, `tenants`, `memberships`, `tokens`, `audit_logs`)                                   | REST / Internal gRPC   | High security requirement, token issuance, credential hashing.                           |
+| **Catalog & Marketplace**    | `catalog`, `marketplace`        | `catalog_db` (`categories`, `products`, `skus`, `listings`, `reviews`)                                      | REST / gRPC, Outbox    | High read volume; avoids N+1 distributed join between products and vendor offers on PDP. |
+| **Inventory Service**        | `inventory`                     | `inventory_db` (`inventory_items`, `reservations`, `movements`)                                             | gRPC, Outbox           | Concurrency write hotspot; handles CAS locks and stock reservation lifecycles.           |
+| **Order Orchestrator**       | `cart-checkout`, `orders`       | `orders_db` (`carts`, `cart_items`, `checkout_sessions`, `customer_orders`, `seller_orders`, `order_items`) | REST / gRPC, Outbox    | Coordinates checkout progression, immutable snapshots, and Saga compensation.            |
+| **Payment Service**          | `payment`                       | `payment_db` (`intents`, `attempts`, `webhook_events`, `refunds`)                                           | REST, Webhooks, Outbox | PCI boundary, provider tokenization (Stripe), refund ledger.                             |
+| **Fulfillment Service**      | `fulfillment`                   | `fulfillment_db` (`shipments`, `items`, `returns`, `carrier_ops`)                                           | REST, Webhooks, Outbox | Carrier integration (Shippo), tracking updates, return workflows.                        |
+| **Settlement & Ledger**      | `settlement-ledger`             | `settlement_db` (`accounts`, `adjustments`, `settlements`, `ledger_entries`, `transactions`)                | Outbox Consumer, REST  | Double-entry financial accounting, immutable audit trails.                               |
+| **Promotion & Pricing**      | `promotion-pricing`             | `promotions_db` (`promotions`, `coupons`, `redemptions`)                                                    | REST, Outbox           | Coupon validation, multi-vendor discount calculation and attribution.                    |
+| **Search Service**           | `search`                        | `search_db` / OpenSearch (`product_projections`, `seller_offers`)                                           | REST, Outbox Consumer  | Derived read model for faceted search and text matching.                                 |
+| **Notification Service**     | `notifications`, `price-alerts` | `notifications_db` (`notifications`, `preferences`, `price_watches`)                                        | Outbox Consumer        | Multi-channel delivery (Email, WhatsApp) with retry logic.                               |
+| **AI Assistant Service**     | `ai`                            | `ai_db` (`conversations`, `messages`, `knowledge_documents`, `vector_chunks`)                               | REST, Webhooks         | LLM integrations, pgvector semantic search, WhatsApp bot.                                |
+| **Analytics Service**        | `analytics`                     | `analytics_db` (`order_facts`, `payment_facts`, `fulfillment_facts`, `daily_metrics`)                       | REST, Outbox Consumer  | Purely derived read model for merchant and admin dashboards.                             |
+| **ML Inference Service**     | Part of `analytics-ml`          | Stateless (Reads cached `.joblib` artifacts from S3/MinIO)                                                  | REST / gRPC            | Lightweight scikit-learn scoring engine. Zero database writes.                           |
+| **ML Training Job**          | Part of `analytics-ml` + `/ml`  | `ml_registry_db` (`ml_models`, `ml_training_jobs`, `ml_policies`)                                           | Batch CLI / K8s Job    | Asynchronous feature engineering, model fitting, and S3 artifact publishing.             |
 
 ---
 
 ## 6. Analytics Architecture
 
 ### Principles & Data Flow
+
 1. **Ownership:** The Analytics Service owns the `analytics_db` schema containing:
    - Fact tables: `analytics_order_facts`, `analytics_payment_facts`, `analytics_fulfillment_facts`
    - Aggregated metrics: `analytics_daily_metrics`
    - Audit logs: `analytics_rebuild_audit`
-2. **Ingestion Mechanism:** 
+2. **Ingestion Mechanism:**
    - Purely event-driven. The Analytics Service subscribes to domain events broadcast over the message broker:
      - `order.created.v1`, `order.status_changed.v1`
      - `payment.succeeded.v1`, `payment.failed.v1`
@@ -237,6 +238,7 @@ The 21 monolith modules map into **11 distinct deployable microservices**, plus 
 ## 7. ML Inference Architecture
 
 ### Production Inference Engine (`apps/ml-service`)
+
 1. **Technology Stack:**
    - **Runtime:** Python 3.11-slim
    - **Framework:** FastAPI with Uvicorn (ASGI)
@@ -272,6 +274,7 @@ The 21 monolith modules map into **11 distinct deployable microservices**, plus 
 ## 8. ML Training Architecture
 
 ### Decoupled Training Pipeline (`jobs/ml-training`)
+
 1. **Execution Nature:**
    - Completely decoupled from the real-time application.
    - Runs as a **Kubernetes Job** or **AWS ECS Task** triggered by:
@@ -318,6 +321,7 @@ The 21 monolith modules map into **11 distinct deployable microservices**, plus 
 ## 9. Model Artifact Architecture
 
 ### Centralized Object Storage Model
+
 Local disk storage (`/.ml_artifacts/`) is strictly prohibited in production.
 
 1. **Storage Provider:**
@@ -325,7 +329,7 @@ Local disk storage (`/.ml_artifacts/`) is strictly prohibited in production.
 2. **Canonical Artifact Naming & URI Convention:**
    ```
    s3://commerce-ml-artifacts/{tenant_id}/{model_type}/{version}_{commit_hash}.joblib
-   
+
    Example:
    s3://commerce-ml-artifacts/tenant-alpha/DEMAND_FORECASTING/v1.2.0_7a9f1b.joblib
    ```
@@ -385,6 +389,7 @@ Local disk storage (`/.ml_artifacts/`) is strictly prohibited in production.
 ## 11. Data Ownership Principles
 
 In the target microservices architecture:
+
 1. **Private Schema per Service:** Each microservice has exclusive ownership of its database tables. Direct cross-service database access is strictly forbidden by PostgreSQL role permissions.
 2. **Asynchronous Cross-Domain Reads:** If Service A needs data from Service B, it either calls Service B's public API or maintains an asynchronous, event-driven read model (CQRS).
 3. **Immutable Snapshots on Orders:** Orders snapshot product titles, SKU codes, prices, and shipping addresses at the moment of checkout. Orders never join against the live Catalog database.
@@ -392,22 +397,23 @@ In the target microservices architecture:
 
 ### Target Component Data Ownership
 
-| Component | Owns Data (Read/Write) | Reads Foreign Data Via | Forbidden Actions |
-|---|---|---|---|
-| **Identity Service** | `users`, `tenants`, `memberships`, `tokens`, `audit_logs` | None | Storing business orders or product listings |
-| **Catalog & Marketplace**| `categories`, `products`, `skus`, `listings`, `reviews` | Outbox events (stock updates) | Querying customer identities directly |
-| **Inventory Service** | `inventory_items`, `reservations`, `movements` | Catalog API (validates SKU existence) | Directly mutating orders or carts |
-| **Order Orchestrator** | `checkout_sessions`, `orders`, `order_items` | gRPC calls (Inventory, Payment) | Executing raw SQL on `cart_items` or `promotions` |
-| **Payment Service** | `payment_intents`, `attempts`, `webhook_events`, `refunds`| External Gateway APIs | Querying order item contents |
-| **Analytics Service** | `order_facts`, `payment_facts`, `daily_metrics` | Message Broker (Domain Events) | Mutating transactional commerce tables |
-| **ML Inference** | Ephemeral model memory cache | S3 Object Storage (Artifacts) | Direct database connections |
-| **ML Training Job** | `ml_models`, `ml_training_jobs`, `ml_policies` | Analytics DB replica / S3 | Holding locks on transactional tables |
+| Component                 | Owns Data (Read/Write)                                     | Reads Foreign Data Via                | Forbidden Actions                                 |
+| ------------------------- | ---------------------------------------------------------- | ------------------------------------- | ------------------------------------------------- |
+| **Identity Service**      | `users`, `tenants`, `memberships`, `tokens`, `audit_logs`  | None                                  | Storing business orders or product listings       |
+| **Catalog & Marketplace** | `categories`, `products`, `skus`, `listings`, `reviews`    | Outbox events (stock updates)         | Querying customer identities directly             |
+| **Inventory Service**     | `inventory_items`, `reservations`, `movements`             | Catalog API (validates SKU existence) | Directly mutating orders or carts                 |
+| **Order Orchestrator**    | `checkout_sessions`, `orders`, `order_items`               | gRPC calls (Inventory, Payment)       | Executing raw SQL on `cart_items` or `promotions` |
+| **Payment Service**       | `payment_intents`, `attempts`, `webhook_events`, `refunds` | External Gateway APIs                 | Querying order item contents                      |
+| **Analytics Service**     | `order_facts`, `payment_facts`, `daily_metrics`            | Message Broker (Domain Events)        | Mutating transactional commerce tables            |
+| **ML Inference**          | Ephemeral model memory cache                               | S3 Object Storage (Artifacts)         | Direct database connections                       |
+| **ML Training Job**       | `ml_models`, `ml_training_jobs`, `ml_policies`             | Analytics DB replica / S3             | Holding locks on transactional tables             |
 
 ---
 
 ## 12. Event Communication Principles
 
 ### Transactional Outbox + Distributed Message Broker
+
 1. **Local Outbox per Service:**
    - Every microservice with transactional side effects maintains its own local `outbox_events` table in its own database schema.
    - When a domain entity is saved, the domain event is committed in the **same local ACID transaction**.
@@ -423,18 +429,18 @@ In the target microservices architecture:
 
 ## 13. Deployment Units
 
-| Deployment Unit | Runtime | Container Base Image | Scaling Metric | Health Endpoints | Target Ports |
-|---|---|---|---|---|---|
-| `apps/web` | Static Assets / Nginx | `nginx:alpine` | Network egress / CPU | `GET /health` | `80` (HTTP) |
-| `apps/gateway` | Node.js / Envoy | `node:22-alpine` | Active connections, QPS | `GET /health/live`, `/health/ready` | `4000` (HTTP) |
-| `apps/services/catalog-marketplace` | Node.js / Fastify | `node:22-alpine` | CPU > 70%, QPS | `GET /health/live`, `/health/ready` | `4001` (HTTP/gRPC)|
-| `apps/services/inventory` | Node.js / Fastify | `node:22-alpine` | Connection pool, QPS | `GET /health/live`, `/health/ready` | `4002` (HTTP/gRPC)|
-| `apps/services/order-orchestrator`| Node.js / Fastify | `node:22-alpine` | CPU > 70%, QPS | `GET /health/live`, `/health/ready` | `4003` (HTTP/gRPC)|
-| `apps/services/payment` | Node.js / Fastify | `node:22-alpine` | CPU > 70%, QPS | `GET /health/live`, `/health/ready` | `4004` (HTTP/gRPC)|
-| `apps/services/identity` | Node.js / Fastify | `node:22-alpine` | CPU > 70%, QPS | `GET /health/live`, `/health/ready` | `4005` (HTTP/gRPC)|
-| `apps/analytics-service` | Node.js / Fastify | `node:22-alpine` | Event consumer lag, QPS | `GET /health/live`, `/health/ready` | `4010` (HTTP) |
-| `apps/ml-service` | Python 3.11 / FastAPI | `python:3.11-slim` | CPU > 60%, Latency > 150ms | `GET /health/liveness`, `/health/readiness` | `8000` (HTTP) |
-| `jobs/ml-training` | Python 3.11 Batch | `python:3.11-slim` | Run-to-completion (Batch) | N/A (Job exit code 0/1) | N/A (CLI Job) |
+| Deployment Unit                     | Runtime               | Container Base Image | Scaling Metric             | Health Endpoints                            | Target Ports       |
+| ----------------------------------- | --------------------- | -------------------- | -------------------------- | ------------------------------------------- | ------------------ |
+| `apps/web`                          | Static Assets / Nginx | `nginx:alpine`       | Network egress / CPU       | `GET /health`                               | `80` (HTTP)        |
+| `apps/gateway`                      | Node.js / Envoy       | `node:22-alpine`     | Active connections, QPS    | `GET /health/live`, `/health/ready`         | `4000` (HTTP)      |
+| `apps/services/catalog-marketplace` | Node.js / Fastify     | `node:22-alpine`     | CPU > 70%, QPS             | `GET /health/live`, `/health/ready`         | `4001` (HTTP/gRPC) |
+| `apps/services/inventory`           | Node.js / Fastify     | `node:22-alpine`     | Connection pool, QPS       | `GET /health/live`, `/health/ready`         | `4002` (HTTP/gRPC) |
+| `apps/services/order-orchestrator`  | Node.js / Fastify     | `node:22-alpine`     | CPU > 70%, QPS             | `GET /health/live`, `/health/ready`         | `4003` (HTTP/gRPC) |
+| `apps/services/payment`             | Node.js / Fastify     | `node:22-alpine`     | CPU > 70%, QPS             | `GET /health/live`, `/health/ready`         | `4004` (HTTP/gRPC) |
+| `apps/services/identity`            | Node.js / Fastify     | `node:22-alpine`     | CPU > 70%, QPS             | `GET /health/live`, `/health/ready`         | `4005` (HTTP/gRPC) |
+| `apps/analytics-service`            | Node.js / Fastify     | `node:22-alpine`     | Event consumer lag, QPS    | `GET /health/live`, `/health/ready`         | `4010` (HTTP)      |
+| `apps/ml-service`                   | Python 3.11 / FastAPI | `python:3.11-slim`   | CPU > 60%, Latency > 150ms | `GET /health/liveness`, `/health/readiness` | `8000` (HTTP)      |
+| `jobs/ml-training`                  | Python 3.11 Batch     | `python:3.11-slim`   | Run-to-completion (Batch)  | N/A (Job exit code 0/1)                     | N/A (CLI Job)      |
 
 ---
 
@@ -464,6 +470,7 @@ The production CI/CD pipeline (GitHub Actions) must enforce independent testing,
 ```
 
 ### Key Production Requirement
+
 - **Zero Developer Artifacts in Image Builds:** Container images build entirely from declared code and dependencies in the repository. They **never** mount or copy files from a developer's local workstation.
 
 ---
@@ -493,13 +500,13 @@ The production CI/CD pipeline (GitHub Actions) must enforce independent testing,
 
 ### Failure Handling Matrix
 
-| Component Outage | Immediate Impact | Failure Handling & Isolation Mechanism | Customer Experience Impact |
-|---|---|---|---|
-| **ML Inference Service Down** | Predictions cannot be scored. | Circuit Breaker trips immediately. Recommendation engine falls back to heuristic sorting (most popular items). | **None.** Customers see standard trending items instead of ML-personalized items. |
-| **ML Inference Latency Spike (>300ms)** | Scoring takes too long. | Timeout enforced at 200ms. Aborts scoring and returns fallback heuristic response. | **None.** Page renders on time without hanging. |
-| **Analytics Service Down** | Dashboard metrics not updated. | Domain events queue safely in the message broker. | **None to buyers.** Merchant analytics page displays cached data or a temporary banner. |
-| **ML Training Job Fails** | New model candidate rejected. | Registry keeps the previously approved model active (`is_active = TRUE`). Error logged to Sentry. | **None.** Existing active model continues serving predictions. |
-| **Object Storage (S3) Outage** | New artifacts cannot be downloaded. | ML Inference nodes continue using already cached local `.joblib` files. | **None.** Scoring continues uninterrupted. |
+| Component Outage                        | Immediate Impact                    | Failure Handling & Isolation Mechanism                                                                         | Customer Experience Impact                                                              |
+| --------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **ML Inference Service Down**           | Predictions cannot be scored.       | Circuit Breaker trips immediately. Recommendation engine falls back to heuristic sorting (most popular items). | **None.** Customers see standard trending items instead of ML-personalized items.       |
+| **ML Inference Latency Spike (>300ms)** | Scoring takes too long.             | Timeout enforced at 200ms. Aborts scoring and returns fallback heuristic response.                             | **None.** Page renders on time without hanging.                                         |
+| **Analytics Service Down**              | Dashboard metrics not updated.      | Domain events queue safely in the message broker.                                                              | **None to buyers.** Merchant analytics page displays cached data or a temporary banner. |
+| **ML Training Job Fails**               | New model candidate rejected.       | Registry keeps the previously approved model active (`is_active = TRUE`). Error logged to Sentry.              | **None.** Existing active model continues serving predictions.                          |
+| **Object Storage (S3) Outage**          | New artifacts cannot be downloaded. | ML Inference nodes continue using already cached local `.joblib` files.                                        | **None.** Scoring continues uninterrupted.                                              |
 
 ---
 
@@ -672,6 +679,7 @@ graph TB
 ## 21. Migration Boundaries (What NOT to Do in This Phase)
 
 To preserve system stability and prevent project failure, the following actions are **strictly prohibited** in this design phase:
+
 1. **NO Source Code Movement:** Do not move `/ml` into `/apps/ml` or `/jobs/ml-training` yet.
 2. **NO Service Code Extraction:** Do not create new directories under `/apps/services` or refactor Fastify controllers.
 3. **NO Database Alterations:** Do not drop foreign keys, alter tables, or create new databases in `commerce_db`.
@@ -685,12 +693,12 @@ This document serves strictly as the **architectural blueprint** to guide future
 
 ## 22. Risks
 
-| Risk | Impact | Likelihood | Mitigation Strategy |
-|---|---|---|---|
-| **Premature Service Extraction** | Distributed monolith complexity, latency degradation. | High | Extract low-risk auxiliary services (Notifications, Analytics, AI) first before touching the transactional core (Orders, Inventory). |
-| **Model Drift in Production** | Suboptimal recommendations or incorrect stockout alerts. | Medium | Scheduled automated drift evaluation policies (`ml_retraining_policies`) with heuristic fallbacks. |
-| **Inference Cold-Start Latency** | Slow first prediction response on new container pods. | Medium | Pre-load active models into memory during container startup (`/health/readiness` probe check). |
-| **Dual-Writing Data Inconsistencies** | Drift between monolith and extracted services. | High | Transactional Outbox pattern ensures guaranteed at-least-once event delivery; consumer receipts prevent duplicate processing. |
+| Risk                                  | Impact                                                   | Likelihood | Mitigation Strategy                                                                                                                  |
+| ------------------------------------- | -------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Premature Service Extraction**      | Distributed monolith complexity, latency degradation.    | High       | Extract low-risk auxiliary services (Notifications, Analytics, AI) first before touching the transactional core (Orders, Inventory). |
+| **Model Drift in Production**         | Suboptimal recommendations or incorrect stockout alerts. | Medium     | Scheduled automated drift evaluation policies (`ml_retraining_policies`) with heuristic fallbacks.                                   |
+| **Inference Cold-Start Latency**      | Slow first prediction response on new container pods.    | Medium     | Pre-load active models into memory during container startup (`/health/readiness` probe check).                                       |
+| **Dual-Writing Data Inconsistencies** | Drift between monolith and extracted services.           | High       | Transactional Outbox pattern ensures guaranteed at-least-once event delivery; consumer receipts prevent duplicate processing.        |
 
 ---
 
@@ -708,5 +716,7 @@ Before proceeding to any code or directory refactoring, engineering leadership m
 ## 24. Recommended Next Implementation Phase
 
 ### PHASE 1 PROPOSAL: ML Packaging & Containerization Blueprint
+
 Once this design document is reviewed and approved, the immediate next technical milestone should be:
+
 > **Isolate and containerize the ML component as a standalone application under `/apps/ml-service` and batch job under `/jobs/ml-training` with pinned virtual environments and remote artifact S3 storage, without modifying core commerce APIs.**

@@ -32,7 +32,7 @@ describe('Password Reset Frontend Feature', () => {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
           </Routes>
         </AuthProvider>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText('Invalid Reset Link')).toBeDefined();
@@ -58,7 +58,7 @@ describe('Password Reset Frontend Feature', () => {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
           </Routes>
         </AuthProvider>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText('Set New Password')).toBeDefined();
@@ -83,7 +83,11 @@ describe('Password Reset Frontend Feature', () => {
         return Promise.resolve({ ok: false, status: 401 });
       }
       if (typeof url === 'string' && url.includes('/auth/forgot-password')) {
-        return Promise.resolve(okJson({ message: 'If an account exists with this email, a password reset link has been sent.' }));
+        return Promise.resolve(
+          okJson({
+            message: 'If an account exists with this email, a password reset link has been sent.',
+          }),
+        );
       }
       return Promise.resolve(okJson({}));
     });
@@ -93,7 +97,7 @@ describe('Password Reset Frontend Feature', () => {
         <AuthProvider>
           <AccountPage />
         </AuthProvider>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     // Wait for auth initialization to complete

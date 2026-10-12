@@ -1,6 +1,7 @@
 # UI & Styling Guidelines (Next.js + Tailwind + shadcn/ui)
 
 These rules govern all frontend/UI work in this repo. They exist for two reasons:
+
 1. To lock in one styling approach (no mixing frameworks, no ad-hoc custom CSS).
 2. To stop AI-generated interfaces from defaulting to a generic, bulky, "AI slop" look.
 
@@ -12,17 +13,17 @@ Read this file in full before writing or editing any component. If a request con
 
 This is a Next.js (App Router) project. Styling is **utility-first**, not custom CSS files, not CSS-in-JS.
 
-| Layer | Use | Do NOT use |
-|---|---|---|
-| Styling engine | **Tailwind CSS v4** | Bootstrap, Bulma, Foundation, vanilla CSS modules for layout |
-| Component primitives | **shadcn/ui** (copied into `/components/ui`, built on Radix/Base UI primitives) | Material UI, Chakra UI, Ant Design, Mantine |
-| Runtime styling | None — Tailwind compiles to static CSS at build time | styled-components, Emotion, or any CSS-in-JS |
-| Icons | `lucide-react` | Font Awesome, emoji-as-icons, inline hand-drawn SVGs |
-| Forms | React Hook Form + Zod (or TanStack Form + Zod) | Uncontrolled ad-hoc forms, custom validation logic |
-| Tables / data grids | TanStack Table (headless) styled with shadcn primitives | Any pre-themed "admin template" table plugin |
-| Charts | Recharts directly, or Tremor's chart components (Recharts-based, shadcn-compatible) for fast KPI/analytics views | Chart.js, heavy D3 builds, Nivo (only if you specifically need exotic chart types) |
-| Dark mode | `next-themes`, `attribute="class"`, driven by CSS variables | Manual `localStorage` theme toggling, duplicate style sheets |
-| Toasts / command menu | `sonner`, `cmdk` (both shadcn-compatible) | Custom-built notification systems |
+| Layer                 | Use                                                                                                              | Do NOT use                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Styling engine        | **Tailwind CSS v4**                                                                                              | Bootstrap, Bulma, Foundation, vanilla CSS modules for layout                       |
+| Component primitives  | **shadcn/ui** (copied into `/components/ui`, built on Radix/Base UI primitives)                                  | Material UI, Chakra UI, Ant Design, Mantine                                        |
+| Runtime styling       | None — Tailwind compiles to static CSS at build time                                                             | styled-components, Emotion, or any CSS-in-JS                                       |
+| Icons                 | `lucide-react`                                                                                                   | Font Awesome, emoji-as-icons, inline hand-drawn SVGs                               |
+| Forms                 | React Hook Form + Zod (or TanStack Form + Zod)                                                                   | Uncontrolled ad-hoc forms, custom validation logic                                 |
+| Tables / data grids   | TanStack Table (headless) styled with shadcn primitives                                                          | Any pre-themed "admin template" table plugin                                       |
+| Charts                | Recharts directly, or Tremor's chart components (Recharts-based, shadcn-compatible) for fast KPI/analytics views | Chart.js, heavy D3 builds, Nivo (only if you specifically need exotic chart types) |
+| Dark mode             | `next-themes`, `attribute="class"`, driven by CSS variables                                                      | Manual `localStorage` theme toggling, duplicate style sheets                       |
+| Toasts / command menu | `sonner`, `cmdk` (both shadcn-compatible)                                                                        | Custom-built notification systems                                                  |
 
 **Why this stack, specifically for SaaS:** Tailwind + shadcn/ui is the de facto default for Next.js SaaS apps because shadcn components live in your own codebase — you own and can restyle every line, there's no breaking-change upgrade risk, and it composes cleanly with React Server Components. CSS-in-JS libraries add runtime cost and fight RSC. Pre-themed kits (Bootstrap, MUI) fight you the moment you need a distinctive, non-templated look — which is exactly the problem this document is trying to prevent.
 
@@ -45,14 +46,14 @@ npx shadcn@latest add button input card dialog dropdown-menu table form
 
 ```css
 /* app/globals.css */
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --color-background: oklch(1 0 0);
   --color-foreground: oklch(0.15 0.01 260);
-  --color-primary: oklch(0.55 0.18 250);   /* pick a real, deliberate hue — see §4 */
+  --color-primary: oklch(0.55 0.18 250); /* pick a real, deliberate hue — see §4 */
   --color-border: oklch(0.9 0.005 260);
-  --radius: 0.5rem;                         /* see §4.2 — do not blanket-round everything larger */
+  --radius: 0.5rem; /* see §4.2 — do not blanket-round everything larger */
 }
 
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
@@ -77,6 +78,7 @@ Define these once, at the start of the project, as deliberate choices — not fr
 AI design tools (and AI coding agents) converge on the same recognizable patterns because they're statistically the most common output in training data. These are now well catalogued as "AI slop" tells. Treat every rule below as a lint rule, not a suggestion.
 
 ### 4.1 Typography
+
 - Do not leave the font as Tailwind/shadcn's default (Inter/Geist/system-ui) without a deliberate decision — pick a typeface (or pairing) intentionally, or explicitly keep the default because it's the right call for this product, not because nobody chose.
 - No accenting a single word in a headline with italics, bold, or a color swap. It reads as a template fill-in, not emphasis.
 - No tracked-out ALL-CAPS labels above headings or sections ("eyebrows"). If a section needs a category label, use normal sentence case at a smaller weight, or better — remove it and let the content stand on its own.
@@ -84,13 +86,16 @@ AI design tools (and AI coding agents) converge on the same recognizable pattern
 - Keep line length under ~80 characters for body/paragraph text.
 
 ### 4.2 Borders, radius, shadows — "the SaaS-card kit"
+
 This is the single most common bulky-AI-UI tell: every card, button, input, badge, and modal rounded to the same large radius, with an identical soft gray shadow underneath, regardless of hierarchy.
+
 - Cards and panels: **cap radius around 8–12px.** Reserve full-pill rounding (`rounded-full`) for tags, badges, avatars, and pill-shaped buttons only — never for containers.
-- Pick **one** elevation strategy per screen: either a hairline border (`border border-border`) *or* a subtle shadow (`shadow-sm`), not both stacked on every surface. A hairline border with a wide diffuse shadow underneath is a specific, recognizable "generated UI" signature — don't combine them.
+- Pick **one** elevation strategy per screen: either a hairline border (`border border-border`) _or_ a subtle shadow (`shadow-sm`), not both stacked on every surface. A hairline border with a wide diffuse shadow underneath is a specific, recognizable "generated UI" signature — don't combine them.
 - Never use heavy drop shadows (`shadow-xl`/`shadow-2xl` or custom large-blur shadows) on flat UI elements that don't visually float (dropdowns, popovers, and modals are the exception — they're meant to float above content).
 - Don't apply identical shadow/radius/border treatment to every card on a dashboard. Vary treatment by hierarchy: a primary KPI card can look different from a secondary list row.
 
 ### 4.3 Color and gradients
+
 - No default purple-to-blue gradient backgrounds (`from-purple-500 to-blue-500` or similar). This is the most recognizable AI-generated tell there is.
 - No gradient text on headlines as a default treatment. If gradient text is used at all, it's one specific element on one specific page, not a repeated pattern.
 - No glow effects (`box-shadow: 0 0 80px ...`) applied broadly. Glow, if used, is for a single specific moment of emphasis, not ambient decoration.
@@ -98,19 +103,23 @@ This is the single most common bulky-AI-UI tell: every card, button, input, badg
 - Limit yourself to 2–4 deliberate visual "effects" per page total (one accent color used consistently counts as one). Everything else stays plain. Restraint reads as confidence; decoration-everywhere reads as generated.
 
 ### 4.4 Layout
+
 - Avoid the reflexive 3-equal-column grid for features/stats/cards. If content genuinely has three unrelated peers, fine — but check first, and consider asymmetric splits (e.g. 60/40), varied card sizes, or a bento-style grid instead of forcing everything into equal boxes.
 - Avoid centering everything by default. Dashboards and product UI are usually left-aligned, information-dense layouts — centered hero-style layouts belong on marketing pages, not inside the app.
 - Numbered markers (01 / 02 / 03) are only appropriate when content is an actual sequence (steps, stages, a timeline). Don't add numbering as decoration.
 - Don't add dividers, outlines, or extra visual structure that doesn't encode real information — every structural device should mean something.
 
 ### 4.5 Motion
+
 - No blanket fade-and-slide-up entrance animation on every section/card on scroll or on load. This is a default, not a design decision, and it's immediately recognizable.
 - No hover-lift/hover-shadow effect applied uniformly to every card, button, and row. If interactive affordance is needed, a simple, fast (~150ms) opacity or background-color change is enough.
 - Motion should answer a user action (opening a panel, confirming a save, expanding a row) — not run automatically on page load or scroll.
 - Respect `prefers-reduced-motion` for anything beyond micro-interactions.
 
 ### 4.6 SaaS-specific: density over "landing page" spaciousness
+
 A very common failure mode: AI agents build **application UI** (dashboards, settings, tables, forms) with the generous whitespace and large type of a **marketing landing page**. These are different jobs.
+
 - Product/app screens should default to compact, information-dense layouts: smaller type (13–14px body in dense tables/lists is normal), tighter row heights, and controls sized for repeated daily use — not oversized "hero" buttons and cards everywhere.
 - Reserve large type, big whitespace, and hero treatment for genuinely marketing-facing pages (pricing, landing, onboarding welcome screens) — not the authenticated app shell.
 - Sidebars, top bars, and toolbars should be compact and utilitarian, not decorative.
@@ -123,6 +132,7 @@ A very common failure mode: AI agents build **application UI** (dashboards, sett
 AI agents building UI tend to write marketing copy where functional copy belongs — this is a major source of "bulky/unprofessional" feel. Product UI text should read like software, not an ad.
 
 **Do not write, anywhere inside the authenticated application:**
+
 - Taglines or slogans ("Empower your team to do more," "The future of X, today").
 - Eyebrow labels above headings ("PRODUCTIVITY" above a heading that already says what it is).
 - Generic filler adjectives: "innovative," "seamless," "powerful," "effortless," "cutting-edge," "revolutionary."
@@ -130,6 +140,7 @@ AI agents building UI tend to write marketing copy where functional copy belongs
 - Restating the obvious above a component ("Here are your recent files:" above a file list that's clearly a file list).
 
 **Do instead:**
+
 - Name things the way the end user thinks about them, not how the system implements them. A user manages "notifications," not "webhook config."
 - Use active voice, and keep the verb consistent through a flow: a button labeled "Publish" produces a toast that says "Published," not "Success" or "Done."
 - Buttons say exactly what happens: "Save changes" not "Submit." "Delete project" not "Confirm." "Invite teammate" not "Add."
@@ -144,28 +155,34 @@ Marketing pages (landing, pricing) are the one place slogans and persuasive copy
 ## 6. SaaS UI patterns
 
 **Navigation**
+
 - A fixed, compact sidebar (icon + label, collapsible to icon-only) is the standard SaaS pattern — not a marketing-style top nav inside the app.
 - Keep nav item count visible without scrolling where possible; group secondary items under a "More" or settings section rather than expanding the list indefinitely.
 
 **Dashboards / KPI cards**
+
 - Lead with the number, not decoration. A KPI card is: label (small, muted) → value (large, one weight heavier) → delta/trend (small, colored only by semantic meaning — green/red tied to actual direction, not decoration).
 - Don't wrap every KPI card in the same gradient or shadow treatment (§4.2–4.3).
 - Use Tremor or Recharts for charts; keep chart chrome minimal — axis labels only where needed, no unnecessary gridlines, no legend when there's only one series.
 
 **Data tables**
+
 - Use TanStack Table (headless) + shadcn `Table` primitives. Support sorting, pagination, and column visibility for any table with meaningful row counts.
 - Row height should be compact by default (dense mode), not spacious — this is a product surface, not a marketing list.
 - Real, contextual empty states per table (see §5), never a generic spinner-forever or blank white box.
 
 **Forms**
+
 - React Hook Form + Zod for all forms with more than 1–2 fields. Validate on blur/submit, show inline field errors, not just a toast.
 - Keep field labels above inputs (not floating labels for dense forms), and group related fields visually with spacing, not boxes-within-boxes.
 
 **Settings / billing**
+
 - Settings pages are a list of clearly labeled sections, not cards decorated like marketing feature blocks.
 - Billing/plan UI: show real plan names and real prices, not "Plan A/B/C" placeholders, even in early development — placeholder-looking billing UI reads as untrustworthy.
 
 **Loading states**
+
 - Prefer skeleton loaders shaped like the real content over generic spinners, for anything above ~300ms load time.
 
 ---

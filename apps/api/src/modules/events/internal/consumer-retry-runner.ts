@@ -1,5 +1,9 @@
 import type { Logger } from '../../../observability/logger.js';
-import type { BaseEventConsumer, ConsumerRetryOptions, ConsumerRetryResult } from './event-consumer.js';
+import type {
+  BaseEventConsumer,
+  ConsumerRetryOptions,
+  ConsumerRetryResult,
+} from './event-consumer.js';
 
 export interface ConsumerRetryRunnerConfig {
   intervalMs?: number;

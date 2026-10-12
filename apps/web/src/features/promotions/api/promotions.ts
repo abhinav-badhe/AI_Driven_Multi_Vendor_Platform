@@ -60,12 +60,16 @@ export interface PromotionAnalyticsDto {
 }
 
 export const promotionsApi = {
-  listPromotions: async (params?: {
-    merchantTenantId?: string | undefined;
-    status?: string | undefined;
-    limit?: number | undefined;
-    offset?: number | undefined;
-  } | undefined): Promise<PromotionDto[]> => {
+  listPromotions: async (
+    params?:
+      | {
+          merchantTenantId?: string | undefined;
+          status?: string | undefined;
+          limit?: number | undefined;
+          offset?: number | undefined;
+        }
+      | undefined,
+  ): Promise<PromotionDto[]> => {
     const query = new URLSearchParams();
     if (params?.merchantTenantId) query.set('merchantTenantId', params.merchantTenantId);
     if (params?.status) query.set('status', params.status);

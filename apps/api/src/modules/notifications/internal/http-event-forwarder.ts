@@ -186,7 +186,9 @@ export class HttpEventForwarder {
 
     this.baseRetryDelayMs = config.baseRetryDelayMs ?? 2000;
     if (!Number.isInteger(this.baseRetryDelayMs) || this.baseRetryDelayMs < 0) {
-      throw new ValidationError('Notifications service baseRetryDelayMs must be a non-negative integer');
+      throw new ValidationError(
+        'Notifications service baseRetryDelayMs must be a non-negative integer',
+      );
     }
 
     this.maxRetryDelayMs = config.maxRetryDelayMs ?? 5 * 60 * 1000;
@@ -331,11 +333,14 @@ export class HttpEventForwarder {
            WHERE consumer_name = $1 AND event_id = $2 AND status != 'QUARANTINED'`,
           [CONSUMER_NAME, eventId],
         );
-        this.logger?.error('Notification event forwarding exceeded max attempts and was quarantined', {
-          consumerName: CONSUMER_NAME,
-          eventId,
-          attempts: existingAttempts,
-        });
+        this.logger?.error(
+          'Notification event forwarding exceeded max attempts and was quarantined',
+          {
+            consumerName: CONSUMER_NAME,
+            eventId,
+            attempts: existingAttempts,
+          },
+        );
         return { handled: false, duplicate: true };
       }
 
@@ -528,11 +533,14 @@ export class HttpEventForwarder {
         );
         if ((qRes.rowCount ?? 0) > 0) {
           quarantined += 1;
-          this.logger?.error('Notification event forwarding exceeded max attempts and was quarantined', {
-            consumerName: CONSUMER_NAME,
-            eventId: row.event_id,
-            attempts: currentAttempts,
-          });
+          this.logger?.error(
+            'Notification event forwarding exceeded max attempts and was quarantined',
+            {
+              consumerName: CONSUMER_NAME,
+              eventId: row.event_id,
+              attempts: currentAttempts,
+            },
+          );
         }
         continue;
       }
@@ -712,9 +720,7 @@ export class HttpEventForwarder {
 
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      controller.abort(
-        new Error(`Event forwarding to ${url} timed out after ${this.timeoutMs}ms`),
-      );
+      controller.abort(new Error(`Event forwarding to ${url} timed out after ${this.timeoutMs}ms`));
     }, this.timeoutMs);
 
     let response: Response;
@@ -723,7 +729,7 @@ export class HttpEventForwarder {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'X-Internal-Service-Key': this.internalServiceKey,
         },
         body: JSON.stringify(envelope),
@@ -848,7 +854,8 @@ export class HttpEventForwarder {
         const json = JSON.parse(text) as Record<string, unknown>;
         if (json.error && typeof json.error === 'object') {
           const errObj = json.error as Record<string, unknown>;
-          errorDetail = (typeof errObj.message === 'string' && errObj.message) || text.slice(0, 500);
+          errorDetail =
+            (typeof errObj.message === 'string' && errObj.message) || text.slice(0, 500);
         } else if (typeof json.message === 'string') {
           errorDetail = json.message;
         } else {

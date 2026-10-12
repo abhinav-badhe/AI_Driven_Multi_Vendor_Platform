@@ -1,4 +1,4 @@
-import { Star, StarHalf } from "lucide-react";
+import { Star, StarHalf } from 'lucide-react';
 
 // Display content carried inside search/catalog `attributes` JSONB
 // (thumbnailUrl, images, rating, reviewCount, tags). Centralized here so
@@ -13,20 +13,25 @@ export interface ProductDisplay {
 
 export function getDisplay(attributes: Record<string, unknown> | null | undefined): ProductDisplay {
   const a = attributes ?? {};
-  const pick = (v: unknown): string | null =>
-    typeof v === "string" && v.length > 0 ? v : null;
+  const pick = (v: unknown): string | null => (typeof v === 'string' && v.length > 0 ? v : null);
   const rawImages = a.images;
   const images = Array.isArray(rawImages)
-    ? rawImages.filter((v): v is string => typeof v === "string")
+    ? rawImages.filter((v): v is string => typeof v === 'string')
     : [];
   const rawTags = a.tags;
   const tags = Array.isArray(rawTags)
-    ? rawTags.filter((v): v is string => typeof v === "string")
+    ? rawTags.filter((v): v is string => typeof v === 'string')
     : [];
-  const rating = typeof a.rating === "number" ? a.rating : null;
-  const reviewCount = typeof a.reviewCount === "number" ? a.reviewCount : 0;
+  const rating = typeof a.rating === 'number' ? a.rating : null;
+  const reviewCount = typeof a.reviewCount === 'number' ? a.reviewCount : 0;
   const thumbnailUrl = pick(a.thumbnailUrl) ?? images[0] ?? null;
-  return { thumbnailUrl, images: images.length > 0 ? images : thumbnailUrl ? [thumbnailUrl] : [], rating, reviewCount, tags };
+  return {
+    thumbnailUrl,
+    images: images.length > 0 ? images : thumbnailUrl ? [thumbnailUrl] : [],
+    rating,
+    reviewCount,
+    tags,
+  };
 }
 
 export function discountPercent(price: number, compareAt?: number | null): number | null {
@@ -44,7 +49,10 @@ export function Rating({
 }) {
   if (rating == null) return null;
   return (
-    <span className="flex items-center gap-1 text-xs text-muted-foreground" aria-label={`Rated ${rating} out of 5`}>
+    <span
+      className="flex items-center gap-1 text-xs text-muted-foreground"
+      aria-label={`Rated ${rating} out of 5`}
+    >
       {rating >= 4.5 ? (
         <Star className="size-3.5 fill-warning text-warning" aria-hidden />
       ) : rating >= 2.5 ? (

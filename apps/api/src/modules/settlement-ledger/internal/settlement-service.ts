@@ -94,7 +94,11 @@ export class SettlementService implements ISettlementService {
     currency: string,
     accountType: FinancialAccountType = 'MERCHANT_BALANCE',
   ): Promise<FinancialAccountRow> {
-    let account = await txRepo.findAccountByMerchantAndCurrencyForUpdate(tenantId, currency, accountType);
+    let account = await txRepo.findAccountByMerchantAndCurrencyForUpdate(
+      tenantId,
+      currency,
+      accountType,
+    );
     if (!account) {
       account = await txRepo.createAccount({
         id: randomUUID(),
@@ -103,7 +107,11 @@ export class SettlementService implements ISettlementService {
         accountType,
       });
       // Re-query with FOR UPDATE to hold lock
-      account = await txRepo.findAccountByMerchantAndCurrencyForUpdate(tenantId, currency, accountType);
+      account = await txRepo.findAccountByMerchantAndCurrencyForUpdate(
+        tenantId,
+        currency,
+        accountType,
+      );
     }
     return account!;
   }
@@ -149,7 +157,9 @@ export class SettlementService implements ISettlementService {
 
       // Invariant 1: Double-entry requires at least 2 entries
       if (!input.entries || input.entries.length < 2) {
-        throw new ValidationError('A financial journal must contain at least 2 entries (double-entry)');
+        throw new ValidationError(
+          'A financial journal must contain at least 2 entries (double-entry)',
+        );
       }
 
       // Invariant 2 & 3: Positive amounts, single currency, and balanced SUM(DEBIT) = SUM(CREDIT)
@@ -158,7 +168,9 @@ export class SettlementService implements ISettlementService {
 
       for (const entry of input.entries) {
         if (typeof entry.amount !== 'number' || isNaN(entry.amount) || entry.amount <= 0) {
-          throw new ValidationError(`Journal entry amount must be greater than zero: got ${entry.amount}`);
+          throw new ValidationError(
+            `Journal entry amount must be greater than zero: got ${entry.amount}`,
+          );
         }
         if (entry.currency !== input.currency) {
           throw new ValidationError(
@@ -195,7 +207,9 @@ export class SettlementService implements ISettlementService {
               'Financial transaction idempotency key reused with different parameters',
             );
           }
-          const existingEntries = await txRepo.listLedgerEntriesByFinancialTransactionId(existingTx.id);
+          const existingEntries = await txRepo.listLedgerEntriesByFinancialTransactionId(
+            existingTx.id,
+          );
           return { transaction: existingTx, entries: existingEntries };
         }
       }
@@ -207,7 +221,9 @@ export class SettlementService implements ISettlementService {
         input.transactionType,
       );
       if (existingBySource) {
-        const existingEntries = await txRepo.listLedgerEntriesByFinancialTransactionId(existingBySource.id);
+        const existingEntries = await txRepo.listLedgerEntriesByFinancialTransactionId(
+          existingBySource.id,
+        );
         return { transaction: existingBySource, entries: existingEntries };
       }
 
@@ -315,7 +331,11 @@ export class SettlementService implements ISettlementService {
   async ingestOrderFinancials(
     actor: AuthorizedActor,
     input: IngestOrderFinancialsInput,
-  ): Promise<{ earningEntry: LedgerEntryDto; commissionEntry: LedgerEntryDto; feeEntry?: LedgerEntryDto | undefined }> {
+  ): Promise<{
+    earningEntry: LedgerEntryDto;
+    commissionEntry: LedgerEntryDto;
+    feeEntry?: LedgerEntryDto | undefined;
+  }> {
     if (actor.role !== 'ADMINISTRATOR') {
       RbacPolicy.requirePermission(actor, 'settlement:manage-any');
     }
@@ -329,7 +349,7 @@ export class SettlementService implements ISettlementService {
     const merchantId = sellerOrder.sellerTenantId;
     const currency = sellerOrder.currency;
     const grossAmount = round2(sellerOrder.totalAmount / 100);
-    const commissionRate = input.commissionRate ?? 0.10; // default 10%
+    const commissionRate = input.commissionRate ?? 0.1; // default 10%
     const commissionAmount = round2(grossAmount * commissionRate);
     const feeAmount = round2(input.feeAmount ?? 0);
 
@@ -374,7 +394,10 @@ export class SettlementService implements ISettlementService {
 
         // Idempotency check if key provided
         if (input.idempotencyKey) {
-          const existingByKey = await txRepo.findLedgerEntryByIdempotency(merchantId, input.idempotencyKey);
+          const existingByKey = await txRepo.findLedgerEntryByIdempotency(
+            merchantId,
+            input.idempotencyKey,
+          );
           if (existingByKey) {
             if (
               existingByKey.tenant_id !== merchantId ||
@@ -399,10 +422,30 @@ export class SettlementService implements ISettlementService {
         }
 
         // Accounts setup
-        const merchantAccount = await this.getOrCreateAccount(txRepo, merchantId, currency, 'MERCHANT_BALANCE');
-        const platformClearing = await this.getOrCreateAccount(txRepo, platformTenantId, currency, 'CLEARING');
-        const platformCommission = await this.getOrCreateAccount(txRepo, platformTenantId, currency, 'COMMISSION_REVENUE');
-        const platformFee = await this.getOrCreateAccount(txRepo, platformTenantId, currency, 'FEE_REVENUE');
+        const merchantAccount = await this.getOrCreateAccount(
+          txRepo,
+          merchantId,
+          currency,
+          'MERCHANT_BALANCE',
+        );
+        const platformClearing = await this.getOrCreateAccount(
+          txRepo,
+          platformTenantId,
+          currency,
+          'CLEARING',
+        );
+        const platformCommission = await this.getOrCreateAccount(
+          txRepo,
+          platformTenantId,
+          currency,
+          'COMMISSION_REVENUE',
+        );
+        const platformFee = await this.getOrCreateAccount(
+          txRepo,
+          platformTenantId,
+          currency,
+          'FEE_REVENUE',
+        );
 
         // 1. ORDER_EARNING Journal: Debit Platform Clearing, Credit Merchant Balance
         const earningResult = await this.postJournal(
@@ -499,7 +542,8 @@ export class SettlementService implements ISettlementService {
         );
 
         // 3. FEE Journal (if feeAmount > 0): Debit Merchant Balance, Credit Platform Fee Revenue
-        let feeResult: { transaction: FinancialTransactionRow; entries: LedgerEntryRow[] } | undefined;
+        let feeResult:
+          { transaction: FinancialTransactionRow; entries: LedgerEntryRow[] } | undefined;
         if (feeAmount > 0) {
           feeResult = await this.postJournal(
             {
@@ -560,7 +604,10 @@ export class SettlementService implements ISettlementService {
   async ingestRefundFinancials(
     actor: AuthorizedActor,
     input: IngestRefundFinancialsInput,
-  ): Promise<{ refundEntry: LedgerEntryDto; commissionReversalEntry?: LedgerEntryDto | undefined }> {
+  ): Promise<{
+    refundEntry: LedgerEntryDto;
+    commissionReversalEntry?: LedgerEntryDto | undefined;
+  }> {
     if (actor.role !== 'ADMINISTRATOR') {
       RbacPolicy.requirePermission(actor, 'settlement:manage-any');
     }
@@ -613,7 +660,10 @@ export class SettlementService implements ISettlementService {
 
         // Idempotency check if key provided
         if (input.idempotencyKey) {
-          const existingByKey = await txRepo.findLedgerEntryByIdempotency(input.merchantId, input.idempotencyKey);
+          const existingByKey = await txRepo.findLedgerEntryByIdempotency(
+            input.merchantId,
+            input.idempotencyKey,
+          );
           if (existingByKey) {
             if (
               existingByKey.tenant_id !== input.merchantId ||
@@ -633,7 +683,10 @@ export class SettlementService implements ISettlementService {
         // Transaction-safe Cumulative Refund Protection (Invariant 10 / Test K)
         if (input.sellerOrderId) {
           const adminActor: AuthorizedActor = { ...actor, role: 'ADMINISTRATOR' };
-          const sellerOrder = await this.orderService.getSellerOrder(adminActor, input.sellerOrderId);
+          const sellerOrder = await this.orderService.getSellerOrder(
+            adminActor,
+            input.sellerOrderId,
+          );
           if (!sellerOrder) {
             throw new NotFoundError(`Seller order '${input.sellerOrderId}' not found`);
           }
@@ -650,9 +703,24 @@ export class SettlementService implements ISettlementService {
         const platformTenantId = await txRepo.getPlatformTenantId();
 
         // Accounts setup
-        const merchantAccount = await this.getOrCreateAccount(txRepo, input.merchantId, input.currency, 'MERCHANT_BALANCE');
-        const platformClearing = await this.getOrCreateAccount(txRepo, platformTenantId, input.currency, 'CLEARING');
-        const platformCommission = await this.getOrCreateAccount(txRepo, platformTenantId, input.currency, 'COMMISSION_REVENUE');
+        const merchantAccount = await this.getOrCreateAccount(
+          txRepo,
+          input.merchantId,
+          input.currency,
+          'MERCHANT_BALANCE',
+        );
+        const platformClearing = await this.getOrCreateAccount(
+          txRepo,
+          platformTenantId,
+          input.currency,
+          'CLEARING',
+        );
+        const platformCommission = await this.getOrCreateAccount(
+          txRepo,
+          platformTenantId,
+          input.currency,
+          'COMMISSION_REVENUE',
+        );
 
         // 1. REFUND Journal: Debit Merchant Balance, Credit Platform Clearing
         const refundResult = await this.postJournal(
@@ -708,7 +776,8 @@ export class SettlementService implements ISettlementService {
         );
 
         // 2. COMMISSION_REVERSAL Journal (if commissionReversal > 0): Debit Platform Commission Revenue, Credit Merchant Balance
-        let commRevResult: { transaction: FinancialTransactionRow; entries: LedgerEntryRow[] } | undefined;
+        let commRevResult:
+          { transaction: FinancialTransactionRow; entries: LedgerEntryRow[] } | undefined;
         if (commissionReversal > 0) {
           commRevResult = await this.postJournal(
             {
@@ -819,8 +888,18 @@ export class SettlementService implements ISettlementService {
         const platformTenantId = await txRepo.getPlatformTenantId();
 
         // Accounts setup
-        const merchantAccount = await this.getOrCreateAccount(txRepo, input.merchantId, input.currency, 'MERCHANT_BALANCE');
-        const platformClearing = await this.getOrCreateAccount(txRepo, platformTenantId, input.currency, 'CLEARING');
+        const merchantAccount = await this.getOrCreateAccount(
+          txRepo,
+          input.merchantId,
+          input.currency,
+          'MERCHANT_BALANCE',
+        );
+        const platformClearing = await this.getOrCreateAccount(
+          txRepo,
+          platformTenantId,
+          input.currency,
+          'CLEARING',
+        );
 
         const adjId = randomUUID();
         const adjRow = await txRepo.createAdjustment({
@@ -1192,7 +1271,11 @@ export class SettlementService implements ISettlementService {
       RbacPolicy.requireTenantMatch(actor, merchantId);
     }
 
-    const account = await this.repo.findAccountByMerchantAndCurrency(merchantId, currency, 'MERCHANT_BALANCE');
+    const account = await this.repo.findAccountByMerchantAndCurrency(
+      merchantId,
+      currency,
+      'MERCHANT_BALANCE',
+    );
     const entries = await this.repo.listLedgerEntries(merchantId);
 
     let totalEarnings = 0;
@@ -1315,7 +1398,12 @@ export class SettlementService implements ISettlementService {
 
   private toSettlementDto(
     row: SettlementRow,
-    items: Array<{ id: string; settlement_id: string; ledger_entry_id: string; created_at: Date }> = [],
+    items: Array<{
+      id: string;
+      settlement_id: string;
+      ledger_entry_id: string;
+      created_at: Date;
+    }> = [],
   ): SettlementDto {
     return {
       id: row.id,

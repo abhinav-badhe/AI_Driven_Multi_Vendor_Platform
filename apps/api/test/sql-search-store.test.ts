@@ -214,9 +214,7 @@ describe('Production-Safe SqlSearchStore (PostgreSQL Persistent Read-Model)', ()
       ...sampleDoc1,
       minPrice: 22999,
       offers: sampleDoc1.offers.map((o) =>
-        o.listingId === 'list-sony-apex'
-          ? { ...o, priceAmount: 22999, sourceVersion: 150 }
-          : o,
+        o.listingId === 'list-sony-apex' ? { ...o, priceAmount: 22999, sourceVersion: 150 } : o,
       ),
       sourceVersion: 150,
       projectionVersion: 2,

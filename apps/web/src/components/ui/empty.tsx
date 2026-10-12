@@ -1,5 +1,5 @@
-import type { LucideIcon } from "lucide-react";
-import { Button } from "./button";
+import type { LucideIcon } from 'lucide-react';
+import { Button } from './button';
 
 // Empty states are an instruction + one action (STYLE.md §5).
 export function EmptyState({
@@ -29,7 +29,7 @@ export function EmptyState({
   );
 }
 
-export function Skeleton({ className = "" }: { className?: string }) {
+export function Skeleton({ className = '' }: { className?: string }) {
   return <div aria-hidden className={`animate-pulse rounded-md bg-muted ${className}`} />;
 }
 

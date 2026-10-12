@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createTestDatabase } from './helpers/test-db.js';
 import { NotificationRepository } from '../src/repository/notification-repository.js';
 import { NotificationService } from '../src/domain/notification-service.js';
-import { InMemoryEmailProvider, InMemorySmsProvider, InMemoryPushProvider } from '../src/channels/in-memory-providers.js';
+import {
+  InMemoryEmailProvider,
+  InMemorySmsProvider,
+  InMemoryPushProvider,
+} from '../src/channels/in-memory-providers.js';
 import { NotificationEventConsumer } from '../src/events/notification-event-consumer.js';
 import { NotificationEventTypes, DomainEvent, EventMetadata } from '../src/events/event-models.js';
 import { DatabaseConnection } from '../src/infra/database/connection.js';
@@ -48,11 +52,15 @@ describe('NotificationEventConsumer Boundary', () => {
   }
 
   it('handles order.created.v1 event and requests order confirmation notification', async () => {
-    const event = makeEvent(NotificationEventTypes.ORDER_CREATED, {
-      customerEmail: 'order@example.com',
-      customerId: 'cust-1',
-      totalAmount: 150.0,
-    }, 'order-123');
+    const event = makeEvent(
+      NotificationEventTypes.ORDER_CREATED,
+      {
+        customerEmail: 'order@example.com',
+        customerId: 'cust-1',
+        totalAmount: 150.0,
+      },
+      'order-123',
+    );
 
     const processed = await consumer.process(event);
     expect(processed).toEqual({
@@ -67,11 +75,15 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('handles payment.succeeded.v1 event', async () => {
-    const event = makeEvent(NotificationEventTypes.PAYMENT_SUCCEEDED, {
-      customerEmail: 'pay@example.com',
-      amount: 150.0,
-      currency: 'USD',
-    }, 'pi-123');
+    const event = makeEvent(
+      NotificationEventTypes.PAYMENT_SUCCEEDED,
+      {
+        customerEmail: 'pay@example.com',
+        amount: 150.0,
+        currency: 'USD',
+      },
+      'pi-123',
+    );
 
     const result = await consumer.process(event);
     expect(result.status).toBe('PROCESSED');
@@ -81,11 +93,15 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('handles payment.failed.v1 event', async () => {
-    const event = makeEvent(NotificationEventTypes.PAYMENT_FAILED, {
-      customerEmail: 'fail@example.com',
-      amount: 150.0,
-      reason: 'Insufficient funds',
-    }, 'pi-failed');
+    const event = makeEvent(
+      NotificationEventTypes.PAYMENT_FAILED,
+      {
+        customerEmail: 'fail@example.com',
+        amount: 150.0,
+        reason: 'Insufficient funds',
+      },
+      'pi-failed',
+    );
 
     const result = await consumer.process(event);
     expect(result.status).toBe('PROCESSED');
@@ -95,11 +111,15 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('handles fulfillment.shipment_status_changed.v1 event', async () => {
-    const event = makeEvent(NotificationEventTypes.FULFILLMENT_SHIPMENT_STATUS_CHANGED, {
-      customerEmail: 'ship@example.com',
-      status: 'IN_TRANSIT',
-      trackingNumber: 'TRACK123',
-    }, 'ship-1');
+    const event = makeEvent(
+      NotificationEventTypes.FULFILLMENT_SHIPMENT_STATUS_CHANGED,
+      {
+        customerEmail: 'ship@example.com',
+        status: 'IN_TRANSIT',
+        trackingNumber: 'TRACK123',
+      },
+      'ship-1',
+    );
 
     const result = await consumer.process(event);
     expect(result.status).toBe('PROCESSED');
@@ -109,10 +129,14 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('handles fulfillment.return_status_changed.v1 event', async () => {
-    const event = makeEvent(NotificationEventTypes.FULFILLMENT_RETURN_STATUS_CHANGED, {
-      customerEmail: 'return@example.com',
-      status: 'APPROVED',
-    }, 'ret-1');
+    const event = makeEvent(
+      NotificationEventTypes.FULFILLMENT_RETURN_STATUS_CHANGED,
+      {
+        customerEmail: 'return@example.com',
+        status: 'APPROVED',
+      },
+      'ret-1',
+    );
 
     const result = await consumer.process(event);
     expect(result.status).toBe('PROCESSED');
@@ -122,14 +146,18 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('handles settlement.status_changed.v1 event', async () => {
-    const event = makeEvent(NotificationEventTypes.SETTLEMENT_STATUS_CHANGED, {
-      merchantEmail: 'merchant@example.com',
-      status: 'COMPLETED',
-      periodStart: '2026-10-01',
-      periodEnd: '2026-10-07',
-      netPayableAmount: 1200.0,
-      currency: 'USD',
-    }, 'settle-1');
+    const event = makeEvent(
+      NotificationEventTypes.SETTLEMENT_STATUS_CHANGED,
+      {
+        merchantEmail: 'merchant@example.com',
+        status: 'COMPLETED',
+        periodStart: '2026-10-01',
+        periodEnd: '2026-10-07',
+        netPayableAmount: 1200.0,
+        currency: 'USD',
+      },
+      'settle-1',
+    );
 
     const result = await consumer.process(event);
     expect(result.status).toBe('PROCESSED');
@@ -140,9 +168,13 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('ensures idempotent processing: drops duplicate events using consumer receipt table', async () => {
-    const event = makeEvent(NotificationEventTypes.ORDER_CREATED, {
-      customerEmail: 'duplicate@example.com',
-    }, 'order-dup');
+    const event = makeEvent(
+      NotificationEventTypes.ORDER_CREATED,
+      {
+        customerEmail: 'duplicate@example.com',
+      },
+      'order-dup',
+    );
 
     const firstRun = await consumer.process(event);
     expect(firstRun).toEqual({
@@ -165,17 +197,18 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('prevents concurrent duplicate deliveries from claiming the same event simultaneously', async () => {
-    const event = makeEvent(NotificationEventTypes.ORDER_CREATED, {
-      customerEmail: 'concurrent@example.com',
-    }, 'order-conc');
+    const event = makeEvent(
+      NotificationEventTypes.ORDER_CREATED,
+      {
+        customerEmail: 'concurrent@example.com',
+      },
+      'order-conc',
+    );
 
     const consumerA = new NotificationEventConsumer(service, repo);
     const consumerB = new NotificationEventConsumer(service, repo);
 
-    const [resA, resB] = await Promise.all([
-      consumerA.process(event),
-      consumerB.process(event),
-    ]);
+    const [resA, resB] = await Promise.all([consumerA.process(event), consumerB.process(event)]);
 
     // Exactly one worker must succeed (PROCESSED), the other must safely yield (CURRENTLY_PROCESSING)
     const statuses = [resA.status, resB.status];
@@ -188,9 +221,14 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('records FAILED status on handler failure and allows successful retry on redelivery', async () => {
-    const event = makeEvent(NotificationEventTypes.ORDER_CREATED, {
-      customerEmail: 'retry@example.com',
-    }, 'order-retry', { correlationId: 'corr-retry-1', source: 'monolith' });
+    const event = makeEvent(
+      NotificationEventTypes.ORDER_CREATED,
+      {
+        customerEmail: 'retry@example.com',
+      },
+      'order-retry',
+      { correlationId: 'corr-retry-1', source: 'monolith' },
+    );
 
     let failFirst = true;
 
@@ -244,9 +282,13 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('safely reclaims stale PROCESSING claims from crashed workers', async () => {
-    const event = makeEvent(NotificationEventTypes.ORDER_CREATED, {
-      customerEmail: 'stale@example.com',
-    }, 'order-stale');
+    const event = makeEvent(
+      NotificationEventTypes.ORDER_CREATED,
+      {
+        customerEmail: 'stale@example.com',
+      },
+      'order-stale',
+    );
 
     // Insert an artificially stale receipt (processed 10 minutes ago)
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
@@ -279,9 +321,13 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('prevents competing workers from simultaneously reclaiming the same stale receipt via atomic CAS', async () => {
-    const event = makeEvent(NotificationEventTypes.ORDER_CREATED, {
-      customerEmail: 'stale-compete@example.com',
-    }, 'order-stale-compete');
+    const event = makeEvent(
+      NotificationEventTypes.ORDER_CREATED,
+      {
+        customerEmail: 'stale-compete@example.com',
+      },
+      'order-stale-compete',
+    );
 
     // Create an artificially stale receipt
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
@@ -297,13 +343,14 @@ describe('NotificationEventConsumer Boundary', () => {
       [tenMinutesAgo, event.eventId],
     );
 
-    const consumerA = new NotificationEventConsumer(service, repo, undefined, { staleTimeoutMs: 60 * 1000 });
-    const consumerB = new NotificationEventConsumer(service, repo, undefined, { staleTimeoutMs: 60 * 1000 });
+    const consumerA = new NotificationEventConsumer(service, repo, undefined, {
+      staleTimeoutMs: 60 * 1000,
+    });
+    const consumerB = new NotificationEventConsumer(service, repo, undefined, {
+      staleTimeoutMs: 60 * 1000,
+    });
 
-    const [resA, resB] = await Promise.all([
-      consumerA.process(event),
-      consumerB.process(event),
-    ]);
+    const [resA, resB] = await Promise.all([consumerA.process(event), consumerB.process(event)]);
 
     // Exactly one worker must succeed in acquiring the stale claim via CAS; the other yields
     const statuses = [resA.status, resB.status];
@@ -315,9 +362,13 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('fences receipt updates so a stale worker cannot overwrite a newer worker completion with failure', async () => {
-    const event = makeEvent(NotificationEventTypes.ORDER_CREATED, {
-      customerEmail: 'fencing-test@example.com',
-    }, 'order-fencing');
+    const event = makeEvent(
+      NotificationEventTypes.ORDER_CREATED,
+      {
+        customerEmail: 'fencing-test@example.com',
+      },
+      'order-fencing',
+    );
 
     // 1. Worker A acquires initial claim
     const claimA = await repo.claimEventReceipt('notification-dispatcher', event.eventId);
@@ -333,7 +384,9 @@ describe('NotificationEventConsumer Boundary', () => {
     );
 
     // 3. Worker B reclaims the stale event with a new token
-    const claimB = await repo.claimEventReceipt('notification-dispatcher', event.eventId, { staleTimeoutMs: 60 * 1000 });
+    const claimB = await repo.claimEventReceipt('notification-dispatcher', event.eventId, {
+      staleTimeoutMs: 60 * 1000,
+    });
     expect(claimB.claimed).toBe(true);
     if (!claimB.claimed) throw new Error('Expected claimB to be claimed');
     const tokenB = claimB.claimToken;
@@ -369,9 +422,13 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('returns FAILED when a worker loses its claim because another worker reclaimed the stale receipt', async () => {
-    const event = makeEvent(NotificationEventTypes.ORDER_CREATED, {
-      customerEmail: 'fencing-worker@example.com',
-    }, 'order-fencing-worker');
+    const event = makeEvent(
+      NotificationEventTypes.ORDER_CREATED,
+      {
+        customerEmail: 'fencing-worker@example.com',
+      },
+      'order-fencing-worker',
+    );
 
     let slowWorkerStartedResolve: () => void;
     const slowWorkerStartedPromise = new Promise<void>((resolve) => {
@@ -393,7 +450,9 @@ describe('NotificationEventConsumer Boundary', () => {
     }
 
     const workerA = new SlowWorkerConsumer(service, repo, undefined, { staleTimeoutMs: 60 * 1000 });
-    const workerB = new NotificationEventConsumer(service, repo, undefined, { staleTimeoutMs: 60 * 1000 });
+    const workerB = new NotificationEventConsumer(service, repo, undefined, {
+      staleTimeoutMs: 60 * 1000,
+    });
 
     // Worker A starts processing
     const workerAPromise = workerA.process(event);
@@ -427,9 +486,13 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('does not reclaim a non-stale PROCESSING claim within timeout window', async () => {
-    const event = makeEvent(NotificationEventTypes.ORDER_CREATED, {
-      customerEmail: 'non-stale@example.com',
-    }, 'order-non-stale');
+    const event = makeEvent(
+      NotificationEventTypes.ORDER_CREATED,
+      {
+        customerEmail: 'non-stale@example.com',
+      },
+      'order-non-stale',
+    );
 
     // 1. Worker A claims the event (fresh claim)
     const claimA = await repo.claimEventReceipt('notification-dispatcher', event.eventId, {
@@ -461,9 +524,13 @@ describe('NotificationEventConsumer Boundary', () => {
   });
 
   it('requires a valid matching claim token for all receipt status updates', async () => {
-    const event = makeEvent(NotificationEventTypes.ORDER_CREATED, {
-      customerEmail: 'token-validation@example.com',
-    }, 'order-token-val');
+    const event = makeEvent(
+      NotificationEventTypes.ORDER_CREATED,
+      {
+        customerEmail: 'token-validation@example.com',
+      },
+      'order-token-val',
+    );
 
     const claim = await repo.claimEventReceipt('notification-dispatcher', event.eventId);
     expect(claim.claimed).toBe(true);

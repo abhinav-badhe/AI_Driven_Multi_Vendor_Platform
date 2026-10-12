@@ -108,7 +108,10 @@ describe('Monolith Notification Client Seam (INotificationClient & LocalNotifica
 
       const client: INotificationClient = new LocalNotificationClient(mockService);
 
-      const result = await client.processPendingNotifications({ batchSize: 25, baseRetryDelayMs: 500 });
+      const result = await client.processPendingNotifications({
+        batchSize: 25,
+        baseRetryDelayMs: 500,
+      });
 
       expect(mockService.processPendingNotifications).toHaveBeenCalledTimes(1);
       expect(mockService.processPendingNotifications).toHaveBeenCalledWith({
@@ -220,10 +223,14 @@ describe('Monolith Notification Client Seam (INotificationClient & LocalNotifica
           idempotencyKey: 'back-in-stock:sub-1',
         }),
         sendTransactionalEmail: vi.fn(),
-        processPendingNotifications: vi.fn().mockResolvedValue({ claimed: 1, sent: 1, failed: 0, deadLettered: 0 }),
+        processPendingNotifications: vi
+          .fn()
+          .mockResolvedValue({ claimed: 1, sent: 1, failed: 0, deadLettered: 0 }),
       };
 
-      (mockDb.withTransaction as any).mockImplementation(async (cb: (tx: any) => Promise<any>) => cb(mockDb));
+      (mockDb.withTransaction as any).mockImplementation(async (cb: (tx: any) => Promise<any>) =>
+        cb(mockDb),
+      );
 
       (mockDb.query as any)
         .mockResolvedValueOnce({
@@ -297,7 +304,9 @@ describe('Monolith Notification Client Seam (INotificationClient & LocalNotifica
 
       // Mock outboxRepo receipt operations on mockDb
       (mockDb.query as any).mockResolvedValue({ rows: [] });
-      (mockDb.withTransaction as any).mockImplementation(async (cb: (tx: any) => Promise<any>) => cb(mockDb));
+      (mockDb.withTransaction as any).mockImplementation(async (cb: (tx: any) => Promise<any>) =>
+        cb(mockDb),
+      );
 
       const consumer = new NotificationEventConsumer(
         mockDb,
@@ -358,7 +367,9 @@ describe('Monolith Notification Client Seam (INotificationClient & LocalNotifica
       const transport = new InMemoryEventTransport();
 
       (mockDb.query as any).mockResolvedValue({ rows: [] });
-      (mockDb.withTransaction as any).mockImplementation(async (cb: (tx: any) => Promise<any>) => cb(mockDb));
+      (mockDb.withTransaction as any).mockImplementation(async (cb: (tx: any) => Promise<any>) =>
+        cb(mockDb),
+      );
 
       const consumer = new NotificationEventConsumer(
         mockDb,
@@ -421,7 +432,14 @@ describe('Monolith Notification Client Seam (INotificationClient & LocalNotifica
           aggregateType: 'settlement',
           aggregateId: 'stl-1',
           tenantId: 'tenant-1',
-          payload: { merchantEmail: 'merchant@example.com', status: 'PAID', periodStart: '2026-01-01', periodEnd: '2026-01-31', netPayableAmount: '500.00', currency: 'USD' },
+          payload: {
+            merchantEmail: 'merchant@example.com',
+            status: 'PAID',
+            periodStart: '2026-01-01',
+            periodEnd: '2026-01-31',
+            netPayableAmount: '500.00',
+            currency: 'USD',
+          },
         }),
       );
 

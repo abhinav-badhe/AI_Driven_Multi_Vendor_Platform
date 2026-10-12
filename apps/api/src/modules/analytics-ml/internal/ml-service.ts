@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { Logger } from '../../../observability/logger.js';
 import type { AuthorizedActor } from '../../identity/index.js';
-import { ForbiddenError, ValidationError, NotFoundError, ConflictError } from '../../../errors/app-error.js';
+import {
+  ForbiddenError,
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+} from '../../../errors/app-error.js';
 import type { IAnalyticsMlFeatureReader } from '../../analytics/index.js';
 import type {
   DerivedPredictionRecord,
@@ -39,7 +44,9 @@ export class MlService implements IMlSignalReader {
       throw new ForbiddenError('Customers cannot access ML management operations');
     }
     if (actor.role === 'MERCHANT' && actor.tenantId !== tenantId) {
-      throw new ForbiddenError(`Merchant ${actor.tenantId} cannot access tenant ${tenantId} ML data`);
+      throw new ForbiddenError(
+        `Merchant ${actor.tenantId} cannot access tenant ${tenantId} ML data`,
+      );
     }
   }
 
@@ -98,10 +105,7 @@ export class MlService implements IMlSignalReader {
   /**
    * Backward-compatible alias for enqueueTrainingJob.
    */
-  async trainModel(
-    actor: AuthorizedActor,
-    input: TrainModelInputDto,
-  ): Promise<TrainingJobRecord> {
+  async trainModel(actor: AuthorizedActor, input: TrainModelInputDto): Promise<TrainingJobRecord> {
     return this.enqueueTrainingJob(actor, input);
   }
 
@@ -148,7 +152,11 @@ export class MlService implements IMlSignalReader {
   /**
    * Waits for a training job to reach a terminal status (COMPLETED or FAILED).
    */
-  async waitForJob(tenantId: string, jobId: string, timeoutMs = 20000): Promise<TrainingJobRecord | null> {
+  async waitForJob(
+    tenantId: string,
+    jobId: string,
+    timeoutMs = 20000,
+  ): Promise<TrainingJobRecord | null> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
       const job = await this.store.getTrainingJobById(tenantId, jobId);
@@ -192,9 +200,11 @@ export class MlService implements IMlSignalReader {
         hyperparameters: (config?.hyperparameters as Record<string, unknown> | undefined) ?? {},
         algorithm: config?.algorithm as string | undefined,
         seed: 42,
-        horizon: (config?.predictionHorizon as string | undefined) ?? (modelType === 'PURCHASE_PROPENSITY' ? '14d' : '7d'),
+        horizon:
+          (config?.predictionHorizon as string | undefined) ??
+          (modelType === 'PURCHASE_PROPENSITY' ? '14d' : '7d'),
         maxAcceptableRmse: (config?.maxAcceptableRmse as number | undefined) ?? 100.0,
-        minAcceptableAccuracy: (config?.minAcceptableAccuracy as number | undefined) ?? 0.50,
+        minAcceptableAccuracy: (config?.minAcceptableAccuracy as number | undefined) ?? 0.5,
       };
 
       const trainResult = await this.executionProvider.runTraining(trainConfig);
@@ -250,7 +260,9 @@ export class MlService implements IMlSignalReader {
 
         // Generate baseline predictions for active entities
         await this.generatePredictions(tenantId, modelType).catch((err) => {
-          this.logger.warn('Initial prediction generation encountered error', { error: String(err) });
+          this.logger.warn('Initial prediction generation encountered error', {
+            error: String(err),
+          });
         });
       } else {
         this.logger.warn('Candidate model rejected by acceptance evaluation criteria', {
@@ -267,21 +279,28 @@ export class MlService implements IMlSignalReader {
         modelId,
         sampleCount: trainResult.sampleCount ?? rawRecords.length,
         dataSourceType,
-        errorMessage: isApproved ? null : (trainResult.rejectionReason ?? 'Model rejected during evaluation'),
+        errorMessage: isApproved
+          ? null
+          : (trainResult.rejectionReason ?? 'Model rejected during evaluation'),
         completedAt: new Date().toISOString(),
       });
 
       const updated = await this.store.getTrainingJobById(tenantId, jobId);
-      return updated ?? {
-        ...job,
-        status: isApproved ? 'COMPLETED' : 'FAILED',
-        modelId,
-        sampleCount: trainResult.sampleCount ?? rawRecords.length,
-        dataSourceType,
-      };
+      return (
+        updated ?? {
+          ...job,
+          status: isApproved ? 'COMPLETED' : 'FAILED',
+          modelId,
+          sampleCount: trainResult.sampleCount ?? rawRecords.length,
+          dataSourceType,
+        }
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error('Unexpected error during model training job execution', { jobId, error: msg });
+      this.logger.error('Unexpected error during model training job execution', {
+        jobId,
+        error: msg,
+      });
       await this.store.updateTrainingJob(jobId, {
         status: 'FAILED',
         errorMessage: msg,
@@ -308,7 +327,9 @@ export class MlService implements IMlSignalReader {
     if (this.retrainingTimer) return;
     this.retrainingTimer = setInterval(() => {
       this.evaluateAllRetrainingPolicies().catch((err) => {
-        this.logger.error('Error during automatic retraining scheduler execution', { error: String(err) });
+        this.logger.error('Error during automatic retraining scheduler execution', {
+          error: String(err),
+        });
       });
     }, intervalMs);
     if (this.retrainingTimer.unref) {
@@ -330,20 +351,43 @@ export class MlService implements IMlSignalReader {
    * Evaluates all enabled retraining policies across all tenants.
    */
   async evaluateAllRetrainingPolicies(): Promise<
-    Array<{ tenantId: string; modelType: ModelType; retrained: boolean; jobId?: string; reason: string }>
+    Array<{
+      tenantId: string;
+      modelType: ModelType;
+      retrained: boolean;
+      jobId?: string;
+      reason: string;
+    }>
   > {
     const policies = await this.store.listAllEnabledPolicies();
-    const results: Array<{ tenantId: string; modelType: ModelType; retrained: boolean; jobId?: string; reason: string }> = [];
+    const results: Array<{
+      tenantId: string;
+      modelType: ModelType;
+      retrained: boolean;
+      jobId?: string;
+      reason: string;
+    }> = [];
 
     for (const policy of policies) {
       try {
-        const existingRunning = await this.store.getLatestRunningJob(policy.tenantId, policy.modelType);
+        const existingRunning = await this.store.getLatestRunningJob(
+          policy.tenantId,
+          policy.modelType,
+        );
         if (existingRunning) {
-          results.push({ tenantId: policy.tenantId, modelType: policy.modelType, retrained: false, reason: 'JOB_ALREADY_ACTIVE' });
+          results.push({
+            tenantId: policy.tenantId,
+            modelType: policy.modelType,
+            retrained: false,
+            reason: 'JOB_ALREADY_ACTIVE',
+          });
           continue;
         }
 
-        const demandFacts = await this.featureReader.getProductDailyDemandHistory(policy.tenantId, 30);
+        const demandFacts = await this.featureReader.getProductDailyDemandHistory(
+          policy.tenantId,
+          30,
+        );
         const currentOrderCount = demandFacts.reduce((sum, d) => sum + d.orderCount, 0);
         const diff = currentOrderCount - policy.lastTrainedOrderCount;
 
@@ -365,17 +409,37 @@ export class MlService implements IMlSignalReader {
             nowIso,
           );
 
-          results.push({ tenantId: policy.tenantId, modelType: policy.modelType, retrained: true, jobId: job.id, reason: `THRESHOLD_MET: +${diff} orders` });
+          results.push({
+            tenantId: policy.tenantId,
+            modelType: policy.modelType,
+            retrained: true,
+            jobId: job.id,
+            reason: `THRESHOLD_MET: +${diff} orders`,
+          });
         } else {
-          results.push({ tenantId: policy.tenantId, modelType: policy.modelType, retrained: false, reason: `BELOW_THRESHOLD: +${diff}/${policy.minNewOrdersThreshold} orders` });
+          results.push({
+            tenantId: policy.tenantId,
+            modelType: policy.modelType,
+            retrained: false,
+            reason: `BELOW_THRESHOLD: +${diff}/${policy.minNewOrdersThreshold} orders`,
+          });
         }
       } catch (err: unknown) {
         if (err instanceof ConflictError) {
-          results.push({ tenantId: policy.tenantId, modelType: policy.modelType, retrained: false, reason: 'JOB_ALREADY_ACTIVE' });
+          results.push({
+            tenantId: policy.tenantId,
+            modelType: policy.modelType,
+            retrained: false,
+            reason: 'JOB_ALREADY_ACTIVE',
+          });
           continue;
         }
         const msg = err instanceof Error ? err.message : String(err);
-        this.logger.warn('Failed evaluating retraining policy for tenant', { tenantId: policy.tenantId, modelType: policy.modelType, error: msg });
+        this.logger.warn('Failed evaluating retraining policy for tenant', {
+          tenantId: policy.tenantId,
+          modelType: policy.modelType,
+          error: msg,
+        });
       }
     }
     return results;
@@ -530,7 +594,9 @@ export class MlService implements IMlSignalReader {
           const lag7 = sorted[Math.max(0, sorted.length - 7)]?.unitsSold ?? lag1;
           const recent = sorted.slice(-7);
           const mean7 = recent.reduce((s, r) => s + r.unitsSold, 0) / Math.max(1, recent.length);
-          const mean14 = sorted.slice(-14).reduce((s, r) => s + r.unitsSold, 0) / Math.max(1, Math.min(14, sorted.length));
+          const mean14 =
+            sorted.slice(-14).reduce((s, r) => s + r.unitsSold, 0) /
+            Math.max(1, Math.min(14, sorted.length));
           const price = last?.price ?? 100.0;
           const dow = new Date().getDay();
           const isWeekend = dow === 0 || dow === 6 ? 1.0 : 0.0;
@@ -650,7 +716,9 @@ export class MlService implements IMlSignalReader {
       return { count: recordsToSave.length };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn('Safe prediction generation caught error and returned empty count', { error: msg });
+      this.logger.warn('Safe prediction generation caught error and returned empty count', {
+        error: msg,
+      });
       return { count: 0 };
     }
   }
@@ -696,7 +764,11 @@ export class MlService implements IMlSignalReader {
   async listPredictions(
     actor: AuthorizedActor,
     tenantId: string,
-    filter?: { modelType?: ModelType | undefined; entityType?: 'PRODUCT' | 'SKU' | 'CUSTOMER' | 'ORDER' | undefined; entityId?: string | undefined },
+    filter?: {
+      modelType?: ModelType | undefined;
+      entityType?: 'PRODUCT' | 'SKU' | 'CUSTOMER' | 'ORDER' | undefined;
+      entityId?: string | undefined;
+    },
   ): Promise<DerivedPredictionRecord[]> {
     this.assertTenantAccess(actor, tenantId);
     return this.store.listPredictions(tenantId, filter);
@@ -747,7 +819,12 @@ export class MlService implements IMlSignalReader {
   // --- IMlSignalReader implementation (Optional signals for recommendations) ---
 
   async getDemandForecast(tenantId: string, productId: string): Promise<number | null> {
-    const pred = await this.store.getPrediction(tenantId, 'DEMAND_FORECASTING', 'PRODUCT', productId);
+    const pred = await this.store.getPrediction(
+      tenantId,
+      'DEMAND_FORECASTING',
+      'PRODUCT',
+      productId,
+    );
     return pred ? pred.predictionValue : null;
   }
 
@@ -759,7 +836,12 @@ export class MlService implements IMlSignalReader {
   }
 
   async getPurchasePropensity(tenantId: string, customerId: string): Promise<number | null> {
-    const pred = await this.store.getPrediction(tenantId, 'PURCHASE_PROPENSITY', 'CUSTOMER', customerId);
+    const pred = await this.store.getPrediction(
+      tenantId,
+      'PURCHASE_PROPENSITY',
+      'CUSTOMER',
+      customerId,
+    );
     return pred && pred.probability !== null && pred.probability !== undefined
       ? pred.probability
       : null;

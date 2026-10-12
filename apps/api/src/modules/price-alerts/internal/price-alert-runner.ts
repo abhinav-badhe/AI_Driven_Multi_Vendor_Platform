@@ -66,7 +66,11 @@ export class PriceAlertSweepRunner {
   /**
    * Executes a single sweep cycle with in-process overlap guard.
    */
-  async runCycle(): Promise<{ productsChecked: number; alertsSent: number; reconciled: number } | null> {
+  async runCycle(): Promise<{
+    productsChecked: number;
+    alertsSent: number;
+    reconciled: number;
+  } | null> {
     if (this.isRunningCycle) {
       this.logger.debug('Price-drop sweep cycle already in progress; skipping tick');
       return null;

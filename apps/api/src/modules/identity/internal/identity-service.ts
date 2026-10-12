@@ -82,7 +82,9 @@ export class IdentityService implements IIdentityActorResolver {
     this.audit = audit ?? new SecurityAuditService(db, logger);
   }
 
-  async register(input: RegisterInput): Promise<{ userId: string; email: string; tenantId: string; role: string }> {
+  async register(
+    input: RegisterInput,
+  ): Promise<{ userId: string; email: string; tenantId: string; role: string }> {
     if (!input.email || !input.email.includes('@')) {
       throw new ValidationError('Invalid email address');
     }
@@ -98,7 +100,12 @@ export class IdentityService implements IIdentityActorResolver {
     const passwordHash = await this.hasher.hash(input.password);
 
     const { user, tenant } = await this.registerInDb(input, passwordHash);
-    return { userId: user.id, email: input.email.toLowerCase(), tenantId: tenant.id, role: input.role };
+    return {
+      userId: user.id,
+      email: input.email.toLowerCase(),
+      tenantId: tenant.id,
+      role: input.role,
+    };
   }
 
   private async registerInDb(
@@ -151,7 +158,9 @@ export class IdentityService implements IIdentityActorResolver {
     if (!rawToken || typeof rawToken !== 'string') {
       throw new ValidationError('Verification token is required');
     }
-    const record = await this.repo.findValidVerificationToken(hashVerificationToken(rawToken.trim()));
+    const record = await this.repo.findValidVerificationToken(
+      hashVerificationToken(rawToken.trim()),
+    );
     if (!record) {
       throw new ValidationError('Verification link is invalid or has expired');
     }
@@ -218,7 +227,10 @@ export class IdentityService implements IIdentityActorResolver {
   /**
    * Consumes a password reset token and sets the new password.
    */
-  async resetPassword(rawToken: string, newPassword: string): Promise<{ userId: string; email: string }> {
+  async resetPassword(
+    rawToken: string,
+    newPassword: string,
+  ): Promise<{ userId: string; email: string }> {
     if (!rawToken || typeof rawToken !== 'string') {
       throw new ValidationError('Reset token is required');
     }
@@ -226,7 +238,9 @@ export class IdentityService implements IIdentityActorResolver {
       throw new ValidationError('Password must be at least 8 characters');
     }
 
-    const record = await this.repo.findValidPasswordResetToken(hashVerificationToken(rawToken.trim()));
+    const record = await this.repo.findValidPasswordResetToken(
+      hashVerificationToken(rawToken.trim()),
+    );
     if (!record) {
       throw new ValidationError('Password reset link is invalid or has expired');
     }
@@ -287,7 +301,9 @@ export class IdentityService implements IIdentityActorResolver {
         userAgent: context?.userAgent,
         metadata: { reason: 'email_not_verified' },
       });
-      throw new EmailNotVerifiedError('Email address has not been verified. Check your inbox for the verification link.');
+      throw new EmailNotVerifiedError(
+        'Email address has not been verified. Check your inbox for the verification link.',
+      );
     }
 
     const membership = await this.repo.findActiveMembershipByUserId(user.id);
@@ -342,7 +358,9 @@ export class IdentityService implements IIdentityActorResolver {
   ): Promise<AuthTokenPair> {
     const payload = this.tokenService.verify2FATempToken(tempToken);
     if (!payload) {
-      throw new UnauthorizedError('Invalid or expired 2FA verification session. Please log in again.');
+      throw new UnauthorizedError(
+        'Invalid or expired 2FA verification session. Please log in again.',
+      );
     }
 
     const user = await this.repo.findUserById(payload.userId);
@@ -405,7 +423,10 @@ export class IdentityService implements IIdentityActorResolver {
     return { isEnabled: Boolean(settings?.is_enabled) };
   }
 
-  async setup2FA(userId: string, issuer = 'Commerce Platform'): Promise<{
+  async setup2FA(
+    userId: string,
+    issuer = 'Commerce Platform',
+  ): Promise<{
     secret: string;
     otpAuthUri: string;
     recoveryCodes: string[];
@@ -440,7 +461,9 @@ export class IdentityService implements IIdentityActorResolver {
 
     const isValid = verifyTotpCode(settings.secret, code.trim());
     if (!isValid) {
-      throw new ValidationError('Invalid verification code. Please check your authenticator app and try again.');
+      throw new ValidationError(
+        'Invalid verification code. Please check your authenticator app and try again.',
+      );
     }
 
     await this.repo.enable2FA(userId);
@@ -453,7 +476,11 @@ export class IdentityService implements IIdentityActorResolver {
     return { success: true };
   }
 
-  async disable2FA(userId: string, passwordConfirm: string, code?: string): Promise<{ success: true }> {
+  async disable2FA(
+    userId: string,
+    passwordConfirm: string,
+    code?: string,
+  ): Promise<{ success: true }> {
     const user = await this.repo.findUserById(userId);
     if (!user || user.status !== 'ACTIVE') {
       throw new NotFoundError('User not found');
@@ -486,15 +513,22 @@ export class IdentityService implements IIdentityActorResolver {
     return { success: true };
   }
 
-  async refresh(rawRefreshToken: string, context?: AuthRequestContext | undefined): Promise<AuthTokenPair> {
+  async refresh(
+    rawRefreshToken: string,
+    context?: AuthRequestContext | undefined,
+  ): Promise<AuthTokenPair> {
     const tokenHash = this.tokenService.hashToken(rawRefreshToken);
 
     // Reuse evidence is captured inside the transaction but acted upon
     // OUTSIDE it: the throw below rolls the transaction back, which must
     // not undo the family revocation (otherwise reuse would be detected,
     // logged, but never enforced).
-    let reuseEvidence: { userId: string; tenantId: string; familyId: string; reason?: string } | null =
-      null;
+    let reuseEvidence: {
+      userId: string;
+      tenantId: string;
+      familyId: string;
+      reason?: string;
+    } | null = null;
 
     try {
       return await this.db.withTransaction(async (tx) => {
@@ -589,7 +623,10 @@ export class IdentityService implements IIdentityActorResolver {
           actorId: evidence.userId,
           tenantId: evidence.tenantId,
           ipAddress: context?.ip,
-          metadata: { familyId: evidence.familyId, ...(evidence.reason ? { reason: evidence.reason } : {}) },
+          metadata: {
+            familyId: evidence.familyId,
+            ...(evidence.reason ? { reason: evidence.reason } : {}),
+          },
         });
         await this.audit.record({
           eventType: 'REFRESH_TOKEN_FAMILY_REVOKED',
@@ -698,32 +735,35 @@ export class IdentityService implements IIdentityActorResolver {
     };
   }
 
-  async listUsers(actor: AuthorizedActor): Promise<Array<{
-    id: string;
-    email: string;
-    role: string;
-    tenantId: string;
-    createdAt: string;
-    isActive: boolean;
-  }>> {
+  async listUsers(actor: AuthorizedActor): Promise<
+    Array<{
+      id: string;
+      email: string;
+      role: string;
+      tenantId: string;
+      createdAt: string;
+      isActive: boolean;
+    }>
+  > {
     if (actor.role !== 'ADMINISTRATOR') {
       RbacPolicy.requirePermission(actor, 'admin:manage-users');
     }
     return this.repo.listAllUsers();
   }
 
-  async getAuditLog(actor: AuthorizedActor): Promise<Array<{
-    id: string;
-    event: string;
-    userId?: string;
-    ip?: string;
-    timestamp: string;
-    severity: string;
-  }>> {
+  async getAuditLog(actor: AuthorizedActor): Promise<
+    Array<{
+      id: string;
+      event: string;
+      userId?: string;
+      ip?: string;
+      timestamp: string;
+      severity: string;
+    }>
+  > {
     if (actor.role !== 'ADMINISTRATOR') {
       RbacPolicy.requirePermission(actor, 'admin:view-audit');
     }
     return this.repo.getAuditRecords();
   }
 }
-

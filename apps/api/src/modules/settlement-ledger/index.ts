@@ -65,11 +65,7 @@ export type {
   HttpSettlementClientOptions,
 };
 
-export {
-  SettlementService,
-  InMemorySettlementStore,
-  HttpSettlementClient,
-};
+export { SettlementService, InMemorySettlementStore, HttpSettlementClient };
 
 export interface SettlementLedgerModule {
   readonly contextName: 'settlement-ledger';
@@ -79,10 +75,7 @@ export interface SettlementLedgerModule {
     orderService: IOrderReader | OrderService,
     paymentService: IPaymentService | PaymentService,
   ): SettlementService;
-  createHttpClient(
-    serviceUrl: string,
-    options?: HttpSettlementClientOptions,
-  ): HttpSettlementClient;
+  createHttpClient(serviceUrl: string, options?: HttpSettlementClientOptions): HttpSettlementClient;
   createInMemoryStore(): InMemorySettlementStore;
 }
 

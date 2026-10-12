@@ -32,7 +32,9 @@ describe('HttpNotificationClient (Monolith Adapter for Standalone Notifications 
     it('throws ValidationError if baseUrl is empty or invalid', () => {
       expect(() => new HttpNotificationClient('', VALID_KEY)).toThrow(ValidationError);
       expect(() => new HttpNotificationClient('   ', VALID_KEY)).toThrow(ValidationError);
-      expect(() => new HttpNotificationClient('not-a-valid-url', VALID_KEY)).toThrow(ValidationError);
+      expect(() => new HttpNotificationClient('not-a-valid-url', VALID_KEY)).toThrow(
+        ValidationError,
+      );
     });
 
     it('throws ValidationError if internalServiceKey is missing or shorter than 16 characters', () => {
@@ -122,8 +124,12 @@ describe('HttpNotificationClient (Monolith Adapter for Standalone Notifications 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(capturedUrl).toBe(`${BASE_URL}/v1/internal/notifications/request`);
       expect(capturedInit?.method).toBe('POST');
-      expect((capturedInit?.headers as Record<string, string>)?.['X-Internal-Service-Key']).toBe(VALID_KEY);
-      expect((capturedInit?.headers as Record<string, string>)?.['Content-Type']).toBe('application/json');
+      expect((capturedInit?.headers as Record<string, string>)?.['X-Internal-Service-Key']).toBe(
+        VALID_KEY,
+      );
+      expect((capturedInit?.headers as Record<string, string>)?.['Content-Type']).toBe(
+        'application/json',
+      );
 
       const parsedBody = JSON.parse(capturedInit?.body as string);
       expect(parsedBody).toEqual({
@@ -292,7 +298,9 @@ describe('HttpNotificationClient (Monolith Adapter for Standalone Notifications 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(capturedUrl).toBe(`${BASE_URL}/v1/internal/notifications/transactional-email`);
       expect(capturedInit?.method).toBe('POST');
-      expect((capturedInit?.headers as Record<string, string>)?.['X-Internal-Service-Key']).toBe(VALID_KEY);
+      expect((capturedInit?.headers as Record<string, string>)?.['X-Internal-Service-Key']).toBe(
+        VALID_KEY,
+      );
 
       const parsedBody = JSON.parse(capturedInit?.body as string);
       expect(parsedBody).toEqual({
@@ -361,7 +369,9 @@ describe('HttpNotificationClient (Monolith Adapter for Standalone Notifications 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(capturedUrl).toBe(`${BASE_URL}/v1/internal/notifications/process`);
       expect(capturedInit?.method).toBe('POST');
-      expect((capturedInit?.headers as Record<string, string>)?.['X-Internal-Service-Key']).toBe(VALID_KEY);
+      expect((capturedInit?.headers as Record<string, string>)?.['X-Internal-Service-Key']).toBe(
+        VALID_KEY,
+      );
 
       const parsedBody = JSON.parse(capturedInit?.body as string);
       expect(parsedBody).toEqual({
@@ -421,9 +431,9 @@ describe('HttpNotificationClient (Monolith Adapter for Standalone Notifications 
       await expect(client.processPendingNotifications({ baseRetryDelayMs: 50 })).rejects.toThrow(
         ValidationError,
       );
-      await expect(client.processPendingNotifications({ baseRetryDelayMs: 500000 })).rejects.toThrow(
-        ValidationError,
-      );
+      await expect(
+        client.processPendingNotifications({ baseRetryDelayMs: 500000 }),
+      ).rejects.toThrow(ValidationError);
 
       expect(mockFetch).not.toHaveBeenCalled();
     });
@@ -763,9 +773,13 @@ describe('HttpNotificationClient (Monolith Adapter for Standalone Notifications 
         .catch((e) => e);
 
       expect(err).toBeInstanceOf(HttpNotificationClientError);
-      expect((err as HttpNotificationClientError).code).toBe('NOTIFICATION_SERVICE_RESPONSE_TOO_LARGE');
+      expect((err as HttpNotificationClientError).code).toBe(
+        'NOTIFICATION_SERVICE_RESPONSE_TOO_LARGE',
+      );
       expect((err as HttpNotificationClientError).statusCode).toBe(502);
-      expect((err as HttpNotificationClientError).message).toContain('exceeded maximum allowed size');
+      expect((err as HttpNotificationClientError).message).toContain(
+        'exceeded maximum allowed size',
+      );
       expect((err as HttpNotificationClientError).message).not.toContain(VALID_KEY);
     });
 
@@ -802,7 +816,9 @@ describe('HttpNotificationClient (Monolith Adapter for Standalone Notifications 
         .catch((e) => e);
 
       expect(err).toBeInstanceOf(HttpNotificationClientError);
-      expect((err as HttpNotificationClientError).code).toBe('NOTIFICATION_SERVICE_RESPONSE_TOO_LARGE');
+      expect((err as HttpNotificationClientError).code).toBe(
+        'NOTIFICATION_SERVICE_RESPONSE_TOO_LARGE',
+      );
       expect((err as HttpNotificationClientError).statusCode).toBe(502);
       expect(streamCancelled).toBe(true);
     });
@@ -821,12 +837,12 @@ describe('HttpNotificationClient (Monolith Adapter for Standalone Notifications 
         fetchFn: mockFetch,
       });
 
-      const err = await client
-        .processPendingNotifications({ batchSize: 10 })
-        .catch((e) => e);
+      const err = await client.processPendingNotifications({ batchSize: 10 }).catch((e) => e);
 
       expect(err).toBeInstanceOf(HttpNotificationClientError);
-      expect((err as HttpNotificationClientError).code).toBe('NOTIFICATION_SERVICE_MALFORMED_RESPONSE');
+      expect((err as HttpNotificationClientError).code).toBe(
+        'NOTIFICATION_SERVICE_MALFORMED_RESPONSE',
+      );
       expect((err as HttpNotificationClientError).statusCode).toBe(502);
       expect((err as HttpNotificationClientError).message).toContain('empty response');
     });

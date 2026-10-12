@@ -1,9 +1,6 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
 import type { Logger } from '../../../observability/logger.js';
-import {
-  ValidationError,
-  NotFoundError,
-} from '../../../errors/app-error.js';
+import { ValidationError, NotFoundError } from '../../../errors/app-error.js';
 import { RbacPolicy, type AuthorizedActor } from '../../identity/rbac/policy.js';
 import type { CartService, ICartService, CartDto } from '../../cart-checkout/index.js';
 import type { OutboxService } from '../../events/index.js';
@@ -72,18 +69,15 @@ export class WishlistService {
         [trimmedSkuId],
       );
       if (skuRes.rows.length === 0 || skuRes.rows[0]?.product_id !== productId) {
-        throw new ValidationError(`SKU '${trimmedSkuId}' does not belong to product '${productId}'`);
+        throw new ValidationError(
+          `SKU '${trimmedSkuId}' does not belong to product '${productId}'`,
+        );
       }
       skuId = trimmedSkuId;
     }
 
     // 3. Atomically add or idempotently update wishlist entry
-    const saved = await this.repo.addItem(
-      actor.userId,
-      actor.tenantId,
-      productId,
-      skuId,
-    );
+    const saved = await this.repo.addItem(actor.userId, actor.tenantId, productId, skuId);
 
     const dto = await this.repo.resolveWishlistItemDetails(saved);
 
@@ -119,10 +113,7 @@ export class WishlistService {
     return dto;
   }
 
-  async removeFromWishlist(
-    actor: AuthorizedActor,
-    productIdOrId: string,
-  ): Promise<void> {
+  async removeFromWishlist(actor: AuthorizedActor, productIdOrId: string): Promise<void> {
     RbacPolicy.requirePermission(actor, 'wishlist:write-own');
 
     const identifier = productIdOrId?.trim();
@@ -213,7 +204,9 @@ export class WishlistService {
     }
 
     if (!productId) {
-      throw new NotFoundError(`Canonical product for cart item '${cartItemId}' could not be resolved`);
+      throw new NotFoundError(
+        `Canonical product for cart item '${cartItemId}' could not be resolved`,
+      );
     }
 
     // Add to wishlist
@@ -297,7 +290,9 @@ export class WishlistService {
       if (explicitListing.rows[0]) {
         targetListingId = explicitListing.rows[0].id;
       } else {
-        throw new ValidationError(`Provided listing '${input.listingId}' is not an active offer for this product`);
+        throw new ValidationError(
+          `Provided listing '${input.listingId}' is not an active offer for this product`,
+        );
       }
     } else {
       // Find the best in-stock active listing for this product/sku

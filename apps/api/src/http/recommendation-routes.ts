@@ -3,12 +3,7 @@ import type { IdentityService } from '../modules/identity/index.js';
 import type { RecommendationService } from '../modules/recommendations/index.js';
 import { createAuthMiddleware, requireActor } from './auth-middleware.js';
 import { ForbiddenError, ValidationError } from '../errors/app-error.js';
-import {
-  CachePresets,
-  CacheTags,
-  cacheKey,
-  sendCached,
-} from './cache-helper.js';
+import { CachePresets, CacheTags, cacheKey, sendCached } from './cache-helper.js';
 
 export function registerRecommendationRoutes(
   app: FastifyInstance,
@@ -24,9 +19,10 @@ export function registerRecommendationRoutes(
     const query = (request.query as Record<string, string | undefined>) || {};
     const limit = query.limit ? Number.parseInt(query.limit, 10) : undefined;
 
-    const options = limit !== undefined
-      ? { limit, correlationId: request.correlationId }
-      : { correlationId: request.correlationId };
+    const options =
+      limit !== undefined
+        ? { limit, correlationId: request.correlationId }
+        : { correlationId: request.correlationId };
 
     return sendCached(
       app,
@@ -54,17 +50,27 @@ export function registerRecommendationRoutes(
       const query = (request.query as Record<string, string | undefined>) || {};
       const limit = query.limit ? Number.parseInt(query.limit, 10) : undefined;
 
-      const options = limit !== undefined
-        ? { limit, correlationId: request.correlationId }
-        : { correlationId: request.correlationId };
+      const options =
+        limit !== undefined
+          ? { limit, correlationId: request.correlationId }
+          : { correlationId: request.correlationId };
 
       return sendCached(
         app,
         request,
         reply,
         {
-          key: cacheKey('recommendations', 'similar', params.productId, actor.tenantId, limit ?? ''),
-          tags: [CacheTags.recommendations, `${CacheTags.recommendations}:product:${params.productId}`],
+          key: cacheKey(
+            'recommendations',
+            'similar',
+            params.productId,
+            actor.tenantId,
+            limit ?? '',
+          ),
+          tags: [
+            CacheTags.recommendations,
+            `${CacheTags.recommendations}:product:${params.productId}`,
+          ],
           preset: CachePresets.recommendations,
         },
         () => recommendationService.getSimilarProducts(actor, params.productId, options),
@@ -81,9 +87,10 @@ export function registerRecommendationRoutes(
       const query = (request.query as Record<string, string | undefined>) || {};
       const limit = query.limit ? Number.parseInt(query.limit, 10) : undefined;
 
-      const options = limit !== undefined
-        ? { limit, correlationId: request.correlationId }
-        : { correlationId: request.correlationId };
+      const options =
+        limit !== undefined
+          ? { limit, correlationId: request.correlationId }
+          : { correlationId: request.correlationId };
 
       return sendCached(
         app,
@@ -91,7 +98,10 @@ export function registerRecommendationRoutes(
         reply,
         {
           key: cacheKey('recommendations', 'trending', actor.tenantId, limit ?? ''),
-          tags: [CacheTags.recommendations, `${CacheTags.recommendations}:tenant:${actor.tenantId}`],
+          tags: [
+            CacheTags.recommendations,
+            `${CacheTags.recommendations}:tenant:${actor.tenantId}`,
+          ],
           preset: CachePresets.recommendations,
         },
         () => recommendationService.getTrendingRecommendations(actor, options),
@@ -109,9 +119,10 @@ export function registerRecommendationRoutes(
       const query = (request.query as Record<string, string | undefined>) || {};
       const limit = query.limit ? Number.parseInt(query.limit, 10) : undefined;
 
-      const options = limit !== undefined
-        ? { limit, correlationId: request.correlationId }
-        : { correlationId: request.correlationId };
+      const options =
+        limit !== undefined
+          ? { limit, correlationId: request.correlationId }
+          : { correlationId: request.correlationId };
 
       return sendCached(
         app,
@@ -119,7 +130,10 @@ export function registerRecommendationRoutes(
         reply,
         {
           key: cacheKey('recommendations', 'fbt', params.productId, actor.tenantId, limit ?? ''),
-          tags: [CacheTags.recommendations, `${CacheTags.recommendations}:product:${params.productId}`],
+          tags: [
+            CacheTags.recommendations,
+            `${CacheTags.recommendations}:product:${params.productId}`,
+          ],
           preset: CachePresets.recommendations,
         },
         () => recommendationService.getFrequentlyBoughtTogether(actor, params.productId, options),

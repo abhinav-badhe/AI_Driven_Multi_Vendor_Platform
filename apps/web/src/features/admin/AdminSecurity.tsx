@@ -1,16 +1,22 @@
-import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
-import { ShieldCheck, RefreshCw } from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { apiClient } from "../../api/client";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { cn } from "../../lib/utils";
+import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
+import { ShieldCheck, RefreshCw } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { apiClient } from '../../api/client';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { cn } from '../../lib/utils';
 
 interface AuditRecord {
   id: string;
@@ -31,7 +37,7 @@ export const AdminSecurity = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await apiClient<unknown>("/admin/audit-log");
+      const res = await apiClient<unknown>('/admin/audit-log');
       const list = Array.isArray(res)
         ? (res as AuditRecord[])
         : ((res as { records?: AuditRecord[] }).records ?? []);
@@ -40,18 +46,18 @@ export const AdminSecurity = () => {
       // Fallback clean audit logs if empty
       setAuditLog([
         {
-          id: "aud-001",
-          event: "ADMIN_LOGIN_SUCCESS",
+          id: 'aud-001',
+          event: 'ADMIN_LOGIN_SUCCESS',
           userId: user?.email,
           timestamp: new Date().toISOString(),
-          severity: "INFO",
+          severity: 'INFO',
         },
         {
-          id: "aud-002",
-          event: "TOKEN_FAMILY_ROTATION",
+          id: 'aud-002',
+          event: 'TOKEN_FAMILY_ROTATION',
           userId: user?.email,
           timestamp: new Date(Date.now() - 3600000).toISOString(),
-          severity: "INFO",
+          severity: 'INFO',
         },
       ]);
     } finally {
@@ -60,19 +66,35 @@ export const AdminSecurity = () => {
   };
 
   useEffect(() => {
-    if (user?.role !== "ADMINISTRATOR") return;
+    if (user?.role !== 'ADMINISTRATOR') return;
     loadAudit();
   }, [user]);
 
-  if (user?.role !== "ADMINISTRATOR") return <Navigate to="/account" replace />;
+  if (user?.role !== 'ADMINISTRATOR') return <Navigate to="/account" replace />;
 
   const securityPolicies = [
-    { label: "Access Token Lifetime", value: "15 minutes (short-lived)", status: "Active" },
-    { label: "Refresh Token Strategy", value: "HTTP-Only Cookie + Family Rotation", status: "Active" },
-    { label: "Multi-tenant Isolation", value: "Strict tenantId boundary enforcement", status: "Active" },
-    { label: "RBAC Security Policy", value: "ADMINISTRATOR, MERCHANT, CUSTOMER", status: "Active" },
-    { label: "Webhook Signature Integrity", value: "HMAC-SHA256 Secret Verification", status: "Active" },
-    { label: "Outbox Deduplication", value: "Idempotent consumer event receipt keys", status: "Active" },
+    { label: 'Access Token Lifetime', value: '15 minutes (short-lived)', status: 'Active' },
+    {
+      label: 'Refresh Token Strategy',
+      value: 'HTTP-Only Cookie + Family Rotation',
+      status: 'Active',
+    },
+    {
+      label: 'Multi-tenant Isolation',
+      value: 'Strict tenantId boundary enforcement',
+      status: 'Active',
+    },
+    { label: 'RBAC Security Policy', value: 'ADMINISTRATOR, MERCHANT, CUSTOMER', status: 'Active' },
+    {
+      label: 'Webhook Signature Integrity',
+      value: 'HMAC-SHA256 Secret Verification',
+      status: 'Active',
+    },
+    {
+      label: 'Outbox Deduplication',
+      value: 'Idempotent consumer event receipt keys',
+      status: 'Active',
+    },
   ];
 
   return (
@@ -80,13 +102,16 @@ export const AdminSecurity = () => {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Security governance &amp; audit log</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Security governance &amp; audit log
+          </h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
-            Multi-tenant security boundaries, token family rotation audit, and HMAC webhook verification.
+            Multi-tenant security boundaries, token family rotation audit, and HMAC webhook
+            verification.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={loadAudit} disabled={isLoading}>
-          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isLoading && "animate-spin")} />
+          <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isLoading && 'animate-spin')} />
           Refresh
         </Button>
       </div>
@@ -105,7 +130,9 @@ export const AdminSecurity = () => {
             <p className="tnum mt-1 text-2xl font-semibold tracking-tight text-emerald-600">
               0 breaches
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">Row-level tenant scoping enforced on all database queries</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Row-level tenant scoping enforced on all database queries
+            </p>
           </CardContent>
         </Card>
         <div className="grid gap-3 sm:grid-cols-3 lg:col-span-2">
@@ -121,7 +148,9 @@ export const AdminSecurity = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Active security policies</CardTitle>
-              <CardDescription>Authentication parameters and multi-tenant security guarantees</CardDescription>
+              <CardDescription>
+                Authentication parameters and multi-tenant security guarantees
+              </CardDescription>
             </div>
             <Badge variant="success">All policies active</Badge>
           </div>
@@ -129,7 +158,10 @@ export const AdminSecurity = () => {
         <CardContent>
           <div className="grid gap-2.5 sm:grid-cols-2">
             {securityPolicies.map((p) => (
-              <div key={p.label} className="flex items-center justify-between rounded-md border p-2.5">
+              <div
+                key={p.label}
+                className="flex items-center justify-between rounded-md border p-2.5"
+              >
                 <div>
                   <div className="text-xs font-medium">{p.label}</div>
                   <div className="text-[11px] text-muted-foreground">{p.value}</div>
@@ -149,7 +181,9 @@ export const AdminSecurity = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Security audit log</CardTitle>
-              <CardDescription>Immutable log of authentication and administrative actions</CardDescription>
+              <CardDescription>
+                Immutable log of authentication and administrative actions
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -179,9 +213,9 @@ export const AdminSecurity = () => {
                 {auditLog.map((a) => (
                   <tr key={a.id}>
                     <TD className="font-mono text-xs font-medium">{a.event}</TD>
-                    <TD className="text-xs text-muted-foreground">{a.userId || "System Daemon"}</TD>
+                    <TD className="text-xs text-muted-foreground">{a.userId || 'System Daemon'}</TD>
                     <TD>
-                      <Badge variant={a.severity === "ERROR" ? "destructive" : "outline"}>
+                      <Badge variant={a.severity === 'ERROR' ? 'destructive' : 'outline'}>
                         {a.severity}
                       </Badge>
                     </TD>

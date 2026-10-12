@@ -35,7 +35,9 @@ const mockLogin = vi.fn();
 vi.mock('../src/features/auth/AuthContext', () => ({
   useAuth: () => ({
     isAuthenticated: mockIsAuthenticated,
-    user: mockIsAuthenticated ? { userId: 'cust-1', email: 'test@customer.com', role: 'CUSTOMER' } : null,
+    user: mockIsAuthenticated
+      ? { userId: 'cust-1', email: 'test@customer.com', role: 'CUSTOMER' }
+      : null,
     login: mockLogin,
     logout: vi.fn(),
     isLoading: false,
@@ -195,7 +197,17 @@ describe('Customer Wishlist Frontend Experience', () => {
   it('4. Handles Move to Cart flow on Wishlist Page', async () => {
     vi.mocked(wishlistApi.getWishlist).mockResolvedValue(mockWishlistItems);
     vi.mocked(wishlistApi.moveToCart).mockResolvedValue({
-      cart: { id: 'c-1', tenantId: 't-1', status: 'ACTIVE', items: [], itemCount: 1, subtotalAmount: 14999, currency: 'INR', createdAt: '', updatedAt: '' },
+      cart: {
+        id: 'c-1',
+        tenantId: 't-1',
+        status: 'ACTIVE',
+        items: [],
+        itemCount: 1,
+        subtotalAmount: 14999,
+        currency: 'INR',
+        createdAt: '',
+        updatedAt: '',
+      },
       message: 'Moved to cart',
     });
 
@@ -215,7 +227,9 @@ describe('Customer Wishlist Frontend Experience', () => {
     await waitFor(() => {
       expect(wishlistApi.moveToCart).toHaveBeenCalledWith('prod-1', 'list-1');
       expect(mockRefreshCart).toHaveBeenCalled();
-      expect(screen.getByText(/"Ergonomic Office Chair" moved to your shopping cart\./i)).toBeDefined();
+      expect(
+        screen.getByText(/"Ergonomic Office Chair" moved to your shopping cart\./i),
+      ).toBeDefined();
     });
   });
 
@@ -238,7 +252,9 @@ describe('Customer Wishlist Frontend Experience', () => {
 
     await waitFor(() => {
       expect(wishlistApi.removeFromWishlist).toHaveBeenCalledWith('prod-1');
-      expect(screen.getByText(/"Ergonomic Office Chair" removed from your wishlist\./i)).toBeDefined();
+      expect(
+        screen.getByText(/"Ergonomic Office Chair" removed from your wishlist\./i),
+      ).toBeDefined();
     });
   });
 
@@ -273,11 +289,23 @@ describe('Customer Wishlist Frontend Experience', () => {
       updatedAt: '',
     });
     vi.mocked(catalogApi.getProductSkus).mockResolvedValue([
-      { id: 'sku-1', productId: 'prod-1', skuCode: 'CHAIR-BLK-01', barcode: 'CHAIR-123', status: 'ACTIVE', attributes: {}, createdAt: '', updatedAt: '' },
+      {
+        id: 'sku-1',
+        productId: 'prod-1',
+        skuCode: 'CHAIR-BLK-01',
+        barcode: 'CHAIR-123',
+        status: 'ACTIVE',
+        attributes: {},
+        createdAt: '',
+        updatedAt: '',
+      },
     ]);
     vi.mocked(catalogApi.getProductReviews).mockResolvedValue([]);
     vi.mocked(catalogApi.getProductRatingSummary).mockResolvedValue(null);
-    vi.mocked(wishlistApi.checkWishlist).mockResolvedValue({ isWishlisted: false, wishlistItemId: null });
+    vi.mocked(wishlistApi.checkWishlist).mockResolvedValue({
+      isWishlisted: false,
+      wishlistItemId: null,
+    });
     vi.mocked(wishlistApi.addToWishlist).mockResolvedValue(mockWishlistItems[0]!);
 
     render(

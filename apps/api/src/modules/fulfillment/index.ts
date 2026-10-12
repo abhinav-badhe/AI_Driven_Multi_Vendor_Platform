@@ -63,27 +63,16 @@ export type {
   ShippoCarrierConfig,
 };
 
-export {
-  MockCarrierProvider,
-  ShippoCarrierProvider,
-  mapShippoStatus,
-};
+export { MockCarrierProvider, ShippoCarrierProvider, mapShippoStatus };
 
-import type {
-  IFulfillmentReader,
-  IFulfillmentService,
-} from './internal/fulfillment-models.js';
+import type { IFulfillmentReader, IFulfillmentService } from './internal/fulfillment-models.js';
 import { InMemoryFulfillmentStore } from './internal/in-memory-fulfillment-store.js';
 import {
   HttpFulfillmentClient,
   type HttpFulfillmentClientOptions,
 } from './internal/http-fulfillment-client.js';
 
-export type {
-  IFulfillmentReader,
-  IFulfillmentService,
-  HttpFulfillmentClientOptions,
-};
+export type { IFulfillmentReader, IFulfillmentService, HttpFulfillmentClientOptions };
 
 export {
   FulfillmentService,

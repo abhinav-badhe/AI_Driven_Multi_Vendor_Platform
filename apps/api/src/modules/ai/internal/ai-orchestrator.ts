@@ -54,7 +54,11 @@ export class AiOrchestrator {
     // 1. Resolve or Create Conversation
     let conversationId = input.conversationId;
     if (!conversationId) {
-      const existingConv = await this.store.findConversationByUser(tenantId, channel, externalUserId);
+      const existingConv = await this.store.findConversationByUser(
+        tenantId,
+        channel,
+        externalUserId,
+      );
       if (existingConv) {
         conversationId = existingConv.id;
       } else {
@@ -109,7 +113,7 @@ export class AiOrchestrator {
         });
 
         const safeRefusal =
-          "I cannot fulfill this request. System security policies strictly prohibit overriding instructions, bypassing authentication, or elevating privileges.";
+          'I cannot fulfill this request. System security policies strictly prohibit overriding instructions, bypassing authentication, or elevating privileges.';
 
         await this.persistMessage(conversationId, tenantId, 'USER', userText);
         await this.persistMessage(conversationId, tenantId, 'ASSISTANT', safeRefusal);
@@ -142,7 +146,12 @@ export class AiOrchestrator {
 
       if (isKnowledgeQuery) {
         try {
-          const ragResult = await this.ragService.retrieveKnowledge(tenantId, userText, undefined, 3);
+          const ragResult = await this.ragService.retrieveKnowledge(
+            tenantId,
+            userText,
+            undefined,
+            3,
+          );
           groundedContext = ragResult.groundedContext;
           for (const chunk of ragResult.chunks) {
             sourcesRetrieved.push(chunk.documentId);
@@ -271,7 +280,7 @@ export class AiOrchestrator {
       // 7. Persist Messages and Record Response
       const finalReply =
         llmResponse.content ||
-        "I have retrieved your details. Please let me know if you need further assistance.";
+        'I have retrieved your details. Please let me know if you need further assistance.';
 
       await this.persistMessage(conversationId, tenantId, 'USER', userText);
       await this.persistMessage(conversationId, tenantId, 'ASSISTANT', finalReply);
@@ -313,7 +322,7 @@ export class AiOrchestrator {
       return {
         conversationId,
         replyText:
-          "I apologize, but I am currently unable to process your request. Please try again shortly or contact customer support.",
+          'I apologize, but I am currently unable to process your request. Please try again shortly or contact customer support.',
         channel,
         toolCallsExecuted: [],
         sourcesRetrieved: [],

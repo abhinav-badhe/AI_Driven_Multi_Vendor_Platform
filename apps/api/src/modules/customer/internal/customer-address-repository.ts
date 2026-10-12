@@ -1,7 +1,5 @@
 import type { DatabaseConnection } from '../../../infra/database/connection.js';
-import type {
-  CustomerAddressRow,
-} from './customer-address-models.js';
+import type { CustomerAddressRow } from './customer-address-models.js';
 
 export class CustomerAddressRepository {
   constructor(private readonly db: DatabaseConnection) {}
@@ -98,20 +96,14 @@ export class CustomerAddressRepository {
     return res.rows;
   }
 
-  async countAddressesByCustomer(
-    customerId: string,
-    client?: DatabaseConnection,
-  ): Promise<number> {
+  async countAddressesByCustomer(customerId: string, client?: DatabaseConnection): Promise<number> {
     const db = client ?? this.db;
     const query = `SELECT COUNT(*)::int as count FROM customer_addresses WHERE customer_id = $1`;
     const res = await db.query<{ count: number }>(query, [customerId]);
     return Number(res.rows[0]?.count ?? 0);
   }
 
-  async clearDefault(
-    customerId: string,
-    client?: DatabaseConnection,
-  ): Promise<void> {
+  async clearDefault(customerId: string, client?: DatabaseConnection): Promise<void> {
     const db = client ?? this.db;
     const query = `
       UPDATE customer_addresses

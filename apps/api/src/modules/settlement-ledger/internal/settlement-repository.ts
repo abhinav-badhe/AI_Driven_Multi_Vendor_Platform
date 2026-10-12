@@ -20,11 +20,12 @@ export class SettlementRepository {
   constructor(private readonly db: DatabaseConnection) {}
 
   async getPlatformTenantId(): Promise<string> {
-    const res = await this.db.query<{id: string}>(
-      `SELECT * FROM tenants WHERE type = 'PLATFORM' ORDER BY created_at ASC LIMIT 1`
+    const res = await this.db.query<{ id: string }>(
+      `SELECT * FROM tenants WHERE type = 'PLATFORM' ORDER BY created_at ASC LIMIT 1`,
     );
     if (!res.rows[0]) throw new Error('Platform tenant not found in database');
-    if (!res.rows[0].id) throw new Error(`Platform tenant returned no id: ${JSON.stringify(res.rows[0])}`);
+    if (!res.rows[0].id)
+      throw new Error(`Platform tenant returned no id: ${JSON.stringify(res.rows[0])}`);
     return res.rows[0].id;
   }
 

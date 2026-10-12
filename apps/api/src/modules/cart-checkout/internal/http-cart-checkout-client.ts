@@ -268,9 +268,12 @@ export class HttpCheckoutClient implements ICheckoutService {
       );
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
-        this.logger?.warn('Remote checkout service failed; falling back to local checkout service', {
-          error: (err as Error).message,
-        });
+        this.logger?.warn(
+          'Remote checkout service failed; falling back to local checkout service',
+          {
+            error: (err as Error).message,
+          },
+        );
         return this.fallbackService.createCheckoutSession(actor, input);
       }
       throw err;
@@ -294,9 +297,12 @@ export class HttpCheckoutClient implements ICheckoutService {
       );
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
-        this.logger?.warn('Remote checkout service failed; falling back to local checkout service', {
-          error: (err as Error).message,
-        });
+        this.logger?.warn(
+          'Remote checkout service failed; falling back to local checkout service',
+          {
+            error: (err as Error).message,
+          },
+        );
         return this.fallbackService.setShippingAddress(actor, sessionId, input);
       }
       throw err;
@@ -315,19 +321,19 @@ export class HttpCheckoutClient implements ICheckoutService {
       );
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
-        this.logger?.warn('Remote checkout service failed; falling back to local checkout service', {
-          error: (err as Error).message,
-        });
+        this.logger?.warn(
+          'Remote checkout service failed; falling back to local checkout service',
+          {
+            error: (err as Error).message,
+          },
+        );
         return this.fallbackService.reserveCheckoutInventory(actor, sessionId);
       }
       throw err;
     }
   }
 
-  async getCheckoutSession(
-    actor: AuthorizedActor,
-    sessionId: string,
-  ): Promise<CheckoutSessionDto> {
+  async getCheckoutSession(actor: AuthorizedActor, sessionId: string): Promise<CheckoutSessionDto> {
     try {
       return await this.request<CheckoutSessionDto>(
         'GET',
@@ -336,9 +342,12 @@ export class HttpCheckoutClient implements ICheckoutService {
       );
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
-        this.logger?.warn('Remote checkout service failed; falling back to local checkout service', {
-          error: (err as Error).message,
-        });
+        this.logger?.warn(
+          'Remote checkout service failed; falling back to local checkout service',
+          {
+            error: (err as Error).message,
+          },
+        );
         return this.fallbackService.getCheckoutSession(actor, sessionId);
       }
       throw err;
@@ -357,9 +366,12 @@ export class HttpCheckoutClient implements ICheckoutService {
       );
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
-        this.logger?.warn('Remote checkout service failed; falling back to local checkout service', {
-          error: (err as Error).message,
-        });
+        this.logger?.warn(
+          'Remote checkout service failed; falling back to local checkout service',
+          {
+            error: (err as Error).message,
+          },
+        );
         return this.fallbackService.expireCheckoutSession(actor, sessionId);
       }
       throw err;
@@ -378,9 +390,12 @@ export class HttpCheckoutClient implements ICheckoutService {
       );
     } catch (err) {
       if (this.fallbackService && this.isFallbackEligible(err)) {
-        this.logger?.warn('Remote checkout service failed; falling back to local checkout service', {
-          error: (err as Error).message,
-        });
+        this.logger?.warn(
+          'Remote checkout service failed; falling back to local checkout service',
+          {
+            error: (err as Error).message,
+          },
+        );
         return this.fallbackService.cancelCheckoutSession(actor, sessionId);
       }
       throw err;
@@ -424,7 +439,11 @@ export class HttpCheckoutClient implements ICheckoutService {
       if (!response.ok) {
         let errorData: { error?: string; message?: string; name?: string } = {};
         try {
-          errorData = (await response.json()) as { error?: string; message?: string; name?: string };
+          errorData = (await response.json()) as {
+            error?: string;
+            message?: string;
+            name?: string;
+          };
         } catch {
           // Non-JSON response
         }
@@ -432,16 +451,28 @@ export class HttpCheckoutClient implements ICheckoutService {
         const msg = errorData.message || errorData.error || response.statusText;
         const errName = errorData.name || '';
 
-        if (errName === 'EmptyCartError' || msg.includes('empty cart') || msg.includes('without an active cart')) {
+        if (
+          errName === 'EmptyCartError' ||
+          msg.includes('empty cart') ||
+          msg.includes('without an active cart')
+        ) {
           throw new EmptyCartError(msg);
         }
         if (errName === 'CheckoutExpiredError' || msg.includes('has expired')) {
           throw new CheckoutExpiredError(msg);
         }
-        if (errName === 'CheckoutValidationError' || msg.includes('Idempotency key reuse detected')) {
+        if (
+          errName === 'CheckoutValidationError' ||
+          msg.includes('Idempotency key reuse detected')
+        ) {
           throw new CheckoutValidationError(msg);
         }
-        if (errName === 'InvalidStateTransitionError' || msg.includes('Cannot reserve') || msg.includes('Cannot expire') || msg.includes('Cannot cancel')) {
+        if (
+          errName === 'InvalidStateTransitionError' ||
+          msg.includes('Cannot reserve') ||
+          msg.includes('Cannot expire') ||
+          msg.includes('Cannot cancel')
+        ) {
           throw new InvalidStateTransitionError(msg);
         }
         if (response.status === 400) {

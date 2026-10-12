@@ -1,7 +1,11 @@
 import type { DatabaseConnection } from '../../infra/database/connection.js';
 import type { Logger } from '../../observability/logger.js';
 import type { CheckoutService, ICheckoutReader } from '../cart-checkout/index.js';
-import { PaymentService, normalizePaymentMethod, paymentMethodFromMetadata } from './internal/payment-service.js';
+import {
+  PaymentService,
+  normalizePaymentMethod,
+  paymentMethodFromMetadata,
+} from './internal/payment-service.js';
 import {
   type PaymentProvider,
   MockPaymentProvider,
@@ -64,21 +68,14 @@ export type {
 };
 
 import type { OutboxService } from '../events/index.js';
-import type {
-  IPaymentReader,
-  IPaymentService,
-} from './internal/payment-models.js';
+import type { IPaymentReader, IPaymentService } from './internal/payment-models.js';
 import { InMemoryPaymentStore } from './internal/in-memory-payment-store.js';
 import {
   HttpPaymentClient,
   type HttpPaymentClientOptions,
 } from './internal/http-payment-client.js';
 
-export type {
-  IPaymentReader,
-  IPaymentService,
-  HttpPaymentClientOptions,
-};
+export type { IPaymentReader, IPaymentService, HttpPaymentClientOptions };
 
 export interface PaymentModule {
   readonly contextName: 'payment';
@@ -91,10 +88,7 @@ export interface PaymentModule {
     webhookSecret?: string,
     webhookToleranceSeconds?: number,
   ): PaymentService;
-  createHttpClient(
-    serviceUrl: string,
-    options?: HttpPaymentClientOptions,
-  ): HttpPaymentClient;
+  createHttpClient(serviceUrl: string, options?: HttpPaymentClientOptions): HttpPaymentClient;
   createInMemoryStore(): InMemoryPaymentStore;
 }
 
@@ -119,10 +113,7 @@ export const paymentModule: PaymentModule = {
       webhookToleranceSeconds,
     );
   },
-  createHttpClient(
-    serviceUrl: string,
-    options?: HttpPaymentClientOptions,
-  ): HttpPaymentClient {
+  createHttpClient(serviceUrl: string, options?: HttpPaymentClientOptions): HttpPaymentClient {
     return new HttpPaymentClient(serviceUrl, options);
   },
   createInMemoryStore(): InMemoryPaymentStore {

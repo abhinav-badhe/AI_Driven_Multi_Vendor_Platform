@@ -123,7 +123,8 @@ export class MockCarrierProvider implements CarrierProvider {
 
     const carrier = input.carrier?.trim() || 'MockLogistics';
     const carrierShipmentId = `shp_mock_${input.sellerOrderId.slice(0, 8)}_${randomUUID().slice(0, 6)}`;
-    const trackingNumber = input.trackingNumber?.trim() || `TRK_${randomUUID().slice(0, 8).toUpperCase()}`;
+    const trackingNumber =
+      input.trackingNumber?.trim() || `TRK_${randomUUID().slice(0, 8).toUpperCase()}`;
     const trackingUrl = `https://tracking.mocklogistics.com/${carrier.toLowerCase()}/${trackingNumber}`;
     const labelUrl = `https://labels.mocklogistics.com/${carrierShipmentId}.pdf`;
 
@@ -277,9 +278,7 @@ export class MockCarrierProvider implements CarrierProvider {
       status,
       location: typeof parsed['location'] === 'string' ? parsed['location'] : undefined,
       timestamp:
-        typeof parsed['timestamp'] === 'string'
-          ? parsed['timestamp']
-          : new Date().toISOString(),
+        typeof parsed['timestamp'] === 'string' ? parsed['timestamp'] : new Date().toISOString(),
       signature: typeof parsed['signature'] === 'string' ? parsed['signature'] : undefined,
     };
   }

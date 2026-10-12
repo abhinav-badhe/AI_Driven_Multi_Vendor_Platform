@@ -1,17 +1,30 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { PackageSearch } from "lucide-react";
-import { merchantApi, type MerchantProfileDto, type MerchantListingDto, type InventoryItemDto, type SellerOrderDto, type FinancialSummaryDto } from "./api/merchant";
-import { useAuth } from "../auth/AuthContext";
-import { Button, buttonVariants } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { formatMoney } from "../../lib/format";
-import { cn } from "../../lib/utils";
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { PackageSearch } from 'lucide-react';
+import {
+  merchantApi,
+  type MerchantProfileDto,
+  type MerchantListingDto,
+  type InventoryItemDto,
+  type SellerOrderDto,
+  type FinancialSummaryDto,
+} from './api/merchant';
+import { useAuth } from '../auth/AuthContext';
+import { Button, buttonVariants } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { formatMoney } from '../../lib/format';
+import { cn } from '../../lib/utils';
 
 export const MerchantDashboard = () => {
   const { user, login } = useAuth();
@@ -40,11 +53,11 @@ export const MerchantDashboard = () => {
         setInventory(inv);
         setOrders(ord);
 
-        const merchantId = prof?.id ?? user?.tenantId ?? "tenant-merchant-1";
+        const merchantId = prof?.id ?? user?.tenantId ?? 'tenant-merchant-1';
         const fin = await merchantApi.getFinancialSummary(merchantId).catch(() => null);
         setFinancials(fin);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load merchant data");
+        setError(err instanceof Error ? err.message : 'Failed to load merchant data');
       } finally {
         setIsLoading(false);
       }
@@ -52,18 +65,20 @@ export const MerchantDashboard = () => {
     loadMerchantData();
   }, [user]);
 
-  if (user?.role !== "MERCHANT" && user?.role !== "ADMINISTRATOR") {
+  if (user?.role !== 'MERCHANT' && user?.role !== 'ADMINISTRATOR') {
     return (
       <div className="mx-auto w-full max-w-xl p-4">
         <Card>
           <CardHeader>
             <CardTitle>Seller Hub</CardTitle>
-            <CardDescription>Sign in with a merchant or administrator account to manage listings and orders.</CardDescription>
+            <CardDescription>
+              Sign in with a merchant or administrator account to manage listings and orders.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2.5">
             <Button
               onClick={async () => {
-                await login({ email: "merchant@example.com", password: "password123" });
+                await login({ email: 'merchant@example.com', password: 'password123' });
               }}
             >
               Sign in as Demo Merchant
@@ -71,12 +86,15 @@ export const MerchantDashboard = () => {
             <Button
               variant="outline"
               onClick={async () => {
-                await login({ email: "leonsintegration@gmail.com", password: "Password@2163" });
+                await login({ email: 'leonsintegration@gmail.com', password: 'Password@2163' });
               }}
             >
               Sign in as Demo Admin
             </Button>
-            <Link to="/account" className={cn(buttonVariants({ variant: "ghost", size: "default" }))}>
+            <Link
+              to="/account"
+              className={cn(buttonVariants({ variant: 'ghost', size: 'default' }))}
+            >
               Sign in with Other Account
             </Link>
           </CardContent>
@@ -98,14 +116,15 @@ export const MerchantDashboard = () => {
     );
   }
 
-  const totalStock = inventory.reduce((sum, item) => sum + (item.onHandQuantity - item.reservedQuantity), 0);
+  const totalStock = inventory.reduce(
+    (sum, item) => sum + (item.onHandQuantity - item.reservedQuantity),
+    0,
+  );
   const totalSales = orders.reduce((sum, ord) => sum + ord.totalAmount, 0) / 100;
   // Single-currency assumption like the rest of the console: every amount
   // renders in the store's own currency, never a hardcoded symbol.
   const displayCurrency =
-    orders.find((o) => o.currency)?.currency ??
-    listings.find((l) => l.currency)?.currency ??
-    "USD";
+    orders.find((o) => o.currency)?.currency ?? listings.find((l) => l.currency)?.currency ?? 'USD';
 
   return (
     <div className="space-y-4 p-4">
@@ -113,15 +132,18 @@ export const MerchantDashboard = () => {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Seller hub</h1>
           <p className="mt-1 flex items-center gap-2 text-[13px] text-muted-foreground">
-            {profile?.businessName ?? "Apex Electronics"}
-            <Badge variant="success">{profile?.verificationStatus ?? "Verified"}</Badge>
+            {profile?.businessName ?? 'Apex Electronics'}
+            <Badge variant="success">{profile?.verificationStatus ?? 'Verified'}</Badge>
           </p>
         </div>
         <div className="flex gap-1.5">
-          <Link to="/merchant/listings" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+          <Link
+            to="/merchant/listings"
+            className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+          >
             Manage listings ({listings.length})
           </Link>
-          <Link to="/merchant/orders" className={cn(buttonVariants({ size: "sm" }))}>
+          <Link to="/merchant/orders" className={cn(buttonVariants({ size: 'sm' }))}>
             Fulfill orders ({orders.length})
           </Link>
         </div>
@@ -165,10 +187,10 @@ export const MerchantDashboard = () => {
           <CardContent>
             <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
-                { label: "Current balance", value: financials.currentBalance },
-                { label: "Total earnings", value: financials.totalEarnings },
-                { label: "Platform commission", value: financials.totalCommissions },
-                { label: "Refunds", value: financials.totalRefunds },
+                { label: 'Current balance', value: financials.currentBalance },
+                { label: 'Total earnings', value: financials.totalEarnings },
+                { label: 'Platform commission', value: financials.totalCommissions },
+                { label: 'Refunds', value: financials.totalRefunds },
               ].map((row) => (
                 <div key={row.label} className="rounded-md bg-muted px-3 py-2">
                   <dt className="text-xs text-muted-foreground">{row.label}</dt>
@@ -186,7 +208,10 @@ export const MerchantDashboard = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Recent orders</CardTitle>
-            <Link to="/merchant/orders" className="text-[13px] font-medium text-primary hover:underline">
+            <Link
+              to="/merchant/orders"
+              className="text-[13px] font-medium text-primary hover:underline"
+            >
               View all
             </Link>
           </div>
@@ -198,7 +223,7 @@ export const MerchantDashboard = () => {
               title="No orders yet"
               description="Orders assigned to your store will appear here. Create a listing to start selling."
               actionLabel="Manage listings"
-              onAction={() => navigate("/merchant/listings")}
+              onAction={() => navigate('/merchant/listings')}
             />
           ) : (
             <Table>

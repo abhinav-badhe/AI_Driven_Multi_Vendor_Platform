@@ -63,10 +63,7 @@ import {
   HttpEventTransport,
   type HttpEventTransportOptions,
 } from './internal/http-event-transport.js';
-import {
-  HttpOutboxClient,
-  type HttpOutboxClientOptions,
-} from './internal/http-outbox-client.js';
+import { HttpOutboxClient, type HttpOutboxClientOptions } from './internal/http-outbox-client.js';
 
 export type {
   DomainEvent,
@@ -115,14 +112,8 @@ export interface EventsModule {
     logger: Logger,
   ): OutboxService;
   createDefaultTransport(): EventTransport;
-  createHttpTransport(
-    serviceUrl: string,
-    options?: HttpEventTransportOptions,
-  ): HttpEventTransport;
-  createHttpOutboxClient(
-    serviceUrl: string,
-    options?: HttpOutboxClientOptions,
-  ): HttpOutboxClient;
+  createHttpTransport(serviceUrl: string, options?: HttpEventTransportOptions): HttpEventTransport;
+  createHttpOutboxClient(serviceUrl: string, options?: HttpOutboxClientOptions): HttpOutboxClient;
   createInMemoryOutboxStore(transport?: EventTransport): InMemoryOutboxStore;
   createSearchConsumer(
     db: DatabaseConnection,
@@ -149,16 +140,10 @@ export const eventsModule: EventsModule = {
   createDefaultTransport(): EventTransport {
     return new InMemoryEventTransport();
   },
-  createHttpTransport(
-    serviceUrl: string,
-    options?: HttpEventTransportOptions,
-  ): HttpEventTransport {
+  createHttpTransport(serviceUrl: string, options?: HttpEventTransportOptions): HttpEventTransport {
     return new HttpEventTransport(serviceUrl, options);
   },
-  createHttpOutboxClient(
-    serviceUrl: string,
-    options?: HttpOutboxClientOptions,
-  ): HttpOutboxClient {
+  createHttpOutboxClient(serviceUrl: string, options?: HttpOutboxClientOptions): HttpOutboxClient {
     return new HttpOutboxClient(serviceUrl, options);
   },
   createInMemoryOutboxStore(transport?: EventTransport): InMemoryOutboxStore {
@@ -182,4 +167,3 @@ export const eventsModule: EventsModule = {
     return new ConsumerRetryRunner(logger, config);
   },
 };
-

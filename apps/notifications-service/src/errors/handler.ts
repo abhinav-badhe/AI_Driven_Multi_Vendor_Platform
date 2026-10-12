@@ -43,7 +43,12 @@ export function errorHandler(
   }
 
   // Handle client 4xx errors from Fastify parser
-  if ('statusCode' in error && typeof error.statusCode === 'number' && error.statusCode >= 400 && error.statusCode < 500) {
+  if (
+    'statusCode' in error &&
+    typeof error.statusCode === 'number' &&
+    error.statusCode >= 400 &&
+    error.statusCode < 500
+  ) {
     const body: ErrorResponseBody = {
       error: {
         code: (error.code as string) || 'CLIENT_ERROR',

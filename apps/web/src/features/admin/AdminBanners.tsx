@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import {
   Image,
   Plus,
@@ -9,18 +9,28 @@ import {
   CheckCircle2,
   Ban,
   Upload,
-} from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { bannersApi, type PromotionalBannerDto, type CreateBannerPayload } from "../banners/api/banners";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { KpiCard } from "../../components/ui/kpi";
-import { Table, THead, TH, TD } from "../../components/ui/table";
-import { Input, Label } from "../../components/ui/input";
-import { cn } from "../../lib/utils";
+} from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import {
+  bannersApi,
+  type PromotionalBannerDto,
+  type CreateBannerPayload,
+} from '../banners/api/banners';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { KpiCard } from '../../components/ui/kpi';
+import { Table, THead, TH, TD } from '../../components/ui/table';
+import { Input, Label } from '../../components/ui/input';
+import { cn } from '../../lib/utils';
 
 export const AdminBanners = () => {
   const { user } = useAuth();
@@ -33,11 +43,11 @@ export const AdminBanners = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<CreateBannerPayload>({
-    title: "",
-    subtitle: "",
-    badgeText: "SPECIAL SALE",
-    imageUrl: "",
-    targetUrl: "/search",
+    title: '',
+    subtitle: '',
+    badgeText: 'SPECIAL SALE',
+    imageUrl: '',
+    targetUrl: '/search',
     displayOrder: 1,
     isActive: true,
   });
@@ -49,31 +59,31 @@ export const AdminBanners = () => {
       const data = await bannersApi.getAllBanners();
       setBanners(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load banners");
+      setError(err instanceof Error ? err.message : 'Failed to load banners');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user?.role !== "ADMINISTRATOR") return;
+    if (user?.role !== 'ADMINISTRATOR') return;
     loadBanners();
   }, [user]);
 
-  if (user?.role !== "ADMINISTRATOR") return <Navigate to="/account" replace />;
+  if (user?.role !== 'ADMINISTRATOR') return <Navigate to="/account" replace />;
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      alert("Please upload a valid JPG or PNG image file.");
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload a valid JPG or PNG image file.');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === "string") {
+      if (typeof reader.result === 'string') {
         setFormData((prev) => ({ ...prev, imageUrl: reader.result as string }));
       }
     };
@@ -83,7 +93,7 @@ export const AdminBanners = () => {
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.imageUrl.trim()) {
-      alert("Title and Image are required.");
+      alert('Title and Image are required.');
       return;
     }
 
@@ -94,23 +104,23 @@ export const AdminBanners = () => {
         title: formData.title.trim(),
         subtitle: formData.subtitle?.trim() || undefined,
         badgeText: formData.badgeText?.trim() || undefined,
-        targetUrl: formData.targetUrl?.trim() || "/search",
+        targetUrl: formData.targetUrl?.trim() || '/search',
       });
-      setFeedback("Promotional hero poster created successfully!");
+      setFeedback('Promotional hero poster created successfully!');
       setTimeout(() => setFeedback(null), 4000);
       setShowCreateModal(false);
       setFormData({
-        title: "",
-        subtitle: "",
-        badgeText: "SPECIAL SALE",
-        imageUrl: "",
-        targetUrl: "/search",
+        title: '',
+        subtitle: '',
+        badgeText: 'SPECIAL SALE',
+        imageUrl: '',
+        targetUrl: '/search',
         displayOrder: 1,
         isActive: true,
       });
       await loadBanners();
     } catch (err: unknown) {
-      alert(`Failed to create banner: ${err instanceof Error ? err.message : "Error"}`);
+      alert(`Failed to create banner: ${err instanceof Error ? err.message : 'Error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -121,19 +131,19 @@ export const AdminBanners = () => {
       await bannersApi.updateBanner(banner.id, { isActive: !banner.is_active });
       await loadBanners();
     } catch (err: unknown) {
-      alert(`Failed to update banner: ${err instanceof Error ? err.message : "Error"}`);
+      alert(`Failed to update banner: ${err instanceof Error ? err.message : 'Error'}`);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this promotional banner?")) return;
+    if (!window.confirm('Are you sure you want to delete this promotional banner?')) return;
     try {
       await bannersApi.deleteBanner(id);
-      setFeedback("Banner deleted.");
+      setFeedback('Banner deleted.');
       setTimeout(() => setFeedback(null), 3000);
       await loadBanners();
     } catch (err: unknown) {
-      alert(`Delete failed: ${err instanceof Error ? err.message : "Error"}`);
+      alert(`Delete failed: ${err instanceof Error ? err.message : 'Error'}`);
     }
   };
 
@@ -144,14 +154,16 @@ export const AdminBanners = () => {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Hero Promotional Posters &amp; Banners</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Hero Promotional Posters &amp; Banners
+          </h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
             Manage promotional sale posters displayed on the customer storefront homepage.
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={loadBanners} disabled={isLoading}>
-            <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isLoading && "animate-spin")} />
+            <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isLoading && 'animate-spin')} />
             Refresh
           </Button>
           <Button size="sm" onClick={() => setShowCreateModal(true)}>
@@ -181,7 +193,9 @@ export const AdminBanners = () => {
             <p className="tnum mt-1 text-2xl font-semibold tracking-tight text-emerald-600">
               {activeCount} live
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">Displayed on the customer homepage billboard</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Displayed on the customer homepage billboard
+            </p>
           </CardContent>
         </Card>
         <div className="grid gap-3 sm:grid-cols-3 lg:col-span-2">
@@ -198,7 +212,9 @@ export const AdminBanners = () => {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Add promotional hero poster</CardTitle>
-                <CardDescription>Upload a JPG/PNG sale billboard poster for the customer homepage</CardDescription>
+                <CardDescription>
+                  Upload a JPG/PNG sale billboard poster for the customer homepage
+                </CardDescription>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setShowCreateModal(false)}>
                 Cancel
@@ -223,7 +239,7 @@ export const AdminBanners = () => {
                   <Input
                     id="b-badge"
                     placeholder="e.g. LIMITED TIME OFFER / 40% OFF"
-                    value={formData.badgeText || ""}
+                    value={formData.badgeText || ''}
                     onChange={(e) => setFormData({ ...formData, badgeText: e.target.value })}
                   />
                 </div>
@@ -235,7 +251,7 @@ export const AdminBanners = () => {
                   <Input
                     id="b-sub"
                     placeholder="e.g. Up to 40% OFF on Top Laptops, Audio Gear & Accessories"
-                    value={formData.subtitle || ""}
+                    value={formData.subtitle || ''}
                     onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
                   />
                 </div>
@@ -244,7 +260,7 @@ export const AdminBanners = () => {
                   <Input
                     id="b-target"
                     placeholder="e.g. /search or /category/electronics"
-                    value={formData.targetUrl || ""}
+                    value={formData.targetUrl || ''}
                     onChange={(e) => setFormData({ ...formData, targetUrl: e.target.value })}
                   />
                 </div>
@@ -275,7 +291,9 @@ export const AdminBanners = () => {
 
                 {formData.imageUrl && (
                   <div className="mt-2 overflow-hidden rounded-md border border-border">
-                    <p className="bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">Live Preview:</p>
+                    <p className="bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                      Live Preview:
+                    </p>
                     <div className="relative aspect-[21/9] w-full max-h-48 overflow-hidden bg-black/5">
                       <img
                         src={formData.imageUrl}
@@ -288,8 +306,12 @@ export const AdminBanners = () => {
                             {formData.badgeText}
                           </span>
                         )}
-                        <h4 className="text-sm font-bold tracking-tight">{formData.title || "Poster Title"}</h4>
-                        {formData.subtitle && <p className="text-xs text-white/80">{formData.subtitle}</p>}
+                        <h4 className="text-sm font-bold tracking-tight">
+                          {formData.title || 'Poster Title'}
+                        </h4>
+                        {formData.subtitle && (
+                          <p className="text-xs text-white/80">{formData.subtitle}</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -297,11 +319,20 @@ export const AdminBanners = () => {
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateModal(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCreateModal(false)}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={isSubmitting || !formData.title || !formData.imageUrl}>
-                  {isSubmitting ? "Saving poster…" : "Publish poster to storefront"}
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isSubmitting || !formData.title || !formData.imageUrl}
+                >
+                  {isSubmitting ? 'Saving poster…' : 'Publish poster to storefront'}
                 </Button>
               </div>
             </form>
@@ -315,7 +346,9 @@ export const AdminBanners = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Configured hero posters</CardTitle>
-              <CardDescription>Posters active in the storefront hero billboard carousel</CardDescription>
+              <CardDescription>
+                Posters active in the storefront hero billboard carousel
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -359,7 +392,9 @@ export const AdminBanners = () => {
                     </TD>
                     <TD>
                       <div className="font-semibold text-xs">{b.title}</div>
-                      {b.subtitle && <div className="text-[11px] text-muted-foreground">{b.subtitle}</div>}
+                      {b.subtitle && (
+                        <div className="text-[11px] text-muted-foreground">{b.subtitle}</div>
+                      )}
                     </TD>
                     <TD>
                       {b.badge_text ? (
@@ -371,14 +406,19 @@ export const AdminBanners = () => {
                       )}
                     </TD>
                     <TD className="text-xs font-mono text-muted-foreground">
-                      <a href={b.target_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-primary">
+                      <a
+                        href={b.target_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 hover:text-primary"
+                      >
                         {b.target_url}
                         <ExternalLink className="h-2.5 w-2.5" />
                       </a>
                     </TD>
                     <TD>
-                      <Badge variant={b.is_active ? "success" : "outline"}>
-                        {b.is_active ? "Active on Storefront" : "Inactive"}
+                      <Badge variant={b.is_active ? 'success' : 'outline'}>
+                        {b.is_active ? 'Active on Storefront' : 'Inactive'}
                       </Badge>
                     </TD>
                     <TD className="text-right">

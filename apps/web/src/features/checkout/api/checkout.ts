@@ -104,7 +104,10 @@ export interface PaymentAttemptDto {
 }
 
 export const checkoutApi = {
-  createSession: async (options?: { addressId?: string | undefined; shippingAddress?: unknown }): Promise<CheckoutSessionDto> => {
+  createSession: async (options?: {
+    addressId?: string | undefined;
+    shippingAddress?: unknown;
+  }): Promise<CheckoutSessionDto> => {
     return apiClient<CheckoutSessionDto>('/checkout/sessions', {
       method: 'POST',
       body: JSON.stringify({
@@ -142,7 +145,10 @@ export const checkoutApi = {
     });
   },
 
-  submitPaymentAttempt: async (intentId: string, paymentMethod = 'pm_card_visa'): Promise<PaymentAttemptDto> => {
+  submitPaymentAttempt: async (
+    intentId: string,
+    paymentMethod = 'pm_card_visa',
+  ): Promise<PaymentAttemptDto> => {
     return apiClient<PaymentAttemptDto>(`/payments/intents/${intentId}/attempts`, {
       method: 'POST',
       body: JSON.stringify({
@@ -152,7 +158,10 @@ export const checkoutApi = {
     });
   },
 
-  finalizeOrder: async (checkoutSessionId: string, paymentIntentId: string): Promise<OrderConfirmationDto> => {
+  finalizeOrder: async (
+    checkoutSessionId: string,
+    paymentIntentId: string,
+  ): Promise<OrderConfirmationDto> => {
     return apiClient<OrderConfirmationDto>('/orders', {
       method: 'POST',
       body: JSON.stringify({

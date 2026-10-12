@@ -114,7 +114,9 @@ describe('CheckoutPage Browser Payment & 3DS SCA State Handling', () => {
 
     // Fill delivery form
     fireEvent.change(screen.getByLabelText(/Full name/i), { target: { value: 'Jane Doe' } });
-    fireEvent.change(screen.getByLabelText(/Street address/i), { target: { value: '123 Market St' } });
+    fireEvent.change(screen.getByLabelText(/Street address/i), {
+      target: { value: '123 Market St' },
+    });
     fireEvent.change(screen.getByLabelText(/City/i), { target: { value: 'San Francisco' } });
     fireEvent.change(screen.getByLabelText(/PIN code/i), { target: { value: '94105' } });
 
@@ -151,7 +153,9 @@ describe('CheckoutPage Browser Payment & 3DS SCA State Handling', () => {
     });
 
     fireEvent.change(screen.getByLabelText(/Full name/i), { target: { value: 'Jane Doe' } });
-    fireEvent.change(screen.getByLabelText(/Street address/i), { target: { value: '123 Market St' } });
+    fireEvent.change(screen.getByLabelText(/Street address/i), {
+      target: { value: '123 Market St' },
+    });
     fireEvent.change(screen.getByLabelText(/City/i), { target: { value: 'San Francisco' } });
     fireEvent.change(screen.getByLabelText(/PIN code/i), { target: { value: '94105' } });
 
@@ -211,7 +215,9 @@ describe('CheckoutPage Browser Payment & 3DS SCA State Handling', () => {
     });
 
     fireEvent.change(screen.getByLabelText(/Full name/i), { target: { value: 'Jane Doe' } });
-    fireEvent.change(screen.getByLabelText(/Street address/i), { target: { value: '123 Market St' } });
+    fireEvent.change(screen.getByLabelText(/Street address/i), {
+      target: { value: '123 Market St' },
+    });
     fireEvent.change(screen.getByLabelText(/City/i), { target: { value: 'San Francisco' } });
     fireEvent.change(screen.getByLabelText(/PIN code/i), { target: { value: '94105' } });
 
@@ -256,7 +262,9 @@ describe('CheckoutPage Browser Payment & 3DS SCA State Handling', () => {
     });
 
     fireEvent.change(screen.getByLabelText(/Full name/i), { target: { value: 'Jane Doe' } });
-    fireEvent.change(screen.getByLabelText(/Street address/i), { target: { value: '123 Market St' } });
+    fireEvent.change(screen.getByLabelText(/Street address/i), {
+      target: { value: '123 Market St' },
+    });
     fireEvent.change(screen.getByLabelText(/City/i), { target: { value: 'San Francisco' } });
     fireEvent.change(screen.getByLabelText(/PIN code/i), { target: { value: '94105' } });
 

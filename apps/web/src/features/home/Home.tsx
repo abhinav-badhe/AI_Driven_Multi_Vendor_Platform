@@ -1,20 +1,23 @@
-import { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { PackageSearch, Truck, Sparkles } from "lucide-react";
-import { catalogApi, type Category } from "../catalog/api/catalog";
-import { searchApi, type SearchProductResultDto } from "../search/api/search";
-import { recommendationsApi, type RecommendationItemDto } from "../recommendations/api/recommendations";
-import { bannersApi, type PromotionalBannerDto } from "../banners/api/banners";
-import { useAuth } from "../auth/AuthContext";
-import { useCart } from "../cart/CartContext";
-import { Button, buttonVariants } from "../../components/ui/button";
-import { Alert } from "../../components/ui/alert";
-import { EmptyState, Skeleton } from "../../components/ui/empty";
-import { Badge } from "../../components/ui/badge";
-import { ProductCard, QtyControl } from "../../components/product/ProductCard";
-import { getDisplay } from "../../components/product/display";
-import { formatPrice } from "../../lib/format";
-import { cn } from "../../lib/utils";
+import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { PackageSearch, Truck, Sparkles } from 'lucide-react';
+import { catalogApi, type Category } from '../catalog/api/catalog';
+import { searchApi, type SearchProductResultDto } from '../search/api/search';
+import {
+  recommendationsApi,
+  type RecommendationItemDto,
+} from '../recommendations/api/recommendations';
+import { bannersApi, type PromotionalBannerDto } from '../banners/api/banners';
+import { useAuth } from '../auth/AuthContext';
+import { useCart } from '../cart/CartContext';
+import { Button, buttonVariants } from '../../components/ui/button';
+import { Alert } from '../../components/ui/alert';
+import { EmptyState, Skeleton } from '../../components/ui/empty';
+import { Badge } from '../../components/ui/badge';
+import { ProductCard, QtyControl } from '../../components/product/ProductCard';
+import { getDisplay } from '../../components/product/display';
+import { formatPrice } from '../../lib/format';
+import { cn } from '../../lib/utils';
 
 export const Home = () => {
   const { isAuthenticated, login } = useAuth();
@@ -44,7 +47,9 @@ export const Home = () => {
                 const recs = await recommendationsApi.getPersonalized(4);
                 return recs.items || [];
               }
-              const trending = await recommendationsApi.getTrending(4).catch(() => ({ items: [] as RecommendationItemDto[] }));
+              const trending = await recommendationsApi
+                .getTrending(4)
+                .catch(() => ({ items: [] as RecommendationItemDto[] }));
               return trending.items || [];
             } catch {
               return [];
@@ -52,7 +57,9 @@ export const Home = () => {
           })(),
           (async (): Promise<SearchProductResultDto[]> => {
             try {
-              const searchData = await searchApi.search({ pageSize: 12 }).catch(() => ({ items: [] as SearchProductResultDto[] }));
+              const searchData = await searchApi
+                .search({ pageSize: 12 })
+                .catch(() => ({ items: [] as SearchProductResultDto[] }));
               return searchData.items || [];
             } catch {
               return [];
@@ -65,7 +72,7 @@ export const Home = () => {
         setProducts(searchItems);
         setBanners(bannerItems || []);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load products");
+        setError(err instanceof Error ? err.message : 'Failed to load products');
       } finally {
         setIsLoading(false);
       }
@@ -130,12 +137,19 @@ export const Home = () => {
 
   const handleAddToCart = async (
     listingId: string,
-    optimistic?: { skuId: string; merchantId: string; priceAmount: number; currency: string; title?: string | null | undefined; thumbnailUrl?: string | null | undefined },
+    optimistic?: {
+      skuId: string;
+      merchantId: string;
+      priceAmount: number;
+      currency: string;
+      title?: string | null | undefined;
+      thumbnailUrl?: string | null | undefined;
+    },
   ) => {
     setActionLoadingId(listingId);
     try {
       if (!isAuthenticated) {
-        await login({ email: "customer@example.com", password: "password123" });
+        await login({ email: 'customer@example.com', password: 'password123' });
       }
       await addItem(
         listingId,
@@ -152,7 +166,7 @@ export const Home = () => {
           : undefined,
       );
     } catch (err: unknown) {
-      alert(`Could not add to cart: ${err instanceof Error ? err.message : "Item unavailable"}`);
+      alert(`Could not add to cart: ${err instanceof Error ? err.message : 'Item unavailable'}`);
     } finally {
       setActionLoadingId(null);
     }
@@ -168,7 +182,7 @@ export const Home = () => {
         await updateQuantity(itemId, nextQty);
       }
     } catch (err: unknown) {
-      alert(`Quantity update failed: ${err instanceof Error ? err.message : "Error"}`);
+      alert(`Quantity update failed: ${err instanceof Error ? err.message : 'Error'}`);
     } finally {
       setActionLoadingId(null);
     }
@@ -185,7 +199,10 @@ export const Home = () => {
 
   if (isLoading) {
     return (
-      <div className="mx-auto w-full max-w-6xl space-y-3 px-3 py-4 md:px-4" aria-label="Loading products">
+      <div
+        className="mx-auto w-full max-w-6xl space-y-3 px-3 py-4 md:px-4"
+        aria-label="Loading products"
+      >
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-4 w-72" />
         <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-4">
@@ -218,7 +235,7 @@ export const Home = () => {
             Delivering to Bandra West, Mumbai 400050 · 10–15 min dispatch where available
           </p>
         </div>
-        <Link to="/search" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+        <Link to="/search" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
           Browse all products
         </Link>
       </div>
@@ -255,10 +272,10 @@ export const Home = () => {
                     )}
                     <div className="pt-2">
                       <Link
-                        to={currentBanner.target_url || "/search"}
+                        to={currentBanner.target_url || '/search'}
                         className={cn(
-                          buttonVariants({ size: "sm" }),
-                          "bg-white text-black hover:bg-white/90 font-semibold shadow-md text-xs px-4"
+                          buttonVariants({ size: 'sm' }),
+                          'bg-white text-black hover:bg-white/90 font-semibold shadow-md text-xs px-4',
                         )}
                       >
                         Explore Deals &rarr;
@@ -277,8 +294,10 @@ export const Home = () => {
                         aria-label={`Slide ${idx + 1}`}
                         onClick={() => setActiveBannerIndex(idx)}
                         className={cn(
-                          "h-2 rounded-full transition-all",
-                          idx === activeBannerIndex ? "w-6 bg-white" : "w-2 bg-white/50 hover:bg-white/75"
+                          'h-2 rounded-full transition-all',
+                          idx === activeBannerIndex
+                            ? 'w-6 bg-white'
+                            : 'w-2 bg-white/50 hover:bg-white/75',
                         )}
                       />
                     ))}
@@ -292,9 +311,13 @@ export const Home = () => {
 
       {/* Category filter — pills are for tags only, which this is */}
       {rootCategories.length > 0 && (
-        <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter by category">
+        <div
+          className="mt-4 flex gap-1.5 overflow-x-auto pb-1"
+          role="group"
+          aria-label="Filter by category"
+        >
           <Button
-            variant={selectedCategory === null ? "default" : "outline"}
+            variant={selectedCategory === null ? 'default' : 'outline'}
             size="sm"
             className="rounded-full"
             onClick={() => setSelectedCategory(null)}
@@ -304,7 +327,7 @@ export const Home = () => {
           {rootCategories.map((cat) => (
             <Button
               key={cat.id}
-              variant={selectedCategory === cat.id ? "default" : "outline"}
+              variant={selectedCategory === cat.id ? 'default' : 'outline'}
               size="sm"
               className="rounded-full whitespace-nowrap"
               onClick={() => setSelectedCategory(cat.id === selectedCategory ? null : cat.id)}
@@ -320,7 +343,7 @@ export const Home = () => {
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Available now</h2>
           <Link
-            to={selectedCategory ? `/search?categoryId=${selectedCategory}` : "/search"}
+            to={selectedCategory ? `/search?categoryId=${selectedCategory}` : '/search'}
             className="text-[13px] font-medium text-primary hover:underline"
           >
             View all ({displayedProducts.length})
@@ -328,7 +351,10 @@ export const Home = () => {
         </div>
 
         {isCategoryLoading ? (
-          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-4" aria-label="Loading category products">
+          <div
+            className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-4"
+            aria-label="Loading category products"
+          >
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-56" />
             ))}
@@ -392,13 +418,13 @@ export const Home = () => {
                             })
                           }
                         >
-                          {actionLoadingId === bestOffer.listingId ? "Adding…" : "Add to cart"}
+                          {actionLoadingId === bestOffer.listingId ? 'Adding…' : 'Add to cart'}
                         </Button>
                       )
                     ) : (
                       <Link
                         to={`/product/${p.productId}`}
-                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
                       >
                         View offers
                       </Link>
@@ -439,8 +465,8 @@ export const Home = () => {
                         <span className="font-normal text-muted-foreground">Check listings</span>
                       )}
                     </span>
-                    <Badge variant={item.isAvailable ? "success" : "outline"}>
-                      {item.isAvailable ? "In stock" : "Out of stock"}
+                    <Badge variant={item.isAvailable ? 'success' : 'outline'}>
+                      {item.isAvailable ? 'In stock' : 'Out of stock'}
                     </Badge>
                   </div>
                 </Link>

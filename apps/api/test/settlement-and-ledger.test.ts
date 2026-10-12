@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { SettlementService } from '../src/modules/settlement-ledger/index.js';
 import type { Logger } from '../src/observability/logger.js';
@@ -98,7 +102,11 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
       method: 'POST',
       url: '/merchants/onboard',
       headers: { authorization: `Bearer ${alphaToken}` },
-      payload: { businessName: 'Alpha LLC', legalName: 'Alpha Legal', contactEmail: 'alpha@biz.com' },
+      payload: {
+        businessName: 'Alpha LLC',
+        legalName: 'Alpha Legal',
+        contactEmail: 'alpha@biz.com',
+      },
     });
     await app.inject({
       method: 'POST',
@@ -166,7 +174,12 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         method: 'POST',
         url: '/products',
         headers: { authorization: `Bearer ${adminToken}` },
-        payload: { title: 'Smartphone Alpha', slug: 'phone-alpha', brand: 'BrandA', categoryId: cat.id },
+        payload: {
+          title: 'Smartphone Alpha',
+          slug: 'phone-alpha',
+          brand: 'BrandA',
+          categoryId: cat.id,
+        },
       })
     ).json();
     await app.inject({
@@ -372,14 +385,14 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         method: 'POST',
         url: '/settlement/ingest/order',
         headers: { authorization: `Bearer ${eco.adminToken}` },
-        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.10 },
+        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.1 },
       });
-      if (ingestAlpha.statusCode !== 201) console.log("INGEST ERROR", ingestAlpha.body);
+      if (ingestAlpha.statusCode !== 201) console.log('INGEST ERROR', ingestAlpha.body);
       expect(ingestAlpha.statusCode).toBe(201);
       const alphaResult = ingestAlpha.json();
-      expect(alphaResult.earningEntry.amount).toBe(100.00);
+      expect(alphaResult.earningEntry.amount).toBe(100.0);
       expect(alphaResult.earningEntry.direction).toBe('CREDIT');
-      expect(alphaResult.commissionEntry.amount).toBe(10.00);
+      expect(alphaResult.commissionEntry.amount).toBe(10.0);
       expect(alphaResult.commissionEntry.direction).toBe('DEBIT');
 
       // Ingest Order Beta: Gross 200.00, Commission 15% (30.00), Net 170.00
@@ -391,9 +404,9 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
       });
       expect(ingestBeta.statusCode).toBe(201);
       const betaResult = ingestBeta.json();
-      expect(betaResult.earningEntry.amount).toBe(200.00);
+      expect(betaResult.earningEntry.amount).toBe(200.0);
       expect(betaResult.earningEntry.direction).toBe('CREDIT');
-      expect(betaResult.commissionEntry.amount).toBe(30.00);
+      expect(betaResult.commissionEntry.amount).toBe(30.0);
       expect(betaResult.commissionEntry.direction).toBe('DEBIT');
 
       // Verify Merchant Alpha Financial Summary: currentBalance = 90.00
@@ -403,9 +416,9 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.alphaToken}` },
       });
       expect(sumAlpha.statusCode).toBe(200);
-      expect(sumAlpha.json().currentBalance).toBe(90.00);
-      expect(sumAlpha.json().totalEarnings).toBe(100.00);
-      expect(sumAlpha.json().totalCommissions).toBe(10.00);
+      expect(sumAlpha.json().currentBalance).toBe(90.0);
+      expect(sumAlpha.json().totalEarnings).toBe(100.0);
+      expect(sumAlpha.json().totalCommissions).toBe(10.0);
 
       // Verify Merchant Beta Financial Summary: currentBalance = 170.00
       const sumBeta = await app.inject({
@@ -414,9 +427,9 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.betaToken}` },
       });
       expect(sumBeta.statusCode).toBe(200);
-      expect(sumBeta.json().currentBalance).toBe(170.00);
-      expect(sumBeta.json().totalEarnings).toBe(200.00);
-      expect(sumBeta.json().totalCommissions).toBe(30.00);
+      expect(sumBeta.json().currentBalance).toBe(170.0);
+      expect(sumBeta.json().totalEarnings).toBe(200.0);
+      expect(sumBeta.json().totalCommissions).toBe(30.0);
     }, 15000);
 
     it('enforces append-only immutable ledger and verifies financial invariant', async () => {
@@ -427,7 +440,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         method: 'POST',
         url: '/settlement/ingest/order',
         headers: { authorization: `Bearer ${eco.adminToken}` },
-        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.10, feeAmount: 2.00 },
+        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.1, feeAmount: 2.0 },
       });
 
       // Add financial credit adjustment +15.00
@@ -437,7 +450,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.adminToken}` },
         payload: {
           merchantId: eco.alphaTenantId,
-          amount: 15.00,
+          amount: 15.0,
           currency: 'INR',
           type: 'CREDIT',
           reason: 'Shipping fee subsidy',
@@ -451,7 +464,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.adminToken}` },
         payload: {
           merchantId: eco.alphaTenantId,
-          amount: 5.00,
+          amount: 5.0,
           currency: 'INR',
           type: 'DEBIT',
           reason: 'Packaging charge',
@@ -469,11 +482,11 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         })
       ).json();
 
-      expect(summary.currentBalance).toBe(98.00);
-      expect(summary.totalEarnings).toBe(100.00);
-      expect(summary.totalCommissions).toBe(10.00);
-      expect(summary.totalFees).toBe(2.00);
-      expect(summary.totalAdjustments).toBe(10.00);
+      expect(summary.currentBalance).toBe(98.0);
+      expect(summary.totalEarnings).toBe(100.0);
+      expect(summary.totalCommissions).toBe(10.0);
+      expect(summary.totalFees).toBe(2.0);
+      expect(summary.totalAdjustments).toBe(10.0);
 
       // Verify ledger entries are strictly preserved
       const ledger = (
@@ -528,7 +541,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.alphaToken}` },
         payload: {
           merchantId: eco.alphaTenantId,
-          amount: 50.00,
+          amount: 50.0,
           currency: 'INR',
           type: 'CREDIT',
           reason: 'Self-grant',
@@ -561,7 +574,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         method: 'POST',
         url: '/settlement/ingest/order',
         headers: { authorization: `Bearer ${eco.adminToken}` },
-        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.10 },
+        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.1 },
       });
 
       // 2. Customer refund occurs for 50.00 (commission reversal 5.00)
@@ -574,8 +587,8 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           merchantId: eco.alphaTenantId,
           refundId,
           sellerOrderId: sellerOrderAlpha.id,
-          refundAmount: 50.00,
-          commissionRefundAmount: 5.00,
+          refundAmount: 50.0,
+          commissionRefundAmount: 5.0,
           currency: 'INR',
           reason: 'Customer return approved',
           idempotencyKey: 'idem_ref_101',
@@ -583,9 +596,9 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
       });
       expect(ingestRefund.statusCode).toBe(201);
       const refundRes = ingestRefund.json();
-      expect(refundRes.refundEntry.amount).toBe(50.00);
+      expect(refundRes.refundEntry.amount).toBe(50.0);
       expect(refundRes.refundEntry.direction).toBe('DEBIT');
-      expect(refundRes.commissionReversalEntry.amount).toBe(5.00);
+      expect(refundRes.commissionReversalEntry.amount).toBe(5.0);
       expect(refundRes.commissionReversalEntry.direction).toBe('CREDIT');
 
       // Net deduction: 50.00 - 5.00 = 45.00. Current balance: 90.00 - 45.00 = 45.00
@@ -596,9 +609,9 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           headers: { authorization: `Bearer ${eco.alphaToken}` },
         })
       ).json();
-      expect(summaryAfter.currentBalance).toBe(45.00);
-      expect(summaryAfter.totalRefunds).toBe(50.00);
-      expect(summaryAfter.totalCommissions).toBe(5.00); // 10.00 initial - 5.00 reversal
+      expect(summaryAfter.currentBalance).toBe(45.0);
+      expect(summaryAfter.totalRefunds).toBe(50.0);
+      expect(summaryAfter.totalCommissions).toBe(5.0); // 10.00 initial - 5.00 reversal
 
       // 3. Retry identical refund request -> Returns existing result with ZERO balance mutation
       const retryRefund = await app.inject({
@@ -609,8 +622,8 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           merchantId: eco.alphaTenantId,
           refundId,
           sellerOrderId: sellerOrderAlpha.id,
-          refundAmount: 50.00,
-          commissionRefundAmount: 5.00,
+          refundAmount: 50.0,
+          commissionRefundAmount: 5.0,
           currency: 'INR',
           reason: 'Customer return approved',
           idempotencyKey: 'idem_ref_101',
@@ -625,7 +638,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           headers: { authorization: `Bearer ${eco.alphaToken}` },
         })
       ).json();
-      expect(summaryAfterRetry.currentBalance).toBe(45.00); // NOT deducted again!
+      expect(summaryAfterRetry.currentBalance).toBe(45.0); // NOT deducted again!
     });
   });
 
@@ -639,7 +652,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         method: 'POST',
         url: '/settlement/ingest/order',
         headers: { authorization: `Bearer ${eco.adminToken}` },
-        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.10 },
+        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.1 },
       });
 
       const periodStart = new Date(Date.now() - 3600000).toISOString();
@@ -661,9 +674,9 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
       expect(calcRes.statusCode).toBe(201);
       const settlement = calcRes.json();
       expect(settlement.status).toBe('CALCULATED');
-      expect(settlement.grossAmount).toBe(100.00);
-      expect(settlement.commissionAmount).toBe(10.00);
-      expect(settlement.netPayableAmount).toBe(90.00);
+      expect(settlement.grossAmount).toBe(100.0);
+      expect(settlement.commissionAmount).toBe(10.0);
+      expect(settlement.netPayableAmount).toBe(90.0);
       expect(settlement.items.length).toBe(2); // EARNING and COMMISSION entries linked
 
       // 2. Reject invalid jump: CALCULATED -> SETTLED directly
@@ -715,8 +728,8 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           headers: { authorization: `Bearer ${eco.alphaToken}` },
         })
       ).json();
-      expect(summaryFinal.currentBalance).toBe(0.00);
-      expect(summaryFinal.settledBalance).toBe(90.00);
+      expect(summaryFinal.currentBalance).toBe(0.0);
+      expect(summaryFinal.settledBalance).toBe(90.0);
 
       // Verify PAYOUT ledger entry is posted
       const ledger = (
@@ -726,9 +739,11 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           headers: { authorization: `Bearer ${eco.alphaToken}` },
         })
       ).json();
-      const payoutEntry = ledger.entries.find((e: { entryType: string }) => e.entryType === 'PAYOUT');
+      const payoutEntry = ledger.entries.find(
+        (e: { entryType: string }) => e.entryType === 'PAYOUT',
+      );
       expect(payoutEntry).toBeDefined();
-      expect(payoutEntry.amount).toBe(90.00);
+      expect(payoutEntry.amount).toBe(90.0);
       expect(payoutEntry.direction).toBe('DEBIT');
     });
   });
@@ -746,7 +761,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           headers: { authorization: `Bearer ${eco.adminToken}` },
           payload: {
             sellerOrderId: sellerOrderAlpha.id,
-            commissionRate: 0.10,
+            commissionRate: 0.1,
             idempotencyKey: 'idem_race_order_01',
           },
         }),
@@ -756,7 +771,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           headers: { authorization: `Bearer ${eco.adminToken}` },
           payload: {
             sellerOrderId: sellerOrderAlpha.id,
-            commissionRate: 0.10,
+            commissionRate: 0.1,
             idempotencyKey: 'idem_race_order_01',
           },
         }),
@@ -773,7 +788,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           headers: { authorization: `Bearer ${eco.alphaToken}` },
         })
       ).json();
-      expect(summary.currentBalance).toBe(90.00);
+      expect(summary.currentBalance).toBe(90.0);
 
       // Verify exactly 2 ledger entries exist for this order (1 EARNING + 1 COMMISSION)
       const ledger = (
@@ -797,7 +812,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           headers: { authorization: `Bearer ${eco.adminToken}` },
           payload: {
             merchantId: eco.alphaTenantId,
-            amount: 10.00,
+            amount: 10.0,
             currency: 'INR',
             type: 'CREDIT',
             reason: `Parallel adjustment #${i}`,
@@ -819,8 +834,8 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           headers: { authorization: `Bearer ${eco.alphaToken}` },
         })
       ).json();
-      expect(summary.currentBalance).toBe(50.00);
-      expect(summary.totalAdjustments).toBe(50.00);
+      expect(summary.currentBalance).toBe(50.0);
+      expect(summary.totalAdjustments).toBe(50.0);
     });
 
     it('Case H: rejects idempotency key reuse with different amount or payload', async () => {
@@ -833,7 +848,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.adminToken}` },
         payload: {
           merchantId: eco.alphaTenantId,
-          amount: 20.00,
+          amount: 20.0,
           currency: 'INR',
           type: 'CREDIT',
           reason: 'Initial adjustment',
@@ -849,7 +864,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.adminToken}` },
         payload: {
           merchantId: eco.alphaTenantId,
-          amount: 40.00,
+          amount: 40.0,
           currency: 'INR',
           type: 'CREDIT',
           reason: 'Altered adjustment',
@@ -946,7 +961,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.adminToken}` },
         payload: {
           merchantId: eco.alphaTenantId,
-          amount: -25.00,
+          amount: -25.0,
           currency: 'INR',
           type: 'CREDIT',
           reason: 'Negative test',
@@ -961,7 +976,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.adminToken}` },
         payload: {
           merchantId: eco.alphaTenantId,
-          amount: 25.00,
+          amount: 25.0,
           currency: 'INR',
           type: 'CREDIT',
           reason: '',
@@ -1131,7 +1146,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.adminToken}` },
         payload: {
           merchantId: eco.alphaTenantId,
-          amount: 15.00,
+          amount: 15.0,
           currency: 'INR',
           type: 'CREDIT',
           reason: 'Alpha promotion support',
@@ -1147,7 +1162,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.adminToken}` },
         payload: {
           merchantId: eco.betaTenantId,
-          amount: 25.00,
+          amount: 25.0,
           currency: 'INR',
           type: 'CREDIT',
           reason: 'Beta logistics credit',
@@ -1161,7 +1176,9 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
     });
 
     it('proves SettlementRepository has zero update or delete methods on ledger_entries', async () => {
-      const repo = new (await import('../src/modules/settlement-ledger/internal/settlement-repository.js')).SettlementRepository(db);
+      const repo = new (
+        await import('../src/modules/settlement-ledger/internal/settlement-repository.js')
+      ).SettlementRepository(db);
       const proto = Object.getOwnPropertyNames(Object.getPrototypeOf(repo));
 
       const mutationMethods = proto.filter(
@@ -1183,7 +1200,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         method: 'POST',
         url: '/settlement/ingest/order',
         headers: { authorization: `Bearer ${eco.adminToken}` },
-        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.10 },
+        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.1 },
       });
       expect(ingestRes.statusCode).toBe(201);
       const earningDto = ingestRes.json().earningEntry;
@@ -1200,8 +1217,8 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         if (row.direction === 'DEBIT') debitSum += Number(row.amount);
         if (row.direction === 'CREDIT') creditSum += Number(row.amount);
       }
-      expect(debitSum).toBe(100.00);
-      expect(creditSum).toBe(100.00);
+      expect(debitSum).toBe(100.0);
+      expect(creditSum).toBe(100.0);
       expect(debitSum).toBe(creditSum);
     });
 
@@ -1213,7 +1230,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         method: 'POST',
         url: '/settlement/ingest/order',
         headers: { authorization: `Bearer ${eco.adminToken}` },
-        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.10 },
+        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.1 },
       });
       expect(ingestRes.statusCode).toBe(201);
       const commDto = ingestRes.json().commissionEntry;
@@ -1230,8 +1247,8 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         if (row.direction === 'DEBIT') debitSum += Number(row.amount);
         if (row.direction === 'CREDIT') creditSum += Number(row.amount);
       }
-      expect(debitSum).toBe(10.00);
-      expect(creditSum).toBe(10.00);
+      expect(debitSum).toBe(10.0);
+      expect(creditSum).toBe(10.0);
       expect(debitSum).toBe(creditSum);
     });
 
@@ -1243,7 +1260,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         method: 'POST',
         url: '/settlement/ingest/order',
         headers: { authorization: `Bearer ${eco.adminToken}` },
-        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.10, feeAmount: 3.50 },
+        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.1, feeAmount: 3.5 },
       });
       expect(ingestRes.statusCode).toBe(201);
       const feeDto = ingestRes.json().feeEntry;
@@ -1261,8 +1278,8 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         if (row.direction === 'DEBIT') debitSum += Number(row.amount);
         if (row.direction === 'CREDIT') creditSum += Number(row.amount);
       }
-      expect(debitSum).toBe(3.50);
-      expect(creditSum).toBe(3.50);
+      expect(debitSum).toBe(3.5);
+      expect(creditSum).toBe(3.5);
       expect(debitSum).toBe(creditSum);
     });
 
@@ -1285,7 +1302,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           merchantId: eco.alphaTenantId,
           refundId: 'ref_mandatory_d',
           sellerOrderId: sellerOrderAlpha.id,
-          refundAmount: 40.00,
+          refundAmount: 40.0,
           currency: 'INR',
         },
       });
@@ -1304,8 +1321,8 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         if (row.direction === 'DEBIT') debitSum += Number(row.amount);
         if (row.direction === 'CREDIT') creditSum += Number(row.amount);
       }
-      expect(debitSum).toBe(40.00);
-      expect(creditSum).toBe(40.00);
+      expect(debitSum).toBe(40.0);
+      expect(creditSum).toBe(40.0);
       expect(debitSum).toBe(creditSum);
     });
 
@@ -1318,7 +1335,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.adminToken}` },
         payload: {
           merchantId: eco.alphaTenantId,
-          amount: 55.00,
+          amount: 55.0,
           currency: 'INR',
           type: 'CREDIT',
           reason: 'Manual goodwill credit',
@@ -1339,8 +1356,8 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         if (row.direction === 'DEBIT') debitSum += Number(row.amount);
         if (row.direction === 'CREDIT') creditSum += Number(row.amount);
       }
-      expect(debitSum).toBe(55.00);
-      expect(creditSum).toBe(55.00);
+      expect(debitSum).toBe(55.0);
+      expect(creditSum).toBe(55.0);
       expect(debitSum).toBe(creditSum);
     });
 
@@ -1427,7 +1444,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         method: 'POST',
         url: '/settlement/ingest/order',
         headers: { authorization: `Bearer ${eco.adminToken}` },
-        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.10, feeAmount: 2.00 },
+        payload: { sellerOrderId: sellerOrderAlpha.id, commissionRate: 0.1, feeAmount: 2.0 },
       });
 
       await app.inject({
@@ -1438,8 +1455,8 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           merchantId: eco.alphaTenantId,
           refundId: 'ref_test_g',
           sellerOrderId: sellerOrderAlpha.id,
-          refundAmount: 20.00,
-          commissionRefundAmount: 2.00,
+          refundAmount: 20.0,
+          commissionRefundAmount: 2.0,
           currency: 'INR',
         },
       });
@@ -1450,7 +1467,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
         headers: { authorization: `Bearer ${eco.adminToken}` },
         payload: {
           merchantId: eco.alphaTenantId,
-          amount: 10.00,
+          amount: 10.0,
           currency: 'INR',
           type: 'CREDIT',
           reason: 'Test G Adjustment',
@@ -1704,7 +1721,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           merchantId: eco.alphaTenantId,
           refundId: 'ref_overflow_1',
           sellerOrderId: sellerOrderAlpha.id,
-          refundAmount: 60.00,
+          refundAmount: 60.0,
           currency: 'INR',
         },
       });
@@ -1719,7 +1736,7 @@ describe('Phase 8: Marketplace Finance / Settlement & Ledger', () => {
           merchantId: eco.alphaTenantId,
           refundId: 'ref_overflow_2',
           sellerOrderId: sellerOrderAlpha.id,
-          refundAmount: 50.00,
+          refundAmount: 50.0,
           currency: 'INR',
         },
       });

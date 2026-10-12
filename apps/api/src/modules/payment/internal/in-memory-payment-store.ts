@@ -47,7 +47,9 @@ export class InMemoryPaymentStore implements IPaymentService {
         const existing = this.intents.get(existingId);
         if (existing) {
           if (existing.checkoutSessionId !== input.checkoutSessionId) {
-            throw new ValidationError('Payment intent idempotency key reuse with different checkout session');
+            throw new ValidationError(
+              'Payment intent idempotency key reuse with different checkout session',
+            );
           }
           const atts = this.attempts.get(existing.id) ?? [];
           return { ...existing, attempts: atts };

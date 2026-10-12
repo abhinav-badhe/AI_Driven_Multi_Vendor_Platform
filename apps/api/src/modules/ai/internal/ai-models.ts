@@ -8,16 +8,8 @@ import type {
   MessageRecord,
   IAiStore,
 } from './ai-types.js';
-import type {
-  AiOrchestrator,
-  SendMessageInput,
-  OrchestratorResponse,
-} from './ai-orchestrator.js';
-import type {
-  RagService,
-  IngestDocumentInput,
-  RetrievalResult,
-} from './rag-service.js';
+import type { AiOrchestrator, SendMessageInput, OrchestratorResponse } from './ai-orchestrator.js';
+import type { RagService, IngestDocumentInput, RetrievalResult } from './rag-service.js';
 
 /**
  * IAiService - Unified interface for AI Orchestration, RAG Knowledge, and Conversation History.

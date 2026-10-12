@@ -15,6 +15,7 @@ All changes were implemented strictly inside `apps/notifications-service/` and v
 ## 2. The Three Original Blockers and How Each Was Addressed
 
 ### Blocker 1: Missing Internal Notification-Processing Endpoint
+
 - **Issue:** Monolith interface [`INotificationClient`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/api/src/modules/notifications/internal/notification-client.ts#L20-L24) requires `processPendingNotifications(options)`. The standalone service's only processing trigger was `POST /notifications/process`, which strictly required an `ADMINISTRATOR` JWT (`authMiddleware`). A monolith HTTP adapter possessed only the `INTERNAL_SERVICE_KEY`, making it impossible to implement the seam.
 - **Resolution:** Added `POST /v1/internal/notifications/process` in [`apps/notifications-service/src/http/routes/internal-routes.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/http/routes/internal-routes.ts).
   - Protected with `internalAuth` preHandler (`X-Internal-Service-Key` or `Authorization: Bearer <key>`).
@@ -23,6 +24,7 @@ All changes were implemented strictly inside `apps/notifications-service/` and v
   - Leaves the existing administrator endpoint `POST /notifications/process` intact and fully protected.
 
 ### Blocker 2: Stale-Claim Recovery Race Condition
+
 - **Issue:** In `claimEventReceipt`, stale recovery executed an unconditional update `WHERE consumer_name = $1 AND event_id = $2 AND status = 'PROCESSING'`. If two workers detected a stale claim simultaneously, both updates matched and succeeded (`rowCount = 1`), allowing two workers to process the same event concurrently.
 - **Resolution:** Implemented an atomic Compare-and-Swap (CAS) condition in [`apps/notifications-service/src/repository/notification-repository.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/repository/notification-repository.ts):
   ```sql
@@ -40,6 +42,7 @@ All changes were implemented strictly inside `apps/notifications-service/` and v
   Only the single worker matching the exact prior `claim_token` / `processed_at` succeeds in acquiring the new claim token. Competing workers get `rowCount = 0` and safely yield without executing side effects.
 
 ### Blocker 3: Stale Worker Overwriting Newer State (Fencing)
+
 - **Issue:** `updateReceiptStatus` executed `UPDATE ... SET status = $3 WHERE consumer_name = $1 AND event_id = $2` without fencing. If Worker A was delayed beyond the stale timeout, Worker B reclaimed and completed the event (`COMPLETED`). When Worker A finished or failed, it overwrote Worker B's receipt state.
 - **Resolution:** Added `claim_token VARCHAR(64)` column via migration `0002_consumer_receipt_fencing.sql`. Each claim generation generates a unique random UUID token. In `updateReceiptStatus`:
   ```sql
@@ -58,16 +61,16 @@ All changes were implemented strictly inside `apps/notifications-service/` and v
 
 ## 3. Files Changed and Migration Added
 
-| File Path | Nature of Change | Description |
-|---|---|---|
-| [`apps/notifications-service/src/infra/database/migrations/0002_consumer_receipt_fencing.sql`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/infra/database/migrations/0002_consumer_receipt_fencing.sql) | **Created** | Versioned migration adding `claim_token VARCHAR(64)` to `notification_consumer_receipts`. |
-| [`apps/notifications-service/src/infra/database/migrations/runner.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/infra/database/migrations/runner.ts) | **Modified** | Updated schema definition and runner to execute 0002 migration. |
-| [`apps/notifications-service/src/domain/models.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/domain/models.ts) | **Modified** | Added `claimToken?: string \| null` to `ConsumerReceiptRecord`. |
-| [`apps/notifications-service/src/repository/notification-repository.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/repository/notification-repository.ts) | **Modified** | Updated `findReceipt`, `recordReceipt`, CAS stale claim in `claimEventReceipt`, and fenced `updateReceiptStatus`. |
-| [`apps/notifications-service/src/events/notification-event-consumer.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/events/notification-event-consumer.ts) | **Modified** | Propagated `claimToken` to `updateReceiptStatus` on completion and failure. |
-| [`apps/notifications-service/src/http/routes/internal-routes.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/http/routes/internal-routes.ts) | **Modified** | Added `POST /v1/internal/notifications/process` with input validation, bounding, and `internalAuth`. |
-| [`apps/notifications-service/test/http-api.test.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/test/http-api.test.ts) | **Modified** | Added tests for internal process endpoint authentication, validation, and execution. |
-| [`apps/notifications-service/test/event-consumer.test.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/test/event-consumer.test.ts) | **Modified** | Added tests for simultaneous stale claim CAS race and claim fencing against stale worker updates. |
+| File Path                                                                                                                                                                                                                                                                              | Nature of Change | Description                                                                                                       |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------- |
+| [`apps/notifications-service/src/infra/database/migrations/0002_consumer_receipt_fencing.sql`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/infra/database/migrations/0002_consumer_receipt_fencing.sql) | **Created**      | Versioned migration adding `claim_token VARCHAR(64)` to `notification_consumer_receipts`.                         |
+| [`apps/notifications-service/src/infra/database/migrations/runner.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/infra/database/migrations/runner.ts)                                                 | **Modified**     | Updated schema definition and runner to execute 0002 migration.                                                   |
+| [`apps/notifications-service/src/domain/models.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/domain/models.ts)                                                                                       | **Modified**     | Added `claimToken?: string \| null` to `ConsumerReceiptRecord`.                                                   |
+| [`apps/notifications-service/src/repository/notification-repository.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/repository/notification-repository.ts)                                             | **Modified**     | Updated `findReceipt`, `recordReceipt`, CAS stale claim in `claimEventReceipt`, and fenced `updateReceiptStatus`. |
+| [`apps/notifications-service/src/events/notification-event-consumer.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/events/notification-event-consumer.ts)                                             | **Modified**     | Propagated `claimToken` to `updateReceiptStatus` on completion and failure.                                       |
+| [`apps/notifications-service/src/http/routes/internal-routes.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/src/http/routes/internal-routes.ts)                                                           | **Modified**     | Added `POST /v1/internal/notifications/process` with input validation, bounding, and `internalAuth`.              |
+| [`apps/notifications-service/test/http-api.test.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/test/http-api.test.ts)                                                                                     | **Modified**     | Added tests for internal process endpoint authentication, validation, and execution.                              |
+| [`apps/notifications-service/test/event-consumer.test.ts`](file:///c:/Users/Abhinav/Documents/Project2/ai-driven-multi-vendor-predictive-ecom-platform/apps/notifications-service/test/event-consumer.test.ts)                                                                         | **Modified**     | Added tests for simultaneous stale claim CAS race and claim fencing against stale worker updates.                 |
 
 ---
 
@@ -103,6 +106,7 @@ All changes were implemented strictly inside `apps/notifications-service/` and v
 ```
 
 ### Guarantees Achieved
+
 - **CAS Stale Recovery:** Only a single worker can succeed in reclaiming a stale receipt when multiple workers compete.
 - **Terminal State Inviolability:** Once an event transitions to `COMPLETED`, no delayed or stale worker can overwrite it with `FAILED` or `PROCESSING`.
 - **Active Claim Segregation:** Even if Worker B is still processing when Worker A wakes up, Worker A cannot overwrite Worker B's error state because `token-A != token-B`.
@@ -112,6 +116,7 @@ All changes were implemented strictly inside `apps/notifications-service/` and v
 ## 5. Test Commands and Actual Results
 
 ### Standalone Notifications Service Tests
+
 - **Command:** `npm test`
 - **Result:** **All 51 tests passed across 6 test files** (increased from 45 tests):
   - `test/auth-boundary.test.ts` (6 passed)
@@ -122,10 +127,12 @@ All changes were implemented strictly inside `apps/notifications-service/` and v
   - `test/http-api.test.ts` (15 passed — includes internal process endpoint tests)
 
 ### TypeScript Typecheck & Build
+
 - **Commands:** `npm run typecheck`, `npm run build`
 - **Result:** **0 errors**. Clean compilation with `exactOptionalPropertyTypes: true`.
 
 ### Monolith Seam Regression Test
+
 - **Command:** `npm test -- test/notification-client.test.ts`
 - **Result:** **All 6 tests passed** in `apps/api`.
 
@@ -133,11 +140,11 @@ All changes were implemented strictly inside `apps/notifications-service/` and v
 
 ## 6. Verification Against `INotificationClient` Contract
 
-| `INotificationClient` Monolith Method | Target Standalone HTTP Route | Authentication Mechanism | Status |
-|---|---|---|---|
-| `requestNotification(input: RequestNotificationInput): Promise<NotificationResultDto>` | `POST /v1/internal/notifications/request` | `X-Internal-Service-Key` (constant-time timing-safe equal) | **READY** |
-| `sendTransactionalEmail(to: string, subject: string, body: string): Promise<string>` | `POST /v1/internal/notifications/transactional-email` | `X-Internal-Service-Key` (constant-time timing-safe equal) | **READY** |
-| `processPendingNotifications(options?: { batchSize?: number; baseRetryDelayMs?: number }): Promise<{ claimed: number; sent: number; failed: number; deadLettered: number }>` | `POST /v1/internal/notifications/process` | `X-Internal-Service-Key` (constant-time timing-safe equal) | **READY** |
+| `INotificationClient` Monolith Method                                                                                                                                        | Target Standalone HTTP Route                          | Authentication Mechanism                                   | Status    |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------- | --------- |
+| `requestNotification(input: RequestNotificationInput): Promise<NotificationResultDto>`                                                                                       | `POST /v1/internal/notifications/request`             | `X-Internal-Service-Key` (constant-time timing-safe equal) | **READY** |
+| `sendTransactionalEmail(to: string, subject: string, body: string): Promise<string>`                                                                                         | `POST /v1/internal/notifications/transactional-email` | `X-Internal-Service-Key` (constant-time timing-safe equal) | **READY** |
+| `processPendingNotifications(options?: { batchSize?: number; baseRetryDelayMs?: number }): Promise<{ claimed: number; sent: number; failed: number; deadLettered: number }>` | `POST /v1/internal/notifications/process`             | `X-Internal-Service-Key` (constant-time timing-safe equal) | **READY** |
 
 ---
 

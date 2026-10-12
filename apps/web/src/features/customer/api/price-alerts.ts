@@ -18,7 +18,7 @@ export const priceAlertsApi = {
   getMyAlerts: async () => {
     return apiClient<PriceAlertDto[]>('/price-alerts/mine');
   },
-  
+
   unsubscribe: async (productId: string) => {
     return apiClient<{ success: boolean }>(`/price-alerts/watches/${productId}`, {
       method: 'DELETE',
@@ -30,5 +30,5 @@ export const priceAlertsApi = {
       method: 'POST',
       body: JSON.stringify({ sinceDays }),
     });
-  }
+  },
 };

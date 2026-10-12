@@ -10,10 +10,13 @@ import { AdminLayout } from '../src/layouts/AdminLayout.js';
 import { apiClient, ApiError } from '../src/api/client.js';
 
 describe('Frontend Foundation', () => {
-  const UNAUTHENTICATED_FETCH = () => Promise.resolve({
-    ok: false, status: 401, statusText: 'Unauthorized',
-    json: () => Promise.resolve({ error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } }),
-  } as unknown as Response);
+  const UNAUTHENTICATED_FETCH = () =>
+    Promise.resolve({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: () => Promise.resolve({ error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } }),
+    } as unknown as Response);
 
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -26,7 +29,9 @@ describe('Frontend Foundation', () => {
   });
 
   it('1. App/bootstrap renders successfully', async () => {
-    await act(async () => { render(<AppRoutes />); });
+    await act(async () => {
+      render(<AppRoutes />);
+    });
     expect(screen.getByText('Commerce')).toBeDefined();
   });
 
@@ -38,7 +43,7 @@ describe('Frontend Foundation', () => {
             <Route index element={<div>Customer Content</div>} />
           </Route>
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(screen.getByText('Customer Content')).toBeDefined();
     expect(screen.getByPlaceholderText(/Search products/i)).toBeDefined();
@@ -56,7 +61,7 @@ describe('Frontend Foundation', () => {
               <Route path="/account" element={<div>Account Login Shell</div>} />
             </Routes>
           </MemoryRouter>
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
     await waitFor(() => screen.getByText('Account Login Shell'));
@@ -75,7 +80,7 @@ describe('Frontend Foundation', () => {
               <Route path="/account" element={<div>Account Login Shell</div>} />
             </Routes>
           </MemoryRouter>
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
     await waitFor(() => screen.getByText('Account Login Shell'));
@@ -101,7 +106,7 @@ describe('Frontend Foundation', () => {
       render(
         <AuthProvider>
           <TestComponent />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 

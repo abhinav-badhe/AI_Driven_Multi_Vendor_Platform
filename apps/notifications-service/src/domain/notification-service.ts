@@ -174,9 +174,16 @@ export class NotificationService {
    */
   async processPendingNotifications(
     options: { batchSize?: number; baseRetryDelayMs?: number } = {},
-  ): Promise<{ claimed: number; sent: number; failed: number; deadLettered: number; processed: number }> {
+  ): Promise<{
+    claimed: number;
+    sent: number;
+    failed: number;
+    deadLettered: number;
+    processed: number;
+  }> {
     const batchSize = options.batchSize ?? 50;
-    const baseRetryDelayMs = options.baseRetryDelayMs ?? this.retryConfig.initialRetryDelayMs ?? 1000;
+    const baseRetryDelayMs =
+      options.baseRetryDelayMs ?? this.retryConfig.initialRetryDelayMs ?? 1000;
 
     const claimedRecords = await this.repo.claimPendingNotifications(batchSize);
 

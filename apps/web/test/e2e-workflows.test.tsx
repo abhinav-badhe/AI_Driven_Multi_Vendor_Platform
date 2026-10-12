@@ -95,7 +95,6 @@ describe('End-to-End Multi-Vendor Platform Workflows', () => {
     });
   });
 
-
   it('Customer Orders renders authenticated login prompt when not signed in', async () => {
     render(
       <BrowserRouter>
@@ -120,7 +119,9 @@ describe('End-to-End Multi-Vendor Platform Workflows', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Merchant Orders & Fulfillment/i)).toBeDefined();
-      expect(screen.getByText(/No orders currently assigned to your seller account/i)).toBeDefined();
+      expect(
+        screen.getByText(/No orders currently assigned to your seller account/i),
+      ).toBeDefined();
     });
   });
 

@@ -1,6 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import type { IdentityService } from '../modules/identity/index.js';
-import { createAuthMiddleware, createOptionalAuthMiddleware, requireActor } from './auth-middleware.js';
+import {
+  createAuthMiddleware,
+  createOptionalAuthMiddleware,
+  requireActor,
+} from './auth-middleware.js';
 import { InMemoryRateLimiter, type RateLimiter } from './rate-limiter.js';
 import { ValidationError } from '../errors/app-error.js';
 
@@ -9,14 +13,16 @@ export function registerIdentityRoutes(
   identityService: IdentityService,
   options?: {
     rateLimiter?: RateLimiter;
-    verification?: {
-      frontendUrl: string;
-      sendEmail: (to: string, subject: string, body: string) => Promise<unknown>;
-    } | undefined;
+    verification?:
+      | {
+          frontendUrl: string;
+          sendEmail: (to: string, subject: string, body: string) => Promise<unknown>;
+        }
+      | undefined;
   },
 ): void {
   const authenticate = createAuthMiddleware(identityService);
-  const optionalAuth  = createOptionalAuthMiddleware(identityService);
+  const optionalAuth = createOptionalAuthMiddleware(identityService);
   const rateLimiter = options?.rateLimiter ?? new InMemoryRateLimiter();
   const rateLimitHook = rateLimiter.middleware();
 
@@ -53,7 +59,6 @@ export function registerIdentityRoutes(
       ].join('\n'),
     );
   };
-
 
   // POST /auth/register — creates an UNVERIFIED account and emails a
   // verification link. No session is issued until the email is verified.
@@ -183,7 +188,10 @@ export function registerIdentityRoutes(
 
     const tokens = result;
     const isProd = process.env.NODE_ENV === 'production';
-    const maxAgeSeconds = Math.max(0, Math.floor((new Date(tokens.refreshTokenExpiresAt).getTime() - Date.now()) / 1000));
+    const maxAgeSeconds = Math.max(
+      0,
+      Math.floor((new Date(tokens.refreshTokenExpiresAt).getTime() - Date.now()) / 1000),
+    );
 
     reply.setCookie('auth_refresh', tokens.refreshToken, {
       httpOnly: true,
@@ -205,17 +213,16 @@ export function registerIdentityRoutes(
     if (typeof body.tempToken !== 'string') throw new ValidationError('tempToken is required');
     if (typeof body.code !== 'string') throw new ValidationError('code is required');
 
-    const tokens = await identityService.verify2FALogin(
-      body.tempToken,
-      body.code,
-      {
-        ip: request.ip,
-        userAgent: request.headers['user-agent'],
-      },
-    );
+    const tokens = await identityService.verify2FALogin(body.tempToken, body.code, {
+      ip: request.ip,
+      userAgent: request.headers['user-agent'],
+    });
 
     const isProd = process.env.NODE_ENV === 'production';
-    const maxAgeSeconds = Math.max(0, Math.floor((new Date(tokens.refreshTokenExpiresAt).getTime() - Date.now()) / 1000));
+    const maxAgeSeconds = Math.max(
+      0,
+      Math.floor((new Date(tokens.refreshTokenExpiresAt).getTime() - Date.now()) / 1000),
+    );
 
     reply.setCookie('auth_refresh', tokens.refreshToken, {
       httpOnly: true,
@@ -244,7 +251,10 @@ export function registerIdentityRoutes(
     });
 
     const isProd = process.env.NODE_ENV === 'production';
-    const maxAgeSeconds = Math.max(0, Math.floor((new Date(tokens.refreshTokenExpiresAt).getTime() - Date.now()) / 1000));
+    const maxAgeSeconds = Math.max(
+      0,
+      Math.floor((new Date(tokens.refreshTokenExpiresAt).getTime() - Date.now()) / 1000),
+    );
 
     reply.setCookie('auth_refresh', tokens.refreshToken, {
       httpOnly: true,
@@ -264,42 +274,33 @@ export function registerIdentityRoutes(
   // Cookie-authoritative: the access token is optional.
   // Revocation is driven exclusively by the auth_refresh cookie so that an
   // expired access token never prevents refresh-family revocation.
-  app.post(
-    '/auth/logout',
-    { preHandler: optionalAuth },
-    async (request, reply) => {
-      const refreshToken = request.cookies['auth_refresh'];
+  app.post('/auth/logout', { preHandler: optionalAuth }, async (request, reply) => {
+    const refreshToken = request.cookies['auth_refresh'];
 
-      if (typeof refreshToken === 'string') {
-        // Revoke via IdentityService – preserves all existing hashing/family/audit semantics.
-        // logout() is safe/idempotent: if the token is already revoked or not found it is a no-op.
-        await identityService.logout(refreshToken);
-      }
-      // Always clear the cookie regardless of whether a token was present.
-      reply.clearCookie('auth_refresh', { path: '/api/auth' });
-      return reply.status(204).send();
-    },
-  );
-
+    if (typeof refreshToken === 'string') {
+      // Revoke via IdentityService – preserves all existing hashing/family/audit semantics.
+      // logout() is safe/idempotent: if the token is already revoked or not found it is a no-op.
+      await identityService.logout(refreshToken);
+    }
+    // Always clear the cookie regardless of whether a token was present.
+    reply.clearCookie('auth_refresh', { path: '/api/auth' });
+    return reply.status(204).send();
+  });
 
   // GET /auth/me
-  app.get(
-    '/auth/me',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const identity = await identityService.getIdentity(actor.userId);
-      if (!identity) {
-        return reply.status(404).send({ error: 'Identity not found' });
-      }
-      return reply.status(200).send({
-        userId: identity.userId,
-        email: identity.email,
-        tenantId: identity.tenantId,
-        role: identity.role,
-      });
-    },
-  );
+  app.get('/auth/me', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const identity = await identityService.getIdentity(actor.userId);
+    if (!identity) {
+      return reply.status(404).send({ error: 'Identity not found' });
+    }
+    return reply.status(200).send({
+      userId: identity.userId,
+      email: identity.email,
+      tenantId: identity.tenantId,
+      role: identity.role,
+    });
+  });
 
   // GET /admin/users & GET /users (Admin user management)
   const handleListUsers = async (request: any, reply: any) => {
@@ -317,74 +318,56 @@ export function registerIdentityRoutes(
   app.get('/users', { preHandler: authenticate }, handleListUsers);
 
   // GET /admin/audit-log (Admin security audit logs)
-  app.get(
-    '/admin/audit-log',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      if (actor.role !== 'ADMINISTRATOR') {
-        return reply.status(403).send({
-          error: { code: 'FORBIDDEN', message: 'Administrator role required' },
-        });
-      }
-      const records = await identityService.getAuditLog(actor);
-      return reply.status(200).send({ records });
-    },
-  );
+  app.get('/admin/audit-log', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    if (actor.role !== 'ADMINISTRATOR') {
+      return reply.status(403).send({
+        error: { code: 'FORBIDDEN', message: 'Administrator role required' },
+      });
+    }
+    const records = await identityService.getAuditLog(actor);
+    return reply.status(200).send({ records });
+  });
 
   // ----------------------------------------------------
   // TWO-FACTOR AUTHENTICATION (2FA) MANAGEMENT ENDPOINTS
   // ----------------------------------------------------
 
   // GET /auth/2fa/status
-  app.get(
-    '/auth/2fa/status',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const status = await identityService.get2FAStatus(actor.userId);
-      return reply.status(200).send(status);
-    },
-  );
+  app.get('/auth/2fa/status', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const status = await identityService.get2FAStatus(actor.userId);
+    return reply.status(200).send(status);
+  });
 
   // POST /auth/2fa/setup
-  app.post(
-    '/auth/2fa/setup',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const body = (request.body ?? {}) as { issuer?: unknown };
-      const issuer = typeof body.issuer === 'string' ? body.issuer : 'Commerce Platform';
-      const setupData = await identityService.setup2FA(actor.userId, issuer);
-      return reply.status(200).send(setupData);
-    },
-  );
+  app.post('/auth/2fa/setup', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const body = (request.body ?? {}) as { issuer?: unknown };
+    const issuer = typeof body.issuer === 'string' ? body.issuer : 'Commerce Platform';
+    const setupData = await identityService.setup2FA(actor.userId, issuer);
+    return reply.status(200).send(setupData);
+  });
 
   // POST /auth/2fa/enable
-  app.post(
-    '/auth/2fa/enable',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const body = (request.body ?? {}) as { code?: unknown };
-      if (typeof body.code !== 'string') throw new ValidationError('Verification code is required');
-      await identityService.enable2FA(actor.userId, body.code);
-      return reply.status(200).send({ success: true, message: 'Two-factor authentication enabled successfully' });
-    },
-  );
+  app.post('/auth/2fa/enable', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const body = (request.body ?? {}) as { code?: unknown };
+    if (typeof body.code !== 'string') throw new ValidationError('Verification code is required');
+    await identityService.enable2FA(actor.userId, body.code);
+    return reply
+      .status(200)
+      .send({ success: true, message: 'Two-factor authentication enabled successfully' });
+  });
 
   // POST /auth/2fa/disable
-  app.post(
-    '/auth/2fa/disable',
-    { preHandler: authenticate },
-    async (request, reply) => {
-      const actor = requireActor(request);
-      const body = (request.body ?? {}) as { password?: unknown; code?: unknown };
-      if (typeof body.password !== 'string') throw new ValidationError('Password is required to disable 2FA');
-      const code = typeof body.code === 'string' ? body.code : undefined;
-      await identityService.disable2FA(actor.userId, body.password, code);
-      return reply.status(200).send({ success: true, message: 'Two-factor authentication disabled' });
-    },
-  );
+  app.post('/auth/2fa/disable', { preHandler: authenticate }, async (request, reply) => {
+    const actor = requireActor(request);
+    const body = (request.body ?? {}) as { password?: unknown; code?: unknown };
+    if (typeof body.password !== 'string')
+      throw new ValidationError('Password is required to disable 2FA');
+    const code = typeof body.code === 'string' ? body.code : undefined;
+    await identityService.disable2FA(actor.userId, body.password, code);
+    return reply.status(200).send({ success: true, message: 'Two-factor authentication disabled' });
+  });
 }
-

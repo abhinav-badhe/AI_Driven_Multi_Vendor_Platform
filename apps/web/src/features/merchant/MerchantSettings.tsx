@@ -1,24 +1,30 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../auth/AuthContext";
-import { apiClient } from "../../api/client";
-import { Navigate } from "react-router-dom";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
-import { Alert } from "../../components/ui/alert";
-import { Input, Label } from "../../components/ui/input";
+import { useState, useEffect } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import { apiClient } from '../../api/client';
+import { Navigate } from 'react-router-dom';
+import { Button } from '../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../components/ui/card';
+import { Alert } from '../../components/ui/alert';
+import { Input, Label } from '../../components/ui/input';
 
 export const MerchantSettings = () => {
   const { user } = useAuth();
-  const [displayName, setDisplayName] = useState("");
-  const [supportEmail, setSupportEmail] = useState(user?.email ?? "");
+  const [displayName, setDisplayName] = useState('');
+  const [supportEmail, setSupportEmail] = useState(user?.email ?? '');
   const [notifyOnOrder, setNotifyOnOrder] = useState(true);
   const [notifyOnReturn, setNotifyOnReturn] = useState(true);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (user?.role !== "MERCHANT") return;
-    apiClient<{ businessName?: string; contactEmail?: string }>("/merchants/me")
+    if (user?.role !== 'MERCHANT') return;
+    apiClient<{ businessName?: string; contactEmail?: string }>('/merchants/me')
       .then((res) => {
         if (res.businessName) setDisplayName(res.businessName);
         if (res.contactEmail) setSupportEmail(res.contactEmail);
@@ -26,15 +32,15 @@ export const MerchantSettings = () => {
       .catch(() => {});
   }, [user]);
 
-  if (user?.role !== "MERCHANT") return <Navigate to="/account" replace />;
+  if (user?.role !== 'MERCHANT') return <Navigate to="/account" replace />;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSavedMsg(null);
     try {
-      await apiClient("/merchants/me/settings", {
-        method: "PUT",
+      await apiClient('/merchants/me/settings', {
+        method: 'PUT',
         body: JSON.stringify({
           displayName,
           supportEmail,
@@ -43,11 +49,11 @@ export const MerchantSettings = () => {
           notifications: { onOrder: notifyOnOrder, onReturn: notifyOnReturn },
         }),
       });
-      setSavedMsg("Settings saved.");
+      setSavedMsg('Settings saved.');
     } catch {
       try {
-        await apiClient("/merchants/me", {
-          method: "PATCH",
+        await apiClient('/merchants/me', {
+          method: 'PATCH',
           body: JSON.stringify({
             displayName,
             supportEmail,
@@ -55,9 +61,9 @@ export const MerchantSettings = () => {
             contactEmail: supportEmail,
           }),
         });
-        setSavedMsg("Settings saved.");
+        setSavedMsg('Settings saved.');
       } catch {
-        setSavedMsg("Settings kept locally — sync pending.");
+        setSavedMsg('Settings kept locally — sync pending.');
       }
     } finally {
       setIsSaving(false);
@@ -65,17 +71,16 @@ export const MerchantSettings = () => {
     }
   };
 
-
   const prefs = [
     {
-      label: "New order alerts",
-      hint: "Notify me when a customer places an order",
+      label: 'New order alerts',
+      hint: 'Notify me when a customer places an order',
       value: notifyOnOrder,
       onChange: setNotifyOnOrder,
     },
     {
-      label: "Return request alerts",
-      hint: "Notify me when a return is requested",
+      label: 'Return request alerts',
+      hint: 'Notify me when a return is requested',
       value: notifyOnReturn,
       onChange: setNotifyOnReturn,
     },
@@ -172,7 +177,7 @@ export const MerchantSettings = () => {
         </Card>
 
         <Button type="submit" disabled={isSaving} className="self-start">
-          {isSaving ? "Saving…" : "Save settings"}
+          {isSaving ? 'Saving…' : 'Save settings'}
         </Button>
       </form>
     </div>

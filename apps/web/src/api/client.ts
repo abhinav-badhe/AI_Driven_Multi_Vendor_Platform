@@ -87,7 +87,12 @@ interface WriteInvalidationRule {
 // never evicts catalog entries.
 const WRITE_INVALIDATION_RULES: WriteInvalidationRule[] = [
   { methods: ['POST'], prefix: '/categories', drop: ['/categories'] },
-  { methods: ['POST', 'PATCH'], prefix: '/products', exceptSuffixes: ['/views'], drop: ['/products', '/skus', '/search'] },
+  {
+    methods: ['POST', 'PATCH'],
+    prefix: '/products',
+    exceptSuffixes: ['/views'],
+    drop: ['/products', '/skus', '/search'],
+  },
   { methods: ['PATCH', 'POST'], prefix: '/skus', drop: ['/skus', '/products', '/search'] },
   { methods: ['POST', 'PATCH'], prefix: '/listings', drop: ['/listings', '/skus', '/search'] },
   { methods: ['POST'], prefix: '/inventory', drop: ['/inventory', '/listings'] },
@@ -217,10 +222,7 @@ async function cachedGet<T>(path: string, options: RequestInit, rule: GetCacheRu
   return fetchAndStore<T>(key, path, options, rule);
 }
 
-export async function apiClient<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+export async function apiClient<T>(path: string, options: RequestInit = {}): Promise<T> {
   const method = (options.method ?? 'GET').toUpperCase();
   if (method === 'GET') {
     const rule = matchGetRule(path);
@@ -235,12 +237,11 @@ export async function apiClient<T>(
   return data;
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '') : '/api');
+const API_BASE = import.meta.env.VITE_API_URL
+  ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '')
+  : '/api';
 
-async function rawRequest<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function rawRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (options.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -258,7 +259,13 @@ async function rawRequest<T>(
 
   if (!response.ok) {
     // 401 retry logic
-    if (response.status === 401 && path !== '/auth/refresh' && path !== '/auth/login' && path !== '/auth/register' && path !== '/auth/logout') {
+    if (
+      response.status === 401 &&
+      path !== '/auth/refresh' &&
+      path !== '/auth/login' &&
+      path !== '/auth/register' &&
+      path !== '/auth/logout'
+    ) {
       if (!refreshPromise) {
         refreshPromise = (async () => {
           try {
@@ -288,13 +295,13 @@ async function rawRequest<T>(
         const retryHeaders = new Headers(options.headers);
         retryHeaders.set('Content-Type', 'application/json');
         retryHeaders.set('Authorization', `Bearer ${newToken}`);
-        
+
         const retryRes = await fetch(`${API_BASE}${path}`, {
           ...options,
           headers: retryHeaders,
           credentials: 'include',
         });
-        
+
         if (retryRes.ok) {
           if (retryRes.status === 204) return {} as T;
           return retryRes.json();

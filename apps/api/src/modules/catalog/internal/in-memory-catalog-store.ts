@@ -164,10 +164,14 @@ export class InMemoryCatalogStore implements ICatalogService {
       ...current,
       ...(updates.title !== undefined && { title: updates.title.trim() }),
       ...(updates.slug !== undefined && { slug: updates.slug.toLowerCase().trim() }),
-      ...(updates.description !== undefined && { description: updates.description?.trim() ?? null }),
+      ...(updates.description !== undefined && {
+        description: updates.description?.trim() ?? null,
+      }),
       ...(updates.brand !== undefined && { brand: updates.brand?.trim() ?? null }),
       ...(updates.categoryId !== undefined && { categoryId: updates.categoryId }),
-      ...(updates.thumbnailUrl !== undefined && { thumbnailUrl: updates.thumbnailUrl?.trim() || null }),
+      ...(updates.thumbnailUrl !== undefined && {
+        thumbnailUrl: updates.thumbnailUrl?.trim() || null,
+      }),
       ...(updates.images !== undefined && { images: updates.images }),
       ...(updates.attributes !== undefined && { attributes: updates.attributes }),
       updatedAt: new Date().toISOString(),
@@ -233,7 +237,9 @@ export class InMemoryCatalogStore implements ICatalogService {
     if (filter?.search) {
       const q = filter.search.toLowerCase();
       list = list.filter(
-        (p) => p.title.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q)),
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          (p.description && p.description.toLowerCase().includes(q)),
       );
     }
 
@@ -293,7 +299,10 @@ export class InMemoryCatalogStore implements ICatalogService {
     return sku;
   }
 
-  async listSkusByProduct(productId: string, actor?: AuthorizedActor | null): Promise<ProductSkuDto[]> {
+  async listSkusByProduct(
+    productId: string,
+    actor?: AuthorizedActor | null,
+  ): Promise<ProductSkuDto[]> {
     if (!this.products.has(productId)) {
       throw new NotFoundError(`Product '${productId}' not found`);
     }
@@ -361,7 +370,9 @@ export class InMemoryCatalogStore implements ICatalogService {
     if (newStatus === 'ACTIVE') {
       const product = this.products.get(current.productId);
       if (!product || product.status === 'ARCHIVED') {
-        throw new InvalidStateTransitionError('Cannot activate SKU for an ARCHIVED or missing product');
+        throw new InvalidStateTransitionError(
+          'Cannot activate SKU for an ARCHIVED or missing product',
+        );
       }
     }
 

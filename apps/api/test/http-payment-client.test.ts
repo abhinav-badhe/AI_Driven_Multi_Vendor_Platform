@@ -212,14 +212,16 @@ describe('HttpPaymentClient', () => {
   });
 
   it('maps error codes correctly from HTTP response', async () => {
-    const validationFetch = vi.fn().mockImplementation(() =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Missing fields' } }),
-          { status: 400, headers: { 'content-type': 'application/json' } },
+    const validationFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'Missing fields' } }),
+            { status: 400, headers: { 'content-type': 'application/json' } },
+          ),
         ),
-      ),
-    );
+      );
     const client = new HttpPaymentClient('http://payment-service:4130', {
       fetchFn: validationFetch,
     });
@@ -227,14 +229,16 @@ describe('HttpPaymentClient', () => {
       client.createPaymentIntent(mockCustomerActor, { checkoutSessionId: '' }),
     ).rejects.toThrowError(ValidationError);
 
-    const notFoundFetch = vi.fn().mockImplementation(() =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Payment intent not found' } }),
-          { status: 404, headers: { 'content-type': 'application/json' } },
+    const notFoundFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Payment intent not found' } }),
+            { status: 404, headers: { 'content-type': 'application/json' } },
+          ),
         ),
-      ),
-    );
+      );
     const notFoundClient = new HttpPaymentClient('http://payment-service:4130', {
       fetchFn: notFoundFetch,
     });
@@ -267,9 +271,11 @@ describe('HttpPaymentClient', () => {
     const memoryStore = new InMemoryPaymentStore();
     memoryStore.seedPaymentIntent(mockPaymentIntent);
 
-    const failingFetch = vi.fn().mockImplementation(() =>
-      Promise.reject(new Error('ECONNREFUSED connect to payment-service:4130')),
-    );
+    const failingFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.reject(new Error('ECONNREFUSED connect to payment-service:4130')),
+      );
 
     const client = new HttpPaymentClient('http://payment-service:4130', {
       fetchFn: failingFetch,

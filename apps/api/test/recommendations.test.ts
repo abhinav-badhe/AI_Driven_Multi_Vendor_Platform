@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { parseConfig } from '../src/config/index.js';
-import { createMigratedTestDatabase, markAllUsersVerified, registerVerifiedUser } from './helpers/test-db.js';
+import {
+  createMigratedTestDatabase,
+  markAllUsersVerified,
+  registerVerifiedUser,
+} from './helpers/test-db.js';
 import type { DatabaseConnection } from '../src/infra/database/connection.js';
 import { JsonLogger } from '../src/observability/logger.js';
 import {
@@ -151,7 +155,9 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
       tenantName,
       role: 'CUSTOMER',
     });
-    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = $1`, [email]);
+    const userRes = await db.query<{ id: string }>(`SELECT id FROM users WHERE email = $1`, [
+      email,
+    ]);
     const userId = userRes.rows[0]!.id;
     const memberRes = await db.query<{ tenant_id: string }>(
       `SELECT tenant_id FROM tenant_memberships WHERE user_id = $1`,
@@ -195,7 +201,8 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
     `);
 
     // 4. Merchant Listings
-    await db.query(`
+    await db.query(
+      `
       INSERT INTO merchant_listings (id, tenant_id, sku_id, price_amount, currency, status)
       VALUES
         ('list-1', $1, 'sku-1', 49999, 'INR', 'ACTIVE'),
@@ -203,7 +210,9 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
         ('list-3', $1, 'sku-3', 9999, 'INR', 'ACTIVE'),
         ('list-4', $1, 'sku-4', 4999, 'INR', 'ACTIVE')
       ON CONFLICT (tenant_id, sku_id) DO NOTHING;
-    `, [tenantId]);
+    `,
+      [tenantId],
+    );
   }
 
   // =========================================================================
@@ -215,7 +224,8 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
       await seedCatalogAndListings(tenantId);
 
       // Seed analytics facts: prod-1 has 15 units sold, prod-2 has 5 units sold
-      await db.query(`
+      await db.query(
+        `
         INSERT INTO analytics_order_facts (
           fact_id, event_id, tenant_id, order_id, customer_id, product_id,
           sku, quantity, unit_price, total_amount, currency, order_status,
@@ -224,7 +234,9 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
           ('fact-1', 'evt-1', $1, 'ord-1', 'cust-x', 'prod-1', 'sku-1', 10, 49999, 499990, 'INR', 'COMPLETED', NOW(), NOW()),
           ('fact-2', 'evt-2', $1, 'ord-2', 'cust-y', 'prod-1', 'sku-1', 5, 49999, 249995, 'INR', 'COMPLETED', NOW(), NOW()),
           ('fact-3', 'evt-3', $1, 'ord-3', 'cust-z', 'prod-2', 'sku-2', 5, 29999, 149995, 'INR', 'COMPLETED', NOW(), NOW());
-      `, [tenantId]);
+      `,
+        [tenantId],
+      );
 
       const res = await app.inject({
         method: 'GET',
@@ -259,7 +271,9 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
       // prod-2 has same category and brand as prod-1 -> top candidate
       expect(body.items[0].productId).toBe('prod-2');
       expect(body.items[0].reasonCode).toMatch(/SIMILAR_PRODUCT|CATEGORY_MATCH/);
-      expect(body.items.find((i: { productId: string }) => i.productId === 'prod-1')).toBeUndefined();
+      expect(
+        body.items.find((i: { productId: string }) => i.productId === 'prod-1'),
+      ).toBeUndefined();
     });
 
     it('generates frequently bought together recommendations from order co-occurrences', async () => {
@@ -267,7 +281,8 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
       await seedCatalogAndListings(tenantId);
 
       // Seed co-occurrences: prod-1 and prod-4 bought together in ord-1 and ord-2
-      await db.query(`
+      await db.query(
+        `
         INSERT INTO analytics_order_facts (
           fact_id, event_id, tenant_id, order_id, customer_id, product_id,
           sku, quantity, unit_price, total_amount, currency, order_status,
@@ -277,7 +292,9 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
           ('fact-11', 'evt-11', $1, 'ord-combo-1', 'c-1', 'prod-4', 'sku-4', 1, 4999, 4999, 'INR', 'COMPLETED', NOW(), NOW()),
           ('fact-12', 'evt-12', $1, 'ord-combo-2', 'c-2', 'prod-1', 'sku-1', 1, 49999, 49999, 'INR', 'COMPLETED', NOW(), NOW()),
           ('fact-13', 'evt-13', $1, 'ord-combo-2', 'c-2', 'prod-4', 'sku-4', 1, 4999, 4999, 'INR', 'COMPLETED', NOW(), NOW());
-      `, [tenantId]);
+      `,
+        [tenantId],
+      );
 
       const res = await app.inject({
         method: 'GET',
@@ -298,7 +315,8 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
       await seedCatalogAndListings(tenantId);
 
       // Customer previously bought audio product prod-3
-      await db.query(`
+      await db.query(
+        `
         INSERT INTO analytics_order_facts (
           fact_id, event_id, tenant_id, order_id, customer_id, product_id,
           sku, quantity, unit_price, total_amount, currency, order_status,
@@ -306,7 +324,9 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
         ) VALUES (
           'fact-pers-1', 'evt-pers-1', $1, 'ord-p1', $2, 'prod-3', 'sku-3', 1, 9999, 9999, 'INR', 'COMPLETED', NOW(), NOW()
         );
-      `, [tenantId, userId]);
+      `,
+        [tenantId, userId],
+      );
 
       const res = await app.inject({
         method: 'GET',
@@ -405,7 +425,9 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
       expect(body.recommendationType).toBe('FREQUENTLY_BOUGHT_TOGETHER');
       expect(body.metadata.coldStartApplied).toBe(true);
       // Does not contain itself
-      expect(body.items.find((i: { productId: string }) => i.productId === 'prod-isolated')).toBeUndefined();
+      expect(
+        body.items.find((i: { productId: string }) => i.productId === 'prod-isolated'),
+      ).toBeUndefined();
     });
 
     it('returns a safe empty result when catalog has no active items', async () => {
@@ -456,13 +478,19 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
 
       expect(prod1Rec).toBeDefined();
       // Canonical product is not duplicated
-      const prod1Matches = body.items.filter((i: { productId: string }) => i.productId === 'prod-1');
+      const prod1Matches = body.items.filter(
+        (i: { productId: string }) => i.productId === 'prod-1',
+      );
       expect(prod1Matches.length).toBe(1);
 
       // Has 2 distinct seller offers
       expect(prod1Rec.activeOffers.length).toBe(2);
-      expect(prod1Rec.activeOffers.map((o: { tenantId: string }) => o.tenantId)).toContain(tenantId);
-      expect(prod1Rec.activeOffers.map((o: { tenantId: string }) => o.tenantId)).toContain('merchant-beta');
+      expect(prod1Rec.activeOffers.map((o: { tenantId: string }) => o.tenantId)).toContain(
+        tenantId,
+      );
+      expect(prod1Rec.activeOffers.map((o: { tenantId: string }) => o.tenantId)).toContain(
+        'merchant-beta',
+      );
     });
 
     it('excludes inactive seller listings from active offers', async () => {
@@ -500,7 +528,9 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
       expect(res.statusCode).toBe(200);
       const body = res.json();
       // 'prod-inactive' is INACTIVE and must be strictly excluded
-      const inactive = body.items.find((i: { productId: string }) => i.productId === 'prod-inactive');
+      const inactive = body.items.find(
+        (i: { productId: string }) => i.productId === 'prod-inactive',
+      );
       expect(inactive).toBeUndefined();
     });
   });
@@ -541,7 +571,8 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
       await seedCatalogAndListings(tenant1.tenantId);
 
       // Seed order facts only in tenant 1
-      await db.query(`
+      await db.query(
+        `
         INSERT INTO analytics_order_facts (
           fact_id, event_id, tenant_id, order_id, customer_id, product_id,
           sku, quantity, unit_price, total_amount, currency, order_status,
@@ -549,7 +580,9 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
         ) VALUES (
           'f-t1', 'evt-t1', $1, 'ord-t1', 'c-1', 'prod-1', 'sku-1', 100, 49999, 4999900, 'INR', 'COMPLETED', NOW(), NOW()
         );
-      `, [tenant1.tenantId]);
+      `,
+        [tenant1.tenantId],
+      );
 
       const res1 = await app.inject({
         method: 'GET',
@@ -671,7 +704,9 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
       );
       expect(auditRes.rows.length).toBe(1);
       expect(auditRes.rows[0]!.status).toBe('COMPLETED');
-      expect(Number(auditRes.rows[0]!.recommendations_generated)).toBe(body.recommendationsGenerated);
+      expect(Number(auditRes.rows[0]!.recommendations_generated)).toBe(
+        body.recommendationsGenerated,
+      );
     });
 
     it('forbids non-administrators from triggering rebuild', async () => {
@@ -787,7 +822,9 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
         headers: { authorization: `Bearer ${token}` },
       });
       expect(recRes.statusCode).toBe(200);
-      const recItem = recRes.json().items.find((i: { productId: string }) => i.productId === 'prod-1');
+      const recItem = recRes
+        .json()
+        .items.find((i: { productId: string }) => i.productId === 'prod-1');
       expect(recItem.activeOffers[0].priceAmount).toBe(49999);
 
       // Mutate authoritative listing price in marketplace domain to 39999
@@ -803,9 +840,10 @@ describe('Phase 12: Recommendations Bounded Context & Architecture', () => {
         url: '/recommendations/trending',
         headers: { authorization: `Bearer ${token}` },
       });
-      const updatedRecItem = updatedRecRes.json().items.find((i: { productId: string }) => i.productId === 'prod-1');
+      const updatedRecItem = updatedRecRes
+        .json()
+        .items.find((i: { productId: string }) => i.productId === 'prod-1');
       expect(updatedRecItem.activeOffers[0].priceAmount).toBe(39999);
     });
   });
 });
-

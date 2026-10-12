@@ -65,7 +65,9 @@ export const GoogleAddressPicker: React.FC<GoogleAddressPickerProps> = ({
   onCoordinatesChange,
   className = '',
 }) => {
-  const apiKey = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_GOOGLE_MAPS_API_KEY || '';
+  const apiKey =
+    (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_GOOGLE_MAPS_API_KEY ||
+    '';
   const [isMapsLoaded, setIsMapsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
@@ -247,7 +249,10 @@ export const GoogleAddressPicker: React.FC<GoogleAddressPickerProps> = ({
       {/* Places Autocomplete Search Bar */}
       {apiKey && !mapError ? (
         <div className="space-y-1">
-          <Label htmlFor="google-places-search" className="text-xs font-medium flex items-center gap-1.5">
+          <Label
+            htmlFor="google-places-search"
+            className="text-xs font-medium flex items-center gap-1.5"
+          >
             <Search className="size-3.5 text-primary" />
             Search Address with Google Places Autocomplete
           </Label>
@@ -264,7 +269,8 @@ export const GoogleAddressPicker: React.FC<GoogleAddressPickerProps> = ({
             <Search className="size-4 absolute left-2.5 top-2.5 text-muted-foreground pointer-events-none" />
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Selecting a place will automatically populate street, city, state, postal code, and coordinates.
+            Selecting a place will automatically populate street, city, state, postal code, and
+            coordinates.
           </p>
         </div>
       ) : (

@@ -150,10 +150,7 @@ export class OutboxService implements IOutboxService {
 
   // --- Administrative Governance Operations ---
 
-  async getEventById(
-    actor: AuthorizedActor,
-    eventId: string,
-  ): Promise<OutboxEventRecord> {
+  async getEventById(actor: AuthorizedActor, eventId: string): Promise<OutboxEventRecord> {
     if (actor.role !== 'ADMINISTRATOR') {
       throw new ForbiddenError('Only platform administrators can inspect outbox events');
     }
@@ -182,10 +179,7 @@ export class OutboxService implements IOutboxService {
     return this.outboxRepo.listEvents(this.db, filter);
   }
 
-  async replayEvent(
-    actor: AuthorizedActor,
-    eventId: string,
-  ): Promise<{ replayed: boolean }> {
+  async replayEvent(actor: AuthorizedActor, eventId: string): Promise<{ replayed: boolean }> {
     if (actor.role !== 'ADMINISTRATOR') {
       throw new ForbiddenError('Only platform administrators can replay outbox events');
     }
@@ -227,4 +221,3 @@ export class OutboxService implements IOutboxService {
     return { clearedCount };
   }
 }
-
