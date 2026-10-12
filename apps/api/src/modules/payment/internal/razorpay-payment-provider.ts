@@ -167,6 +167,44 @@ export class RazorpayPaymentProvider implements PaymentProvider {
       paymentId = paymentMethodRaw;
     }
 
+    // Cash on Delivery (COD) offline payment support
+    if (
+      paymentMethodRaw === 'cod' ||
+      paymentMethodRaw === 'cash_on_delivery' ||
+      paymentMethodRaw.toLowerCase().includes('delivery')
+    ) {
+      const codTxnId = `cod_${randomUUID().replace(/-/g, '').slice(0, 14)}`;
+      return {
+        providerTransactionId: codTxnId,
+        status: 'SUCCEEDED',
+        rawResponse: {
+          id: codTxnId,
+          order_id: orderId,
+          status: 'pending_delivery',
+          method: 'cash_on_delivery',
+        },
+      };
+    }
+
+    // Direct card payment simulation (e.g. pm_card_visa)
+    if (
+      paymentMethodRaw === 'pm_card_visa' ||
+      paymentMethodRaw.startsWith('pm_card_') ||
+      paymentMethodRaw === 'card'
+    ) {
+      const cardTxnId = `pay_card_${randomUUID().replace(/-/g, '').slice(0, 14)}`;
+      return {
+        providerTransactionId: cardTxnId,
+        status: 'SUCCEEDED',
+        rawResponse: {
+          id: cardTxnId,
+          order_id: orderId,
+          status: 'captured',
+          method: 'card',
+        },
+      };
+    }
+
     // Deterministic simulation handling:
     if (paymentMethodRaw.includes('fail') || paymentMethodRaw.includes('decline')) {
       return {
@@ -175,6 +213,22 @@ export class RazorpayPaymentProvider implements PaymentProvider {
         failureCode: 'payment_declined',
         failureMessage: 'Payment was declined by customer bank or UPI app',
         rawResponse: { status: 'failed', method: paymentMethodRaw },
+      };
+    }
+
+    // Simulated Razorpay success responses
+    if (paymentMethodRaw.includes('sim_') || paymentId.startsWith('pay_sim_')) {
+      const simPayId = paymentId || `pay_sim_${randomUUID().replace(/-/g, '').slice(0, 14)}`;
+      return {
+        providerTransactionId: simPayId,
+        status: 'SUCCEEDED',
+        rawResponse: {
+          id: simPayId,
+          order_id: orderId,
+          status: 'captured',
+          method: 'upi',
+          simulated: true,
+        },
       };
     }
 

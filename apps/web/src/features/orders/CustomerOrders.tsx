@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { PackageSearch, RotateCcw, Truck } from "lucide-react";
 import { apiClient } from "../../api/client";
 import { ordersApi, type CustomerOrderDto, type OrderItemDto } from "./api/orders";
@@ -26,6 +26,7 @@ export interface CustomerShipmentDto {
 
 export const CustomerOrders = () => {
   const { isAuthenticated, login } = useAuth();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<CustomerOrderDto[]>([]);
   const [returns, setReturns] = useState<ReturnDto[]>([]);
   const [shipments, setShipments] = useState<CustomerShipmentDto[]>([]);
@@ -173,7 +174,7 @@ export const CustomerOrders = () => {
           title="No orders placed yet"
           description="When you complete a purchase, your order history and seller tracking will appear here."
           actionLabel="Browse products"
-          onAction={() => undefined}
+          onAction={() => navigate("/")}
         />
       ) : (
         <div className="flex flex-col gap-3">

@@ -226,17 +226,17 @@ export const CheckoutPage = () => {
         const config = typeof checkoutApi.getPaymentConfig === "function"
           ? await checkoutApi.getPaymentConfig().catch(() => ({
               provider: "razorpay" as const,
-              razorpayKeyId: "rzp_test_mockKey123",
+              razorpayKeyId: "rzp_test_Tma2xqRvNkQNEy",
               currency: "INR",
             }))
           : {
               provider: "razorpay" as const,
-              razorpayKeyId: "rzp_test_mockKey123",
+              razorpayKeyId: "rzp_test_Tma2xqRvNkQNEy",
               currency: "INR",
             };
 
         const rzpResult = await initiateRazorpayPayment({
-          key: config.razorpayKeyId || "rzp_test_mockKey123",
+          key: config.razorpayKeyId || "rzp_test_Tma2xqRvNkQNEy",
           amount: typeof activeSession.totalAmount === 'number'
             ? (Number.isInteger(activeSession.totalAmount)
                 ? activeSession.totalAmount

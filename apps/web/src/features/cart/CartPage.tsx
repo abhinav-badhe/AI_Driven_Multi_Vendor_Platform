@@ -104,7 +104,7 @@ export const CartPage = () => {
           title="Your cart is empty"
           description="You have not added any items yet. Browse the catalog to get started."
           actionLabel="Browse products"
-          onAction={() => undefined}
+          onAction={() => navigate("/")}
         />
       </div>
     );

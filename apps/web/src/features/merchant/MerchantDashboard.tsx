@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { PackageSearch } from "lucide-react";
 import { merchantApi, type MerchantProfileDto, type MerchantListingDto, type InventoryItemDto, type SellerOrderDto, type FinancialSummaryDto } from "./api/merchant";
 import { useAuth } from "../auth/AuthContext";
@@ -15,6 +15,7 @@ import { cn } from "../../lib/utils";
 
 export const MerchantDashboard = () => {
   const { user, login } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<MerchantProfileDto | null>(null);
   const [listings, setListings] = useState<MerchantListingDto[]>([]);
   const [inventory, setInventory] = useState<InventoryItemDto[]>([]);
@@ -197,7 +198,7 @@ export const MerchantDashboard = () => {
               title="No orders yet"
               description="Orders assigned to your store will appear here. Create a listing to start selling."
               actionLabel="Manage listings"
-              onAction={() => undefined}
+              onAction={() => navigate("/merchant/listings")}
             />
           ) : (
             <Table>

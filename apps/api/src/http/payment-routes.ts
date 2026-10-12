@@ -18,7 +18,7 @@ export function registerPaymentRoutes(
     const provider = config?.payment?.provider ?? 'razorpay';
     return reply.status(200).send({
       provider,
-      razorpayKeyId: config?.payment?.razorpayKeyId || (provider === 'razorpay' ? 'rzp_test_mockKey123' : null),
+      razorpayKeyId: config?.payment?.razorpayKeyId || (provider === 'razorpay' ? 'rzp_test_Tma2xqRvNkQNEy' : null),
       stripePublishableKey: config?.payment?.publishableKey || null,
       currency: 'INR',
     });

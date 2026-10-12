@@ -848,6 +848,18 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
     });
   });
 
+  // Root Info Route
+  app.get('/', async () => {
+    return {
+      name: 'AI-Driven Multi-Vendor Predictive Commerce Platform API',
+      status: 'online',
+      version: '0.1.0',
+      health: '/health',
+      live: '/live',
+      frontend: config.notifications.frontendUrl || 'http://localhost:3000',
+    };
+  });
+
   // Foundational Liveness Probe
   app.get('/live', async () => {
     return {

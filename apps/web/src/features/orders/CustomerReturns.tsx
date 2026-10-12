@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Inbox } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { apiClient } from "../../api/client";
@@ -28,6 +28,7 @@ const statusVariant = (status: CustomerReturnDto["status"]) => {
 
 export const CustomerReturns = () => {
   const { isAuthenticated, login } = useAuth();
+  const navigate = useNavigate();
   const [returns, setReturns] = useState<CustomerReturnDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +107,7 @@ export const CustomerReturns = () => {
           title="No returns in progress"
           description="You have not requested returns on any delivered items. To return a purchased item, start from your order history."
           actionLabel="Go to my orders"
-          onAction={() => undefined}
+          onAction={() => navigate("/orders")}
         />
       ) : (
         <div className="flex flex-col gap-3">
