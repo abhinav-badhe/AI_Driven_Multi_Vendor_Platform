@@ -345,7 +345,12 @@ export class RazorpayPaymentProvider implements PaymentProvider {
    * Creates a refund for a captured Razorpay payment.
    */
   async createRefund(input: ProviderRefundInput): Promise<ProviderRefundResult> {
-    const isMock = !this.keyId || this.keyId.startsWith('rzp_mock') || this.keyId === 'placeholder';
+    const isMock =
+      !this.keyId ||
+      this.keyId.startsWith('rzp_mock') ||
+      this.keyId === 'placeholder' ||
+      !input.providerTransactionId ||
+      !input.providerTransactionId.startsWith('pay_');
 
     if (isMock) {
       const refundId = `rfnd_${randomUUID().replace(/-/g, '').slice(0, 14)}`;

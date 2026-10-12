@@ -1,5 +1,15 @@
-import { useState } from 'react';
-import { apiClient } from '../../api/client';
+import { useState } from "react";
+import { ArrowLeftRight, RefreshCw } from "lucide-react";
+import { apiClient } from "../../api/client";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import { Badge } from "../../components/ui/badge";
+import { Alert } from "../../components/ui/alert";
+import { EmptyState } from "../../components/ui/empty";
+import { KpiCard } from "../../components/ui/kpi";
+import { Table, THead, TH, TD } from "../../components/ui/table";
+import { Input } from "../../components/ui/input";
+import { formatMoney } from "../../lib/format";
 
 export interface SettlementRecordDto {
   id: string;
@@ -8,34 +18,26 @@ export interface SettlementRecordDto {
   periodStart: string;
   periodEnd: string;
   netPayoutAmountMinor: number;
-  status: 'DRAFT' | 'CALCULATED' | 'APPROVED' | 'SETTLED' | 'REJECTED';
+  status: "DRAFT" | "CALCULATED" | "APPROVED" | "SETTLED" | "REJECTED";
   createdAt: string;
 }
 
 export const AdminSettlements = () => {
   const [settlements, setSettlements] = useState<SettlementRecordDto[]>([
     {
-      id: 'set-apex-001',
-      merchantId: 'tenant-merchant-1',
-      currency: 'INR',
+      id: "set-apex-001",
+      merchantId: "tenant-merchant-1",
+      currency: "INR",
       periodStart: new Date(Date.now() - 7 * 86400000).toISOString(),
       periodEnd: new Date().toISOString(),
       netPayoutAmountMinor: 18450000,
-      status: 'CALCULATED',
+      status: "CALCULATED",
       createdAt: new Date().toISOString(),
     },
   ]);
-  const [calcMerchantId, setCalcMerchantId] = useState('tenant-merchant-1');
+  const [calcMerchantId, setCalcMerchantId] = useState("tenant-merchant-1");
   const [isCalculating, setIsCalculating] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-
-  const formatPrice = (minor: number, currency = 'INR') => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: currency || 'INR',
-      maximumFractionDigits: 0,
-    }).format(minor / 100);
-  };
 
   const handleCalculateSettlement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,191 +45,194 @@ export const AdminSettlements = () => {
     setIsCalculating(true);
     setFeedback(null);
     try {
-      const res = await apiClient<SettlementRecordDto>('/settlement/settlements/calculate', {
-        method: 'POST',
+      const res = await apiClient<SettlementRecordDto>("/settlement/settlements/calculate", {
+        method: "POST",
         body: JSON.stringify({
           merchantId: calcMerchantId.trim(),
           periodStart: new Date(Date.now() - 14 * 86400000).toISOString(),
           periodEnd: new Date().toISOString(),
-          currency: 'INR',
+          currency: "INR",
         }),
       });
       setSettlements((prev) => [res, ...prev.filter((s) => s.id !== res.id)]);
-      setFeedback(`Settlement calculated for ${calcMerchantId}: Net payout ${formatPrice(res.netPayoutAmountMinor, res.currency)}`);
+      setFeedback(`Settlement calculated for ${calcMerchantId}: Net payout ${formatMoney(res.netPayoutAmountMinor / 100, res.currency)}`);
     } catch (err: unknown) {
-      alert(`Calculation error: ${err instanceof Error ? err.message : 'Error'}`);
+      alert(`Calculation error: ${err instanceof Error ? err.message : "Error"}`);
     } finally {
       setIsCalculating(false);
     }
   };
 
-  const handleTransition = async (settlementId: string, targetStatus: SettlementRecordDto['status']) => {
+  const handleTransition = async (settlementId: string, targetStatus: SettlementRecordDto["status"]) => {
     try {
       const res = await apiClient<SettlementRecordDto>(`/settlement/settlements/${settlementId}/transition`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({ targetStatus }),
       });
       setSettlements((prev) => prev.map((s) => (s.id === settlementId ? res : s)));
       setFeedback(`Settlement ${settlementId} status transitioned to ${targetStatus}`);
     } catch (err: unknown) {
-      alert(`Transition error: ${err instanceof Error ? err.message : 'Error'}`);
+      alert(`Transition error: ${err instanceof Error ? err.message : "Error"}`);
+    }
+  };
+
+  const totalPayout = settlements.reduce((sum, s) => sum + s.netPayoutAmountMinor, 0) / 100;
+  const approvedCount = settlements.filter((s) => s.status === "APPROVED" || s.status === "SETTLED").length;
+
+  const statusVariant = (s: SettlementRecordDto["status"]) => {
+    switch (s) {
+      case "SETTLED":
+      case "APPROVED":
+        return "success" as const;
+      case "CALCULATED":
+      case "DRAFT":
+        return "warning" as const;
+      case "REJECTED":
+        return "destructive" as const;
+      default:
+        return "outline" as const;
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div>
-        <h1 className="font-display" style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>
-          Platform Settlements &amp; Double-Entry Ledger Governance
-        </h1>
-        <p className="text-muted" style={{ fontSize: '0.9rem' }}>
-          Execute period payouts, verify mathematical balance invariants (SUM(DEBIT) = SUM(CREDIT)), and prevent duplicate disbursements.
-        </p>
+    <div className="space-y-4 p-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Platform settlements &amp; ledger governance</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Execute period seller disbursements, verify mathematical balance invariants, and approve payouts.
+          </p>
+        </div>
       </div>
 
       {feedback && (
-        <div className="card" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'var(--accent-green)', padding: '0.75rem 1rem' }}>
+        <Alert tone="success" title="Settlement updated">
           {feedback}
-        </div>
+        </Alert>
       )}
 
-      {/* Double-Entry Ledger Invariant Banner */}
-      <div
-        className="card"
-        style={{
-          background: 'linear-gradient(90deg, rgba(34, 197, 94, 0.08) 0%, rgba(37, 99, 235, 0.08) 100%)',
-          borderColor: 'var(--accent-green)',
-          padding: '1.25rem 1.5rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
-        <div>
-          <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--accent-green)' }}>
-            Double-Entry Invariant: Balanced (100.0%)
-          </div>
-          <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.25rem 0 0' }}>
-            Every financial journal in the system guarantees that total DEBITS exactly equal total CREDITS with zero orphan entries.
-          </p>
+      {/* Bento KPIs matching Merchant Panel */}
+      <div className="grid gap-3 lg:grid-cols-3">
+        <Card className="lg:col-span-1">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Total calculated payouts</p>
+            <p className="tnum mt-1 text-2xl font-semibold tracking-tight">
+              {formatMoney(totalPayout, "INR")}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Net seller funds across all settlement cycles</p>
+          </CardContent>
+        </Card>
+        <div className="grid gap-3 sm:grid-cols-3 lg:col-span-2">
+          <KpiCard label="Settlement runs" value={String(settlements.length)} hint="generated batches" />
+          <KpiCard label="Disbursements" value={String(approvedCount)} hint="approved / paid" />
+          <KpiCard label="Ledger status" value="Balanced" hint="Σ Debits = Σ Credits" />
         </div>
-        <span style={{ fontSize: '0.8rem', background: 'var(--accent-green)', color: '#fff', padding: '3px 10px', borderRadius: '4px', fontWeight: 700 }}>
-          AUDIT STRICT
-        </span>
       </div>
 
-      {/* Calculate Settlement Box */}
-      <div className="card" style={{ padding: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '0.75rem' }}>Calculate Period Merchant Settlement</h3>
-        <form onSubmit={handleCalculateSettlement} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ flex: 1, minWidth: '240px' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary-muted)', marginBottom: '0.25rem' }}>
-              Merchant Tenant ID
-            </label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="e.g. tenant-merchant-1"
-              value={calcMerchantId}
-              onChange={(e) => setCalcMerchantId(e.target.value)}
-              required
-              style={{ width: '100%' }}
+      {/* Calculate Settlement Run Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Calculate periodic payout</CardTitle>
+              <CardDescription>Aggregate order line items and deductions for a vendor</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleCalculateSettlement} className="flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[200px]">
+              <Input
+                value={calcMerchantId}
+                onChange={(e) => setCalcMerchantId(e.target.value)}
+                placeholder="Merchant Tenant ID (e.g., tenant-merchant-1)"
+                className="h-8 text-xs"
+              />
+            </div>
+            <Button type="submit" size="sm" className="h-8 text-xs" disabled={isCalculating || !calcMerchantId.trim()}>
+              <RefreshCw className="mr-1.5 h-3 w-3" />
+              {isCalculating ? "Calculating…" : "Calculate settlement"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Main Table Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Settlement runs</CardTitle>
+              <CardDescription>Periodic accounting batches and disbursement workflow</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {settlements.length === 0 ? (
+            <EmptyState
+              icon={ArrowLeftRight}
+              title="No settlement records"
+              description="Calculate a settlement batch above to create a disbursement record."
             />
-          </div>
-          <button type="submit" className="btn btn-primary" disabled={isCalculating}>
-            {isCalculating ? 'Computing Ledger...' : 'Compute Period Settlement'}
-          </button>
-        </form>
-      </div>
-
-      {/* Settlements Table */}
-      <div className="card" style={{ padding: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Generated Settlement Runs</h2>
-
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--primary-muted)' }}>
-                <th style={{ padding: '0.75rem' }}>Settlement ID</th>
-                <th style={{ padding: '0.75rem' }}>Merchant</th>
-                <th style={{ padding: '0.75rem' }}>Period</th>
-                <th style={{ padding: '0.75rem' }}>Net Payout</th>
-                <th style={{ padding: '0.75rem' }}>Status</th>
-                <th style={{ padding: '0.75rem', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {settlements.map((s) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '0.75rem', fontWeight: 600 }}><code>{s.id}</code></td>
-                  <td style={{ padding: '0.75rem' }}><code>{s.merchantId}</code></td>
-                  <td style={{ padding: '0.75rem', color: 'var(--primary-muted)', fontSize: '0.8rem' }}>
-                    {new Date(s.periodStart).toLocaleDateString()} &ndash; {new Date(s.periodEnd).toLocaleDateString()}
-                  </td>
-                  <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--brand)' }}>
-                    {formatPrice(s.netPayoutAmountMinor, s.currency)}
-                  </td>
-                  <td style={{ padding: '0.75rem' }}>
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: '999px',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        background:
-                          s.status === 'SETTLED'
-                            ? 'rgba(34, 197, 94, 0.15)'
-                            : s.status === 'APPROVED'
-                            ? 'rgba(59, 130, 246, 0.15)'
-                            : 'rgba(234, 179, 8, 0.15)',
-                        color:
-                          s.status === 'SETTLED'
-                            ? 'var(--accent-green)'
-                            : s.status === 'APPROVED'
-                            ? 'var(--accent-blue)'
-                            : 'var(--accent-amber)',
-                      }}
-                    >
-                      {s.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                      {s.status === 'CALCULATED' && (
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
-                          onClick={() => handleTransition(s.id, 'APPROVED')}
-                        >
-                          Approve Payout
-                        </button>
-                      )}
-                      {s.status === 'APPROVED' && (
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', background: 'var(--accent-green)' }}
-                          onClick={() => handleTransition(s.id, 'SETTLED')}
-                        >
-                          Execute Disbursement
-                        </button>
-                      )}
-                      {s.status === 'SETTLED' && (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--accent-green)', fontWeight: 600 }}>
-                          Disbursed to Bank
-                        </span>
-                      )}
-                    </div>
-                  </td>
+          ) : (
+            <Table>
+              <THead>
+                <tr>
+                  <TH>Settlement ID</TH>
+                  <TH>Merchant Tenant</TH>
+                  <TH>Period</TH>
+                  <TH className="text-right">Net Payout</TH>
+                  <TH>Status</TH>
+                  <TH className="text-right">Workflow Actions</TH>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </THead>
+              <tbody>
+                {settlements.map((s) => (
+                  <tr key={s.id}>
+                    <TD className="font-mono text-xs font-medium">#{s.id.slice(0, 12)}</TD>
+                    <TD className="font-mono text-xs text-muted-foreground">{s.merchantId}</TD>
+                    <TD className="text-xs text-muted-foreground">
+                      {new Date(s.periodStart).toLocaleDateString()} – {new Date(s.periodEnd).toLocaleDateString()}
+                    </TD>
+                    <TD className="tnum text-right font-medium text-xs">
+                      {formatMoney(s.netPayoutAmountMinor / 100, s.currency)}
+                    </TD>
+                    <TD>
+                      <Badge variant={statusVariant(s.status)}>{s.status}</Badge>
+                    </TD>
+                    <TD className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {s.status === "CALCULATED" && (
+                          <Button
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => handleTransition(s.id, "APPROVED")}
+                          >
+                            Approve
+                          </Button>
+                        )}
+                        {s.status === "APPROVED" && (
+                          <Button
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => handleTransition(s.id, "SETTLED")}
+                          >
+                            Mark settled
+                          </Button>
+                        )}
+                        {s.status === "SETTLED" && (
+                          <span className="text-[11px] font-medium text-emerald-600">Disbursed</span>
+                        )}
+                      </div>
+                    </TD>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

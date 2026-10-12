@@ -30,6 +30,7 @@ const statusVariant = (s: ReturnRequestDto["status"]) =>
   s === "COMPLETED" ? ("success" as const)
   : s === "REJECTED" ? ("destructive" as const)
   : s === "REQUESTED" ? ("warning" as const)
+  : s === "RECEIVED" ? ("default" as const)
   : ("outline" as const);
 
 export const MerchantReturns = () => {
@@ -125,15 +126,15 @@ export const MerchantReturns = () => {
             className="pl-8"
           />
         </div>
-        <div className="flex gap-1" role="group" aria-label="Filter by return status">
-          {(["ALL", "REQUESTED", "APPROVED", "RECEIVED", "COMPLETED", "REJECTED"] as ReturnStatusFilter[]).map((s) => (
+        <div className="flex flex-wrap gap-1" role="group" aria-label="Filter by return status">
+          {(["ALL", "REQUESTED", "APPROVED", "IN_TRANSIT", "RECEIVED", "COMPLETED", "REJECTED"] as ReturnStatusFilter[]).map((s) => (
             <Button
               key={s}
               variant={statusFilter === s ? "default" : "outline"}
               size="sm"
               onClick={() => setStatusFilter(s)}
             >
-              {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
+              {s === "ALL" ? "All" : s === "IN_TRANSIT" ? "In transit" : s.charAt(0) + s.slice(1).toLowerCase()}
             </Button>
           ))}
         </div>
@@ -204,7 +205,7 @@ export const MerchantReturns = () => {
                         </Button>
                       </>
                     )}
-                    {ret.status === "APPROVED" && (
+                    {(ret.status === "APPROVED" || ret.status === "IN_TRANSIT") && (
                       <Button size="sm" disabled={busy} onClick={() => handleUpdate(ret, "RECEIVED")}>
                         {busy ? "Saving…" : "Mark received"}
                       </Button>

@@ -816,6 +816,7 @@ export class FulfillmentService implements IFulfillmentService {
             trackingNumber: current.tracking_number,
             previousStatus: current.status,
             newStatus: nextStatus,
+            status: nextStatus,
           },
         });
         await this.outboxService.recordEvent(tx, outboxEvent);
@@ -894,6 +895,7 @@ export class FulfillmentService implements IFulfillmentService {
             customerOrderId: current.customer_order_id,
             previousStatus: current.status,
             newStatus: 'CANCELLED',
+            status: 'CANCELLED',
             reason,
           },
         });
@@ -1448,7 +1450,7 @@ export class FulfillmentService implements IFulfillmentService {
     // State machine definition
     const validTransitions: Record<ReturnStatus, ReturnStatus[]> = {
       REQUESTED: ['APPROVED', 'REJECTED', 'CANCELLED'],
-      APPROVED: ['IN_TRANSIT', 'CANCELLED'],
+      APPROVED: ['IN_TRANSIT', 'RECEIVED', 'CANCELLED'],
       IN_TRANSIT: ['RECEIVED', 'CANCELLED'],
       RECEIVED: ['COMPLETED', 'REJECTED'],
       COMPLETED: [],
@@ -1619,6 +1621,7 @@ export class FulfillmentService implements IFulfillmentService {
             sellerOrderId: current.seller_order_id,
             previousStatus: current.status,
             newStatus: nextStatus,
+            status: nextStatus,
             refundId: extra.refundId ?? null,
           },
         });

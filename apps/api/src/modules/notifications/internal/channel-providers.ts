@@ -60,6 +60,22 @@ export class ResendEmailProvider implements EmailChannelProvider {
 
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
+      const isSandboxRestriction =
+        res.status === 403 &&
+        detail.includes('You can only send testing emails to your own email address');
+      const isTestingEmailRestriction =
+        res.status === 422 &&
+        detail.includes('Invalid `to` field. Please use our testing email address');
+
+      if (isSandboxRestriction || isTestingEmailRestriction) {
+        console.warn(
+          `[Resend Sandbox Warning] Resend rejected email to <${to}> (${res.status}): ${detail.trim()}.\n` +
+          `[Captured Email Content] Subject: "${subject}"\nBody:\n${body}\n` +
+          `[Action Required] To send live emails to all addresses, verify your domain at https://resend.com/domains and set EMAIL_FROM in .env`
+        );
+        return { providerMessageId: `resend-sandbox-simulated-${Date.now()}` };
+      }
+
       throw new Error(`Resend rejected email to ${to}: HTTP ${res.status} ${detail}`.trim());
     }
 

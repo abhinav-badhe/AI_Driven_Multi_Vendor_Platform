@@ -354,6 +354,17 @@ export class OrderService implements IOrderService {
         // One ORDER_CREATED + PAYMENT_SUCCEEDED per seller order so each
         // merchant's facts are attributed to their own tenant.
         if (this.outboxService) {
+          let customerEmail: string | undefined;
+          try {
+            const userRes = await tx.query<{ email: string }>(
+              'SELECT email FROM users WHERE id = $1',
+              [actor.userId],
+            );
+            customerEmail = userRes.rows[0]?.email;
+          } catch {
+            // Non-fatal if user email lookup fails
+          }
+
           for (const [merchantTenantId, snaps] of itemsByMerchant.entries()) {
             const sellerOrder = createdSellerOrdersInner.find(
               (s) => s.seller_tenant_id === merchantTenantId,
@@ -370,6 +381,7 @@ export class OrderService implements IOrderService {
                   orderId: sellerOrder.id,
                   customerOrderId: customerOrderIdInner,
                   customerId: actor.tenantId,
+                  customerEmail,
                   merchantId: merchantTenantId,
                   currency: checkout.currency,
                   totalAmount: sellerTotal,
@@ -398,6 +410,9 @@ export class OrderService implements IOrderService {
                 payload: {
                   paymentIntentId: payment.id,
                   orderId: sellerOrder.id,
+                  customerOrderId: customerOrderIdInner,
+                  customerId: actor.tenantId,
+                  customerEmail,
                   merchantId: merchantTenantId,
                   amount: sellerTotal,
                   currency: checkout.currency,

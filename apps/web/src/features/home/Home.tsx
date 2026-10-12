@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { PackageSearch, Truck } from "lucide-react";
+import { PackageSearch, Truck, Sparkles } from "lucide-react";
 import { catalogApi, type Category } from "../catalog/api/catalog";
 import { searchApi, type SearchProductResultDto } from "../search/api/search";
 import { recommendationsApi, type RecommendationItemDto } from "../recommendations/api/recommendations";
+import { bannersApi, type PromotionalBannerDto } from "../banners/api/banners";
 import { useAuth } from "../auth/AuthContext";
 import { useCart } from "../cart/CartContext";
 import { Button, buttonVariants } from "../../components/ui/button";
@@ -27,17 +28,15 @@ export const Home = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [banners, setBanners] = useState<PromotionalBannerDto[]>([]);
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        // Parallel fan-out: categories, recommendations, and the product
-        // grid load concurrently instead of sequentially.
-        const [catData, recItems, searchItems] = await Promise.all([
-          // Categories stay load-bearing: a failure here surfaces the error
-          // banner exactly as before. Recommendations and the product grid
-          // degrade gracefully on their own.
+        // Parallel fan-out: categories, recommendations, product grid, and hero posters
+        const [catData, recItems, searchItems, bannerItems] = await Promise.all([
           catalogApi.getCategories(),
           (async (): Promise<RecommendationItemDto[]> => {
             try {
@@ -59,10 +58,12 @@ export const Home = () => {
               return [];
             }
           })(),
+          bannersApi.getActiveBanners().catch(() => []),
         ]);
         setCategories(catData || []);
         setRecommendations(recItems);
         setProducts(searchItems);
+        setBanners(bannerItems || []);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load products");
       } finally {
@@ -71,6 +72,14 @@ export const Home = () => {
     };
     fetchData();
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveBannerIndex((prev) => (prev + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [banners.length]);
 
   const matchingCategoryIds = useMemo(() => {
     if (!selectedCategory) return null;
@@ -213,6 +222,73 @@ export const Home = () => {
           Browse all products
         </Link>
       </div>
+
+      {/* Promotional Hero Poster Billboard */}
+      {banners.length > 0 && (
+        <div className="relative mt-4 overflow-hidden rounded-xl border border-border shadow-md">
+          {(() => {
+            const currentBanner = banners[activeBannerIndex] || banners[0];
+            if (!currentBanner) return null;
+            return (
+              <div className="group relative block aspect-[21/9] sm:aspect-[24/9] md:aspect-[3/1] w-full overflow-hidden bg-muted">
+                <img
+                  src={currentBanner.image_url}
+                  alt={currentBanner.title}
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                {/* Visual gradient overlay for text legibility */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent p-5 sm:p-7 md:p-9 flex flex-col justify-center text-white">
+                  <div className="max-w-xl space-y-2">
+                    {currentBanner.badge_text && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary-foreground shadow-sm">
+                        <Sparkles className="size-3" />
+                        {currentBanner.badge_text}
+                      </span>
+                    )}
+                    <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl md:text-3xl text-white drop-shadow-sm">
+                      {currentBanner.title}
+                    </h2>
+                    {currentBanner.subtitle && (
+                      <p className="text-xs sm:text-sm text-white/90 line-clamp-2 drop-shadow-sm">
+                        {currentBanner.subtitle}
+                      </p>
+                    )}
+                    <div className="pt-2">
+                      <Link
+                        to={currentBanner.target_url || "/search"}
+                        className={cn(
+                          buttonVariants({ size: "sm" }),
+                          "bg-white text-black hover:bg-white/90 font-semibold shadow-md text-xs px-4"
+                        )}
+                      >
+                        Explore Deals &rarr;
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Carousel navigation dots if multiple posters */}
+                {banners.length > 1 && (
+                  <div className="absolute bottom-3 right-4 flex items-center gap-1.5 z-10">
+                    {banners.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        aria-label={`Slide ${idx + 1}`}
+                        onClick={() => setActiveBannerIndex(idx)}
+                        className={cn(
+                          "h-2 rounded-full transition-all",
+                          idx === activeBannerIndex ? "w-6 bg-white" : "w-2 bg-white/50 hover:bg-white/75"
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Category filter — pills are for tags only, which this is */}
       {rootCategories.length > 0 && (

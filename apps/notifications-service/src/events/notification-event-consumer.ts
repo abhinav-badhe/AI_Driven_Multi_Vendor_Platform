@@ -278,8 +278,8 @@ export class NotificationEventConsumer {
             recipient: customerEmail,
             templateId: 'tpl_shipment_status',
             payload: {
-              subject: `Shipment Status Updated: ${payload.status}`,
-              body: `Shipment #${event.aggregateId} status has changed to ${payload.status}. Tracking number: ${payload.trackingNumber ?? 'Pending'}.`,
+              subject: `Shipment Status Updated: ${payload.status ?? payload.newStatus ?? 'UPDATED'}`,
+              body: `Shipment #${event.aggregateId} status has changed to ${payload.status ?? payload.newStatus ?? 'UPDATED'}. Tracking number: ${payload.trackingNumber ?? 'Pending'}.`,
               shipmentId: event.aggregateId,
               ...payload,
             },
@@ -292,6 +292,7 @@ export class NotificationEventConsumer {
         const customerEmail = payload.customerEmail as string | undefined;
         const customerId = payload.customerId as string | undefined;
         if (customerEmail) {
+          const statusText = (payload.status ?? payload.newStatus ?? 'UPDATED') as string;
           await this.notificationService.requestNotification({
             tenantId,
             customerId,
@@ -301,8 +302,8 @@ export class NotificationEventConsumer {
             recipient: customerEmail,
             templateId: 'tpl_return_status',
             payload: {
-              subject: `Return Request Status: ${payload.status}`,
-              body: `Return request #${event.aggregateId} status has changed to ${payload.status}.`,
+              subject: `Return Request Status: ${statusText}`,
+              body: `Return request #${event.aggregateId} status has changed to ${statusText}.`,
               returnId: event.aggregateId,
               ...payload,
             },

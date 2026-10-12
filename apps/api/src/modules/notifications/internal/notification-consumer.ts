@@ -38,8 +38,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
 
     switch (event.eventType) {
       case EventTypes.ORDER_CREATED: {
-        const customerEmail = payload.customerEmail as string | undefined;
         const customerId = payload.customerId as string | undefined;
+        const customerEmail = await this.resolveCustomerEmail(payload, customerId);
         if (customerEmail) {
           await this.notificationClient.requestNotification({
             tenantId,
@@ -61,8 +61,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
       }
 
       case EventTypes.PAYMENT_SUCCEEDED: {
-        const customerEmail = payload.customerEmail as string | undefined;
         const customerId = payload.customerId as string | undefined;
+        const customerEmail = await this.resolveCustomerEmail(payload, customerId);
         if (customerEmail) {
           await this.notificationClient.requestNotification({
             tenantId,
@@ -84,8 +84,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
       }
 
       case EventTypes.PAYMENT_FAILED: {
-        const customerEmail = payload.customerEmail as string | undefined;
         const customerId = payload.customerId as string | undefined;
+        const customerEmail = await this.resolveCustomerEmail(payload, customerId);
         if (customerEmail) {
           await this.notificationClient.requestNotification({
             tenantId,
@@ -107,8 +107,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
       }
 
       case EventTypes.FULFILLMENT_SHIPMENT_STATUS_CHANGED: {
-        const customerEmail = payload.customerEmail as string | undefined;
         const customerId = payload.customerId as string | undefined;
+        const customerEmail = await this.resolveCustomerEmail(payload, customerId);
         if (customerEmail) {
           await this.notificationClient.requestNotification({
             tenantId,
@@ -119,8 +119,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
             recipient: customerEmail,
             templateId: 'tpl_shipment_status',
             payload: {
-              subject: `Shipment Status Updated: ${payload.status}`,
-              body: `Shipment #${event.aggregateId} status has changed to ${payload.status}. Tracking number: ${payload.trackingNumber ?? 'Pending'}.`,
+              subject: `Shipment Status Updated: ${payload.status ?? payload.newStatus ?? 'UPDATED'}`,
+              body: `Shipment #${event.aggregateId} status has changed to ${payload.status ?? payload.newStatus ?? 'UPDATED'}. Tracking number: ${payload.trackingNumber ?? 'Pending'}.`,
               shipmentId: event.aggregateId,
               ...payload,
             },
@@ -130,9 +130,10 @@ export class NotificationEventConsumer extends BaseEventConsumer {
       }
 
       case EventTypes.FULFILLMENT_RETURN_STATUS_CHANGED: {
-        const customerEmail = payload.customerEmail as string | undefined;
         const customerId = payload.customerId as string | undefined;
+        const customerEmail = await this.resolveCustomerEmail(payload, customerId);
         if (customerEmail) {
+          const statusText = (payload.status ?? payload.newStatus ?? 'UPDATED') as string;
           await this.notificationClient.requestNotification({
             tenantId,
             customerId,
@@ -142,8 +143,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
             recipient: customerEmail,
             templateId: 'tpl_return_status',
             payload: {
-              subject: `Return Request Status: ${payload.status}`,
-              body: `Return request #${event.aggregateId} status has changed to ${payload.status}.`,
+              subject: `Return Request Status: ${statusText}`,
+              body: `Return request #${event.aggregateId} status has changed to ${statusText}.`,
               returnId: event.aggregateId,
               ...payload,
             },
@@ -153,7 +154,7 @@ export class NotificationEventConsumer extends BaseEventConsumer {
       }
 
       case EventTypes.SETTLEMENT_STATUS_CHANGED: {
-        const merchantEmail = payload.merchantEmail as string | undefined;
+        const merchantEmail = await this.resolveMerchantEmail(payload, tenantId);
         if (merchantEmail) {
           await this.notificationClient.requestNotification({
             tenantId,
@@ -179,5 +180,76 @@ export class NotificationEventConsumer extends BaseEventConsumer {
           eventId: event.eventId,
         });
     }
+  }
+
+  private async resolveCustomerEmail(
+    payload: Record<string, unknown>,
+    customerId?: string,
+  ): Promise<string | undefined> {
+    const direct = (payload.customerEmail ?? payload.recipientEmail ?? payload.email) as string | undefined;
+    if (typeof direct === 'string' && direct.includes('@')) {
+      return direct;
+    }
+
+    if (customerId) {
+      try {
+        const res = await this.db.query<{ email: string }>(
+          `SELECT u.email FROM users u
+           LEFT JOIN tenant_memberships tm ON tm.user_id = u.id
+           WHERE tm.tenant_id = $1 OR u.id = $1
+           LIMIT 1`,
+          [customerId],
+        );
+        if (res.rows[0]?.email) return res.rows[0].email;
+      } catch (err) {
+        this.logger.warn('Failed to resolve customer email by customerId', { customerId, error: String(err) });
+      }
+    }
+
+    const orderId = (payload.customerOrderId ?? payload.orderId) as string | undefined;
+    if (orderId) {
+      try {
+        const res = await this.db.query<{ email: string }>(
+          `SELECT u.email FROM users u
+           JOIN tenant_memberships tm ON tm.user_id = u.id
+           JOIN customer_orders co ON co.customer_tenant_id = tm.tenant_id
+           WHERE co.id = $1
+           LIMIT 1`,
+          [orderId],
+        );
+        if (res.rows[0]?.email) return res.rows[0].email;
+      } catch (err) {
+        this.logger.warn('Failed to resolve customer email by orderId', { orderId, error: String(err) });
+      }
+    }
+
+    return undefined;
+  }
+
+  private async resolveMerchantEmail(
+    payload: Record<string, unknown>,
+    merchantTenantId?: string,
+  ): Promise<string | undefined> {
+    const direct = (payload.merchantEmail ?? payload.email) as string | undefined;
+    if (typeof direct === 'string' && direct.includes('@')) {
+      return direct;
+    }
+
+    if (merchantTenantId) {
+      try {
+        const res = await this.db.query<{ email: string }>(
+          `SELECT u.email FROM users u
+           JOIN tenant_memberships tm ON tm.user_id = u.id
+           WHERE tm.tenant_id = $1
+           LIMIT 1`,
+          [merchantTenantId],
+        );
+        if (res.rows[0]?.email) return res.rows[0].email;
+      } catch (err) {
+        this.logger.warn('Failed to resolve merchant email', { merchantTenantId, error: String(err) });
+      }
+    }
+
+    return undefined;
   }
 }

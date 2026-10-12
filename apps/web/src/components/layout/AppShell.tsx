@@ -24,6 +24,7 @@ import {
   Tag,
   Star,
   Bell,
+  Image,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -62,6 +63,7 @@ export const adminNav: NavItem[] = [
   { to: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },
   { to: "/admin/promotions", label: "Promotions", icon: Tag },
+  { to: "/admin/banners", label: "Hero Posters", icon: Image },
   { to: "/admin/reviews", label: "Reviews", icon: Star },
   { to: "/admin/notifications", label: "Notifications", icon: Bell },
   { to: "/admin/settlements", label: "Settlements", icon: ArrowLeftRight },

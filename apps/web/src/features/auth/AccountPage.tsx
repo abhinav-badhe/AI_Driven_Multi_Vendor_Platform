@@ -270,6 +270,12 @@ export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin
                         try {
                           const setup = await twoFactorApi.setup();
                           setTwoFactorSetupData(setup);
+                          try {
+                            const dataUrl = await QRCode.toDataURL(setup.otpAuthUri, { width: 180, margin: 1 });
+                            setQrCodeDataUrl(dataUrl);
+                          } catch {
+                            setQrCodeDataUrl(`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(setup.otpAuthUri)}`);
+                          }
                         } catch (err: unknown) {
                           setError(err instanceof Error ? err.message : "Failed to initiate 2FA setup");
                         }
@@ -290,6 +296,7 @@ export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin
                         size="sm"
                         onClick={() => {
                           setTwoFactorSetupData(null);
+                          setQrCodeDataUrl("");
                           setConfirm2FACode("");
                         }}
                       >
@@ -387,6 +394,7 @@ export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin
                               await twoFactorApi.enable(confirm2FACode);
                               setTwoFactorEnabled(true);
                               setTwoFactorSetupData(null);
+                              setQrCodeDataUrl("");
                               setConfirm2FACode("");
                               setTwoFactorMsg("Two-factor authentication is now enabled on your account.");
                               setTimeout(() => setTwoFactorMsg(null), 4000);

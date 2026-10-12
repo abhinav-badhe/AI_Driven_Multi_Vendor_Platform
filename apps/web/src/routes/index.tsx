@@ -44,6 +44,7 @@ import { AdminSecurity } from '../features/admin/AdminSecurity';
 import { AdminReviews } from '../features/admin/AdminReviews';
 import { AdminNotifications } from '../features/admin/AdminNotifications';
 import { AdminWhatsApp } from '../features/admin/AdminWhatsApp';
+import { AdminBanners } from '../features/admin/AdminBanners';
 import { AnalyticsDashboard } from '../features/analytics/AnalyticsDashboard';
 import { ShipmentTracker } from '../features/fulfillment/ShipmentTracker';
 import { PromotionManagement } from '../features/promotions/PromotionManagement';
@@ -105,6 +106,7 @@ export const AppRoutes = () => {
               <Route path="orders" element={<AdminOrders />} />
               <Route path="payments" element={<AdminPayments />} />
               <Route path="promotions" element={<PromotionManagement role="ADMINISTRATOR" />} />
+              <Route path="banners" element={<AdminBanners />} />
               <Route path="settlements" element={<AdminSettlements />} />
               <Route path="settlement" element={<AdminSettlements />} />
               <Route path="events" element={<AdminEvents />} />

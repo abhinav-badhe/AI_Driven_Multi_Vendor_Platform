@@ -66,6 +66,7 @@ import { registerMerchantRoutes } from './http/merchant-routes.js';
 import { registerCatalogRoutes } from './http/catalog-routes.js';
 import { registerListingRoutes } from './http/listing-routes.js';
 import { registerPromotionRoutes } from './http/promotion-routes.js';
+import { registerBannerRoutes } from './http/banner-routes.js';
 import { registerPriceAlertRoutes } from './http/price-alert-routes.js';
 import { registerInventoryRoutes } from './http/inventory-routes.js';
 import { registerCartRoutes } from './http/cart-routes.js';
@@ -935,6 +936,9 @@ export async function buildApp(dependencies: AppDependencies): Promise<FastifyIn
 
     if (promotionPricingEngine) {
       registerPromotionRoutes(app, identityService, promotionPricingEngine, analyticsService);
+    }
+    if (dbConn) {
+      registerBannerRoutes(app, identityService, dbConn);
     }
 
     if (paymentService) {

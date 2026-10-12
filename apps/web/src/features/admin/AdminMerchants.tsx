@@ -1,6 +1,17 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../auth/AuthContext';
-import { apiClient } from '../../api/client';
+import { useState, useEffect, useMemo } from "react";
+import { Navigate } from "react-router-dom";
+import { Store, RefreshCw, Search, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { useAuth } from "../auth/AuthContext";
+import { apiClient } from "../../api/client";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import { Badge } from "../../components/ui/badge";
+import { Alert } from "../../components/ui/alert";
+import { EmptyState, Skeleton } from "../../components/ui/empty";
+import { KpiCard } from "../../components/ui/kpi";
+import { Table, THead, TH, TD } from "../../components/ui/table";
+import { Input } from "../../components/ui/input";
+import { cn } from "../../lib/utils";
 
 export interface MerchantAccountDto {
   id: string;
@@ -8,7 +19,7 @@ export interface MerchantAccountDto {
   businessName: string;
   legalName: string;
   contactEmail: string;
-  verificationStatus: 'DRAFT' | 'SUBMITTED' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
+  verificationStatus: "DRAFT" | "SUBMITTED" | "VERIFIED" | "REJECTED" | "SUSPENDED";
   rejectionReason?: string;
   verifiedAt?: string;
   createdAt: string;
@@ -21,35 +32,39 @@ export const AdminMerchants = () => {
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
   // Rejection modal state
   const [rejectingTenantId, setRejectingTenantId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState('Incomplete tax registration / invalid bank details');
+  const [rejectReason, setRejectReason] = useState("Incomplete tax registration / invalid bank details");
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
   const loadMerchants = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await apiClient<MerchantAccountDto[]>('/merchants');
-      setMerchants(data || []);
+      const data = await apiClient<MerchantAccountDto[]>("/merchants");
+      setMerchants(Array.isArray(data) ? data : []);
     } catch {
-      // If listing endpoint is not paginated or empty, initialize with default active tenant
+      // Fallback with active demo tenants if DB freshly wiped
       setMerchants([
         {
-          id: 'm-apex-1',
-          tenantId: 'tenant-merchant-1',
-          businessName: 'Apex Electronics Store',
-          legalName: 'Apex Retail Private Limited',
-          contactEmail: 'merchant@example.com',
-          verificationStatus: 'VERIFIED',
+          id: "m-apex-1",
+          tenantId: "tenant-merchant-1",
+          businessName: "Apex Electronics Store",
+          legalName: "Apex Retail Private Limited",
+          contactEmail: "merchant@example.com",
+          verificationStatus: "VERIFIED",
           createdAt: new Date().toISOString(),
         },
         {
-          id: 'm-beta-2',
-          tenantId: 'tenant-merchant-2',
-          businessName: 'Beta Retail Gadgets',
-          legalName: 'Beta Solutions LLP',
-          contactEmail: 'beta@example.com',
-          verificationStatus: 'SUBMITTED',
+          id: "m-beta-2",
+          tenantId: "tenant-merchant-2",
+          businessName: "Beta Retail Gadgets",
+          legalName: "Beta Solutions LLP",
+          contactEmail: "beta@example.com",
+          verificationStatus: "SUBMITTED",
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -59,186 +74,278 @@ export const AdminMerchants = () => {
   };
 
   useEffect(() => {
+    if (user?.role !== "ADMINISTRATOR") return;
     loadMerchants();
   }, [user]);
 
+  if (user?.role !== "ADMINISTRATOR") return <Navigate to="/account" replace />;
+
   const handleApprove = async (tenantId: string) => {
+    setIsSubmittingAction(true);
     try {
       await apiClient<MerchantAccountDto>(`/merchants/${tenantId}/approve`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({}),
       });
       setFeedback(`Merchant '${tenantId}' has been approved and verified!`);
+      setTimeout(() => setFeedback(null), 4000);
       await loadMerchants();
     } catch (err: unknown) {
-      alert(`Approval error: ${err instanceof Error ? err.message : 'Error'}`);
+      alert(`Approval error: ${err instanceof Error ? err.message : "Error"}`);
+    } finally {
+      setIsSubmittingAction(false);
     }
   };
 
   const handleReject = async (tenantId: string) => {
+    setIsSubmittingAction(true);
     try {
       await apiClient<MerchantAccountDto>(`/merchants/${tenantId}/reject`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({ reason: rejectReason }),
       });
       setRejectingTenantId(null);
       setFeedback(`Merchant '${tenantId}' registration rejected.`);
+      setTimeout(() => setFeedback(null), 4000);
       await loadMerchants();
     } catch (err: unknown) {
-      alert(`Rejection error: ${err instanceof Error ? err.message : 'Error'}`);
+      alert(`Rejection error: ${err instanceof Error ? err.message : "Error"}`);
+    } finally {
+      setIsSubmittingAction(false);
+    }
+  };
+
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return merchants.filter((m) => {
+      if (statusFilter !== "ALL" && m.verificationStatus !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        m.businessName.toLowerCase().includes(q) ||
+        m.legalName.toLowerCase().includes(q) ||
+        m.contactEmail.toLowerCase().includes(q) ||
+        m.tenantId.toLowerCase().includes(q)
+      );
+    });
+  }, [merchants, searchQuery, statusFilter]);
+
+  const verifiedCount = merchants.filter((m) => m.verificationStatus === "VERIFIED").length;
+  const pendingCount = merchants.filter((m) => m.verificationStatus === "SUBMITTED" || m.verificationStatus === "DRAFT").length;
+  const suspendedCount = merchants.filter((m) => m.verificationStatus === "SUSPENDED" || m.verificationStatus === "REJECTED").length;
+
+  const statusVariant = (s: string) => {
+    switch (s) {
+      case "VERIFIED":
+        return "success" as const;
+      case "SUBMITTED":
+        return "warning" as const;
+      case "REJECTED":
+      case "SUSPENDED":
+        return "destructive" as const;
+      default:
+        return "outline" as const;
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="space-y-4 p-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display" style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>
-            Merchant Verification &amp; KYC Governance
-          </h1>
-          <p className="text-muted" style={{ fontSize: '0.9rem' }}>
-            Review seller applications, inspect business registrations, and authorize store catalog access.
+          <h1 className="text-xl font-semibold tracking-tight">Merchant partners &amp; KYC governance</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Review seller applications, verify business registrations, and authorize marketplace storefronts.
           </p>
         </div>
-        <button type="button" className="btn btn-secondary" onClick={loadMerchants}>
+        <Button variant="outline" size="sm" onClick={loadMerchants} disabled={isLoading}>
+          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isLoading && "animate-spin")} />
           Refresh
-        </button>
+        </Button>
       </div>
 
       {feedback && (
-        <div className="card" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'var(--accent-green)', padding: '0.75rem 1rem' }}>
+        <Alert tone="success" title="Merchant status updated">
           {feedback}
-        </div>
+        </Alert>
       )}
 
       {error && (
-        <div className="card" style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)', padding: '1rem' }}>
+        <Alert tone="error" title="Could not load merchants">
           {error}
-        </div>
+        </Alert>
       )}
 
-      {/* Reject Modal */}
+      {/* Reject Modal / Card Drawer */}
       {rejectingTenantId && (
-        <div className="card" style={{ padding: '1.5rem', border: '2px solid var(--accent-red)' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent-red)', marginBottom: '0.5rem' }}>
-            Reject Merchant Verification
-          </h3>
-          <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-            Please state the audit rejection reason for merchant <code>{rejectingTenantId}</code>:
-          </p>
-          <input
-            type="text"
-            className="input-field"
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            style={{ width: '100%', marginBottom: '1rem' }}
-          />
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              style={{ background: 'var(--accent-red)' }}
-              onClick={() => handleReject(rejectingTenantId)}
-            >
-              Confirm Rejection
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setRejectingTenantId(null)}>
-              Cancel
-            </button>
-          </div>
-        </div>
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <CardTitle className="text-destructive">Reject merchant verification</CardTitle>
+            </div>
+            <CardDescription>
+              State the KYC audit rejection reason for tenant <code className="font-mono text-xs">{rejectingTenantId}</code>:
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Input
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Reason for audit rejection"
+              className="text-xs"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={isSubmittingAction || !rejectReason.trim()}
+                onClick={() => handleReject(rejectingTenantId)}
+              >
+                Confirm rejection
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRejectingTenantId(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Merchant Table */}
-      <div className="card" style={{ padding: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Registered Seller Profiles</h2>
+      {/* Bento KPIs matching Merchant Panel */}
+      <div className="grid gap-3 lg:grid-cols-3">
+        <Card className="lg:col-span-1">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Verified merchant network</p>
+            <p className="tnum mt-1 text-2xl font-semibold tracking-tight">
+              {verifiedCount} stores
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Authorized to list and fulfill on the marketplace</p>
+          </CardContent>
+        </Card>
+        <div className="grid gap-3 sm:grid-cols-3 lg:col-span-2">
+          <KpiCard label="All merchants" value={String(merchants.length)} hint="registered" />
+          <KpiCard label="Pending review" value={String(pendingCount)} hint="awaiting KYC audit" />
+          <KpiCard label="Suspended" value={String(suspendedCount)} hint="access revoked" />
+        </div>
+      </div>
 
-        {isLoading ? (
-          <p className="text-muted" style={{ padding: '2rem', textAlign: 'center' }}>Loading merchants...</p>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--primary-muted)' }}>
-                  <th style={{ padding: '0.75rem' }}>Business Name</th>
-                  <th style={{ padding: '0.75rem' }}>Legal Entity</th>
-                  <th style={{ padding: '0.75rem' }}>Contact Email</th>
-                  <th style={{ padding: '0.75rem' }}>Tenant ID</th>
-                  <th style={{ padding: '0.75rem' }}>KYC Status</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'right' }}>Actions</th>
+      {/* Main Table Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle>Merchant partners list</CardTitle>
+              <CardDescription>Manage active vendor accounts and verify incoming seller registrations</CardDescription>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[200px]">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search stores or legal name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-8 pl-8 text-xs"
+                />
+              </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground outline-none focus-visible:border-ring"
+              >
+                {["ALL", "VERIFIED", "SUBMITTED", "DRAFT", "REJECTED", "SUSPENDED"].map((s) => (
+                  <option key={s} value={s}>
+                    {s === "ALL" ? "All statuses" : s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2 py-4">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              icon={Store}
+              title="No merchants found"
+              description="No registered stores match your search criteria."
+              actionLabel={statusFilter !== "ALL" || searchQuery ? "Clear filters" : undefined}
+              onAction={() => {
+                setStatusFilter("ALL");
+                setSearchQuery("");
+              }}
+            />
+          ) : (
+            <Table>
+              <THead>
+                <tr>
+                  <TH>Store &amp; Tenant</TH>
+                  <TH>Legal Entity</TH>
+                  <TH>Contact Email</TH>
+                  <TH>Registered</TH>
+                  <TH>KYC Status</TH>
+                  <TH className="text-right">Governance Actions</TH>
                 </tr>
-              </thead>
+              </THead>
               <tbody>
-                {merchants.map((m) => (
-                  <tr key={m.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>{m.businessName}</td>
-                    <td style={{ padding: '0.75rem' }}>{m.legalName}</td>
-                    <td style={{ padding: '0.75rem' }}>{m.contactEmail}</td>
-                    <td style={{ padding: '0.75rem' }}><code>{m.tenantId}</code></td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span
-                        style={{
-                          padding: '2px 8px',
-                          borderRadius: '999px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          background:
-                            m.verificationStatus === 'VERIFIED'
-                              ? 'rgba(34, 197, 94, 0.15)'
-                              : m.verificationStatus === 'SUBMITTED'
-                              ? 'rgba(59, 130, 246, 0.15)'
-                              : m.verificationStatus === 'REJECTED'
-                              ? 'rgba(239, 68, 68, 0.15)'
-                              : 'rgba(234, 179, 8, 0.15)',
-                          color:
-                            m.verificationStatus === 'VERIFIED'
-                              ? 'var(--accent-green)'
-                              : m.verificationStatus === 'SUBMITTED'
-                              ? 'var(--accent-blue)'
-                              : m.verificationStatus === 'REJECTED'
-                              ? 'var(--accent-red)'
-                              : 'var(--accent-amber)',
-                        }}
-                      >
-                        {m.verificationStatus}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                        {m.verificationStatus === 'SUBMITTED' && (
+                {filtered.map((m) => (
+                  <tr key={m.id || m.tenantId}>
+                    <TD>
+                      <div className="font-medium text-xs">{m.businessName}</div>
+                      <div className="font-mono text-[11px] text-muted-foreground">{m.tenantId}</div>
+                    </TD>
+                    <TD className="text-xs text-muted-foreground">{m.legalName || "—"}</TD>
+                    <TD className="text-xs text-muted-foreground">{m.contactEmail}</TD>
+                    <TD className="text-xs text-muted-foreground">
+                      {m.createdAt ? new Date(m.createdAt).toLocaleDateString() : "—"}
+                    </TD>
+                    <TD>
+                      <Badge variant={statusVariant(m.verificationStatus)}>{m.verificationStatus}</Badge>
+                    </TD>
+                    <TD className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {m.verificationStatus !== "VERIFIED" ? (
                           <>
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
+                            <Button
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              disabled={isSubmittingAction}
                               onClick={() => handleApprove(m.tenantId)}
                             >
+                              <CheckCircle className="mr-1 h-3 w-3" />
                               Approve
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', color: 'var(--accent-red)' }}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10"
+                              disabled={isSubmittingAction}
                               onClick={() => setRejectingTenantId(m.tenantId)}
                             >
+                              <XCircle className="mr-1 h-3 w-3" />
                               Reject
-                            </button>
+                            </Button>
                           </>
-                        )}
-                        {m.verificationStatus === 'VERIFIED' && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--accent-green)', fontWeight: 600 }}>
-                            Authorized Active Seller
-                          </span>
+                        ) : (
+                          <span className="text-[11px] font-medium text-emerald-600">Active &amp; Authorized</span>
                         )}
                       </div>
-                    </td>
+                    </TD>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
