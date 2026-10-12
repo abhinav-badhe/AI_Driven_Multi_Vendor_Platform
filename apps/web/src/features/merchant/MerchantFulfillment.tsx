@@ -17,6 +17,7 @@ import { Alert } from "../../components/ui/alert";
 import { EmptyState, Skeleton } from "../../components/ui/empty";
 import { Input, Label } from "../../components/ui/input";
 import { DeliveryRouteMap, type DeliveryAddressCoords } from "./components/DeliveryRouteMap";
+import { PrintableShippingLabelModal } from "./components/PrintableShippingLabelModal";
 
 export type ShipmentStatus =
   | "PENDING"
@@ -113,6 +114,7 @@ export const MerchantFulfillment = () => {
   const [selectedSellerOrderId, setSelectedSellerOrderId] = useState("");
   const [selectedCarrier, setSelectedCarrier] = useState(CARRIERS[0]!);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [labelModalShipment, setLabelModalShipment] = useState<ShipmentDto | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -124,7 +126,8 @@ export const MerchantFulfillment = () => {
       ]);
       const loadedShipments = Array.isArray(shipmentsData) ? shipmentsData : [];
       setShipments(loadedShipments);
-      setSellerOrders(Array.isArray(ordersData) ? ordersData : []);
+      const loadedOrders = Array.isArray(ordersData) ? ordersData : [];
+      setSellerOrders(loadedOrders);
 
       if (loadedShipments.length > 0 && !activeShipmentId) {
         setActiveShipmentId(loadedShipments[0]!.id);
@@ -132,8 +135,8 @@ export const MerchantFulfillment = () => {
         setActiveShipmentId(null);
       }
 
-      if (ordersData.length > 0 && !selectedSellerOrderId) {
-        setSelectedSellerOrderId(ordersData[0]!.id);
+      if (loadedOrders.length > 0 && !selectedSellerOrderId) {
+        setSelectedSellerOrderId(loadedOrders[0]!.id);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not load fulfillment records.");
@@ -213,10 +216,28 @@ export const MerchantFulfillment = () => {
 
     try {
       const order = sellerOrders.find((o) => o.id === selectedSellerOrderId.trim());
-      const itemsToFulfill =
+      let itemsToFulfill =
         order?.items && order.items.length > 0
           ? order.items.map((it) => ({ orderItemId: it.id, quantity: it.quantity }))
-          : [{ orderItemId: "item-default-1", quantity: 1 }];
+          : [];
+
+      if (itemsToFulfill.length === 0 && selectedSellerOrderId.trim()) {
+        try {
+          const detail = await apiClient<{ items?: Array<{ id: string; quantity: number }> }>(
+            `/seller/orders/${selectedSellerOrderId.trim()}`
+          );
+          if (detail?.items && detail.items.length > 0) {
+            itemsToFulfill = detail.items.map((it) => ({ orderItemId: it.id, quantity: it.quantity }));
+          }
+        } catch {
+          // fall through
+        }
+      }
+
+      if (itemsToFulfill.length === 0) {
+        setError("Could not identify items for this order. Please verify order details.");
+        return;
+      }
 
       const newShipment = await apiClient<ShipmentDto>("/fulfillment/shipments", {
         method: "POST",
@@ -230,8 +251,9 @@ export const MerchantFulfillment = () => {
 
       setShowCreate(false);
       setActiveShipmentId(newShipment.id);
+      setLabelModalShipment(newShipment);
       setNotice(
-        `Carrier shipment created successfully! Tracking: ${newShipment.trackingNumber || "Assigned"}`,
+        `Carrier shipment created successfully! Tracking: ${newShipment.trackingNumber || "Assigned"}. Airway bill generated.`,
       );
       setTimeout(() => setNotice(null), 5000);
       await loadData();
@@ -258,10 +280,15 @@ export const MerchantFulfillment = () => {
   // Active shipment object for map view
   const activeShipment = shipments.find((s) => s.id === activeShipmentId) || shipments[0] || null;
 
+  // Selected order for pending route inspection
+  const selectedOrder = sellerOrders.find((o) => o.id === selectedSellerOrderId.trim()) || sellerOrders[0] || null;
+
   // Resolve matching seller order to obtain delivery address details
-  const matchingOrder = sellerOrders.find(
-    (o) => o.id === activeShipment?.sellerOrderId || o.customerOrderId === activeShipment?.customerOrderId,
-  );
+  const matchingOrder = activeShipment
+    ? sellerOrders.find(
+        (o) => o.id === activeShipment.sellerOrderId || o.customerOrderId === activeShipment.customerOrderId,
+      )
+    : selectedOrder;
 
   const activeDeliveryAddress: DeliveryAddressCoords =
     (activeShipment?.metadata?.['deliveryAddress'] as DeliveryAddressCoords) ||
@@ -324,23 +351,43 @@ export const MerchantFulfillment = () => {
             isUpdating={updatingId === activeShipment.id}
           />
         </section>
-      ) : sellerOrders.length > 0 ? (
+      ) : selectedOrder ? (
+        <section aria-label="Route and Delivery Map">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs font-mono">
+                Route Preview • Order #{selectedOrder.id.slice(0, 8)}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                Customer delivery destination coordinates pinned below
+              </span>
+            </div>
+            {!showCreate && (
+              <Button size="sm" onClick={() => setShowCreate(true)} className="h-7 text-xs">
+                <Truck className="size-3.5 mr-1" />
+                Dispatch Order with {selectedCarrier}
+              </Button>
+            )}
+          </div>
+          <DeliveryRouteMap
+            shipmentId={undefined}
+            trackingNumber={undefined}
+            carrier={selectedCarrier}
+            status="READY_TO_SHIP"
+            deliveryAddress={activeDeliveryAddress}
+          />
+        </section>
+      ) : (
         <Card className="border border-dashed border-border bg-muted/20 p-6 text-center">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Compass className="size-6" />
           </div>
-          <h3 className="mt-3 text-sm font-semibold">Incoming Orders Ready for Route Dispatch</h3>
+          <h3 className="mt-3 text-sm font-semibold">No Incoming Orders to Fulfill</h3>
           <p className="mt-1 text-xs text-muted-foreground max-w-md mx-auto">
-            You have {sellerOrders.length} customer order ready for carrier fulfillment. Click below to generate postage label and calculate delivery route on Google Maps.
+            All customer orders are currently fulfilled or awaiting checkout payments.
           </p>
-          <div className="mt-4 flex justify-center">
-            <Button size="sm" onClick={() => setShowCreate(true)}>
-              <Truck className="size-3.5 mr-1.5" />
-              Dispatch Order with BlueDart
-            </Button>
-          </div>
         </Card>
-      ) : null}
+      )}
 
       {/* 2. Create Shipment Modal / Drawer */}
       {showCreate && (
@@ -399,6 +446,22 @@ export const MerchantFulfillment = () => {
                   </select>
                 </div>
               </div>
+
+              {/* Order Items Preview */}
+              {selectedOrder?.items && selectedOrder.items.length > 0 && (
+                <div className="rounded-md border border-border/80 bg-background/80 p-2.5 text-xs">
+                  <span className="font-semibold text-muted-foreground block mb-1">
+                    Order items included for carrier fulfillment:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedOrder.items.map((it) => (
+                      <span key={it.id} className="rounded bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">
+                        {it.productName || "Product"} × {it.quantity}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button
@@ -525,32 +588,40 @@ export const MerchantFulfillment = () => {
                       </span>
                     </div>
 
-                    {(s.labelUrl || s.trackingUrl) && (
-                      <div className="flex items-center gap-3 border-t border-border/50 pt-1.5 text-[11px]">
-                        {s.labelUrl && (
-                          <a
-                            href={s.labelUrl}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                            className="inline-flex items-center gap-1 text-primary hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Printer size={12} /> Label PDF
-                          </a>
-                        )}
-                        {s.trackingUrl && (
-                          <a
-                            href={s.trackingUrl}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                            className="inline-flex items-center gap-1 text-primary hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <ExternalLink size={12} /> Courier Portal
-                          </a>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-3 border-t border-border/50 pt-1.5 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLabelModalShipment(s);
+                        }}
+                        className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                      >
+                        <Printer size={12} /> Airway Bill (AWB)
+                      </button>
+                      {s.labelUrl && !s.labelUrl.includes("mocklogistics") && (
+                        <a
+                          href={s.labelUrl}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink size={12} /> Carrier PDF
+                        </a>
+                      )}
+                      {s.trackingUrl && (
+                        <a
+                          href={s.trackingUrl}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink size={12} /> Portal
+                        </a>
+                      )}
+                    </div>
                   </div>
 
                   {/* Action footer */}
@@ -598,6 +669,15 @@ export const MerchantFulfillment = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Printable Shipping Airway Bill Modal */}
+      {labelModalShipment && (
+        <PrintableShippingLabelModal
+          shipment={labelModalShipment}
+          deliveryAddress={activeDeliveryAddress}
+          onClose={() => setLabelModalShipment(null)}
+        />
       )}
     </div>
   );

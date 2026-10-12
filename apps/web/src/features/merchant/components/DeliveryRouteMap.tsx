@@ -122,7 +122,7 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
-  const [mapMode, setMapMode] = useState<'interactive' | 'google_satellite'>('interactive');
+  const [mapMode, setMapMode] = useState<'interactive' | 'google_satellite' | 'google_roadmap'>('interactive');
 
   const destCoords = resolveCoordinates(deliveryAddress);
   const originCoords = { lat: originHub.lat, lng: originHub.lng };
@@ -208,7 +208,12 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
       leafletMapRef.current = null;
     }
 
-    const map = L.map(mapContainerRef.current, {
+    const container = mapContainerRef.current;
+    if ((container as unknown as { _leaflet_id?: number })._leaflet_id) {
+      delete (container as unknown as { _leaflet_id?: number })._leaflet_id;
+    }
+
+    const map = L.map(container, {
       center: [vehicleLat, vehicleLng],
       zoom: 12,
       scrollWheelZoom: false,
@@ -295,7 +300,12 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
     ]);
     map.fitBounds(bounds, { padding: [50, 50] });
 
+    const resizeTimer = setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+
     return () => {
+      clearTimeout(resizeTimer);
       if (leafletMapRef.current) {
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
@@ -305,7 +315,8 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
 
   // Google Maps Universal Driving Directions URL
   const googleMapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originCoords.lat},${originCoords.lng}&destination=${destCoords.lat},${destCoords.lng}&travelmode=driving`;
-  const googleMapsEmbedUrl = `https://maps.google.com/maps?q=${destCoords.lat},${destCoords.lng}&t=m&z=14&ie=UTF8&iwloc=&output=embed`;
+  const googleMapsSatelliteEmbedUrl = `https://maps.google.com/maps?q=${destCoords.lat},${destCoords.lng}&t=k&z=15&ie=UTF8&iwloc=&output=embed`;
+  const googleMapsRoadmapEmbedUrl = `https://maps.google.com/maps?q=${destCoords.lat},${destCoords.lng}&t=m&z=14&ie=UTF8&iwloc=&output=embed`;
 
   return (
     <Card className="overflow-hidden border border-border shadow-sm">
@@ -337,7 +348,16 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
                   mapMode === 'interactive' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Interactive Map
+                Live Radar Route
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapMode('google_roadmap')}
+                className={`rounded px-2.5 py-1 font-medium transition ${
+                  mapMode === 'google_roadmap' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Google Maps Road
               </button>
               <button
                 type="button"
@@ -346,7 +366,7 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
                   mapMode === 'google_satellite' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Google Maps Embed
+                Google Satellite
               </button>
             </div>
 
@@ -362,7 +382,6 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
           </div>
         </div>
       </CardHeader>
-
       <CardContent className="p-0">
         <div className="grid grid-cols-1 lg:grid-cols-12">
           {/* Main Map View Area */}
@@ -372,7 +391,7 @@ export const DeliveryRouteMap: React.FC<DeliveryRouteMapProps> = ({
             ) : (
               <iframe
                 title="Google Maps Embed View"
-                src={googleMapsEmbedUrl}
+                src={mapMode === 'google_satellite' ? googleMapsSatelliteEmbedUrl : googleMapsRoadmapEmbedUrl}
                 className="h-full min-h-[420px] w-full border-0"
                 loading="lazy"
               />

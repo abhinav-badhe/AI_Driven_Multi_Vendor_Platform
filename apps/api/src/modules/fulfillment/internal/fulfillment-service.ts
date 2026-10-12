@@ -493,7 +493,7 @@ export class FulfillmentService implements IFulfillmentService {
     // 6. SHORT ATOMIC POSTGRESQL TRANSACTION
     // Atomically persist shipment, items, status update, and outbox event
     const shipmentId = randomUUID();
-    return this.db.withTransaction(async (tx) => {
+    const createdShipment = await this.db.withTransaction(async (tx) => {
       // Database row-level lock on seller order to serialize fulfillment across application processes
       await tx.query('SELECT id FROM seller_orders WHERE id = $1 FOR UPDATE', [sellerOrder.id]);
 
@@ -564,19 +564,6 @@ export class FulfillmentService implements IFulfillmentService {
         itemRows.push(itemRow);
       }
 
-      // If seller order was PAID, move to PROCESSING
-      if (sellerOrder.status === 'PAID') {
-        try {
-          await this.orderService.updateSellerOrderStatus(
-            adminActor,
-            sellerOrder.id,
-            'PROCESSING',
-          );
-        } catch {
-          // If already updated concurrently, safe to continue
-        }
-      }
-
       // 7. Atomic Outbox Event in SAME PostgreSQL transaction
       if (this.outboxService) {
         const outboxEvent = createDomainEvent({
@@ -601,6 +588,21 @@ export class FulfillmentService implements IFulfillmentService {
 
       return this.toShipmentDto(shipmentRow, itemRows);
     });
+
+    // 8. If seller order was PAID, move to PROCESSING outside transaction lock to avoid deadlock
+    if (sellerOrder.status === 'PAID') {
+      try {
+        await this.orderService.updateSellerOrderStatus(
+          adminActor,
+          sellerOrder.id,
+          'PROCESSING',
+        );
+      } catch {
+        // If already updated concurrently, safe to continue
+      }
+    }
+
+    return createdShipment;
   }
 
   private async executeCarrierCallAndPersist(params: {
