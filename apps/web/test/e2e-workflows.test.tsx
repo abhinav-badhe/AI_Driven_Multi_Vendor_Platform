@@ -134,7 +134,7 @@ describe('End-to-End Multi-Vendor Platform Workflows', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Admin')).toBeDefined();
+      expect(screen.getByText(/Sign in as Admin/i)).toBeDefined();
       expect(screen.getByText(/administrator account/i)).toBeDefined();
     });
   });

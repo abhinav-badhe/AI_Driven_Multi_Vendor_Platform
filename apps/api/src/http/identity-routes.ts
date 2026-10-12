@@ -37,6 +37,24 @@ export function registerIdentityRoutes(
     );
   };
 
+  const sendResetEmail = async (to: string, rawToken: string): Promise<void> => {
+    const sender = options?.verification;
+    if (!sender) return;
+    const url = `${sender.frontendUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(rawToken)}`;
+    await sender.sendEmail(
+      to,
+      'Reset your password',
+      [
+        'We received a request to reset your password.',
+        '',
+        `Reset your password here: ${url}`,
+        '',
+        'This link expires in 1 hour. If you did not request a password reset, you can safely ignore this email.',
+      ].join('\n'),
+    );
+  };
+
+
   // POST /auth/register — creates an UNVERIFIED account and emails a
   // verification link. No session is issued until the email is verified.
   app.post('/auth/register', { preHandler: rateLimitHook }, async (request, reply) => {
@@ -102,6 +120,42 @@ export function registerIdentityRoutes(
     }
     return reply.status(200).send({
       message: 'If an unverified account exists for this email, a new link is on its way.',
+    });
+  });
+
+  // POST /auth/forgot-password — initiates password reset. Always returns 200 to prevent email enumeration.
+  app.post('/auth/forgot-password', { preHandler: rateLimitHook }, async (request, reply) => {
+    const body = (request.body as { email?: unknown } | undefined) ?? {};
+    if (typeof body.email !== 'string' || !body.email.includes('@')) {
+      throw new ValidationError('email is required');
+    }
+    const pending = await identityService.beginPasswordReset(body.email);
+    if (pending) {
+      try {
+        await sendResetEmail(pending.email, pending.rawToken);
+      } catch {
+        // Token exists; delivery failure won't crash or leak info
+      }
+    }
+    return reply.status(200).send({
+      message: 'If an account exists with this email, a password reset link has been sent.',
+    });
+  });
+
+  // POST /auth/reset-password — consumes reset token and updates password
+  app.post('/auth/reset-password', { preHandler: rateLimitHook }, async (request, reply) => {
+    const body = (request.body as { token?: unknown; password?: unknown } | undefined) ?? {};
+    if (typeof body.token !== 'string' || body.token.trim() === '') {
+      throw new ValidationError('token is required');
+    }
+    if (typeof body.password !== 'string' || body.password.length < 8) {
+      throw new ValidationError('password must be at least 8 characters');
+    }
+    const result = await identityService.resetPassword(body.token, body.password);
+    return reply.status(200).send({
+      userId: result.userId,
+      email: result.email,
+      message: 'Password has been successfully reset. Please sign in with your new password.',
     });
   });
 

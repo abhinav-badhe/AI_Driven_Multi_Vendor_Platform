@@ -184,6 +184,73 @@ export class IdentityService implements IIdentityActorResolver {
     return { rawToken, email: user.email };
   }
 
+  /**
+   * Issues a fresh password reset token for a user (invalidating previous ones).
+   */
+  async createPasswordResetToken(userId: string): Promise<string> {
+    const user = await this.repo.findUserById(userId);
+    if (!user) throw new NotFoundError('User not found');
+
+    const rawToken = randomBytes(32).toString('hex');
+    await this.repo.deletePasswordResetTokensForUser(userId);
+    await this.repo.createPasswordResetToken(
+      userId,
+      hashVerificationToken(rawToken),
+      new Date(Date.now() + 60 * 60 * 1000), // 1 hour TTL
+    );
+    return rawToken;
+  }
+
+  /**
+   * Initiates password reset for an email address.
+   * Returns the raw token and email, or null if the user does not exist.
+   * Always safe to return null to avoid email enumeration.
+   */
+  async beginPasswordReset(email: string): Promise<{ rawToken: string; email: string } | null> {
+    const user = await this.repo.findUserByEmail(email);
+    if (!user || user.status !== 'ACTIVE') {
+      return null;
+    }
+    const rawToken = await this.createPasswordResetToken(user.id);
+    return { rawToken, email: user.email };
+  }
+
+  /**
+   * Consumes a password reset token and sets the new password.
+   */
+  async resetPassword(rawToken: string, newPassword: string): Promise<{ userId: string; email: string }> {
+    if (!rawToken || typeof rawToken !== 'string') {
+      throw new ValidationError('Reset token is required');
+    }
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+      throw new ValidationError('Password must be at least 8 characters');
+    }
+
+    const record = await this.repo.findValidPasswordResetToken(hashVerificationToken(rawToken.trim()));
+    if (!record) {
+      throw new ValidationError('Password reset link is invalid or has expired');
+    }
+
+    const user = await this.repo.findUserById(record.user_id);
+    if (!user || user.status !== 'ACTIVE') {
+      throw new ValidationError('User account is invalid or deactivated');
+    }
+
+    const newHash = await this.hasher.hash(newPassword);
+    await this.repo.updateUserPassword(user.id, newHash);
+    await this.repo.consumePasswordResetToken(record.id);
+    await this.repo.deletePasswordResetTokensForUser(user.id);
+    await this.repo.revokeAllUserTokens(user.id);
+
+    await this.audit.record({
+      eventType: 'PASSWORD_RESET_SUCCESS',
+      actorId: user.id,
+      metadata: {},
+    });
+
+    return { userId: user.id, email: user.email };
+  }
+
   async login(input: LoginInput, context?: AuthRequestContext | undefined): Promise<LoginResult> {
     // Generic delay-compatible failure path to prevent timing oracle attacks
     const genericFailure = async () => {

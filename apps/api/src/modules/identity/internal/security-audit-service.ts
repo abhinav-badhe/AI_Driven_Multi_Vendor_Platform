@@ -21,7 +21,8 @@ export type AuditEventType =
   | 'LOGIN_2FA_CHALLENGE'
   | 'LOGIN_2FA_FAILURE'
   | '2FA_ENABLED'
-  | '2FA_DISABLED';
+  | '2FA_DISABLED'
+  | 'PASSWORD_RESET_SUCCESS';
 
 export interface AuditEventMetadata {
   [key: string]: unknown;

@@ -40,6 +40,8 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<RegisterResult>;
   verifyEmail: (token: string) => Promise<void>;
   resendVerification: (email: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<{ message: string }>;
+  resetPassword: (token: string, password: string) => Promise<{ message: string }>;
   logout: () => Promise<void>;
 }
 
@@ -162,6 +164,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const forgotPassword = useCallback(async (email: string): Promise<{ message: string }> => {
+    return await apiClient<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }, []);
+
+  const resetPassword = useCallback(async (token: string, password: string): Promise<{ message: string }> => {
+    return await apiClient<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+  }, []);
 
   const logout = async () => {
     try {
@@ -172,7 +187,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, verify2FALogin, register, verifyEmail, resendVerification, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        login,
+        verify2FALogin,
+        register,
+        verifyEmail,
+        resendVerification,
+        forgotPassword,
+        resetPassword,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -190,8 +219,11 @@ export const useAuth = () => {
       register: async () => ({} as RegisterResult),
       verifyEmail: async () => {},
       resendVerification: async () => {},
+      forgotPassword: async () => ({ message: '' }),
+      resetPassword: async () => ({ message: '' }),
       logout: async () => {},
     };
   }
   return ctx;
 };
+

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, MailCheck, MapPin, UserRound, BellRing, ShieldCheck, Copy, Check, Smartphone } from "lucide-react";
+import { Bell, MailCheck, MapPin, UserRound, BellRing, ShieldCheck, Copy, Check, Smartphone, KeyRound, ArrowLeft } from "lucide-react";
 import { useAuth, isEmailNotVerifiedError, type LoginCredentials, type UserContext } from "./AuthContext";
 import { apiClient } from "../../api/client";
 import { Button, buttonVariants } from "../../components/ui/button";
@@ -24,7 +24,7 @@ type Tab = "profile" | "security" | "preferences" | "addresses" | "alerts";
 
 export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin?: boolean } = {}) => {
   const navigate = useNavigate();
-  const { isAuthenticated, user, login, verify2FALogin, register, resendVerification, logout, isLoading } = useAuth();
+  const { isAuthenticated, user, login, verify2FALogin, register, resendVerification, forgotPassword, logout, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -35,6 +35,12 @@ export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin
   const [needsVerificationEmail, setNeedsVerificationEmail] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Forgot password state
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSuccessMsg, setForgotSuccessMsg] = useState<string | null>(null);
+  const [isForgotSubmitting, setIsForgotSubmitting] = useState(false);
 
   // 2FA login challenge state
   const [twoFactorChallenge, setTwoFactorChallenge] = useState<{ tempToken: string } | null>(null);
@@ -647,6 +653,20 @@ export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsForgotSubmitting(true);
+    try {
+      const res = await forgotPassword(forgotEmail);
+      setForgotSuccessMsg(res.message || "If an account exists with this email, a password reset link has been sent.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to request password reset.");
+    } finally {
+      setIsForgotSubmitting(false);
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -765,6 +785,61 @@ export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin
                 </Button>
               </div>
             </form>
+          ) : isForgotPassword ? (
+            <form onSubmit={handleForgotPassword} className="flex flex-col gap-3.5">
+              <div className="flex items-center gap-2.5 mb-1">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <KeyRound className="size-4" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold leading-none">Forgot your password?</h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enter your email to receive a secure password reset link.
+                  </p>
+                </div>
+              </div>
+
+              {error && <Alert tone="error">{error}</Alert>}
+              {forgotSuccessMsg && <Alert tone="success">{forgotSuccessMsg}</Alert>}
+
+              {!forgotSuccessMsg ? (
+                <>
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="forgot-email">Account Email</Label>
+                    <Input
+                      id="forgot-email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  <Button type="submit" disabled={isForgotSubmitting || !forgotEmail.trim()}>
+                    {isForgotSubmitting ? "Sending reset link…" : "Send Reset Link"}
+                  </Button>
+                </>
+              ) : null}
+
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setIsForgotPassword(false);
+                    setError("");
+                    setForgotSuccessMsg(null);
+                  }}
+                >
+                  <ArrowLeft className="mr-1.5 size-3.5" />
+                  Back to sign in
+                </Button>
+              </div>
+            </form>
           ) : (
             <>
               <div className="flex gap-1 rounded-md bg-muted p-1" role="tablist" aria-label="Sign in or create account">
@@ -826,7 +901,21 @@ export const AccountPage = ({ redirectAfterLogin = false }: { redirectAfterLogin
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Label htmlFor="login-password">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password">Password</Label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsForgotPassword(true);
+                          setForgotEmail(email);
+                          setError("");
+                          setForgotSuccessMsg(null);
+                        }}
+                        className="text-xs text-primary hover:underline font-medium"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <Input
                       id="login-password"
                       type="password"

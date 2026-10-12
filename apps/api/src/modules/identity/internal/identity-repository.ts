@@ -208,6 +208,63 @@ export class IdentityRepository {
     await this.db.query(`DELETE FROM email_verification_tokens WHERE user_id = $1`, [userId]);
   }
 
+  async createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
+    await this.db.query(
+      `INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3, $4)`,
+      [randomUUID(), userId, tokenHash, expiresAt.toISOString()],
+    );
+  }
+
+  async findValidPasswordResetToken(tokenHash: string): Promise<{
+    id: string;
+    user_id: string;
+    token_hash: string;
+    expires_at: string;
+    consumed_at: string | null;
+  } | null> {
+    const result = await this.db.query<{
+      id: string;
+      user_id: string;
+      token_hash: string;
+      expires_at: string;
+      consumed_at: string | null;
+    }>(
+      `SELECT * FROM password_reset_tokens
+       WHERE token_hash = $1 AND consumed_at IS NULL`,
+      [tokenHash],
+    );
+    const row = result.rows[0] ?? null;
+    if (!row) return null;
+    if (new Date(row.expires_at).getTime() <= Date.now()) return null;
+    return row;
+  }
+
+  async consumePasswordResetToken(id: string): Promise<void> {
+    await this.db.query(
+      `UPDATE password_reset_tokens SET consumed_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      [id],
+    );
+  }
+
+  async deletePasswordResetTokensForUser(userId: string): Promise<void> {
+    await this.db.query(`DELETE FROM password_reset_tokens WHERE user_id = $1`, [userId]);
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+    await this.db.query(
+      `UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+      [passwordHash, userId],
+    );
+  }
+
+  async revokeAllUserTokens(userId: string): Promise<void> {
+    await this.db.query(
+      `UPDATE refresh_tokens SET is_revoked = TRUE WHERE user_id = $1`,
+      [userId],
+    );
+  }
+
   async rotateRefreshToken(id: string): Promise<void> {
     await this.db.query(
       `UPDATE refresh_tokens SET is_rotated = TRUE, rotated_at = CURRENT_TIMESTAMP WHERE id = $1`,

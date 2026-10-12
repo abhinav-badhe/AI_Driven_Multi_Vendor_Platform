@@ -463,4 +463,87 @@ describe('Identity HTTP Routes (Browser Contract)', () => {
       expect(refreshRes.statusCode).toBe(401);
     });
   });
+
+  describe('Password Reset flow', () => {
+    it('forgot-password returns 200 without leaking whether email exists', async () => {
+      // Non-existent email
+      const res1 = await app.inject({
+        method: 'POST',
+        url: '/auth/forgot-password',
+        payload: { email: 'nonexistent@example.com' },
+      });
+      expect(res1.statusCode).toBe(200);
+      expect(JSON.parse(res1.payload).message).toContain('password reset link has been sent');
+
+      // Existing email
+      await registerVerified('exists@example.com', 'originalPass1!');
+      const res2 = await app.inject({
+        method: 'POST',
+        url: '/auth/forgot-password',
+        payload: { email: 'exists@example.com' },
+      });
+      expect(res2.statusCode).toBe(200);
+      expect(JSON.parse(res2.payload).message).toContain('password reset link has been sent');
+    });
+
+    it('reset-password validates minimum password length', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/auth/reset-password',
+        payload: { token: 'validlookingtoken1234567890123456', password: 'short' },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('reset-password updates password and allows login with new credentials', async () => {
+      await registerVerified('resetme@example.com', 'originalPass1!');
+      const pending = await service.beginPasswordReset('resetme@example.com');
+      expect(pending).not.toBeNull();
+
+      const resetRes = await app.inject({
+        method: 'POST',
+        url: '/auth/reset-password',
+        payload: { token: pending!.rawToken, password: 'newSecurePassword99!' },
+      });
+      expect(resetRes.statusCode).toBe(200);
+      expect(JSON.parse(resetRes.payload).message).toContain('successfully reset');
+
+      // Old password should fail
+      const oldLogin = await app.inject({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email: 'resetme@example.com', password: 'originalPass1!' },
+      });
+      expect(oldLogin.statusCode).toBe(401);
+
+      // New password should succeed
+      const newLogin = await app.inject({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email: 'resetme@example.com', password: 'newSecurePassword99!' },
+      });
+      expect(newLogin.statusCode).toBe(200);
+    });
+
+    it('reset token cannot be reused', async () => {
+      await registerVerified('reused@example.com', 'originalPass1!');
+      const pending = await service.beginPasswordReset('reused@example.com');
+
+      const firstReset = await app.inject({
+        method: 'POST',
+        url: '/auth/reset-password',
+        payload: { token: pending!.rawToken, password: 'brandNewPass123!' },
+      });
+      expect(firstReset.statusCode).toBe(200);
+
+      // Second reset attempt with same token must fail
+      const secondReset = await app.inject({
+        method: 'POST',
+        url: '/auth/reset-password',
+        payload: { token: pending!.rawToken, password: 'anotherNewPass123!' },
+      });
+      expect(secondReset.statusCode).toBe(400);
+    });
+  });
 });
+
